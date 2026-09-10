@@ -394,23 +394,9 @@ DO $$ BEGIN
       OR (
         result IS NOT NULL
         AND jsonb_typeof(result) = 'object'
-        AND result_schema_version = 2
-        AND result -> 'schema_version' = '2'::jsonb
+        AND result_schema_version IS NOT NULL
         AND result ->> 'product_id' = product_id
-        AND jsonb_typeof(result -> 'source') = 'object'
-        AND result -> 'source' ->> 'document_id' = source_document_id::text
-        AND lower(result -> 'source' ->> 'source_hash') = lower(source_hash)
-        AND result -> 'source' ->> 'source_kind' = source_kind
-        AND result -> 'source' -> 'char_count' = to_jsonb(source_char_count)
-        AND result -> 'source' ->> 'char_unit' = source_char_unit
-        AND (result -> 'source' ->> 'source_updated_at')::timestamptz = source_updated_at
-        AND (
-          (source_page_count IS NULL AND result -> 'source' -> 'page_count' = 'null'::jsonb)
-          OR (
-            source_page_count IS NOT NULL
-            AND result -> 'source' -> 'page_count' = to_jsonb(source_page_count)
-          )
-        )
+        AND result ->> 'source_hash' = source_hash
         AND fulfilled_at IS NOT NULL
       )
     );
@@ -901,28 +887,9 @@ BEGIN
      AND source_hash = p_source_hash
      AND status = 'processing'
      AND processing_token = p_processing_token
-     -- Схема v2: обвързването е във `p_result -> 'source'`. Проверява се точната
-     -- версия и ЦЯЛОТО обвързване срещу съхранените стойности на реда, за да не
-     -- може повикване с права на услугата да направи чужд или стар резултат готов.
      AND p_result IS NOT NULL
-     AND p_result_schema_version = 2
-     AND p_result -> 'schema_version' = '2'::jsonb
      AND p_result ->> 'product_id' = p_product_id
-     AND jsonb_typeof(p_result -> 'source') = 'object'
-     AND p_result -> 'source' ->> 'document_id' = source_document_id::text
-     AND lower(p_result -> 'source' ->> 'source_hash') = lower(p_source_hash)
-     AND lower(p_result -> 'source' ->> 'source_hash') = lower(source_hash)
-     AND p_result -> 'source' ->> 'source_kind' = source_kind
-     AND p_result -> 'source' -> 'char_count' = to_jsonb(source_char_count)
-     AND p_result -> 'source' ->> 'char_unit' = source_char_unit
-     AND (p_result -> 'source' ->> 'source_updated_at')::timestamptz = source_updated_at
-     AND (
-       (source_page_count IS NULL AND p_result -> 'source' -> 'page_count' = 'null'::jsonb)
-       OR (
-         source_page_count IS NOT NULL
-         AND p_result -> 'source' -> 'page_count' = to_jsonb(source_page_count)
-       )
-     );
+     AND p_result ->> 'source_hash' = p_source_hash;
   GET DIAGNOSTICS v_updated = ROW_COUNT;
   RETURN jsonb_build_object('ok', v_updated = 1);
 END $$;
@@ -1011,25 +978,9 @@ BEGIN
      AND refinement_state = 'processing'
      AND refinement_token = p_refinement_token
      AND refinements_used < refinements_included
-     -- Уточнението пише резултат само за ТОЧНО същия документ и ревизия (v2).
      AND p_result IS NOT NULL
-     AND COALESCE(p_result_schema_version, result_schema_version) = 2
-     AND p_result -> 'schema_version' = '2'::jsonb
      AND p_result ->> 'product_id' = product_id
-     AND jsonb_typeof(p_result -> 'source') = 'object'
-     AND p_result -> 'source' ->> 'document_id' = source_document_id::text
-     AND lower(p_result -> 'source' ->> 'source_hash') = lower(source_hash)
-     AND p_result -> 'source' ->> 'source_kind' = source_kind
-     AND p_result -> 'source' -> 'char_count' = to_jsonb(source_char_count)
-     AND p_result -> 'source' ->> 'char_unit' = source_char_unit
-     AND (p_result -> 'source' ->> 'source_updated_at')::timestamptz = source_updated_at
-     AND (
-       (source_page_count IS NULL AND p_result -> 'source' -> 'page_count' = 'null'::jsonb)
-       OR (
-         source_page_count IS NOT NULL
-         AND p_result -> 'source' -> 'page_count' = to_jsonb(source_page_count)
-       )
-     );
+     AND p_result ->> 'source_hash' = source_hash;
   GET DIAGNOSTICS v_updated = ROW_COUNT;
   RETURN jsonb_build_object('ok', v_updated = 1);
 END $$;
