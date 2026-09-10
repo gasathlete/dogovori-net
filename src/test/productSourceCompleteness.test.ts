@@ -8,15 +8,24 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 
-const invokeSpy = vi.fn();
+const state = vi.hoisted(() => ({
+  invokeSpy: vi.fn(),
+  mammothSpy: vi.fn(),
+  pdfPages: [] as string[],
+}));
+const { invokeSpy, mammothSpy } = state;
+
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { functions: { invoke: invokeSpy }, from: vi.fn(), storage: { from: vi.fn() }, auth: {} },
+  supabase: {
+    functions: { invoke: state.invokeSpy },
+    from: vi.fn(),
+    storage: { from: vi.fn() },
+    auth: {},
+  },
 }));
 
-const mammothSpy = vi.fn();
-vi.mock("mammoth", () => ({ extractRawText: (...a: unknown[]) => mammothSpy(...a) }));
+vi.mock("mammoth", () => ({ extractRawText: (...a: unknown[]) => state.mammothSpy(...a) }));
 
-let pdfPages: string[] = [];
 vi.mock("pdfjs-dist/legacy/build/pdf.mjs", () => ({
   GlobalWorkerOptions: {},
   getDocument: () => ({
