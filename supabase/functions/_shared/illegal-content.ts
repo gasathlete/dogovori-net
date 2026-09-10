@@ -9,12 +9,19 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0
 // Пощата се зарежда ЛЕНИВО: така детекторът остава чист и може да се внася от
 // пътища без мрежа (напр. проверката за допустимост преди плащане).
 async function sendAppEmailLazy(
-  ...args: Parameters<
-    typeof import("./transactional-email-templates/send-and-log.ts")["sendAppEmail"]
-  >
-) {
+  admin: SupabaseClient,
+  template: string,
+  recipient: string,
+  options: {
+    idempotencyKey: string;
+    templateData: Record<string, string>;
+  },
+): Promise<unknown> {
   const mod = await import("./transactional-email-templates/send-and-log.ts");
-  return await mod.sendAppEmail(...args);
+  const send = (mod as Record<string, unknown>).sendAppEmail as (
+    ...a: unknown[]
+  ) => Promise<unknown>;
+  return await send(admin, template, recipient, options);
 }
 
 export type IllegalCategory =
