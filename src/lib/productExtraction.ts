@@ -129,13 +129,25 @@ async function extractPdfSource(
   file: File,
   onPhase?: (phase: string) => void,
 ): Promise<ProductExtractionResult> {
-  let pdf: any;
+  interface PdfPage {
+    getTextContent: () => Promise<{ items: Array<{ str?: string }> }>;
+  }
+  interface PdfDocument {
+    numPages: number;
+    getPage: (index: number) => Promise<PdfPage>;
+  }
+  interface PdfJsModule {
+    GlobalWorkerOptions: { workerSrc: string };
+    getDocument: (args: { data: ArrayBuffer }) => { promise: Promise<PdfDocument> };
+  }
+
+  let pdf: PdfDocument | null = null;
   let pageCount: number | null = null;
   try {
     onPhase?.("Отваряме PDF…");
-    const pdfjs: any = await import("pdfjs-dist/legacy/build/pdf.mjs");
-    // @ts-ignore - worker URL import
-    const workerSrc = (await import("pdfjs-dist/legacy/build/pdf.worker.mjs?url")).default;
+    const pdfjs = (await import("pdfjs-dist/legacy/build/pdf.mjs")) as unknown as PdfJsModule;
+    // @ts-expect-error - worker URL import
+    const workerSrc = (await import("pdfjs-dist/legacy/build/pdf.worker.mjs?url")).default as string;
     pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
     const arrayBuffer = await file.arrayBuffer();
     pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
