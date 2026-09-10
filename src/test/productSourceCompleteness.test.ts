@@ -264,3 +264,47 @@ describe("продуктовият път не ползва общия OCR/кв�
     expect(generic).toContain("ocr-contract");
   });
 });
+
+describe("платеният път е обвързан с файл", () => {
+  const page = readFileSync("src/pages/ProductCheckout.tsx", "utf8");
+  const upload = readFileSync("src/lib/productUpload.ts", "utf8");
+
+  it("няма поставяне на текст в платената покупка", () => {
+    expect(page).not.toContain("Или поставете текста");
+    expect(page).not.toMatch(/pastedText|pasted/);
+    expect(upload).not.toMatch(/pastedText/);
+  });
+
+  it("не показва технически хеш на клиента и дава смяна на документа", () => {
+    expect(page).not.toMatch(/sourceHash\s*[.}]/);
+    expect(page).toContain("Смени документа");
+    expect(page).toContain("Коя е другата страна");
+  });
+
+  it("страницата е с noindex и е извън търсачките", () => {
+    expect(page).toContain("noindex");
+  });
+});
+
+describe("сървърът не вярва на браузъра за пълнотата", () => {
+  const fn = readFileSync("supabase/functions/create-product-checkout/index.ts", "utf8");
+
+  it("преизчислява хеша и изисква точния запис", () => {
+    expect(fn).toContain("verifyStoredProductSource");
+    expect(fn).toContain("sha256HexServer");
+    expect(fn).not.toContain("ocr-contract");
+  });
+
+  it("не приема адрес за връщане и непознати полета от заявката", () => {
+    expect(fn).toContain("ALLOWED_BODY_KEYS");
+    expect(fn).toContain("unknown_field");
+    expect(fn).toContain("productReturnUrl");
+    expect(fn).not.toMatch(/returnUrl:\s*body/);
+  });
+
+  it("Stripe метаданните носят само непрозрачни идентификатори", () => {
+    const meta = fn.slice(fn.indexOf("metadata: {"), fn.indexOf("},", fn.indexOf("metadata: {")));
+    expect(meta).toContain("purchase_kind: \"product\"");
+    expect(meta).not.toMatch(/sourceHash|lookupKey|terms_accepted|email/);
+  });
+});
