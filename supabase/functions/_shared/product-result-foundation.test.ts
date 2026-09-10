@@ -7,7 +7,7 @@
 import { assert, assertEquals, assertFalse } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { countProductSourceChars, PRODUCT_SOURCE_CHAR_UNIT } from "./product-source.ts";
 import { validateProductResult } from "./product-result-contract.ts";
-import { buildSourceMap, sliceByCodePoints } from "./product-source-map.ts";
+import { buildSourceMap, sliceByCodePoints, validatePageBoundaries } from "./product-source-map.ts";
 import { chunkProductSource, verifyChunkCoverage } from "./product-source-chunks.ts";
 import { resolveEvidence } from "./product-evidence.ts";
 import { correctionId, resolveAnchorOverlaps } from "./product-corrections.ts";
@@ -159,4 +159,94 @@ Deno.test("проверката за отсъствие не измисля пр
   assertFalse(check.found);
   assertEquals(check.spans.length, 0);
   assertEquals(check.coverage, "whole_document");
+});
+
+// ---------------------------------------------------- Unicode: точни отмествания
+
+/** Източник с няколко знака извън BMP преди и вътре в целта. */
+const NON_BMP_SOURCE = [
+  "🙂 Начало 🙂 на документа.",
+  "Клаузата гласи: неустойка 🙂 0,5% на ден без ТАВАН и без ограничение.",
+  "Отделно: неустойка 0,5% на ден без ограничение.",
+  "Край 🙂 с комбиниран знак Пловди́в.",
+].join("\n");
+
+Deno.test("извадка след и вътре в емоджи сочи точното място", () => {
+  const needle = "неустойка 🙂 0,5% на ден без ТАВАН";
+  const res = resolveEvidence(NON_BMP_SOURCE, { excerpt: needle });
+  assert(res.ok, JSON.stringify(res));
+  if (!res.ok) return;
+  assertEquals(
+    sliceByCodePoints(NON_BMP_SOURCE, res.span.start, res.span.end),
+    res.span.excerpt,
+  );
+  assertEquals(res.span.excerpt, needle);
+  // Отместването е в кодови точки, не в UTF-16 units.
+  assertEquals(res.span.end - res.span.start, Array.from(needle).length);
+});
+
+Deno.test("двусмислена извадка се отхвърля, вместо да сочи първото място", () => {
+  const res = resolveEvidence(NON_BMP_SOURCE, {
+    excerpt: "0,5% на ден без ограничение",
+  });
+  assertFalse(res.ok);
+});
+
+Deno.test("подадено място трябва да съвпада точно, дори при съчетаващ знак", () => {
+  const combining = "комбиниран знак Пловди́в";
+  const ok = resolveEvidence(NON_BMP_SOURCE, { excerpt: combining });
+  assert(ok.ok);
+  if (!ok.ok) return;
+  assertEquals(sliceByCodePoints(NON_BMP_SOURCE, ok.span.start, ok.span.end), combining);
+  assertFalse(
+    resolveEvidence(NON_BMP_SOURCE, { excerpt: combining, start: 0, end: Array.from(combining).length })
+      .ok,
+  );
+});
+
+Deno.test("проверката за отсъствие намира израз след емоджи и с друг регистър", () => {
+  const check = runAbsenceCheck(NON_BMP_SOURCE, {
+    id: "a_cap",
+    concept: "Таван на неустойката",
+    terms: ["таван"],
+  });
+  assert(check.found);
+  assertEquals(check.spans.length, 1);
+  assertEquals(
+    sliceByCodePoints(NON_BMP_SOURCE, check.spans[0].start, check.spans[0].end),
+    "ТАВАН",
+  );
+});
+
+Deno.test("празните знаци и новият ред не местят отместването", () => {
+  const check = runAbsenceCheck(NON_BMP_SOURCE, {
+    id: "a_multi",
+    concept: "Неустойка",
+    terms: ["неустойка"],
+  });
+  assertEquals(check.spans.length, 2);
+  for (const span of check.spans) {
+    assertEquals(
+      sliceByCodePoints(NON_BMP_SOURCE, span.start, span.end).toLocaleLowerCase("bg-BG"),
+      "неустойка",
+    );
+  }
+});
+
+Deno.test("невалидна карта на страниците не закача грешна страница", () => {
+  const text = "Първа страница.\nВтора страница.";
+  const count = Array.from(text).length;
+  const bad = [
+    [{ page: 0, start: 0, end: 5 }],
+    [{ page: 1, start: 0, end: 10 }, { page: 1, start: 10, end: count }],
+    [{ page: 1, start: 0, end: 12 }, { page: 2, start: 5, end: count }],
+    [{ page: 1, start: 0, end: count + 5 }],
+    [{ page: 2, start: 5, end: 3 }],
+  ];
+  for (const pages of bad) {
+    assertEquals(validatePageBoundaries(pages, count), null);
+    assertEquals(buildSourceMap(text, pages).pages, null);
+  }
+  const good = [{ page: 1, start: 0, end: 16 }, { page: 2, start: 16, end: count }];
+  assertEquals(validatePageBoundaries(good, count)?.length, 2);
 });
