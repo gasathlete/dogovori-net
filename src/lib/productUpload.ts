@@ -23,7 +23,10 @@ export interface PreparedProductDocument {
   /** Винаги `full` — частичен източник не стига до тук. */
   readonly extractionStatus: "full";
   readonly pageCount: number | null;
+  /** Кратко начало на прочетения текст — за да види човекът, че е верният документ. */
+  readonly preview: string;
 }
+
 
 export class ProductUploadError extends Error {}
 
@@ -70,74 +73,50 @@ async function uploadOriginal(path: string, file: File, source: ExtractSource) {
 export interface PrepareProductDocumentInput {
   userId: string;
   title: string;
-  /** Файл (PDF/DOCX) или поставен текст — точно едно от двете. */
-  file?: File | null;
-  pastedText?: string;
+  /** Само файл: PDF с четим текст или DOCX. Поставен текст не се приема. */
+  file: File;
   onPhase?: (phase: string) => void;
 }
 
 /**
- * Подготвя документа за продукта: извлича текста, качва оригинала и записва
- * реда в `uploaded_contracts`. Връща id, дължина и хеш — истината, която
- * показваме на човека преди плащане.
+ * Подготвя документа за продукта: прочита ЦЕЛИЯ текст, качва оригинала и
+ * записва реда в `uploaded_contracts`. Ако записът се провали, изтриваме само
+ * току-що качения обект — заварени файлове не се пипат.
  */
 export async function prepareProductDocument(
   input: PrepareProductDocumentInput,
 ): Promise<PreparedProductDocument> {
   const title = input.title.trim();
   if (!title) throw new ProductUploadError("Добавете заглавие на документа.");
+  if (!input.file) throw new ProductUploadError("Приемаме файл: PDF с четим текст или DOCX.");
   const phase = input.onPhase ?? (() => {});
 
-  let text = "";
-  let source: ExtractSource = "paste";
-  let storagePath: string | null = null;
-  let originalName: string | null = null;
-  let mime: string | null = null;
-  let size: number | null = null;
-
-  let pageCount: number | null = null;
-  let sourceHash = "";
-
-  if (input.file) {
-    source = await validateProductFile(input.file);
-    phase("Прочитаме документа…");
-    // Продуктовият път чете целия документ и НЕ ползва OCR/операции.
-    const extraction = await extractProductSource({ file: input.file }, phase);
-    if (extraction.status !== "full") {
-      throw new ProductUploadError(extraction.message ?? "Не можем да приемем този документ.");
-    }
-    text = extraction.text;
-    pageCount = extraction.pageCount;
-    sourceHash = extraction.sourceHash;
-    phase("Качване на оригинала…");
-    await ensureFreshSession();
-    const ext = source === "pdf" ? "pdf" : "docx";
-    const path = `${input.userId}/${crypto.randomUUID()}.${ext}`;
-    await uploadOriginal(path, input.file, source);
-    storagePath = path;
-    originalName = input.file.name;
-    mime = input.file.type || null;
-    size = input.file.size;
-  } else {
-    const extraction = await extractProductSource({ pastedText: input.pastedText ?? "" });
-    if (extraction.status !== "full") {
-      throw new ProductUploadError(extraction.message ?? "Не можем да приемем този текст.");
-    }
-    text = extraction.text;
-    sourceHash = extraction.sourceHash;
+  const source = await validateProductFile(input.file);
+  phase("Прочитаме документа…");
+  // Продуктовият път чете целия документ и НЕ ползва OCR/операции.
+  const extraction = await extractProductSource({ file: input.file }, phase);
+  if (extraction.status !== "full") {
+    throw new ProductUploadError(extraction.message ?? "Не можем да приемем този документ.");
   }
+  const text = extraction.text;
+  const pageCount = extraction.pageCount;
+  const sourceHash = extraction.sourceHash;
+
+  phase("Качване на оригинала…");
+  await ensureFreshSession();
+  const ext = source === "pdf" ? "pdf" : "docx";
+  const storagePath = `${input.userId}/${crypto.randomUUID()}.${ext}`;
+  await uploadOriginal(storagePath, input.file, source);
 
   phase("Запис…");
-  // Колоните за пълнотата идват с добавъчната миграция; типовете се
-  // регенерират след прилагането ѝ.
   const payload = {
     user_id: input.userId,
     title,
     source,
-    original_filename: originalName,
+    original_filename: input.file.name,
     storage_path: storagePath,
-    mime_type: mime,
-    size_bytes: size,
+    mime_type: input.file.type || null,
+    size_bytes: input.file.size,
     extracted_text: text,
     text_hash: sourceHash,
     product_extraction_status: "full",
@@ -151,7 +130,15 @@ export async function prepareProductDocument(
     .insert(payload as never)
     .select("id")
     .single();
-  if (res.error) throw new ProductUploadError(res.error.message);
+  if (res.error) {
+    // Чистим САМО обекта, който създадохме преди миг.
+    try {
+      await supabase.storage.from("user-contracts").remove([storagePath]);
+    } catch {
+      // Неуспешното чистене не бива да скрива истинската грешка.
+    }
+    throw new ProductUploadError(res.error.message);
+  }
 
   return {
     uploadedContractId: (res.data as { id: string }).id,
@@ -159,8 +146,11 @@ export async function prepareProductDocument(
     source,
     textLength: text.length,
     sourceHash,
-    originalFilename: originalName,
+    originalFilename: input.file.name,
     extractionStatus: "full",
     pageCount,
+    preview: text.slice(0, 240),
   };
+
 }
+

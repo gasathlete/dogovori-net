@@ -65,10 +65,22 @@ const INTAKE = {
   id: "in_1",
   user_id: "u1",
   product_id: "contract_check",
-  source_hash: "h1",
+  source_hash: "a".repeat(64),
   uploaded_contract_id: "doc_1",
   source_updated_at: "2026-09-01T00:00:00Z",
   environment: "live",
+  source_extraction_status: "full",
+  source_char_count: 4200,
+  stripe_session_id: "cs_p1",
+  stripe_price_id: "price_1",
+  stripe_price_lookup_key: "contract_check_299",
+  expected_amount_cents: 299,
+  currency: "eur",
+  terms_accepted: true,
+  ai_ack_accepted: true,
+  immediate_performance_consent: true,
+  withdrawal_loss_acknowledged: true,
+  consent_recorded_at: "2026-09-01T00:00:00Z",
 };
 
 function makeDeps(db: any, lineItems: unknown[]): WebhookDeps {
@@ -89,19 +101,15 @@ function productSession(over: Record<string, unknown> = {}) {
     payment_status: "paid",
     amount_total: 299,
     currency: "eur",
+    livemode: true,
+    // Само непрозрачни идентификатори: съгласията и хешът НЕ идват от Stripe.
     metadata: {
-      type: "product",
+      purchase_kind: "product",
       userId: "u1",
       productId: "contract_check",
-      lookupKey: "contract_check_299",
       intakeId: "in_1",
-      sourceHash: "h1",
       sourceDocumentId: "doc_1",
       environment: "live",
-      terms_accepted: "true",
-      ai_ack_accepted: "true",
-      immediate_performance_consent: "true",
-      withdrawal_loss_acknowledged: "true",
     },
     ...over,
   };
@@ -112,30 +120,64 @@ const CHECK_ITEM = [{
   amount_total: 299,
   currency: "eur",
   price: {
+    id: "price_1",
     active: true,
     type: "one_time",
     currency: "eur",
     unit_amount: 299,
     recurring: null,
     lookup_key: "contract_check_299",
+    tax_behavior: "inclusive",
+    livemode: true,
   },
 }];
 
 Deno.test("платена продуктова сесия записва точно една привилегия без операции", async () => {
   const db = makeDb({ results: { product_checkout_intakes: { data: INTAKE, error: null } } });
   await handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "live");
-  assertEquals(db.rpcCalls.map((c) => c.fn), ["record_product_entitlement"]);
+  // Едно атомарно извикване прави и правото, и доказателството за поръчката.
+  assertEquals(db.rpcCalls.map((c) => c.fn), ["record_product_purchase"]);
   const args = db.rpcCalls[0].args as Record<string, unknown>;
   assertEquals(args.p_product_id, "contract_check");
   assertEquals(args.p_amount_cents, 299);
-  const snapshot = db.calls.find((c) => c.table === "order_snapshots");
-  const row = snapshot?.args?.[0] as Record<string, unknown>;
-  assertEquals(row.purchase_kind, "product");
-  assertEquals(row.product_id, "contract_check");
-  assertEquals(row.payment_status, "paid");
-  assertEquals(row.terms_accepted, true);
-  assertEquals(row.immediate_performance_consent, true);
-  assertEquals(row.withdrawal_loss_acknowledged, true);
+  assertEquals(args.p_price_id, "price_1");
+  assertEquals(args.p_currency, "eur");
+  assertEquals(args.p_intake_id, "in_1");
+  // Никакъв отделен браузърно четим запис и никакви операции/кредити.
+  assertEquals(db.calls.some((c) => c.table === "order_snapshots"), false);
+  assertEquals(db.rpcCalls.some((c) => c.fn === "credit_topup_ops"), false);
+});
+
+Deno.test("грешен режим на продуктова сесия не създава нищо", async () => {
+  const db = makeDb({ results: { product_checkout_intakes: { data: INTAKE, error: null } } });
+  await assertRejects(() =>
+    handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession({ mode: "subscription" }), "live")
+  );
+  assertEquals(db.rpcCalls.length, 0);
+  assertEquals(db.calls.some((c) => c.table === "order_snapshots"), false);
+});
+
+Deno.test("липсващо доказателство за пълен източник е отказ", async () => {
+  const db = makeDb({
+    results: {
+      product_checkout_intakes: {
+        data: { ...INTAKE, source_extraction_status: null, source_char_count: null },
+        error: null,
+      },
+    },
+  });
+  await assertRejects(() => handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "live"));
+  assertEquals(db.rpcCalls.length, 0);
+});
+
+Deno.test("несъвпадаща цена по реда е отказ", async () => {
+  const db = makeDb({
+    results: {
+      product_checkout_intakes: { data: { ...INTAKE, stripe_price_id: "price_other" }, error: null },
+    },
+  });
+  await assertRejects(() => handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "live"));
+  assertEquals(db.rpcCalls.length, 0);
 });
 
 Deno.test("неплатена продуктова сесия не пише нищо", async () => {
@@ -181,7 +223,7 @@ Deno.test("идемпотентен повторен запис е успех", 
     rpc: () => ({ data: { ok: true, created: false }, error: null }),
   });
   await handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "live");
-  assertEquals(db.calls.some((c) => c.table === "order_snapshots"), true);
+  assertEquals(db.rpcCalls.map((c) => c.fn), ["record_product_purchase"]);
 });
 
 Deno.test("окръжението на сесията трябва да съвпада", async () => {

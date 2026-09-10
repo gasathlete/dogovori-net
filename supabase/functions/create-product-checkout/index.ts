@@ -3,6 +3,9 @@
  *
  * Отделна функция, за да не се смесва с абонаментния/legacy checkout:
  * тук няма промокодове, няма операции и няма кредити.
+ *
+ * Правилото е едно: истината се проверява на сървъра. Браузърът не задава
+ * сума, цена, адрес за връщане или пълнота на документа.
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createStripeClient } from "../_shared/stripe.ts";
@@ -23,23 +26,65 @@ import {
   ConsentMissingError,
   LEGAL_VERSIONS,
   ReturnUrlError,
-  buildProductReturnUrl,
-  consentMetadata,
+  productReturnUrl,
   requireProductConsent,
 } from "../_shared/purchase-consent.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Кратки, ограничени полета за контекста. Никога суров текст на документа. */
-function boundedContext(raw: unknown): Record<string, string> {
-  const src = (raw ?? {}) as Record<string, unknown>;
+/** Точно тези полета се приемат в тялото. Непознато поле е отказ. */
+const ALLOWED_BODY_KEYS = Object.freeze([
+  "productId",
+  "uploadedContractId",
+  "requestId",
+  "environment",
+  "context",
+  "termsAccepted",
+  "aiAckAccepted",
+  "immediatePerformanceConsent",
+  "withdrawalLossAcknowledged",
+]);
+
+const ALLOWED_CONTEXT_KEYS = Object.freeze([
+  "role",
+  "objective",
+  "counterparty_context",
+  "preferred_position",
+]);
+
+class RequestShapeError extends Error {
+  constructor(readonly code: string) {
+    super(code);
+    this.name = "RequestShapeError";
+  }
+}
+
+function assertKnownKeys(body: Record<string, unknown>) {
+  for (const key of Object.keys(body)) {
+    if (!ALLOWED_BODY_KEYS.includes(key)) throw new RequestShapeError("unknown_field");
+  }
+}
+
+/**
+ * Кратки, ограничени полета за контекста, с изисквания според продукта.
+ * Никога суров текст на документа.
+ */
+function requireContext(raw: unknown, productId: string): Record<string, string> {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new RequestShapeError("invalid_context");
+  }
+  const src = raw as Record<string, unknown>;
+  for (const key of Object.keys(src)) {
+    if (!ALLOWED_CONTEXT_KEYS.includes(key)) throw new RequestShapeError("unknown_context_field");
+  }
   const out: Record<string, string> = {};
   const take = (key: string, max: number) => {
     const v = src[key];
     if (typeof v !== "string") return;
     const trimmed = v.trim();
     if (!trimmed) return;
-    if (trimmed.length > max) throw new Error("context_too_long");
+    if (trimmed.length > max) throw new RequestShapeError("context_too_long");
+    if (trimmed.length < 2) throw new RequestShapeError("context_too_short");
     out[key] = trimmed;
   };
   take("role", 120);
@@ -48,9 +93,19 @@ function boundedContext(raw: unknown): Record<string, string> {
   const position = src.preferred_position;
   if (typeof position === "string" && position) {
     if (!["conservative", "balanced", "assertive"].includes(position)) {
-      throw new Error("invalid_position");
+      throw new RequestShapeError("invalid_position");
     }
     out.preferred_position = position;
+  }
+
+  // Продуктови изисквания — проверени на сървъра, не само в UI.
+  if (!out.role) throw new RequestShapeError("role_required");
+  if (productId !== "contract_check" && !out.objective) {
+    throw new RequestShapeError("objective_required");
+  }
+  if (productId === "negotiation_package") {
+    if (!out.counterparty_context) throw new RequestShapeError("counterparty_required");
+    if (!out.preferred_position) throw new RequestShapeError("position_required");
   }
   return out;
 }
@@ -92,13 +147,18 @@ Deno.serve(async (req) => {
     const userId = userData.user.id;
     const email = userData.user.email ?? undefined;
 
-    const body = (await req.json()) as Record<string, unknown>;
-    const { productId, uploadedContractId, requestId, environment, origin } = body as {
+    const parsed = await req.json().catch(() => null);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return fail("invalid_body", 400, corsHeaders);
+    }
+    const body = parsed as Record<string, unknown>;
+    assertKnownKeys(body);
+
+    const { productId, uploadedContractId, requestId, environment } = body as {
       productId: string;
       uploadedContractId: string;
       requestId: string;
       environment: "sandbox" | "live";
-      origin: string;
     };
 
     if (environment !== "sandbox" && environment !== "live") {
@@ -109,9 +169,10 @@ Deno.serve(async (req) => {
 
     const spec = requireProductSpec(productId);
     const consent = requireProductConsent(body);
-    const context = boundedContext(body.context);
-    const returnUrl = buildProductReturnUrl(
-      origin,
+    const context = requireContext(body.context, spec.id);
+    // Адресът за връщане е фиксиран и НИКОГА не идва от заявката.
+    const returnUrl = productReturnUrl(
+      Deno.env.get("APP_BASE_URL") ?? undefined,
       `/produkti/rezultat?session_id={CHECKOUT_SESSION_ID}&type=product&product=${spec.id}`,
     );
 
@@ -128,20 +189,26 @@ Deno.serve(async (req) => {
     const { data: doc } = await admin
       .from("uploaded_contracts")
       .select(
-        "id, user_id, extracted_text, text_hash, updated_at, product_extraction_status, product_extracted_chars, product_source_pages",
+        "id, user_id, extracted_text, text_hash, updated_at, product_extraction_status, product_extracted_chars, product_source_pages, product_source_kind",
       )
       .eq("id", uploadedContractId)
       .maybeSingle();
     if (!doc || doc.user_id !== userId) return fail("document_not_found", 404, corsHeaders);
     const verifiedSource = await verifyStoredProductSource(doc, sha256HexServer);
     const sourceHash = verifiedSource.sourceHash;
+    const sourceUpdatedAt = verifiedSource.sourceUpdatedAt;
+
+    // Цената се разрешава ПРЕДИ заявката: точната цена е част от заявката.
+    const stripe = createStripeClient(environment);
+    const prices = await stripe.prices.list({ lookup_keys: [spec.lookupKey] });
+    const price = requireProductPrice(prices.data as never, spec.id, environment);
 
     // Заявката е идемпотентна по (user, requestId): повторен опит преизползва
-    // същия ред и същата отворена Stripe сесия.
+    // същия ред и същата отворена Stripe сесия — но само при пълно съвпадение.
     const { data: existingIntake } = await admin
       .from("product_checkout_intakes")
       .select(
-        "id, product_id, source_hash, source_updated_at, environment, status, stripe_session_id",
+        "id, product_id, source_hash, source_updated_at, uploaded_contract_id, environment, status, stripe_session_id, stripe_price_id, stripe_price_lookup_key, expected_amount_cents, context, terms_accepted, ai_ack_accepted, immediate_performance_consent, withdrawal_loss_acknowledged, terms_version, privacy_version, withdrawal_version, refund_version, ai_notice_version, source_char_count, source_extraction_status",
       )
       .eq("user_id", userId)
       .eq("request_id", requestId)
@@ -150,41 +217,50 @@ Deno.serve(async (req) => {
     let intakeId = existingIntake?.id as string | undefined;
     let reusedSession: { id: string; client_secret: string | null } | null = null;
     if (existingIntake) {
-      // Обвързването е точно: продукт, документ (hash) и ревизия на текста.
-      const sameRevision =
-        !existingIntake.source_updated_at ||
-        !doc.updated_at ||
-        String(existingIntake.source_updated_at) === String(doc.updated_at);
-      if (
+      const sameContext =
+        JSON.stringify(existingIntake.context ?? {}) === JSON.stringify(context);
+      const mismatch =
         existingIntake.product_id !== spec.id ||
+        existingIntake.uploaded_contract_id !== uploadedContractId ||
         existingIntake.source_hash !== sourceHash ||
+        String(existingIntake.source_updated_at) !== String(sourceUpdatedAt) ||
         existingIntake.environment !== environment ||
-        !sameRevision
-      ) {
-        return fail("intake_conflict", 409, corsHeaders);
-      }
+        existingIntake.expected_amount_cents !== spec.amountCents ||
+        existingIntake.stripe_price_lookup_key !== spec.lookupKey ||
+        existingIntake.stripe_price_id !== price.id ||
+        existingIntake.source_extraction_status !== "full" ||
+        existingIntake.source_char_count !== verifiedSource.charCount ||
+        existingIntake.terms_accepted !== true ||
+        existingIntake.ai_ack_accepted !== true ||
+        existingIntake.immediate_performance_consent !== true ||
+        existingIntake.withdrawal_loss_acknowledged !== true ||
+        existingIntake.terms_version !== LEGAL_VERSIONS.terms ||
+        existingIntake.privacy_version !== LEGAL_VERSIONS.privacy ||
+        existingIntake.withdrawal_version !== LEGAL_VERSIONS.withdrawal ||
+        existingIntake.refund_version !== LEGAL_VERSIONS.refund ||
+        existingIntake.ai_notice_version !== LEGAL_VERSIONS.aiNotice ||
+        !sameContext;
+      if (mismatch) return fail("intake_conflict", 409, corsHeaders);
       if (existingIntake.status === "paid") return fail("already_paid", 409, corsHeaders);
-      // Повторен опит в същата сесия: преизползваме отворената Stripe сесия,
-      // вместо да създаваме второ плащане.
+
       const existingSessionId = existingIntake.stripe_session_id as string | null;
       if (existingSessionId) {
-        try {
-          const stripeForReuse = createStripeClient(environment);
-          const prior = await stripeForReuse.checkout.sessions.retrieve(existingSessionId);
-          if (
-            prior.status === "open" &&
-            prior.client_secret &&
-            prior.metadata?.productId === spec.id &&
-            prior.metadata?.userId === userId &&
-            prior.metadata?.sourceHash === sourceHash &&
-            prior.metadata?.intakeId === existingIntake.id &&
-            prior.metadata?.environment === environment
-          ) {
-            reusedSession = { id: prior.id, client_secret: prior.client_secret };
-          }
-        } catch {
-          reusedSession = null;
-        }
+        const prior = await stripe.checkout.sessions.retrieve(existingSessionId);
+        const sameSession =
+          prior.mode === "payment" &&
+          prior.status === "open" &&
+          !!prior.client_secret &&
+          prior.currency?.toLowerCase() === spec.currency &&
+          prior.amount_total === spec.amountCents &&
+          prior.livemode === (environment === "live") &&
+          prior.metadata?.purchase_kind === "product" &&
+          prior.metadata?.productId === spec.id &&
+          prior.metadata?.userId === userId &&
+          prior.metadata?.intakeId === existingIntake.id &&
+          prior.metadata?.sourceDocumentId === uploadedContractId &&
+          prior.metadata?.environment === environment;
+        if (!sameSession) return fail("intake_conflict", 409, corsHeaders);
+        reusedSession = { id: prior.id, client_secret: prior.client_secret };
       }
     } else {
       const { data: inserted, error: intakeErr } = await admin
@@ -195,12 +271,17 @@ Deno.serve(async (req) => {
           product_id: spec.id,
           uploaded_contract_id: uploadedContractId,
           source_hash: sourceHash,
-          source_updated_at: doc.updated_at,
+          source_updated_at: sourceUpdatedAt,
           context,
           status: "pending",
           environment,
+          currency: spec.currency,
+          expected_amount_cents: spec.amountCents,
+          stripe_price_id: price.id,
+          stripe_price_lookup_key: spec.lookupKey,
           terms_version: LEGAL_VERSIONS.terms,
           privacy_version: LEGAL_VERSIONS.privacy,
+          withdrawal_version: LEGAL_VERSIONS.withdrawal,
           refund_version: LEGAL_VERSIONS.refund,
           ai_notice_version: LEGAL_VERSIONS.aiNotice,
           terms_accepted: consent.termsAccepted,
@@ -226,37 +307,34 @@ Deno.serve(async (req) => {
       );
     }
 
-    const stripe = createStripeClient(environment);
-    const prices = await stripe.prices.list({ lookup_keys: [spec.lookupKey] });
-    const price = requireProductPrice(prices.data as never, spec.id);
-
     const customerId = await resolveOrCreateCustomer(stripe, { email, userId });
 
     const session = await stripe.checkout.sessions.create(
       {
-        line_items: [{ price: price.id!, quantity: 1 }],
+        line_items: [{ price: price.id, quantity: 1 }],
         mode: "payment",
         ui_mode: "embedded_page",
         return_url: returnUrl,
         customer: customerId,
         // Никакви промокодове и отстъпки върху фиксираните микропродукти.
         payment_intent_data: { description: spec.name },
+        // Само непрозрачни идентификатори и затворени изброявания. Без хешове,
+        // имена на файлове, съгласия и контекст — истината е в заявката.
         metadata: {
-          type: "product",
-          userId,
+          purchase_kind: "product",
           productId: spec.id,
-          lookupKey: spec.lookupKey,
+          userId,
           intakeId: intakeId!,
-          sourceHash,
           sourceDocumentId: uploadedContractId,
           environment,
-          ...consentMetadata(consent),
         },
       },
       { idempotencyKey: `product:${userId}:${requestId}` },
     );
 
-    await admin
+    // Ако не успеем да запишем сесията, не връщаме платима, но непроследена
+    // сесия — затваряме я, докъдето е безопасно, и се проваляме.
+    const { error: persistErr } = await admin
       .from("product_checkout_intakes")
       .update({
         status: "checkout_created",
@@ -265,6 +343,14 @@ Deno.serve(async (req) => {
       })
       .eq("id", intakeId!)
       .eq("user_id", userId);
+    if (persistErr) {
+      try {
+        await stripe.checkout.sessions.expire(session.id);
+      } catch (expireErr) {
+        console.error("failed to expire untracked product session:", expireErr);
+      }
+      return fail("intake_failed", 500, corsHeaders);
+    }
 
     return new Response(
       JSON.stringify({ clientSecret: session.client_secret, intakeId, productId: spec.id }),
@@ -274,6 +360,7 @@ Deno.serve(async (req) => {
     if (e instanceof SandboxForbiddenError) return sandboxForbiddenResponse(corsHeaders);
     if (e instanceof ConsentMissingError) return fail("consent_required", 400, corsHeaders);
     if (e instanceof ReturnUrlError) return fail("invalid_return_url", 400, corsHeaders);
+    if (e instanceof RequestShapeError) return fail(e.code, 400, corsHeaders);
     if (e instanceof ProductPurchaseError) return fail(e.reason, 400, corsHeaders);
     if (e instanceof ProductSourceError) return fail(e.reason, 400, corsHeaders);
     const code = e instanceof Error && e.message.length < 40 ? e.message : "checkout_failed";

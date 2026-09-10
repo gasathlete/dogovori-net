@@ -121,9 +121,11 @@ export default function CheckoutReturn() {
           return !!membership;
         }
         default:
-          // Непознат вид: приемаме само потвърдено плащане за тази сесия.
-          return paid;
+          // Непознат вид покупка: не потвърждаваме нищо. Само snapshot не е
+          // доказателство, че точно това право е дадено.
+          return false;
       }
+
     },
     [params],
   );

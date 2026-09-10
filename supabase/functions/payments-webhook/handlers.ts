@@ -362,67 +362,93 @@ export async function handleCheckoutCompleted(d: WebhookDeps, session: Any, env:
   }
 
   // 0c) Еднократен продукт, обвързан с документ. Дава ТОЧНО една продуктова
-  //     привилегия и НИКОГА операции/кредити. FAIL-CLOSED и идемпотентно по
-  //     stripe_session_id — повторната доставка е успех без нов запис.
+  //     привилегия и НИКОГА операции/кредити. Записът на правото и на
+  //     доказателството за поръчката става в ЕДНА атомарна транзакция, така че
+  //     не може да остане половин покупка. Повторната доставка е успех само при
+  //     пълно съвпадение на всяко неизменно поле.
   const productMeta = readProductSessionMetadata(session.metadata as Any);
-  if (session.mode === "payment" && userId && productMeta) {
-    const stripe = d.createStripe(env);
-    const items = await stripe.checkout.sessions.listLineItems(session.id, {
-      limit: 5,
-      expand: ["data.price"],
-    });
-    const verified = verifyProductLineItems(items.data as Any, productMeta.productId);
-    // Точната сума и валута на сесията трябва да съвпадат с продукта.
-    assertSessionAmount(session.amount_total, session.currency, verified.productId);
+  if (productMeta) {
+    if (session.mode !== "payment") throw new Error("product session mode mismatch");
+    if (!userId) throw new Error("product session user missing");
+    if (productMeta.userId !== userId) throw new Error("product session user mismatch");
     if (productMeta.environment !== env) {
       throw new Error("product session environment mismatch");
+    }
+    if (session.livemode !== undefined && session.livemode !== (env === "live")) {
+      throw new Error("product session livemode mismatch");
     }
 
     const { data: intake } = await d.db
       .from("product_checkout_intakes")
       .select(
-        "id, user_id, product_id, source_hash, uploaded_contract_id, source_updated_at, environment, source_extraction_status, source_char_count",
+        "id, user_id, product_id, source_hash, uploaded_contract_id, source_updated_at, environment, source_extraction_status, source_char_count, stripe_session_id, stripe_price_id, stripe_price_lookup_key, expected_amount_cents, currency, terms_accepted, ai_ack_accepted, immediate_performance_consent, withdrawal_loss_acknowledged, consent_recorded_at",
       )
       .eq("id", productMeta.intakeId)
       .maybeSingle();
     if (!intake) throw new Error("product intake not found");
+
+    const stripe = d.createStripe(env);
+    const items = await stripe.checkout.sessions.listLineItems(session.id, {
+      limit: 5,
+      expand: ["data.price"],
+    });
+    const verified = verifyProductLineItems(
+      items.data as Any,
+      productMeta.productId,
+      env,
+      intake.stripe_price_id as string,
+    );
+    // Точната сума и валута на сесията трябва да съвпадат с продукта.
+    assertSessionAmount(session.amount_total, session.currency, verified.productId);
+
     if (
       intake.user_id !== userId ||
       intake.product_id !== verified.productId ||
-      intake.source_hash !== productMeta.sourceHash ||
-      intake.environment !== env
+      intake.environment !== env ||
+      intake.stripe_session_id !== session.id ||
+      intake.stripe_price_lookup_key !== verified.lookupKey ||
+      intake.expected_amount_cents !== verified.amountCents ||
+      String(intake.currency ?? "eur").toLowerCase() !== verified.currency ||
+      intake.uploaded_contract_id !== productMeta.sourceDocumentId ||
+      !intake.source_updated_at ||
+      intake.source_extraction_status !== "full" ||
+      intake.terms_accepted !== true ||
+      intake.ai_ack_accepted !== true ||
+      intake.immediate_performance_consent !== true ||
+      intake.withdrawal_loss_acknowledged !== true ||
+      !intake.consent_recorded_at
     ) {
       throw new Error("product intake mismatch");
     }
-    // Частичен източник никога не става платено право за пълен резултат.
-    const intakeStatus = (intake as { source_extraction_status?: string | null })
-      .source_extraction_status;
-    if (typeof intakeStatus === "string" && intakeStatus && intakeStatus !== "full") {
-      throw new Error("product intake source incomplete");
-    }
-    const intakeChars = (intake as { source_char_count?: number | null }).source_char_count;
-    if (typeof intakeChars === "number" && (intakeChars <= 0 || intakeChars > PRODUCT_MAX_SOURCE_CHARS)) {
+    const intakeChars = intake.source_char_count as number | null;
+    if (
+      typeof intakeChars !== "number" || intakeChars <= 0 ||
+      intakeChars > PRODUCT_MAX_SOURCE_CHARS
+    ) {
       throw new Error("product intake source incomplete");
     }
 
-    const { data: recorded, error: recordErr } = await d.db.rpc("record_product_entitlement", {
+    // Доказателството за съгласие и източник се гради от заявката, не от
+    // променливи Stripe метаданни и не от часа на webhook-а.
+    const { data: recorded, error: recordErr } = await d.db.rpc("record_product_purchase", {
       p_user_id: userId,
       p_product_id: verified.productId,
       p_session_id: session.id,
+      p_price_id: verified.priceId,
       p_lookup_key: verified.lookupKey,
       p_environment: env,
       p_amount_cents: verified.amountCents,
-      p_source_document_id: intake.uploaded_contract_id,
-      p_source_hash: productMeta.sourceHash,
-      p_source_updated_at: intake.source_updated_at,
+      p_currency: verified.currency,
       p_intake_id: intake.id,
+      p_paid_at: new Date().toISOString(),
       p_refinements_included: verified.refinementsIncluded,
     });
-    if (recordErr) throw new Error(`record_product_entitlement failed: ${recordErr.message}`);
+    if (recordErr) throw new Error(`record_product_purchase failed: ${recordErr.message}`);
     if ((recorded as { ok?: unknown } | null)?.ok !== true) {
-      throw new Error("record_product_entitlement did not return ok=true");
+      throw new Error("record_product_purchase did not return ok=true");
     }
   }
+
 
   // 1) Еднократни покупки → операции. Продуктовите покупки НЕ минават оттук.
   if (session.mode === "payment" && userId && !productMeta) {
@@ -453,15 +479,15 @@ export async function handleCheckoutCompleted(d: WebhookDeps, session: Any, env:
   //     повторна доставка на същата сесия обновява същия ред (UNIQUE на
   //     stripe_session_id), а DB грешка връща non-2xx, за да повтори Stripe.
   //     Entitlement-ите остават преди този запис.
-  if (userId && session.id) {
+  //     Продуктовите покупки НЕ минават оттук: техният snapshot се записва
+  //     атомарно заедно с правото, само от неизменната заявка.
+  if (userId && session.id && !productMeta) {
     const amountTotal = session.amount_total;
     const currency = (session.currency || "eur").toUpperCase();
     const lookup = session.metadata?.priceId || session.metadata?.lookup_key || null;
-    const planName = productMeta
-      ? PRODUCT_PURCHASES[productMeta.productId].name
-      : session.mode === "subscription"
-        ? (lookup || "subscription")
-        : (lookup || "one_off");
+    const planName = session.mode === "subscription"
+      ? (lookup || "subscription")
+      : (lookup || "one_off");
     const billingPeriod = session.mode === "subscription"
       ? (session.metadata?.billing_period || null)
       : null;
@@ -487,7 +513,7 @@ export async function handleCheckoutCompleted(d: WebhookDeps, session: Any, env:
           withdrawal_loss_acknowledged:
             session.metadata?.withdrawal_loss_acknowledged === "true",
           consent_recorded_at: new Date().toISOString(),
-          product_id: productMeta?.productId ?? null,
+          product_id: null,
           stripe_session_id: session.id,
           stripe_subscription_id: session.subscription || null,
           // Истина за плащането: точното окръжение, доказаният статус и

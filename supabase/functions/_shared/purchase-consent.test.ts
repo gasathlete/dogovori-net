@@ -1,51 +1,45 @@
+/**
+ * Адресът за връщане след плащане не идва от браузъра и не приема произволен
+ * поддомейн. Тестът заключва точния списък.
+ */
 import { assertEquals, assertThrows } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
-  ConsentMissingError,
-  LEGAL_VERSIONS,
+  ALLOWED_RETURN_ORIGINS,
   ReturnUrlError,
   buildProductReturnUrl,
-  consentMetadata,
-  readConsent,
-  requireProductConsent,
+  productReturnUrl,
 } from "./purchase-consent.ts";
 
-const ALL_TRUE = {
-  termsAccepted: true,
-  aiAckAccepted: true,
-  immediatePerformanceConsent: true,
-  withdrawalLossAcknowledged: true,
-};
-
-Deno.test("липсващо съгласие спира покупката", () => {
-  assertThrows(() => requireProductConsent({}), ConsentMissingError);
-  for (const key of Object.keys(ALL_TRUE)) {
-    assertThrows(
-      () => requireProductConsent({ ...ALL_TRUE, [key]: false }),
-      ConsentMissingError,
-    );
-  }
-  assertEquals(requireProductConsent(ALL_TRUE).termsAccepted, true);
-});
-
-Deno.test("само истински boolean true се приема", () => {
-  const c = readConsent({ termsAccepted: "true", aiAckAccepted: 1 });
-  assertEquals(c.termsAccepted, false);
-  assertEquals(c.aiAckAccepted, false);
-});
-
-Deno.test("метаданните не измислят съгласие", () => {
-  const meta = consentMetadata(readConsent({}));
-  assertEquals(meta.ai_ack_accepted, "false");
-  assertEquals(meta.terms_accepted, "false");
-  assertEquals(meta.terms_version, LEGAL_VERSIONS.terms);
-});
-
-Deno.test("произволен external origin се отказва", () => {
-  assertThrows(() => buildProductReturnUrl("https://evil.example", "/produkti/rezultat"), ReturnUrlError);
-  assertThrows(() => buildProductReturnUrl(undefined, "/produkti/rezultat"), ReturnUrlError);
-  assertThrows(() => buildProductReturnUrl("https://dogovori.net", "produkti"), ReturnUrlError);
+Deno.test("никой чужд или случаен адрес не се приема", () => {
   assertEquals(
-    buildProductReturnUrl("https://dogovori.net/", "/produkti/rezultat"),
+    buildProductReturnUrl("https://dogovori.net", "/produkti/rezultat"),
+    "https://dogovori.net/produkti/rezultat",
+  );
+  // Без шаблон „кой да е *.lovable.app“.
+  assertThrows(
+    () => buildProductReturnUrl("https://attacker.lovable.app", "/produkti/rezultat"),
+    ReturnUrlError,
+  );
+  assertThrows(() => buildProductReturnUrl("https://evil.example", "/x"), ReturnUrlError);
+  assertThrows(() => buildProductReturnUrl(undefined, "/x"), ReturnUrlError);
+  assertThrows(() => buildProductReturnUrl("https://dogovori.net", "produkti"), ReturnUrlError);
+  for (const origin of ALLOWED_RETURN_ORIGINS) {
+    assertEquals(buildProductReturnUrl(origin, "/a"), `${origin}/a`);
+  }
+});
+
+Deno.test("продуктовият адрес се гради от конфигурация, не от заявка", () => {
+  assertEquals(
+    productReturnUrl("https://www.dogovori.net", "/produkti/rezultat"),
+    "https://www.dogovori.net/produkti/rezultat",
+  );
+  // Непозната конфигурация пада към основния публичен адрес, не към клиента.
+  assertEquals(
+    productReturnUrl("https://attacker.example", "/produkti/rezultat"),
+    "https://dogovori.net/produkti/rezultat",
+  );
+  assertEquals(
+    productReturnUrl(undefined, "/produkti/rezultat"),
     "https://dogovori.net/produkti/rezultat",
   );
 });

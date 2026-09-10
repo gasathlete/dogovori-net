@@ -1,32 +1,76 @@
--- P0 Stage 2A — ЗА ПРЕГЛЕД, НЕ Е ПРИЛОЖЕНА.
+-- P0 Stage 2A — точна покупка на еднократен продукт и доказано платено право.
 --
--- Точна покупка на еднократен продукт, обвързан с точно един документ, и
--- доказана платена привилегия (entitlement). Файлът е тук нарочно: в този етап
--- не изпълняваме SQL. Прилага се отделно, след преглед.
+-- Обхват: заявка (intake) преди плащане, платена привилегия (entitlement),
+-- затягане на `order_snapshots` и атомарни функции, достъпни само за
+-- service_role. Браузърът никога не пише покупка, статус или резултат.
 --
--- Миграцията е ДОБАВЯЩА и повторно изпълнима (idempotent). Не сваля таблици,
--- не променя типове и не пипа съществуващи редове. Записите се правят само от
--- service_role (Edge код) — браузърът никога не пише статус или резултат.
+-- Миграцията е ДОБАВЯЩА и повторно изпълнима (idempotent): не сваля таблици и
+-- колони, не променя типове и запазва всички заварени стойности и редове.
 
 -- ---------------------------------------------------------------------------
--- A) Заявка (intake) преди плащане
+-- A) Метаданни за пълнотата на прочетения източник (върху заварената таблица)
+-- ---------------------------------------------------------------------------
+-- Клиентът може да пише в своите редове на `uploaded_contracts`, затова тези
+-- полета НЕ са доказателство. Сървърът винаги преизчислява SHA-256 и дължината
+-- и приема само `full`.
+ALTER TABLE public.uploaded_contracts
+  ADD COLUMN IF NOT EXISTS product_extraction_status text,
+  ADD COLUMN IF NOT EXISTS product_extracted_chars integer,
+  ADD COLUMN IF NOT EXISTS product_source_pages integer,
+  ADD COLUMN IF NOT EXISTS product_source_kind text,
+  ADD COLUMN IF NOT EXISTS product_extraction_at timestamptz;
+
+DO $$ BEGIN
+  ALTER TABLE public.uploaded_contracts
+    ADD CONSTRAINT uploaded_contracts_product_extraction_status_ck
+    CHECK (product_extraction_status IS NULL
+           OR product_extraction_status IN ('full', 'partial'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Платеният продукт е обвързан с ФАЙЛ: PDF с четим текст или DOCX.
+DO $$ BEGIN
+  ALTER TABLE public.uploaded_contracts
+    ADD CONSTRAINT uploaded_contracts_product_source_kind_ck
+    CHECK (product_source_kind IS NULL
+           OR product_source_kind IN ('pdf', 'docx'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE public.uploaded_contracts
+    ADD CONSTRAINT uploaded_contracts_product_extracted_chars_ck
+    CHECK (product_extracted_chars IS NULL
+           OR (product_extracted_chars >= 0 AND product_extracted_chars <= 60000));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- ---------------------------------------------------------------------------
+-- B) Заявка (intake) преди плащане
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.product_checkout_intakes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   request_id uuid NOT NULL,
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   product_id text NOT NULL,
-  uploaded_contract_id uuid REFERENCES public.uploaded_contracts(id) ON DELETE SET NULL,
+  -- Документът остава свързан и след покупката: ЗЗП доказателството не бива да
+  -- се разпада до NULL.
+  uploaded_contract_id uuid REFERENCES public.uploaded_contracts(id) ON DELETE RESTRICT,
   source_hash text NOT NULL,
   source_updated_at timestamptz,
+  source_char_count integer,
+  source_page_count integer,
+  source_extraction_status text,
   context jsonb NOT NULL DEFAULT '{}'::jsonb,
   status text NOT NULL DEFAULT 'pending',
   stripe_session_id text,
+  stripe_price_id text,
+  stripe_price_lookup_key text,
+  expected_amount_cents integer,
+  currency text NOT NULL DEFAULT 'eur',
   environment text NOT NULL,
   terms_version text NOT NULL,
   privacy_version text NOT NULL,
   refund_version text NOT NULL,
   ai_notice_version text NOT NULL,
+  withdrawal_version text,
   terms_accepted boolean NOT NULL DEFAULT false,
   ai_ack_accepted boolean NOT NULL DEFAULT false,
   immediate_performance_consent boolean NOT NULL DEFAULT false,
@@ -36,6 +80,17 @@ CREATE TABLE IF NOT EXISTS public.product_checkout_intakes (
   updated_at timestamptz NOT NULL DEFAULT now(),
   expires_at timestamptz NOT NULL DEFAULT now() + interval '2 hours'
 );
+
+-- Заварените инсталации получават новите колони добавъчно.
+ALTER TABLE public.product_checkout_intakes
+  ADD COLUMN IF NOT EXISTS source_char_count integer,
+  ADD COLUMN IF NOT EXISTS source_page_count integer,
+  ADD COLUMN IF NOT EXISTS source_extraction_status text,
+  ADD COLUMN IF NOT EXISTS stripe_price_id text,
+  ADD COLUMN IF NOT EXISTS stripe_price_lookup_key text,
+  ADD COLUMN IF NOT EXISTS expected_amount_cents integer,
+  ADD COLUMN IF NOT EXISTS currency text NOT NULL DEFAULT 'eur',
+  ADD COLUMN IF NOT EXISTS withdrawal_version text;
 
 DO $$ BEGIN
   ALTER TABLE public.product_checkout_intakes
@@ -57,8 +112,96 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
   ALTER TABLE public.product_checkout_intakes
+    ADD CONSTRAINT product_checkout_intakes_currency_ck CHECK (lower(currency) = 'eur');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- SHA-256 в точния си вид: 64 знака малък шестнадесетичен.
+DO $$ BEGIN
+  ALTER TABLE public.product_checkout_intakes
     ADD CONSTRAINT product_checkout_intakes_source_hash_ck
-    CHECK (length(btrim(source_hash)) > 0);
+    CHECK (source_hash ~ '^[0-9a-f]{64}$');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Пълнотата е задължителна: само цял прочетен документ, в границите на
+-- единствения документиран лимит.
+DO $$ BEGIN
+  ALTER TABLE public.product_checkout_intakes
+    ADD CONSTRAINT product_checkout_intakes_source_status_ck
+    CHECK (source_extraction_status = 'full');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE public.product_checkout_intakes
+    ADD CONSTRAINT product_checkout_intakes_source_chars_ck
+    CHECK (source_char_count BETWEEN 80 AND 60000);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE public.product_checkout_intakes
+    ADD CONSTRAINT product_checkout_intakes_source_bound_ck
+    CHECK (uploaded_contract_id IS NOT NULL AND source_updated_at IS NOT NULL);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Четирите съгласия са задължително ДАДЕНИ, с версии и точен момент.
+DO $$ BEGIN
+  ALTER TABLE public.product_checkout_intakes
+    ADD CONSTRAINT product_checkout_intakes_consent_ck CHECK (
+      terms_accepted IS TRUE
+      AND ai_ack_accepted IS TRUE
+      AND immediate_performance_consent IS TRUE
+      AND withdrawal_loss_acknowledged IS TRUE
+      AND consent_recorded_at IS NOT NULL
+      AND length(btrim(terms_version)) > 0
+      AND length(btrim(privacy_version)) > 0
+      AND length(btrim(refund_version)) > 0
+      AND length(btrim(ai_notice_version)) > 0
+      AND withdrawal_version IS NOT NULL
+      AND length(btrim(withdrawal_version)) > 0
+    );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Точна търговска идентичност: продукт → сума и продукт → lookup key.
+DO $$ BEGIN
+  ALTER TABLE public.product_checkout_intakes
+    ADD CONSTRAINT product_checkout_intakes_amount_ck CHECK (
+      (product_id = 'contract_check' AND expected_amount_cents = 299
+        AND stripe_price_lookup_key = 'contract_check_299')
+      OR (product_id = 'contract_improve' AND expected_amount_cents = 399
+        AND stripe_price_lookup_key = 'contract_improve_399')
+      OR (product_id = 'negotiation_package' AND expected_amount_cents = 799
+        AND stripe_price_lookup_key = 'negotiation_package_799')
+    );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE public.product_checkout_intakes
+    ADD CONSTRAINT product_checkout_intakes_price_id_ck
+    CHECK (stripe_price_id IS NULL OR length(btrim(stripe_price_id)) > 0);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Контекстът е обект с точно определени ключове и ограничени дължини.
+DO $$ BEGIN
+  ALTER TABLE public.product_checkout_intakes
+    ADD CONSTRAINT product_checkout_intakes_context_ck CHECK (
+      jsonb_typeof(context) = 'object'
+      AND NOT EXISTS (
+        SELECT 1 FROM jsonb_object_keys(context) AS k
+        WHERE k NOT IN ('role', 'objective', 'counterparty_context', 'preferred_position')
+      )
+      AND jsonb_typeof(context -> 'role') = 'string'
+      AND length(context ->> 'role') BETWEEN 2 AND 120
+      AND (context ? 'objective' = false
+           OR (jsonb_typeof(context -> 'objective') = 'string'
+               AND length(context ->> 'objective') BETWEEN 2 AND 400))
+      AND (context ? 'counterparty_context' = false
+           OR (jsonb_typeof(context -> 'counterparty_context') = 'string'
+               AND length(context ->> 'counterparty_context') BETWEEN 2 AND 400))
+      AND (context ? 'preferred_position' = false
+           OR context ->> 'preferred_position' IN ('conservative', 'balanced', 'assertive'))
+      AND (product_id = 'contract_check' OR context ? 'objective')
+      AND (product_id <> 'negotiation_package'
+           OR (context ? 'counterparty_context' AND context ? 'preferred_position'))
+    );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 CREATE UNIQUE INDEX IF NOT EXISTS product_checkout_intakes_user_request_uq
@@ -81,21 +224,25 @@ CREATE POLICY product_checkout_intakes_own_select
 -- Умишлено НЯМА INSERT/UPDATE/DELETE политики за клиента.
 
 -- ---------------------------------------------------------------------------
--- B) Платена привилегия за точно един продукт
+-- C) Платена привилегия за точно един продукт
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.product_entitlements (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   product_id text NOT NULL,
   stripe_session_id text NOT NULL,
+  stripe_price_id text,
   stripe_price_lookup_key text NOT NULL,
   environment text NOT NULL,
   amount_cents integer NOT NULL,
   currency text NOT NULL DEFAULT 'eur',
-  source_document_id uuid REFERENCES public.uploaded_contracts(id) ON DELETE SET NULL,
+  paid_at timestamptz,
+  source_document_id uuid REFERENCES public.uploaded_contracts(id) ON DELETE RESTRICT,
   source_hash text NOT NULL,
   source_updated_at timestamptz,
-  intake_id uuid REFERENCES public.product_checkout_intakes(id) ON DELETE SET NULL,
+  source_char_count integer,
+  source_extraction_status text,
+  intake_id uuid REFERENCES public.product_checkout_intakes(id) ON DELETE RESTRICT,
   status text NOT NULL DEFAULT 'paid',
   result_schema_version integer,
   result jsonb,
@@ -106,9 +253,25 @@ CREATE TABLE IF NOT EXISTS public.product_entitlements (
   last_error_code text,
   refinements_included integer NOT NULL DEFAULT 0,
   refinements_used integer NOT NULL DEFAULT 0,
+  refinement_state text NOT NULL DEFAULT 'idle',
+  refinement_token uuid,
+  refinement_started_at timestamptz,
+  refinement_attempts integer NOT NULL DEFAULT 0,
+  refinement_error_code text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.product_entitlements
+  ADD COLUMN IF NOT EXISTS stripe_price_id text,
+  ADD COLUMN IF NOT EXISTS paid_at timestamptz,
+  ADD COLUMN IF NOT EXISTS source_char_count integer,
+  ADD COLUMN IF NOT EXISTS source_extraction_status text,
+  ADD COLUMN IF NOT EXISTS refinement_state text NOT NULL DEFAULT 'idle',
+  ADD COLUMN IF NOT EXISTS refinement_token uuid,
+  ADD COLUMN IF NOT EXISTS refinement_started_at timestamptz,
+  ADD COLUMN IF NOT EXISTS refinement_attempts integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS refinement_error_code text;
 
 DO $$ BEGIN
   ALTER TABLE public.product_entitlements
@@ -132,44 +295,89 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
   ALTER TABLE public.product_entitlements
-    ADD CONSTRAINT product_entitlements_amount_ck CHECK (amount_cents > 0);
+    ADD CONSTRAINT product_entitlements_currency_ck CHECK (lower(currency) = 'eur');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- Точната търговска истина: сума, lookup key и включени уточнения по продукт.
 DO $$ BEGIN
   ALTER TABLE public.product_entitlements
-    ADD CONSTRAINT product_entitlements_currency_ck CHECK (lower(currency) = 'eur');
+    ADD CONSTRAINT product_entitlements_commercial_ck CHECK (
+      (product_id = 'contract_check' AND amount_cents = 299
+        AND stripe_price_lookup_key = 'contract_check_299' AND refinements_included = 0)
+      OR (product_id = 'contract_improve' AND amount_cents = 399
+        AND stripe_price_lookup_key = 'contract_improve_399' AND refinements_included = 0)
+      OR (product_id = 'negotiation_package' AND amount_cents = 799
+        AND stripe_price_lookup_key = 'negotiation_package_799' AND refinements_included = 1)
+    );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
   ALTER TABLE public.product_entitlements
     ADD CONSTRAINT product_entitlements_source_hash_ck
-    CHECK (length(btrim(source_hash)) > 0);
+    CHECK (source_hash ~ '^[0-9a-f]{64}$');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- Точният брой включени уточнения по продукт: 0 / 0 / 1.
+-- Платеното право винаги носи доказателството си: сесия, цена, момент на
+-- плащане, документ, ревизия и пълнота.
+DO $$ BEGIN
+  ALTER TABLE public.product_entitlements
+    ADD CONSTRAINT product_entitlements_proof_ck CHECK (
+      length(btrim(stripe_session_id)) > 0
+      AND stripe_price_id IS NOT NULL AND length(btrim(stripe_price_id)) > 0
+      AND paid_at IS NOT NULL
+      AND intake_id IS NOT NULL
+      AND source_document_id IS NOT NULL
+      AND source_updated_at IS NOT NULL
+      AND source_extraction_status = 'full'
+      AND source_char_count BETWEEN 80 AND 60000
+    );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
 DO $$ BEGIN
   ALTER TABLE public.product_entitlements
     ADD CONSTRAINT product_entitlements_refinements_ck CHECK (
       refinements_used >= 0
       AND refinements_used <= refinements_included
-      AND (
-        (product_id = 'negotiation_package' AND refinements_included = 1)
-        OR (product_id IN ('contract_check', 'contract_improve') AND refinements_included = 0)
+      AND refinement_attempts >= 0
+      AND refinement_attempts <= 20
+      AND attempt_count >= 0
+      AND attempt_count <= 20
+      AND refinement_state IN ('idle', 'processing')
+      AND (refinement_state = 'idle' OR (status = 'ready' AND refinement_token IS NOT NULL))
+      AND (refinement_error_code IS NULL OR length(refinement_error_code) <= 64)
+      AND (last_error_code IS NULL OR length(last_error_code) <= 64)
+    );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- `ready` означава реален резултат за ТОЧНО този продукт и източник.
+DO $$ BEGIN
+  ALTER TABLE public.product_entitlements
+    ADD CONSTRAINT product_entitlements_ready_ck CHECK (
+      status <> 'ready'
+      OR (
+        result IS NOT NULL
+        AND jsonb_typeof(result) = 'object'
+        AND result_schema_version IS NOT NULL
+        AND result ->> 'product_id' = product_id
+        AND result ->> 'source_hash' = source_hash
+        AND fulfilled_at IS NOT NULL
       )
     );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- Резултат може да има само в готовите състояния.
+-- Начални състояния никога не носят резултат.
 DO $$ BEGIN
   ALTER TABLE public.product_entitlements
-    ADD CONSTRAINT product_entitlements_result_state_ck CHECK (
-      (result IS NULL AND result_schema_version IS NULL)
-      OR status IN ('ready', 'refinement_ready', 'refinement_processing', 'exhausted', 'refunded')
+    ADD CONSTRAINT product_entitlements_initial_state_ck CHECK (
+      status NOT IN ('paid', 'processing', 'failed')
+      OR (result IS NULL AND result_schema_version IS NULL AND fulfilled_at IS NULL)
     );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 CREATE UNIQUE INDEX IF NOT EXISTS product_entitlements_session_uq
   ON public.product_entitlements(stripe_session_id);
+CREATE UNIQUE INDEX IF NOT EXISTS product_entitlements_intake_uq
+  ON public.product_entitlements(intake_id);
 CREATE INDEX IF NOT EXISTS product_entitlements_user_status_idx
   ON public.product_entitlements(user_id, status, created_at DESC);
 CREATE INDEX IF NOT EXISTS product_entitlements_source_idx
@@ -187,7 +395,7 @@ CREATE POLICY product_entitlements_own_select
 -- Умишлено НЯМА клиентски INSERT/UPDATE/DELETE политики.
 
 -- ---------------------------------------------------------------------------
--- C) Затягане на order_snapshots
+-- D) Затягане на order_snapshots
 -- ---------------------------------------------------------------------------
 -- Потребителят не може да си „декларира“ покупка.
 DROP POLICY IF EXISTS order_snapshots_user_insert ON public.order_snapshots;
@@ -197,19 +405,28 @@ ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS terms_accepted boole
 ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS immediate_performance_consent boolean;
 ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS withdrawal_loss_acknowledged boolean;
 ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS consent_recorded_at timestamptz;
+ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS product_intake_id uuid;
+ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS product_source_document_id uuid;
+ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS product_source_hash text;
+ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS stripe_price_id text;
+ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS stripe_price_lookup_key text;
 
+-- Разширяваме допустимите видове покупка, като ЗАПАЗВАМЕ всяка заварена
+-- стойност. Работим по точното име на ограничението, а не по „първото, което
+-- споменава purchase_kind“.
 DO $$
 DECLARE
   ck text;
 BEGIN
-  SELECT conname INTO ck
-  FROM pg_constraint
-  WHERE conrelid = 'public.order_snapshots'::regclass
-    AND contype = 'c'
-    AND pg_get_constraintdef(oid) ILIKE '%purchase_kind%';
-  IF ck IS NOT NULL THEN
+  FOR ck IN
+    SELECT conname
+    FROM pg_constraint
+    WHERE conrelid = 'public.order_snapshots'::regclass
+      AND contype = 'c'
+      AND conname IN ('order_snapshots_purchase_kind_ck', 'order_snapshots_purchase_kind_check')
+  LOOP
     EXECUTE format('ALTER TABLE public.order_snapshots DROP CONSTRAINT %I', ck);
-  END IF;
+  END LOOP;
   ALTER TABLE public.order_snapshots
     ADD CONSTRAINT order_snapshots_purchase_kind_ck CHECK (purchase_kind IN (
       'team', 'subscription', 'strict_unlock', 'branding',
@@ -217,96 +434,213 @@ BEGIN
     ));
 END $$;
 
--- Продуктовият snapshot задължително носи точния продукт.
+-- Продуктовият snapshot носи цялото доказателство; непродуктовият никога не
+-- носи продукт.
 DO $$ BEGIN
   ALTER TABLE public.order_snapshots
     ADD CONSTRAINT order_snapshots_product_id_ck CHECK (
-      purchase_kind <> 'product'
-      OR product_id IN ('contract_check', 'contract_improve', 'negotiation_package')
+      CASE WHEN purchase_kind = 'product' THEN
+        product_id IN ('contract_check', 'contract_improve', 'negotiation_package')
+        AND currency = 'EUR'
+        AND environment IN ('live', 'sandbox')
+        AND payment_status = 'paid'
+        AND product_intake_id IS NOT NULL
+        AND product_source_document_id IS NOT NULL
+        AND product_source_hash ~ '^[0-9a-f]{64}$'
+        AND stripe_price_id IS NOT NULL AND length(btrim(stripe_price_id)) > 0
+        AND stripe_price_lookup_key IN (
+          'contract_check_299', 'contract_improve_399', 'negotiation_package_799')
+        AND terms_accepted IS TRUE
+        AND ai_ack_accepted IS TRUE
+        AND immediate_performance_consent IS TRUE
+        AND withdrawal_loss_acknowledged IS TRUE
+        AND consent_recorded_at IS NOT NULL
+        AND terms_version IS NOT NULL
+        AND privacy_version IS NOT NULL
+        AND withdrawal_version IS NOT NULL
+        AND refund_version IS NOT NULL
+        AND (
+          (product_id = 'contract_check' AND price_amount = 2.99)
+          OR (product_id = 'contract_improve' AND price_amount = 3.99)
+          OR (product_id = 'negotiation_package' AND price_amount = 7.99)
+        )
+      ELSE product_id IS NULL END
     );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ---------------------------------------------------------------------------
--- D) Атомарни функции, достъпни само за service_role
+-- E) Атомарни функции, достъпни само за service_role
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.record_product_entitlement(
+-- Една транзакция създава И привилегията, И продуктовия order snapshot от
+-- НЕИЗМЕННАТА заявка. Повторна доставка е успех само при пълно съвпадение.
+CREATE OR REPLACE FUNCTION public.record_product_purchase(
   p_user_id uuid,
   p_product_id text,
   p_session_id text,
+  p_price_id text,
   p_lookup_key text,
   p_environment text,
   p_amount_cents integer,
-  p_source_document_id uuid,
-  p_source_hash text,
-  p_source_updated_at timestamptz,
+  p_currency text,
   p_intake_id uuid,
+  p_paid_at timestamptz,
   p_refinements_included integer
 ) RETURNS jsonb
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 DECLARE
-  existing public.product_entitlements;
-  new_id uuid;
+  v_intake public.product_checkout_intakes;
+  v_ent public.product_entitlements;
+  v_doc_updated timestamptz;
+  v_snapshot public.order_snapshots;
+  v_amount numeric := p_amount_cents::numeric / 100;
+  v_new_id uuid;
 BEGIN
-  SELECT * INTO existing FROM public.product_entitlements
-    WHERE stripe_session_id = p_session_id;
-
-  IF existing.id IS NOT NULL THEN
-    -- Повторно доставяне на същото събитие: успех без нов запис.
-    IF existing.user_id IS DISTINCT FROM p_user_id
-       OR existing.product_id IS DISTINCT FROM p_product_id
-       OR existing.environment IS DISTINCT FROM p_environment
-       OR existing.amount_cents IS DISTINCT FROM p_amount_cents
-       OR existing.source_hash IS DISTINCT FROM p_source_hash THEN
-      RAISE EXCEPTION 'product_entitlement_conflict';
-    END IF;
-    RETURN jsonb_build_object('ok', true, 'created', false, 'entitlement_id', existing.id);
+  IF lower(COALESCE(p_currency, '')) <> 'eur' THEN
+    RAISE EXCEPTION 'product_purchase_currency_conflict';
   END IF;
 
-  INSERT INTO public.product_entitlements (
-    user_id, product_id, stripe_session_id, stripe_price_lookup_key, environment,
-    amount_cents, currency, source_document_id, source_hash, source_updated_at,
-    intake_id, status, refinements_included
-  ) VALUES (
-    p_user_id, p_product_id, p_session_id, p_lookup_key, p_environment,
-    p_amount_cents, 'eur', p_source_document_id, p_source_hash, p_source_updated_at,
-    p_intake_id, 'paid', COALESCE(p_refinements_included, 0)
-  ) RETURNING id INTO new_id;
+  SELECT * INTO v_intake FROM public.product_checkout_intakes
+    WHERE id = p_intake_id FOR UPDATE;
+  IF v_intake.id IS NULL THEN
+    RAISE EXCEPTION 'product_intake_not_found';
+  END IF;
+
+  -- Всяко неизменно поле трябва да съвпада точно.
+  IF v_intake.user_id IS DISTINCT FROM p_user_id
+     OR v_intake.product_id IS DISTINCT FROM p_product_id
+     OR v_intake.environment IS DISTINCT FROM p_environment
+     OR v_intake.expected_amount_cents IS DISTINCT FROM p_amount_cents
+     OR v_intake.stripe_price_lookup_key IS DISTINCT FROM p_lookup_key
+     OR v_intake.stripe_price_id IS DISTINCT FROM p_price_id
+     OR v_intake.source_extraction_status IS DISTINCT FROM 'full'
+     OR v_intake.uploaded_contract_id IS NULL
+     OR v_intake.source_updated_at IS NULL
+     OR v_intake.terms_accepted IS NOT TRUE
+     OR v_intake.ai_ack_accepted IS NOT TRUE
+     OR v_intake.immediate_performance_consent IS NOT TRUE
+     OR v_intake.withdrawal_loss_acknowledged IS NOT TRUE
+     OR v_intake.consent_recorded_at IS NULL THEN
+    RAISE EXCEPTION 'product_intake_conflict';
+  END IF;
+
+  IF v_intake.stripe_session_id IS DISTINCT FROM p_session_id THEN
+    RAISE EXCEPTION 'product_session_conflict';
+  END IF;
+
+  -- Източникът трябва да е ТОЧНО този, който е бил платен.
+  SELECT updated_at INTO v_doc_updated FROM public.uploaded_contracts
+    WHERE id = v_intake.uploaded_contract_id AND user_id = p_user_id;
+  IF v_doc_updated IS NULL OR v_doc_updated IS DISTINCT FROM v_intake.source_updated_at THEN
+    RAISE EXCEPTION 'product_source_changed';
+  END IF;
+
+  SELECT * INTO v_ent FROM public.product_entitlements
+    WHERE stripe_session_id = p_session_id FOR UPDATE;
+
+  IF v_ent.id IS NOT NULL THEN
+    IF v_ent.user_id IS DISTINCT FROM p_user_id
+       OR v_ent.product_id IS DISTINCT FROM p_product_id
+       OR v_ent.environment IS DISTINCT FROM p_environment
+       OR v_ent.amount_cents IS DISTINCT FROM p_amount_cents
+       OR v_ent.stripe_price_id IS DISTINCT FROM p_price_id
+       OR v_ent.stripe_price_lookup_key IS DISTINCT FROM p_lookup_key
+       OR v_ent.intake_id IS DISTINCT FROM p_intake_id
+       OR v_ent.source_document_id IS DISTINCT FROM v_intake.uploaded_contract_id
+       OR v_ent.source_hash IS DISTINCT FROM v_intake.source_hash
+       OR v_ent.source_updated_at IS DISTINCT FROM v_intake.source_updated_at THEN
+      RAISE EXCEPTION 'product_entitlement_conflict';
+    END IF;
+    v_new_id := v_ent.id;
+  ELSE
+    INSERT INTO public.product_entitlements (
+      user_id, product_id, stripe_session_id, stripe_price_id, stripe_price_lookup_key,
+      environment, amount_cents, currency, paid_at, source_document_id, source_hash,
+      source_updated_at, source_char_count, source_extraction_status, intake_id,
+      status, refinements_included
+    ) VALUES (
+      p_user_id, p_product_id, p_session_id, p_price_id, p_lookup_key,
+      p_environment, p_amount_cents, 'eur', COALESCE(p_paid_at, now()),
+      v_intake.uploaded_contract_id, v_intake.source_hash, v_intake.source_updated_at,
+      v_intake.source_char_count, 'full', p_intake_id,
+      'paid', COALESCE(p_refinements_included, 0)
+    ) RETURNING id INTO v_new_id;
+  END IF;
+
+  -- Snapshot-ът се гради само от неизменната заявка, не от Stripe метаданни.
+  SELECT * INTO v_snapshot FROM public.order_snapshots
+    WHERE stripe_session_id = p_session_id FOR UPDATE;
+
+  IF v_snapshot.id IS NOT NULL THEN
+    IF v_snapshot.user_id IS DISTINCT FROM p_user_id
+       OR v_snapshot.product_id IS DISTINCT FROM p_product_id
+       OR v_snapshot.purchase_kind IS DISTINCT FROM 'product'
+       OR v_snapshot.price_amount IS DISTINCT FROM v_amount
+       OR v_snapshot.environment IS DISTINCT FROM p_environment
+       OR v_snapshot.product_intake_id IS DISTINCT FROM p_intake_id
+       OR v_snapshot.product_source_hash IS DISTINCT FROM v_intake.source_hash THEN
+      RAISE EXCEPTION 'product_snapshot_conflict';
+    END IF;
+  ELSE
+    INSERT INTO public.order_snapshots (
+      user_id, plan_name, price_amount, currency, vat_included, vat_rate,
+      billing_period, terms_version, privacy_version, withdrawal_version, refund_version,
+      ai_ack_accepted, terms_accepted, immediate_performance_consent,
+      withdrawal_loss_acknowledged, consent_recorded_at, product_id, stripe_session_id,
+      environment, payment_status, purchase_kind, product_intake_id,
+      product_source_document_id, product_source_hash, stripe_price_id,
+      stripe_price_lookup_key
+    ) VALUES (
+      p_user_id, p_product_id, v_amount, 'EUR', true, 20,
+      NULL, v_intake.terms_version, v_intake.privacy_version, v_intake.withdrawal_version,
+      v_intake.refund_version, v_intake.ai_ack_accepted, v_intake.terms_accepted,
+      v_intake.immediate_performance_consent, v_intake.withdrawal_loss_acknowledged,
+      v_intake.consent_recorded_at, p_product_id, p_session_id,
+      p_environment, 'paid', 'product', p_intake_id,
+      v_intake.uploaded_contract_id, v_intake.source_hash, p_price_id,
+      p_lookup_key
+    );
+  END IF;
 
   UPDATE public.product_checkout_intakes
-     SET status = 'paid', stripe_session_id = p_session_id, updated_at = now()
+     SET status = 'paid', updated_at = now()
    WHERE id = p_intake_id AND user_id = p_user_id;
 
-  RETURN jsonb_build_object('ok', true, 'created', true, 'entitlement_id', new_id);
+  RETURN jsonb_build_object(
+    'ok', true,
+    'created', v_ent.id IS NULL,
+    'entitlement_id', v_new_id
+  );
 END $$;
 
+-- Начално изпълнение: само от платено, още неготово право.
 CREATE OR REPLACE FUNCTION public.begin_product_fulfillment(
   p_entitlement_id uuid,
   p_user_id uuid,
   p_stale_after interval DEFAULT interval '10 minutes'
 ) RETURNS jsonb
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 DECLARE
-  tok uuid := gen_random_uuid();
-  updated integer;
+  v_tok uuid := gen_random_uuid();
+  v_updated integer;
 BEGIN
   UPDATE public.product_entitlements
-     SET status = CASE WHEN status = 'refinement_ready' THEN 'refinement_processing' ELSE 'processing' END,
-         processing_token = tok,
+     SET status = 'processing',
+         processing_token = v_tok,
          processing_started_at = now(),
          attempt_count = attempt_count + 1,
          updated_at = now()
    WHERE id = p_entitlement_id
      AND user_id = p_user_id
+     AND attempt_count < 20
      AND (
-       status IN ('paid', 'failed', 'refinement_ready')
-       OR (status IN ('processing', 'refinement_processing')
-           AND processing_started_at < now() - p_stale_after)
+       status IN ('paid', 'failed')
+       OR (status = 'processing' AND processing_started_at < now() - p_stale_after)
      );
-  GET DIAGNOSTICS updated = ROW_COUNT;
-  IF updated = 0 THEN
+  GET DIAGNOSTICS v_updated = ROW_COUNT;
+  IF v_updated = 0 THEN
     RETURN jsonb_build_object('ok', false, 'reason', 'not_claimable');
   END IF;
-  RETURN jsonb_build_object('ok', true, 'processing_token', tok);
+  RETURN jsonb_build_object('ok', true, 'processing_token', v_tok);
 END $$;
 
 CREATE OR REPLACE FUNCTION public.complete_product_fulfillment(
@@ -318,9 +652,9 @@ CREATE OR REPLACE FUNCTION public.complete_product_fulfillment(
   p_result jsonb,
   p_result_schema_version integer
 ) RETURNS jsonb
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 DECLARE
-  updated integer;
+  v_updated integer;
 BEGIN
   UPDATE public.product_entitlements
      SET status = 'ready',
@@ -334,9 +668,13 @@ BEGIN
      AND user_id = p_user_id
      AND product_id = p_product_id
      AND source_hash = p_source_hash
-     AND processing_token = p_processing_token;
-  GET DIAGNOSTICS updated = ROW_COUNT;
-  RETURN jsonb_build_object('ok', updated = 1);
+     AND status = 'processing'
+     AND processing_token = p_processing_token
+     AND p_result IS NOT NULL
+     AND p_result ->> 'product_id' = p_product_id
+     AND p_result ->> 'source_hash' = p_source_hash;
+  GET DIAGNOSTICS v_updated = ROW_COUNT;
+  RETURN jsonb_build_object('ok', v_updated = 1);
 END $$;
 
 CREATE OR REPLACE FUNCTION public.fail_product_fulfillment(
@@ -345,9 +683,9 @@ CREATE OR REPLACE FUNCTION public.fail_product_fulfillment(
   p_processing_token uuid,
   p_error_code text
 ) RETURNS jsonb
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 DECLARE
-  updated integer;
+  v_updated integer;
 BEGIN
   UPDATE public.product_entitlements
      SET status = 'failed',
@@ -356,32 +694,104 @@ BEGIN
          updated_at = now()
    WHERE id = p_entitlement_id
      AND user_id = p_user_id
+     AND status = 'processing'
      AND processing_token = p_processing_token;
-  GET DIAGNOSTICS updated = ROW_COUNT;
-  RETURN jsonb_build_object('ok', updated = 1);
+  GET DIAGNOSTICS v_updated = ROW_COUNT;
+  RETURN jsonb_build_object('ok', v_updated = 1);
 END $$;
 
+-- Уточнението се ИЗРАЗХОДВА само при успех. Заявяването не го изразходва и
+-- никога не пипа вече готовия резултат.
 CREATE OR REPLACE FUNCTION public.claim_product_refinement(
   p_entitlement_id uuid,
-  p_user_id uuid
+  p_user_id uuid,
+  p_stale_after interval DEFAULT interval '10 minutes'
 ) RETURNS jsonb
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 DECLARE
-  updated integer;
+  v_tok uuid := gen_random_uuid();
+  v_updated integer;
 BEGIN
   UPDATE public.product_entitlements
-     SET refinements_used = refinements_used + 1,
-         status = 'refinement_ready',
+     SET refinement_state = 'processing',
+         refinement_token = v_tok,
+         refinement_started_at = now(),
+         refinement_attempts = refinement_attempts + 1,
+         refinement_error_code = NULL,
          updated_at = now()
    WHERE id = p_entitlement_id
      AND user_id = p_user_id
-     AND status IN ('ready', 'refinement_ready')
-     AND refinements_used < refinements_included;
-  GET DIAGNOSTICS updated = ROW_COUNT;
-  IF updated = 0 THEN
-    RETURN jsonb_build_object('ok', false, 'reason', 'no_refinement_left');
+     AND status = 'ready'
+     AND refinements_used < refinements_included
+     AND refinement_attempts < 20
+     AND (
+       refinement_state = 'idle'
+       OR refinement_started_at < now() - p_stale_after
+     );
+  GET DIAGNOSTICS v_updated = ROW_COUNT;
+  IF v_updated = 0 THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'refinement_not_claimable');
   END IF;
-  RETURN jsonb_build_object('ok', true);
+  RETURN jsonb_build_object('ok', true, 'refinement_token', v_tok);
+END $$;
+
+CREATE OR REPLACE FUNCTION public.complete_product_refinement(
+  p_entitlement_id uuid,
+  p_user_id uuid,
+  p_refinement_token uuid,
+  p_result jsonb,
+  p_result_schema_version integer
+) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+DECLARE
+  v_updated integer;
+BEGIN
+  UPDATE public.product_entitlements
+     SET result = p_result,
+         result_schema_version = COALESCE(p_result_schema_version, result_schema_version),
+         refinements_used = refinements_used + 1,
+         refinement_state = 'idle',
+         refinement_token = NULL,
+         refinement_error_code = NULL,
+         fulfilled_at = now(),
+         updated_at = now()
+   WHERE id = p_entitlement_id
+     AND user_id = p_user_id
+     AND status = 'ready'
+     AND refinement_state = 'processing'
+     AND refinement_token = p_refinement_token
+     AND refinements_used < refinements_included
+     AND p_result IS NOT NULL
+     AND p_result ->> 'product_id' = product_id
+     AND p_result ->> 'source_hash' = source_hash;
+  GET DIAGNOSTICS v_updated = ROW_COUNT;
+  RETURN jsonb_build_object('ok', v_updated = 1);
+END $$;
+
+-- Неуспешно уточнение: платеният готов резултат остава, уточнението НЕ се
+-- изразходва и опитът може да се повтори.
+CREATE OR REPLACE FUNCTION public.fail_product_refinement(
+  p_entitlement_id uuid,
+  p_user_id uuid,
+  p_refinement_token uuid,
+  p_error_code text
+) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+DECLARE
+  v_updated integer;
+BEGIN
+  UPDATE public.product_entitlements
+     SET refinement_state = 'idle',
+         refinement_token = NULL,
+         refinement_error_code = left(COALESCE(p_error_code, 'unknown'), 64),
+         updated_at = now()
+   WHERE id = p_entitlement_id
+     AND user_id = p_user_id
+     AND status = 'ready'
+     AND refinement_state = 'processing'
+     AND refinement_token = p_refinement_token;
+  GET DIAGNOSTICS v_updated = ROW_COUNT;
+  RETURN jsonb_build_object('ok', v_updated = 1);
 END $$;
 
 DO $$
@@ -389,11 +799,13 @@ DECLARE
   fn text;
 BEGIN
   FOREACH fn IN ARRAY ARRAY[
-    'public.record_product_entitlement(uuid,text,text,text,text,integer,uuid,text,timestamptz,uuid,integer)',
+    'public.record_product_purchase(uuid,text,text,text,text,text,integer,text,uuid,timestamptz,integer)',
     'public.begin_product_fulfillment(uuid,uuid,interval)',
     'public.complete_product_fulfillment(uuid,uuid,text,text,uuid,jsonb,integer)',
     'public.fail_product_fulfillment(uuid,uuid,uuid,text)',
-    'public.claim_product_refinement(uuid,uuid)'
+    'public.claim_product_refinement(uuid,uuid,interval)',
+    'public.complete_product_refinement(uuid,uuid,uuid,jsonb,integer)',
+    'public.fail_product_refinement(uuid,uuid,uuid,text)'
   ] LOOP
     EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC', fn);
     EXECUTE format('REVOKE ALL ON FUNCTION %s FROM anon', fn);
