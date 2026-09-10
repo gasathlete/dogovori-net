@@ -157,6 +157,27 @@ Deno.serve(async (req) => {
     const sourceHash = verifiedSource.sourceHash;
     const sourceUpdatedAt = verifiedSource.sourceUpdatedAt;
 
+    // СЪЩАТА проверка, която изпълнението ще повтори: можем ли наистина да
+    // обработим точно този документ с точно този продукт? Ако не — отказваме
+    // ПРЕДИ да се създаде или преизползва платима сесия.
+    const eligibility = evaluateProductEligibility({
+      productId: spec.id,
+      source: {
+        text: verifiedSource.text,
+        charCount: verifiedSource.charCount,
+        charUnit: verifiedSource.charUnit,
+        sourceKind: verifiedSource.sourceKind,
+        extractionStatus: "full",
+      },
+      context,
+    });
+    if (!eligibility.ok) {
+      return new Response(
+        JSON.stringify({ error: eligibility.code, message: eligibility.message }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     // Цената се разрешава ПРЕДИ заявката: точната цена е част от заявката.
     const stripe = createStripeClient(environment);
     const prices = await stripe.prices.list({ lookup_keys: [spec.lookupKey] });
