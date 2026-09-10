@@ -586,7 +586,6 @@ describe("Stage 2B1B1 миграция — състояние на платен�
     expect(jobs).toBeGreaterThan(-1);
     expect(fix).toBeLessThan(jobs);
     expect(note).toContain("docs/migrations/stage2a_product_fulfillment_jobs.sql");
-    expect(note).not.toContain("stage2b1b1_product_fulfillment_jobs.sql");
   });
 
   it("задачите не влизат в дневника на миграциите", () => {
@@ -595,6 +594,154 @@ describe("Stage 2B1B1 миграция — състояние на платен�
       "utf8",
     );
     expect(journal).not.toContain("0019_product_fulfillment_jobs");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Stage 2B1B1 КОРЕКЦИЯ (0020) — 0019 е приета и защитена, затова се поправя с
+// отделна ДОБАВЯЩА миграция. Пак само източник, нищо не е изпълнено.
+// ---------------------------------------------------------------------------
+const FIX_FILE = join(
+  process.cwd(),
+  "drizzle/migrations/0020_product_fulfillment_jobs_correction.sql",
+);
+const FIX_REVIEW = join(
+  process.cwd(),
+  "docs/migrations/stage2b1b1_product_fulfillment_jobs_correction.sql",
+);
+
+describe("Stage 2B1B1 корекция 0020 — micro-USD, строг курсор и наем", () => {
+  const sql = readFileSync(FIX_FILE, "utf8");
+
+  it("е идентична с файла за преглед", () => {
+    expect(sql).toBe(readFileSync(FIX_REVIEW, "utf8"));
+  });
+
+  it("приетата 0019 остава непокътната", () => {
+    const jobs = readFileSync(JOBS_FILE, "utf8");
+    expect(jobs).toBe(readFileSync(JOBS_REVIEW, "utf8"));
+    // Старата единица си остава в 0019; корекцията идва от 0020.
+    expect(jobs).toContain("usage_cost_milli_cents");
+    expect(sql).toContain("RENAME COLUMN usage_cost_milli_cents TO usage_cost_micro_usd");
+    expect(sql).toContain(
+      "RENAME COLUMN budget_hard_cost_milli_cents TO budget_hard_cost_micro_usd",
+    );
+  });
+
+  it("прилага се атомарно и не пипа нито един ред с данни", () => {
+    expect(sql).toContain("BEGIN;");
+    expect(sql.trimEnd().endsWith("COMMIT;")).toBe(true);
+    expect(sql).not.toMatch(/DROP TABLE|TRUNCATE|DROP COLUMN|DELETE FROM/i);
+    expect(sql).not.toMatch(/download_quota|consume_quota|credit_topup_ops/);
+  });
+
+  it("въвежда отделни граници и разход по контролна точка", () => {
+    for (const token of [
+      "ADD COLUMN IF NOT EXISTS budget_max_input_tokens bigint NOT NULL DEFAULT 0",
+      "ADD COLUMN IF NOT EXISTS budget_max_output_tokens bigint NOT NULL DEFAULT 0",
+      "ADD COLUMN IF NOT EXISTS usage_cost_micro_usd bigint NOT NULL DEFAULT 0",
+      "usage_calls <= budget_max_calls",
+      "usage_input_tokens <= budget_max_input_tokens",
+      "usage_output_tokens <= budget_max_output_tokens",
+      "usage_input_tokens + usage_output_tokens <= budget_max_tokens",
+      "usage_cost_micro_usd <= budget_hard_cost_micro_usd",
+    ]) {
+      expect(sql, token).toContain(token);
+    }
+    expect(sql).not.toContain("milli_cents <=");
+  });
+
+  it("етапът НИКОГА не се разминава с курсора, а индексите са цели и неотрицателни", () => {
+    expect(sql).toContain("cursor ->> 'stage' = stage");
+    expect(sql).toContain("(cursor -> 'batch_index')::numeric >= 0");
+    expect(sql).toContain("(cursor -> 'chunk_index')::numeric >= 0");
+    expect(sql).toContain("(cursor -> 'batch_index')::numeric = trunc((cursor -> 'batch_index')::numeric)");
+    // Постоянната грешка е крайна.
+    expect(sql).toContain("error_class IS DISTINCT FROM 'permanent' OR stage = 'failed'");
+  });
+
+  it("ключът на стъпката се извежда от курсора, не от извикващия", () => {
+    expect(sql).toContain("CREATE OR REPLACE FUNCTION public.product_job_cursor_key(p_cursor jsonb)");
+    expect(sql).toContain("v_key := public.product_job_cursor_key(p_next_cursor);");
+    expect(sql).toContain("cursor_key LIKE stage || ':%'");
+    // Никакъв каскаден подпис с ключ/етап от извикващия не остава извикваем.
+    expect(sql).toContain(
+      "DROP FUNCTION IF EXISTS public.record_product_job_checkpoint(uuid,uuid,text,text,jsonb,integer,bigint,bigint,bigint,text,boolean);",
+    );
+    expect(sql).toContain(
+      "DROP FUNCTION IF EXISTS public.claim_product_job(uuid,uuid,text,text,integer,bigint,bigint,integer);",
+    );
+  });
+
+  it("преходите са продуктови и строго нарастващи", () => {
+    expect(sql).toContain("CREATE OR REPLACE FUNCTION public.product_job_stage_sequence(p_product_id text)");
+    expect(sql).toContain("'queued', 'awaiting_generation', 'passport', 'review', 'synthesis', 'completed'");
+    expect(sql).toContain("v_stage_pos > v_current_pos + 1");
+    expect(sql).toContain("'cursor_not_advancing'");
+    expect(sql).toContain("'use_fail_product_job'");
+    expect(sql).toContain("IF v_next_batch <> 0 OR v_next_chunk <> 0 THEN");
+  });
+
+  it("точното повторение не начислява втори път и не заклещва наема", () => {
+    expect(sql).toContain("ON CONFLICT (job_id, cursor_key) DO NOTHING");
+    expect(sql).toContain("'already_recorded', true");
+    expect(sql).toContain("CREATE OR REPLACE FUNCTION public.release_product_job_lease(");
+    expect(sql).toContain("SET lease_token = NULL, lease_expires_at = NULL, updated_at = now()");
+    expect(sql).toContain("WHEN v_release OR v_next_stage = 'completed'");
+  });
+
+  it("бюджетът се проверява ПРЕДИ записа, за да падне всичко заедно", () => {
+    const fn = sql.slice(sql.indexOf("CREATE OR REPLACE FUNCTION public.record_product_job_checkpoint("));
+    const body = fn.slice(0, fn.indexOf("END $$"));
+    const budget = body.indexOf("'budget_exceeded'");
+    const insert = body.indexOf("INSERT INTO public.product_fulfillment_checkpoints");
+    expect(budget).toBeGreaterThan(-1);
+    expect(budget).toBeLessThan(insert);
+  });
+
+  it("състоянието на правото остава съгласувано със задачата", () => {
+    expect(sql).toContain("SET status = 'processing', updated_at = now()");
+    expect(sql).toContain("SET status = 'failed', updated_at = now()");
+    expect(sql).toContain("'failed_permanent'");
+  });
+
+  it("изменящите функции са само за службата, статусът — за собственика", () => {
+    expect(sql).toContain(
+      "'public.claim_product_job(uuid,uuid,text,integer,bigint,bigint,bigint,bigint,integer)'",
+    );
+    expect(sql).toContain(
+      "'public.record_product_job_checkpoint(uuid,uuid,jsonb,integer,bigint,bigint,bigint,text,boolean)'",
+    );
+    expect(sql).toContain("REVOKE ALL ON FUNCTION %s FROM authenticated");
+    expect(sql).toContain("GRANT EXECUTE ON FUNCTION %s TO service_role");
+    expect(sql).toContain("GRANT EXECUTE ON FUNCTION public.product_job_status(uuid) TO authenticated;");
+  });
+
+  it("всяка SECURITY DEFINER функция ползва празен search_path", () => {
+    const definers = sql.match(/SECURITY DEFINER SET search_path = '[^']*'/g) ?? [];
+    expect(definers.length).toBeGreaterThanOrEqual(4);
+    for (const d of definers) expect(d).toBe("SECURITY DEFINER SET search_path = ''");
+  });
+
+  it("редът е база -> 0018 -> 0019 -> 0020, а 0021 е запазен", () => {
+    const note = readFileSync(ROLLOUT_NOTE, "utf8");
+    const base = note.indexOf("20260910090000_product_checkout_entitlements.sql");
+    const fix = note.indexOf("0018_product_result_v2_binding_patch.sql");
+    const jobs = note.indexOf("0019_product_fulfillment_jobs.sql");
+    const corr = note.indexOf("0020_product_fulfillment_jobs_correction.sql");
+    expect(base).toBeGreaterThan(-1);
+    expect(base).toBeLessThan(fix);
+    expect(fix).toBeLessThan(jobs);
+    expect(jobs).toBeLessThan(corr);
+    expect(note).toContain("`0021`");
+  });
+
+  it("корекцията не влиза в дневника на миграциите", () => {
+    const journal = readFileSync(
+      join(process.cwd(), "drizzle/migrations/meta/_journal.json"),
+      "utf8",
+    );
+    expect(journal).not.toContain("0020_product_fulfillment_jobs_correction");
   });
 });
 

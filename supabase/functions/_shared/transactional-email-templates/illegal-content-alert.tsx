@@ -1,4 +1,4 @@
-/// <reference types="npm:@types/react@18.3.1" />
+/// <reference types="npm:@types/react@^18.3.0" />
 
 import * as React from 'npm:react@18.3.1'
 import { Heading, Section, Text } from 'npm:@react-email/components@0.0.22'
