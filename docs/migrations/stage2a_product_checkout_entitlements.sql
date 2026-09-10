@@ -237,6 +237,8 @@ CREATE TABLE IF NOT EXISTS public.product_entitlements (
   amount_cents integer NOT NULL,
   currency text NOT NULL DEFAULT 'eur',
   paid_at timestamptz,
+  -- Подписаното Stripe събитие, доказало плащането. Не е час на сървъра.
+  stripe_event_id text,
   source_document_id uuid REFERENCES public.uploaded_contracts(id) ON DELETE RESTRICT,
   source_hash text NOT NULL,
   source_updated_at timestamptz,
@@ -265,6 +267,7 @@ CREATE TABLE IF NOT EXISTS public.product_entitlements (
 ALTER TABLE public.product_entitlements
   ADD COLUMN IF NOT EXISTS stripe_price_id text,
   ADD COLUMN IF NOT EXISTS paid_at timestamptz,
+  ADD COLUMN IF NOT EXISTS stripe_event_id text,
   ADD COLUMN IF NOT EXISTS source_char_count integer,
   ADD COLUMN IF NOT EXISTS source_extraction_status text,
   ADD COLUMN IF NOT EXISTS refinement_state text NOT NULL DEFAULT 'idle',
@@ -282,10 +285,9 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
   ALTER TABLE public.product_entitlements
     ADD CONSTRAINT product_entitlements_status_ck
-    CHECK (status IN (
-      'paid', 'processing', 'ready', 'failed',
-      'refinement_ready', 'refinement_processing', 'exhausted', 'refunded'
-    ));
+    -- Животът на уточнението има собствено поле `refinement_state`; основният
+    -- статус на резултата остава чист.
+    CHECK (status IN ('paid', 'processing', 'ready', 'failed', 'refunded'));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
@@ -325,6 +327,7 @@ DO $$ BEGIN
       length(btrim(stripe_session_id)) > 0
       AND stripe_price_id IS NOT NULL AND length(btrim(stripe_price_id)) > 0
       AND paid_at IS NOT NULL
+      AND stripe_event_id IS NOT NULL AND length(btrim(stripe_event_id)) > 0
       AND intake_id IS NOT NULL
       AND source_document_id IS NOT NULL
       AND source_updated_at IS NOT NULL
@@ -410,6 +413,27 @@ ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS product_source_docum
 ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS product_source_hash text;
 ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS stripe_price_id text;
 ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS stripe_price_lookup_key text;
+ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS product_source_updated_at timestamptz;
+ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS product_source_char_count integer;
+ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS product_source_extraction_status text;
+ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS ai_notice_version text;
+ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS paid_at timestamptz;
+ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS stripe_event_id text;
+-- Единственото, което Stripe наистина доказва за данъка, е ПОВЕДЕНИЕТО на
+-- цената (`inclusive`). Ставка се записва само ако Stripe я е подписал.
+ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS tax_behavior text;
+ALTER TABLE public.order_snapshots ADD COLUMN IF NOT EXISTS tax_amount_cents integer;
+
+-- Заварената колона `vat_rate` е NOT NULL DEFAULT 20. Продуктовите редове не
+-- могат да твърдят ставка, която Stripe не е подписал, затова колоната става
+-- допустимо празна за напред. Заварените редове и стойности не се променят.
+ALTER TABLE public.order_snapshots ALTER COLUMN vat_rate DROP NOT NULL;
+
+DO $$ BEGIN
+  ALTER TABLE public.order_snapshots
+    ADD CONSTRAINT order_snapshots_tax_behavior_ck
+    CHECK (tax_behavior IS NULL OR tax_behavior IN ('inclusive', 'exclusive', 'unspecified'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Разширяваме допустимите видове покупка, като ЗАПАЗВАМЕ всяка заварена
 -- стойност. Работим по точното име на ограничението, а не по „първото, което
@@ -450,6 +474,16 @@ DO $$ BEGIN
         AND stripe_price_id IS NOT NULL AND length(btrim(stripe_price_id)) > 0
         AND stripe_price_lookup_key IN (
           'contract_check_299', 'contract_improve_399', 'negotiation_package_799')
+        AND product_source_updated_at IS NOT NULL
+        AND product_source_char_count BETWEEN 80 AND 60000
+        AND product_source_extraction_status = 'full'
+        AND paid_at IS NOT NULL
+        AND stripe_session_id IS NOT NULL AND length(btrim(stripe_session_id)) > 0
+        AND stripe_event_id IS NOT NULL AND length(btrim(stripe_event_id)) > 0
+        -- Доказано е ПОВЕДЕНИЕТО на цената, не някаква ставка.
+        AND vat_included IS TRUE
+        AND tax_behavior = 'inclusive'
+        AND ai_notice_version IS NOT NULL
         AND terms_accepted IS TRUE
         AND ai_ack_accepted IS TRUE
         AND immediate_performance_consent IS TRUE
@@ -484,35 +518,75 @@ CREATE OR REPLACE FUNCTION public.record_product_purchase(
   p_currency text,
   p_intake_id uuid,
   p_paid_at timestamptz,
-  p_refinements_included integer
+  p_refinements_included integer,
+  p_stripe_event_id text
 ) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 DECLARE
   v_intake public.product_checkout_intakes;
   v_ent public.product_entitlements;
-  v_doc_updated timestamptz;
+  v_doc public.uploaded_contracts;
   v_snapshot public.order_snapshots;
   v_amount numeric := p_amount_cents::numeric / 100;
+  v_expected_amount integer;
+  v_expected_lookup text;
+  v_expected_refinements integer;
+  v_recomputed_hash text;
   v_new_id uuid;
 BEGIN
+  -- 0) Доказателството за плащане идва от подписаното Stripe събитие. Няма
+  --    COALESCE(now()) и няма измислен час.
+  IF p_paid_at IS NULL THEN
+    RAISE EXCEPTION 'product_paid_at_missing';
+  END IF;
+  IF p_stripe_event_id IS NULL OR length(btrim(p_stripe_event_id)) = 0 THEN
+    RAISE EXCEPTION 'product_event_missing';
+  END IF;
   IF lower(COALESCE(p_currency, '')) <> 'eur' THEN
     RAISE EXCEPTION 'product_purchase_currency_conflict';
   END IF;
+  IF p_price_id IS NULL OR length(btrim(p_price_id)) = 0 THEN
+    RAISE EXCEPTION 'product_price_missing';
+  END IF;
 
+  -- 1) Точната търговска идентичност на продукта, включително уточненията.
+  IF p_product_id = 'contract_check' THEN
+    v_expected_amount := 299;
+    v_expected_lookup := 'contract_check_299';
+    v_expected_refinements := 0;
+  ELSIF p_product_id = 'contract_improve' THEN
+    v_expected_amount := 399;
+    v_expected_lookup := 'contract_improve_399';
+    v_expected_refinements := 0;
+  ELSIF p_product_id = 'negotiation_package' THEN
+    v_expected_amount := 799;
+    v_expected_lookup := 'negotiation_package_799';
+    v_expected_refinements := 1;
+  ELSE
+    RAISE EXCEPTION 'product_unknown';
+  END IF;
+  IF p_amount_cents IS DISTINCT FROM v_expected_amount
+     OR p_lookup_key IS DISTINCT FROM v_expected_lookup
+     OR p_refinements_included IS DISTINCT FROM v_expected_refinements THEN
+    RAISE EXCEPTION 'product_commercial_conflict';
+  END IF;
+
+  -- 2) Заявката се заключва и всяко неизменно поле трябва да съвпада точно.
   SELECT * INTO v_intake FROM public.product_checkout_intakes
     WHERE id = p_intake_id FOR UPDATE;
   IF v_intake.id IS NULL THEN
     RAISE EXCEPTION 'product_intake_not_found';
   END IF;
 
-  -- Всяко неизменно поле трябва да съвпада точно.
   IF v_intake.user_id IS DISTINCT FROM p_user_id
      OR v_intake.product_id IS DISTINCT FROM p_product_id
      OR v_intake.environment IS DISTINCT FROM p_environment
      OR v_intake.expected_amount_cents IS DISTINCT FROM p_amount_cents
+     OR lower(COALESCE(v_intake.currency, '')) IS DISTINCT FROM 'eur'
      OR v_intake.stripe_price_lookup_key IS DISTINCT FROM p_lookup_key
      OR v_intake.stripe_price_id IS DISTINCT FROM p_price_id
      OR v_intake.source_extraction_status IS DISTINCT FROM 'full'
+     OR v_intake.source_char_count IS NULL
      OR v_intake.uploaded_contract_id IS NULL
      OR v_intake.source_updated_at IS NULL
      OR v_intake.terms_accepted IS NOT TRUE
@@ -527,13 +601,38 @@ BEGIN
     RAISE EXCEPTION 'product_session_conflict';
   END IF;
 
-  -- Източникът трябва да е ТОЧНО този, който е бил платен.
-  SELECT updated_at INTO v_doc_updated FROM public.uploaded_contracts
-    WHERE id = v_intake.uploaded_contract_id AND user_id = p_user_id;
-  IF v_doc_updated IS NULL OR v_doc_updated IS DISTINCT FROM v_intake.source_updated_at THEN
+  -- 3) Чисти състояния: първо даване САМО от `checkout_created`, повторение
+  --    САМО от `paid`. Всяко половин състояние се проваля затворено.
+  IF v_intake.status NOT IN ('checkout_created', 'paid') THEN
+    RAISE EXCEPTION 'product_intake_state_conflict';
+  END IF;
+
+  -- 4) Редът на документа се заключва и се сверява поле по поле.
+  SELECT * INTO v_doc FROM public.uploaded_contracts
+    WHERE id = v_intake.uploaded_contract_id AND user_id = p_user_id FOR UPDATE;
+  IF v_doc.id IS NULL
+     OR v_doc.updated_at IS DISTINCT FROM v_intake.source_updated_at
+     OR lower(COALESCE(v_doc.text_hash, '')) IS DISTINCT FROM v_intake.source_hash
+     OR length(COALESCE(v_doc.extracted_text, '')) IS DISTINCT FROM v_intake.source_char_count
+     OR v_doc.product_extraction_status IS DISTINCT FROM 'full'
+     OR v_doc.product_extracted_chars IS DISTINCT FROM v_intake.source_char_count
+     OR COALESCE(v_doc.product_source_kind, '') NOT IN ('pdf', 'docx') THEN
     RAISE EXCEPTION 'product_source_changed';
   END IF;
 
+  -- Сървърът преизчислява SHA-256 върху ТОЧНО съхранения нормализиран текст.
+  -- Това НЕ е повторно прочитане на оригиналния файл: извличането става в
+  -- браузъра и това остава известната остатъчна граница.
+  BEGIN
+    v_recomputed_hash := encode(extensions.digest(v_doc.extracted_text, 'sha256'), 'hex');
+  EXCEPTION WHEN undefined_function OR invalid_schema_name OR undefined_object THEN
+    RAISE EXCEPTION 'product_source_hash_unverifiable';
+  END;
+  IF v_recomputed_hash IS DISTINCT FROM v_intake.source_hash THEN
+    RAISE EXCEPTION 'product_source_hash_conflict';
+  END IF;
+
+  -- 5) Заварено право: сверяваме ВСЯКО неизменно поле.
   SELECT * INTO v_ent FROM public.product_entitlements
     WHERE stripe_session_id = p_session_id FOR UPDATE;
 
@@ -542,62 +641,105 @@ BEGIN
        OR v_ent.product_id IS DISTINCT FROM p_product_id
        OR v_ent.environment IS DISTINCT FROM p_environment
        OR v_ent.amount_cents IS DISTINCT FROM p_amount_cents
+       OR lower(COALESCE(v_ent.currency, '')) IS DISTINCT FROM 'eur'
        OR v_ent.stripe_price_id IS DISTINCT FROM p_price_id
        OR v_ent.stripe_price_lookup_key IS DISTINCT FROM p_lookup_key
+       OR v_ent.refinements_included IS DISTINCT FROM v_expected_refinements
        OR v_ent.intake_id IS DISTINCT FROM p_intake_id
        OR v_ent.source_document_id IS DISTINCT FROM v_intake.uploaded_contract_id
        OR v_ent.source_hash IS DISTINCT FROM v_intake.source_hash
-       OR v_ent.source_updated_at IS DISTINCT FROM v_intake.source_updated_at THEN
+       OR v_ent.source_updated_at IS DISTINCT FROM v_intake.source_updated_at
+       OR v_ent.source_char_count IS DISTINCT FROM v_intake.source_char_count
+       OR v_ent.source_extraction_status IS DISTINCT FROM 'full'
+       OR v_ent.paid_at IS DISTINCT FROM p_paid_at
+       OR v_ent.stripe_event_id IS DISTINCT FROM p_stripe_event_id THEN
       RAISE EXCEPTION 'product_entitlement_conflict';
     END IF;
     v_new_id := v_ent.id;
-  ELSE
-    INSERT INTO public.product_entitlements (
-      user_id, product_id, stripe_session_id, stripe_price_id, stripe_price_lookup_key,
-      environment, amount_cents, currency, paid_at, source_document_id, source_hash,
-      source_updated_at, source_char_count, source_extraction_status, intake_id,
-      status, refinements_included
-    ) VALUES (
-      p_user_id, p_product_id, p_session_id, p_price_id, p_lookup_key,
-      p_environment, p_amount_cents, 'eur', COALESCE(p_paid_at, now()),
-      v_intake.uploaded_contract_id, v_intake.source_hash, v_intake.source_updated_at,
-      v_intake.source_char_count, 'full', p_intake_id,
-      'paid', COALESCE(p_refinements_included, 0)
-    ) RETURNING id INTO v_new_id;
   END IF;
 
-  -- Snapshot-ът се гради само от неизменната заявка, не от Stripe метаданни.
+  -- 6) Заварен snapshot: сверяваме ВСЯКО неизменно продуктово поле.
   SELECT * INTO v_snapshot FROM public.order_snapshots
     WHERE stripe_session_id = p_session_id FOR UPDATE;
 
   IF v_snapshot.id IS NOT NULL THEN
     IF v_snapshot.user_id IS DISTINCT FROM p_user_id
-       OR v_snapshot.product_id IS DISTINCT FROM p_product_id
        OR v_snapshot.purchase_kind IS DISTINCT FROM 'product'
+       OR v_snapshot.product_id IS DISTINCT FROM p_product_id
+       OR v_snapshot.plan_name IS DISTINCT FROM p_product_id
        OR v_snapshot.price_amount IS DISTINCT FROM v_amount
+       OR v_snapshot.currency IS DISTINCT FROM 'EUR'
        OR v_snapshot.environment IS DISTINCT FROM p_environment
+       OR v_snapshot.payment_status IS DISTINCT FROM 'paid'
+       OR v_snapshot.stripe_price_id IS DISTINCT FROM p_price_id
+       OR v_snapshot.stripe_price_lookup_key IS DISTINCT FROM p_lookup_key
+       OR v_snapshot.stripe_event_id IS DISTINCT FROM p_stripe_event_id
+       OR v_snapshot.paid_at IS DISTINCT FROM p_paid_at
        OR v_snapshot.product_intake_id IS DISTINCT FROM p_intake_id
-       OR v_snapshot.product_source_hash IS DISTINCT FROM v_intake.source_hash THEN
+       OR v_snapshot.product_source_document_id IS DISTINCT FROM v_intake.uploaded_contract_id
+       OR v_snapshot.product_source_hash IS DISTINCT FROM v_intake.source_hash
+       OR v_snapshot.product_source_updated_at IS DISTINCT FROM v_intake.source_updated_at
+       OR v_snapshot.product_source_char_count IS DISTINCT FROM v_intake.source_char_count
+       OR v_snapshot.product_source_extraction_status IS DISTINCT FROM 'full'
+       OR v_snapshot.terms_accepted IS NOT TRUE
+       OR v_snapshot.ai_ack_accepted IS NOT TRUE
+       OR v_snapshot.immediate_performance_consent IS NOT TRUE
+       OR v_snapshot.withdrawal_loss_acknowledged IS NOT TRUE
+       OR v_snapshot.consent_recorded_at IS DISTINCT FROM v_intake.consent_recorded_at
+       OR v_snapshot.terms_version IS DISTINCT FROM v_intake.terms_version
+       OR v_snapshot.privacy_version IS DISTINCT FROM v_intake.privacy_version
+       OR v_snapshot.refund_version IS DISTINCT FROM v_intake.refund_version
+       OR v_snapshot.withdrawal_version IS DISTINCT FROM v_intake.withdrawal_version
+       OR v_snapshot.ai_notice_version IS DISTINCT FROM v_intake.ai_notice_version
+       OR v_snapshot.vat_included IS NOT TRUE
+       OR v_snapshot.tax_behavior IS DISTINCT FROM 'inclusive' THEN
       RAISE EXCEPTION 'product_snapshot_conflict';
     END IF;
-  ELSE
-    INSERT INTO public.order_snapshots (
-      user_id, plan_name, price_amount, currency, vat_included, vat_rate,
-      billing_period, terms_version, privacy_version, withdrawal_version, refund_version,
-      ai_ack_accepted, terms_accepted, immediate_performance_consent,
-      withdrawal_loss_acknowledged, consent_recorded_at, product_id, stripe_session_id,
-      environment, payment_status, purchase_kind, product_intake_id,
-      product_source_document_id, product_source_hash, stripe_price_id,
-      stripe_price_lookup_key
+  END IF;
+
+  -- 7) Повторната доставка е успех САМО когато и правото, и snapshot-ът вече
+  --    съществуват и съвпадат напълно.
+  IF v_intake.status = 'paid' AND (v_ent.id IS NULL OR v_snapshot.id IS NULL) THEN
+    RAISE EXCEPTION 'product_replay_incomplete';
+  END IF;
+
+  IF v_ent.id IS NULL THEN
+    INSERT INTO public.product_entitlements (
+      user_id, product_id, stripe_session_id, stripe_price_id, stripe_price_lookup_key,
+      environment, amount_cents, currency, paid_at, stripe_event_id,
+      source_document_id, source_hash, source_updated_at, source_char_count,
+      source_extraction_status, intake_id, status, refinements_included
     ) VALUES (
-      p_user_id, p_product_id, v_amount, 'EUR', true, 20,
+      p_user_id, p_product_id, p_session_id, p_price_id, p_lookup_key,
+      p_environment, p_amount_cents, 'eur', p_paid_at, btrim(p_stripe_event_id),
+      v_intake.uploaded_contract_id, v_intake.source_hash, v_intake.source_updated_at,
+      v_intake.source_char_count, 'full', p_intake_id, 'paid', v_expected_refinements
+    ) RETURNING id INTO v_new_id;
+  END IF;
+
+  -- Snapshot-ът се гради само от неизменната заявка и от проверената цена, не
+  -- от променливи Stripe метаданни. `vat_rate` остава празна: Stripe доказва
+  -- ВКЛЮЧЕНОСТ на данъка, не ставка от 20%.
+  IF v_snapshot.id IS NULL THEN
+    INSERT INTO public.order_snapshots (
+      user_id, plan_name, price_amount, currency, vat_included, vat_rate, tax_behavior,
+      billing_period, terms_version, privacy_version, withdrawal_version, refund_version,
+      ai_notice_version, ai_ack_accepted, terms_accepted, immediate_performance_consent,
+      withdrawal_loss_acknowledged, consent_recorded_at, product_id, stripe_session_id,
+      stripe_event_id, paid_at, environment, payment_status, purchase_kind,
+      product_intake_id, product_source_document_id, product_source_hash,
+      product_source_updated_at, product_source_char_count,
+      product_source_extraction_status, stripe_price_id, stripe_price_lookup_key
+    ) VALUES (
+      p_user_id, p_product_id, v_amount, 'EUR', true, NULL, 'inclusive',
       NULL, v_intake.terms_version, v_intake.privacy_version, v_intake.withdrawal_version,
-      v_intake.refund_version, v_intake.ai_ack_accepted, v_intake.terms_accepted,
-      v_intake.immediate_performance_consent, v_intake.withdrawal_loss_acknowledged,
-      v_intake.consent_recorded_at, p_product_id, p_session_id,
+      v_intake.refund_version, v_intake.ai_notice_version, v_intake.ai_ack_accepted,
+      v_intake.terms_accepted, v_intake.immediate_performance_consent,
+      v_intake.withdrawal_loss_acknowledged, v_intake.consent_recorded_at,
+      p_product_id, p_session_id, btrim(p_stripe_event_id), p_paid_at,
       p_environment, 'paid', 'product', p_intake_id,
-      v_intake.uploaded_contract_id, v_intake.source_hash, p_price_id,
-      p_lookup_key
+      v_intake.uploaded_contract_id, v_intake.source_hash, v_intake.source_updated_at,
+      v_intake.source_char_count, 'full', p_price_id, p_lookup_key
     );
   END IF;
 
@@ -607,7 +749,7 @@ BEGIN
 
   RETURN jsonb_build_object(
     'ok', true,
-    'created', v_ent.id IS NULL,
+    'created', v_intake.status = 'checkout_created',
     'entitlement_id', v_new_id
   );
 END $$;
@@ -799,7 +941,7 @@ DECLARE
   fn text;
 BEGIN
   FOREACH fn IN ARRAY ARRAY[
-    'public.record_product_purchase(uuid,text,text,text,text,text,integer,text,uuid,timestamptz,integer)',
+    'public.record_product_purchase(uuid,text,text,text,text,text,integer,text,uuid,timestamptz,integer,text)',
     'public.begin_product_fulfillment(uuid,uuid,interval)',
     'public.complete_product_fulfillment(uuid,uuid,text,text,uuid,jsonb,integer)',
     'public.fail_product_fulfillment(uuid,uuid,uuid,text)',

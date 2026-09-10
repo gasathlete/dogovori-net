@@ -61,8 +61,11 @@ function makeDb(opts: {
   };
 }
 
+const PROOF = { eventId: "evt_1", paidAt: "2026-09-10T09:00:00.000Z" };
+
 const INTAKE = {
   id: "in_1",
+  status: "checkout_created",
   user_id: "u1",
   product_id: "contract_check",
   source_hash: "a".repeat(64),
@@ -134,7 +137,7 @@ const CHECK_ITEM = [{
 
 Deno.test("платена продуктова сесия записва точно една привилегия без операции", async () => {
   const db = makeDb({ results: { product_checkout_intakes: { data: INTAKE, error: null } } });
-  await handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "live");
+  await handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "live", PROOF);
   // Едно атомарно извикване прави и правото, и доказателството за поръчката.
   assertEquals(db.rpcCalls.map((c) => c.fn), ["record_product_purchase"]);
   const args = db.rpcCalls[0].args as Record<string, unknown>;
@@ -143,6 +146,9 @@ Deno.test("платена продуктова сесия записва точ�
   assertEquals(args.p_price_id, "price_1");
   assertEquals(args.p_currency, "eur");
   assertEquals(args.p_intake_id, "in_1");
+  // Часът и идентификаторът идват от подписаното събитие, не от сървърния час.
+  assertEquals(args.p_paid_at, PROOF.paidAt);
+  assertEquals(args.p_stripe_event_id, "evt_1");
   // Никакъв отделен браузърно четим запис и никакви операции/кредити.
   assertEquals(db.calls.some((c) => c.table === "order_snapshots"), false);
   assertEquals(db.rpcCalls.some((c) => c.fn === "credit_topup_ops"), false);
@@ -151,7 +157,7 @@ Deno.test("платена продуктова сесия записва точ�
 Deno.test("грешен режим на продуктова сесия не създава нищо", async () => {
   const db = makeDb({ results: { product_checkout_intakes: { data: INTAKE, error: null } } });
   await assertRejects(() =>
-    handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession({ mode: "subscription" }), "live")
+    handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession({ mode: "subscription" }), "live", PROOF)
   );
   assertEquals(db.rpcCalls.length, 0);
   assertEquals(db.calls.some((c) => c.table === "order_snapshots"), false);
@@ -166,7 +172,7 @@ Deno.test("липсващо доказателство за пълен изто�
       },
     },
   });
-  await assertRejects(() => handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "live"));
+  await assertRejects(() => handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "live", PROOF));
   assertEquals(db.rpcCalls.length, 0);
 });
 
@@ -176,7 +182,7 @@ Deno.test("несъвпадаща цена по реда е отказ", async (
       product_checkout_intakes: { data: { ...INTAKE, stripe_price_id: "price_other" }, error: null },
     },
   });
-  await assertRejects(() => handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "live"));
+  await assertRejects(() => handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "live", PROOF));
   assertEquals(db.rpcCalls.length, 0);
 });
 
@@ -186,6 +192,7 @@ Deno.test("неплатена продуктова сесия не пише ни
     makeDeps(db, CHECK_ITEM),
     productSession({ payment_status: "unpaid" }),
     "live",
+    PROOF,
   );
   assertEquals(db.calls.length, 0);
   assertEquals(db.rpcCalls.length, 0);
@@ -194,7 +201,7 @@ Deno.test("неплатена продуктова сесия не пише ни
 Deno.test("грешна сума по сесията е fail-closed", async () => {
   const db = makeDb({ results: { product_checkout_intakes: { data: INTAKE, error: null } } });
   await assertRejects(() =>
-    handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession({ amount_total: 199 }), "live")
+    handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession({ amount_total: 199 }), "live", PROOF)
   );
   assertEquals(db.rpcCalls.length, 0);
 });
@@ -205,7 +212,7 @@ Deno.test("несъвпадащ intake е fail-closed", async () => {
       product_checkout_intakes: { data: { ...INTAKE, user_id: "u2" }, error: null },
     },
   });
-  await assertRejects(() => handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "live"));
+  await assertRejects(() => handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "live", PROOF));
   assertEquals(db.rpcCalls.length, 0);
 });
 
@@ -214,7 +221,7 @@ Deno.test("конфликтен повторен запис хвърля, за �
     results: { product_checkout_intakes: { data: INTAKE, error: null } },
     rpc: () => ({ data: null, error: { message: "session conflict" } }),
   });
-  await assertRejects(() => handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "live"));
+  await assertRejects(() => handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "live", PROOF));
 });
 
 Deno.test("идемпотентен повторен запис е успех", async () => {
@@ -222,13 +229,13 @@ Deno.test("идемпотентен повторен запис е успех", 
     results: { product_checkout_intakes: { data: INTAKE, error: null } },
     rpc: () => ({ data: { ok: true, created: false }, error: null }),
   });
-  await handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "live");
+  await handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "live", PROOF);
   assertEquals(db.rpcCalls.map((c) => c.fn), ["record_product_purchase"]);
 });
 
 Deno.test("окръжението на сесията трябва да съвпада", async () => {
   const db = makeDb({ results: { product_checkout_intakes: { data: INTAKE, error: null } } });
-  await assertRejects(() => handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "sandbox"));
+  await assertRejects(() => handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "sandbox", PROOF));
 });
 
 Deno.test("непознат productId не става вид покупка", () => {
@@ -239,4 +246,52 @@ Deno.test("непознат productId не става вид покупка", ()
     }),
     "unknown",
   );
+});
+
+Deno.test("без подписано събитие няма право", async () => {
+  const db = makeDb({ results: { product_checkout_intakes: { data: INTAKE, error: null } } });
+  await assertRejects(() => handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "live"));
+  assertEquals(db.rpcCalls.length, 0);
+  await assertRejects(() =>
+    handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "live", {
+      eventId: "evt_1",
+      paidAt: "not-a-time",
+    })
+  );
+  assertEquals(db.rpcCalls.length, 0);
+});
+
+Deno.test("половин състояние на заявката е отказ", async () => {
+  for (const status of ["pending", "expired", "weird"]) {
+    const db = makeDb({
+      results: { product_checkout_intakes: { data: { ...INTAKE, status }, error: null } },
+    });
+    await assertRejects(() =>
+      handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "live", PROOF)
+    );
+    assertEquals(db.rpcCalls.length, 0);
+  }
+});
+
+Deno.test("повторна доставка от вече платена заявка минава през същия RPC", async () => {
+  const db = makeDb({
+    results: { product_checkout_intakes: { data: { ...INTAKE, status: "paid" }, error: null } },
+    rpc: () => ({ data: { ok: true, created: false }, error: null }),
+  });
+  await handleCheckoutCompleted(makeDeps(db, CHECK_ITEM), productSession(), "live", PROOF);
+  assertEquals(db.rpcCalls.map((c) => c.fn), ["record_product_purchase"]);
+  assertEquals(
+    (db.rpcCalls[0].args as Record<string, unknown>).p_stripe_event_id,
+    "evt_1",
+  );
+});
+
+Deno.test("event.created се превръща в точен час на плащане", async () => {
+  const { eventProofFrom } = await import("./handlers.ts");
+  assertEquals(eventProofFrom({ id: "evt_9", created: 1757502000 }), {
+    eventId: "evt_9",
+    paidAt: new Date(1757502000 * 1000).toISOString(),
+  });
+  assertEquals(eventProofFrom({ id: "evt_9" }), null);
+  assertEquals(eventProofFrom({ created: 1757502000 }), null);
 });
