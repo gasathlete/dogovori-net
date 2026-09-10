@@ -304,6 +304,7 @@ describe("достъпност и съдържание на витрината",
   });
 
   it("бутоните за управление са с достатъчна големина за пръст", () => {
+    setReducedMotion(false);
     render(wrap(<ProductShowcaseCarousel source="test" />));
     for (const label of ["Предишен продукт", "Следващ продукт"]) {
       expect(screen.getByRole("button", { name: label }).className).toContain("size-11");
