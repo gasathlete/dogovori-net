@@ -130,7 +130,9 @@ Deno.serve(async (req) => {
     // същия ред и същата отворена Stripe сесия.
     const { data: existingIntake } = await admin
       .from("product_checkout_intakes")
-      .select("id, product_id, source_hash, status, stripe_session_id")
+      .select(
+        "id, product_id, source_hash, source_updated_at, environment, status, stripe_session_id",
+      )
       .eq("user_id", userId)
       .eq("request_id", requestId)
       .maybeSingle();
@@ -138,7 +140,17 @@ Deno.serve(async (req) => {
     let intakeId = existingIntake?.id as string | undefined;
     let reusedSession: { id: string; client_secret: string | null } | null = null;
     if (existingIntake) {
-      if (existingIntake.product_id !== spec.id || existingIntake.source_hash !== sourceHash) {
+      // Обвързването е точно: продукт, документ (hash) и ревизия на текста.
+      const sameRevision =
+        !existingIntake.source_updated_at ||
+        !doc.updated_at ||
+        String(existingIntake.source_updated_at) === String(doc.updated_at);
+      if (
+        existingIntake.product_id !== spec.id ||
+        existingIntake.source_hash !== sourceHash ||
+        existingIntake.environment !== environment ||
+        !sameRevision
+      ) {
         return fail("intake_conflict", 409, corsHeaders);
       }
       if (existingIntake.status === "paid") return fail("already_paid", 409, corsHeaders);
@@ -154,7 +166,9 @@ Deno.serve(async (req) => {
             prior.client_secret &&
             prior.metadata?.productId === spec.id &&
             prior.metadata?.userId === userId &&
-            prior.metadata?.sourceHash === sourceHash
+            prior.metadata?.sourceHash === sourceHash &&
+            prior.metadata?.intakeId === existingIntake.id &&
+            prior.metadata?.environment === environment
           ) {
             reusedSession = { id: prior.id, client_secret: prior.client_secret };
           }
