@@ -25,7 +25,7 @@ content-free разход) и колоната `generation_policy_version`, ко
 
 - `docs/migrations/stage2a_product_checkout_entitlements.sql`
 - `docs/migrations/stage2a_product_result_v2_binding_patch.sql`
-- `docs/migrations/stage2b1b1_product_fulfillment_jobs.sql`
+- `docs/migrations/stage2a_product_fulfillment_jobs.sql`
 
 Нито един от файловете не е записан в `drizzle/migrations/meta/_journal.json`:
 в това хранилище няма доказана конвенция за журнал на ръчни SQL кръпки, а този
