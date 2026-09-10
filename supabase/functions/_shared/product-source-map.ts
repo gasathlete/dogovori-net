@@ -55,20 +55,21 @@ export function validatePageBoundaries(
   charCount: number,
 ): readonly PageBoundary[] | null {
   if (!pages || pages.length === 0) return null;
-  const sorted = [...pages].sort((a, b) => a.start - b.start);
-  const seen = new Set<number>();
+  // Подаденият ред се ПРОВЕРЯВА, не се поправя тихо: разместена карта е
+  // невалидна, защото не знаем кой ред е верният.
   let prevEnd = 0;
-  for (const p of sorted) {
-    if (!Number.isInteger(p.page) || p.page < 1) return null;
-    if (seen.has(p.page)) return null;
-    seen.add(p.page);
+  let prevPage = 0;
+  for (const p of pages) {
+    if (!Number.isInteger(p.page) || p.page <= prevPage) return null;
+    prevPage = p.page;
     if (!Number.isInteger(p.start) || !Number.isInteger(p.end)) return null;
     if (p.start < 0 || p.end <= p.start || p.end > charCount) return null;
     if (p.start < prevEnd) return null;
     prevEnd = p.end;
   }
-  return sorted;
+  return pages;
 }
+
 
 function pageForOffset(pages: readonly PageBoundary[] | null, offset: number): number | null {
   if (!pages) return null;

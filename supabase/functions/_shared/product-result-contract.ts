@@ -341,8 +341,16 @@ export type ProductResult =
 /**
  * Резултат, който е ПРЕМИНАЛ пълната валидация. Само такъв може да се запише
  * или покаже като готов — типът не може да се получи без валидатора.
+ *
+ * Марката е САМО типова (`unique symbol`, деклариран без изпълнение). В
+ * изпълнение обектът остава ТОЧНО оригиналният плик v2: няма допълнителен
+ * ключ, който да се сериализира в базата или да провали повторна проверка.
  */
-export type ReadyProductResult = ProductResult & { readonly ready: true };
+declare const PRODUCT_RESULT_READY: unique symbol;
+export type ReadyProductResult = ProductResult & {
+  readonly [PRODUCT_RESULT_READY]: true;
+};
+
 
 // ------------------------------------------------------------------ Валидация
 
@@ -582,6 +590,24 @@ function checkLegalBasis(c: Checker, path: string, raw: unknown): void {
     }
   });
 }
+
+/**
+ * Стабилните идентификатори са наистина стабилни: в една сбирка не може да има
+ * два еднакви. Празна сбирка е валидна. Проверката е обща, за да важи еднакво
+ * за всички сбирки с идентификатори.
+ */
+function checkUniqueIds(c: Checker, path: string, raw: unknown): void {
+  if (!Array.isArray(raw)) return;
+  const seen = new Set<string>();
+  raw.forEach((item, i) => {
+    const id = (item as { id?: unknown } | null)?.id;
+    if (typeof id !== "string") return;
+    if (seen.has(id)) c.fail(`${path}[${i}].id`, "повтарящ се идентификатор");
+    seen.add(id);
+  });
+}
+
+
 
 function checkReview(
   c: Checker,
