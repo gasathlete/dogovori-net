@@ -288,11 +288,44 @@ const missingProtectionRefsValid = (raw: unknown) => {
   return new Set(payload.absence_checks.map((a) => a.id)).size === payload.absence_checks.length;
 };
 
+/**
+ * Стабилните идентификатори са уникални във всяка сбирка. Празна сбирка е
+ * валидна. Списъкът е един и същ като в каноничния Edge валидатор.
+ */
+const ID_COLLECTIONS = [
+  "findings",
+  "obligations",
+  "economic_terms",
+  "contradictions",
+  "absence_checks",
+  "missing_protections",
+  "questions",
+  "corrections",
+  "actions",
+] as const;
+
+const uniqueIdsValid = (raw: unknown) => {
+  const payload = raw as Record<string, unknown>;
+  for (const key of ID_COLLECTIONS) {
+    const list = payload[key];
+    if (!Array.isArray(list)) continue;
+    const ids = list
+      .map((item) => (item as { id?: unknown } | null)?.id)
+      .filter((id): id is string => typeof id === "string");
+    if (new Set(ids).size !== ids.length) return false;
+  }
+  return true;
+};
+
+const UNIQUE_IDS_MESSAGE = "идентификаторите в една сбирка не може да се повтарят";
+
 export const reviewPayloadSchema = z
   .object(reviewShape)
   .strict()
   .refine(priorityRefsValid, "приоритетите сочат само към съществуващи находки")
-  .refine(missingProtectionRefsValid, "твърдението за липса изисква проверка с found: false");
+  .refine(missingProtectionRefsValid, "твърдението за липса изисква проверка с found: false")
+  .refine(uniqueIdsValid, UNIQUE_IDS_MESSAGE);
+
 
 const correctionSchema = z
   .object({
