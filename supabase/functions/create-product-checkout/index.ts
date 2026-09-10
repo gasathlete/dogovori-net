@@ -27,6 +27,13 @@ import {
   verifyStoredProductSource,
 } from "../_shared/product-source.ts";
 import {
+  ProductContextError,
+  sameProductContext,
+  validateProductContext,
+} from "../_shared/product-intake-context.ts";
+import { evaluateProductEligibility } from "../_shared/product-eligibility.ts";
+import { PRODUCT_GENERATION_POLICY_VERSION } from "../_shared/product-generation-policy.ts";
+import {
   ConsentMissingError,
   LEGAL_VERSIONS,
   ReturnUrlError,
