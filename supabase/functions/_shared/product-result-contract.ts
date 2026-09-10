@@ -851,6 +851,16 @@ function checkCorrections(
     ) {
       c.fail(`${p}.original_text`, "оригиналният текст трябва да е точно извадката от мястото");
     }
+    c.exact(p, co, [
+      "id",
+      "title",
+      "mode",
+      "span",
+      "original_text",
+      "rationale",
+      "options",
+      "legal_basis",
+    ]);
     c.str(`${p}.rationale`, co.rationale, RESULT_LIMITS.text);
     const options = c.arr(`${p}.options`, co.options, 3);
     if (options && options.length !== 3) {
@@ -862,6 +872,7 @@ function checkCorrections(
       const op = `${p}.options[${j}]`;
       const oo = c.obj(op, opt);
       if (!oo) return;
+      c.exact(op, oo, ["stance", "replacement_text", "trade_off"]);
       const stance = c.oneOf(`${op}.stance`, oo.stance, CORRECTION_STRATEGIES);
       if (stance) stances.push(stance);
       const text = c.str(`${op}.replacement_text`, oo.replacement_text, RESULT_LIMITS.text);
@@ -907,6 +918,7 @@ function checkNegotiation(c: Checker, path: string, o: Record<string, unknown>):
     const p = `${path}.actions[${i}]`;
     const ao = c.obj(p, item);
     if (!ao) return;
+    c.exact(p, ao, ["id", "action", "owner", "due", "priority"]);
     c.id(`${p}.id`, ao.id);
     c.str(`${p}.action`, ao.action, RESULT_LIMITS.text);
     c.str(`${p}.owner`, ao.owner, RESULT_LIMITS.shortText);
@@ -923,6 +935,7 @@ function checkNegotiation(c: Checker, path: string, o: Record<string, unknown>):
     const p = `${path}.messages[${i}]`;
     const mo = c.obj(p, item);
     if (!mo) return;
+    c.exact(p, mo, ["tone", "subject", "body"]);
     const tone = c.oneOf(`${p}.tone`, mo.tone, MESSAGE_TONES);
     if (tone) tones.push(tone);
     c.str(`${p}.subject`, mo.subject, RESULT_LIMITS.shortText);
@@ -936,6 +949,7 @@ function checkNegotiation(c: Checker, path: string, o: Record<string, unknown>):
 
   const refinement = c.obj(`${path}.refinement`, o.refinement);
   if (refinement) {
+    c.exact(`${path}.refinement`, refinement, ["included", "used"]);
     const included = c.int(`${path}.refinement.included`, refinement.included, 0, MAX_REFINEMENTS);
     const used = c.int(`${path}.refinement.used`, refinement.used, 0, MAX_REFINEMENTS);
     if (included !== null && included !== 1) {
@@ -956,6 +970,7 @@ export function validateProductResult(raw: unknown): ValidationResult {
   const o = c.obj("result", raw);
   if (!o) return { ok: false, errors: c.errors };
 
+  c.exact("result", o, ENVELOPE_KEYS);
   if (o.schema_version !== PRODUCT_RESULT_SCHEMA_VERSION) {
     c.fail("result.schema_version", `очаква се версия ${PRODUCT_RESULT_SCHEMA_VERSION}`);
   }
@@ -965,6 +980,7 @@ export function validateProductResult(raw: unknown): ValidationResult {
 
   const payload = c.obj("result.payload", o.payload);
   if (payload && productId) {
+    c.exact("result.payload", payload, PAYLOAD_KEYS[productId]);
     checkReview(c, "result.payload", payload, binding);
     if (productId === "contract_improve" || productId === "negotiation_package") {
       checkCorrections(c, "result.payload", payload, binding);
