@@ -27,6 +27,12 @@ import {
   planOneOffCredit,
 } from "../_shared/oneoff-credit.ts";
 import { extractEventUserId, isStaffUser } from "../_shared/sandbox-guard.ts";
+import {
+  PRODUCT_PURCHASES,
+  assertSessionAmount,
+  readProductSessionMetadata,
+  verifyProductLineItems,
+} from "../_shared/product-purchase.ts";
 import { mustAffectRows, mustSucceed } from "../_shared/db-guard.ts";
 
 // deno-lint-ignore no-explicit-any
@@ -244,6 +250,7 @@ export const SNAPSHOT_PURCHASE_KINDS = [
   "entry_pack",
   "topup",
   "one_time",
+  "product",
   "unknown",
 ] as const;
 export type SnapshotPurchaseKind = (typeof SNAPSHOT_PURCHASE_KINDS)[number];
@@ -262,6 +269,14 @@ export function classifySnapshotPurchaseKind(session: Any): SnapshotPurchaseKind
     return meta.kind === "team" ? "team" : "subscription";
   }
   if (session?.mode !== "payment") return "unknown";
+  // Еднократен продукт: видът се извежда от затворената продуктова
+  // конфигурация, не от произволна стойност в metadata.
+  if (meta.type === "product") {
+    return typeof meta.productId === "string" &&
+        Object.prototype.hasOwnProperty.call(PRODUCT_PURCHASES, meta.productId)
+      ? "product"
+      : "unknown";
+  }
   if (meta.type === "strict_doc_unlock") return "strict_unlock";
   if (meta.type === "branding_unlock") return "branding";
   const rawKey = typeof meta.priceId === "string"
@@ -345,8 +360,59 @@ export async function handleCheckoutCompleted(d: WebhookDeps, session: Any, env:
     );
   }
 
-  // 1) Еднократни покупки → операции. Идемпотентно по stripe_session_id.
-  if (session.mode === "payment" && userId) {
+  // 0c) Еднократен продукт, обвързан с документ. Дава ТОЧНО една продуктова
+  //     привилегия и НИКОГА операции/кредити. FAIL-CLOSED и идемпотентно по
+  //     stripe_session_id — повторната доставка е успех без нов запис.
+  const productMeta = readProductSessionMetadata(session.metadata as Any);
+  if (session.mode === "payment" && userId && productMeta) {
+    const stripe = d.createStripe(env);
+    const items = await stripe.checkout.sessions.listLineItems(session.id, {
+      limit: 5,
+      expand: ["data.price"],
+    });
+    const verified = verifyProductLineItems(items.data as Any, productMeta.productId);
+    // Точната сума и валута на сесията трябва да съвпадат с продукта.
+    assertSessionAmount(session.amount_total, session.currency, verified.productId);
+    if (productMeta.environment !== env) {
+      throw new Error("product session environment mismatch");
+    }
+
+    const { data: intake } = await d.db
+      .from("product_checkout_intakes")
+      .select("id, user_id, product_id, source_hash, uploaded_contract_id, source_updated_at, environment")
+      .eq("id", productMeta.intakeId)
+      .maybeSingle();
+    if (!intake) throw new Error("product intake not found");
+    if (
+      intake.user_id !== userId ||
+      intake.product_id !== verified.productId ||
+      intake.source_hash !== productMeta.sourceHash ||
+      intake.environment !== env
+    ) {
+      throw new Error("product intake mismatch");
+    }
+
+    const { data: recorded, error: recordErr } = await d.db.rpc("record_product_entitlement", {
+      p_user_id: userId,
+      p_product_id: verified.productId,
+      p_session_id: session.id,
+      p_lookup_key: verified.lookupKey,
+      p_environment: env,
+      p_amount_cents: verified.amountCents,
+      p_source_document_id: intake.uploaded_contract_id,
+      p_source_hash: productMeta.sourceHash,
+      p_source_updated_at: intake.source_updated_at,
+      p_intake_id: intake.id,
+      p_refinements_included: verified.refinementsIncluded,
+    });
+    if (recordErr) throw new Error(`record_product_entitlement failed: ${recordErr.message}`);
+    if ((recorded as { ok?: unknown } | null)?.ok !== true) {
+      throw new Error("record_product_entitlement did not return ok=true");
+    }
+  }
+
+  // 1) Еднократни покупки → операции. Продуктовите покупки НЕ минават оттук.
+  if (session.mode === "payment" && userId && !productMeta) {
     const stripe = d.createStripe(env);
     const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 10, expand: ["data.price"] });
     const credit = planOneOffCredit(items.data as Any);
@@ -378,9 +444,11 @@ export async function handleCheckoutCompleted(d: WebhookDeps, session: Any, env:
     const amountTotal = session.amount_total;
     const currency = (session.currency || "eur").toUpperCase();
     const lookup = session.metadata?.priceId || session.metadata?.lookup_key || null;
-    const planName = session.mode === "subscription"
-      ? (lookup || "subscription")
-      : (lookup || "one_off");
+    const planName = productMeta
+      ? PRODUCT_PURCHASES[productMeta.productId].name
+      : session.mode === "subscription"
+        ? (lookup || "subscription")
+        : (lookup || "one_off");
     const billingPeriod = session.mode === "subscription"
       ? (session.metadata?.billing_period || null)
       : null;
@@ -400,6 +468,13 @@ export async function handleCheckoutCompleted(d: WebhookDeps, session: Any, env:
           refund_version: session.metadata?.refund_version || "2026-09-01",
           dpa_version: session.metadata?.dpa_version || null,
           ai_ack_accepted: session.metadata?.ai_ack_accepted === "true",
+          terms_accepted: session.metadata?.terms_accepted === "true",
+          immediate_performance_consent:
+            session.metadata?.immediate_performance_consent === "true",
+          withdrawal_loss_acknowledged:
+            session.metadata?.withdrawal_loss_acknowledged === "true",
+          consent_recorded_at: new Date().toISOString(),
+          product_id: productMeta?.productId ?? null,
           stripe_session_id: session.id,
           stripe_subscription_id: session.subscription || null,
           // Истина за плащането: точното окръжение, доказаният статус и
@@ -424,7 +499,11 @@ export async function handleCheckoutCompleted(d: WebhookDeps, session: Any, env:
       const formatted = typeof amountTotal === "number"
         ? `${(amountTotal / 100).toFixed(2)} ${currency}`
         : undefined;
-      const productName = session.mode === "subscription" ? "Pro абонамент" : "Договор / бланка";
+      const productName = productMeta
+        ? PRODUCT_PURCHASES[productMeta.productId].name
+        : session.mode === "subscription"
+          ? "Pro абонамент"
+          : "Договор / бланка";
 
       let name: string | undefined;
       if (userId) {

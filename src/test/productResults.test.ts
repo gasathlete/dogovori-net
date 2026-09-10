@@ -25,20 +25,24 @@ import {
   PRODUCT_RESULT_FIXTURES,
 } from "@/lib/productResultFixtures";
 
-type ById<K extends ProductResultParsed["product_id"]> = Extract<
-  ProductResultParsed,
-  { product_id: K }
->;
-
 /** Валидира фикстурата и я стеснява до конкретния продукт. */
-const payloadOf = <K extends ProductResultParsed["product_id"]>(
-  fixture: ProductResultParsed,
-  id: K,
-): ById<K>["payload"] => {
+function payloadOfCheck(fixture: ProductResultParsed) {
   const parsed = parseProductResult(fixture);
-  if (parsed.product_id !== id) throw new Error("грешен продукт във фикстурата");
-  return (parsed as ById<K>).payload;
-};
+  if (parsed.product_id !== "contract_check") throw new Error("грешен продукт във фикстурата");
+  return parsed.payload;
+}
+
+function payloadOfImprove(fixture: ProductResultParsed) {
+  const parsed = parseProductResult(fixture);
+  if (parsed.product_id !== "contract_improve") throw new Error("грешен продукт във фикстурата");
+  return parsed.payload;
+}
+
+function payloadOfNegotiation(fixture: ProductResultParsed) {
+  const parsed = parseProductResult(fixture);
+  if (parsed.product_id !== "negotiation_package") throw new Error("грешен продукт във фикстурата");
+  return parsed.payload;
+}
 
 describe("схема на резултата — версия и обвързване с източника", () => {
   it("версията е една и същата навсякъде", () => {
@@ -105,7 +109,7 @@ describe("схема на резултата — версия и обвързв�
 });
 
 describe("подробна проверка", () => {
-  const payload = payloadOf(CONTRACT_CHECK_FIXTURE, "contract_check");
+  const payload = payloadOfCheck(CONTRACT_CHECK_FIXTURE);
 
   it("носи паспорт, резюме и находки с точно място в текста", () => {
     expect(payload.passport.document_type.length).toBeGreaterThan(3);
@@ -145,7 +149,7 @@ describe("подробна проверка", () => {
 });
 
 describe("подробна поправка", () => {
-  const payload = payloadOf(CONTRACT_IMPROVE_FIXTURE, "contract_improve");
+  const payload = payloadOfImprove(CONTRACT_IMPROVE_FIXTURE);
 
   it("включва цялата проверка и дава изходни файлове", () => {
     expect(payload.review.findings.length).toBeGreaterThan(0);
@@ -188,7 +192,7 @@ describe("подробна поправка", () => {
 });
 
 describe("пълен пакет за преговори", () => {
-  const payload = payloadOf(NEGOTIATION_PACKAGE_FIXTURE, "negotiation_package");
+  const payload = payloadOfNegotiation(NEGOTIATION_PACKAGE_FIXTURE);
 
   it("включва проверката, поправката и записката за преговори", () => {
     expect(payload.correction.corrections.length).toBeGreaterThan(0);

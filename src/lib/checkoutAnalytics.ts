@@ -87,6 +87,7 @@ export const PURCHASE_KINDS = [
   "strict_unlock",
   "branding",
   "team",
+  "product",
   "unknown",
 ] as const;
 export type PurchaseKind = (typeof PURCHASE_KINDS)[number];
@@ -218,13 +219,18 @@ export function describeCheckoutReturn(params: URLSearchParams): CheckoutDescrip
   const price = parseCheckoutPriceKey(params.get("price_id"));
   const source = parseCheckoutSource(params.get("source"));
   const legacyStrict = params.get("type") === "strict_unlock";
+  // Еднократен продукт: връщането носи type=product и каноничния продукт.
+  const isProduct = params.get("type") === "product";
   const kind = (() => {
+    if (isProduct) return "product" as PurchaseKind;
     const fromPrice = purchaseKindForPrice(price);
     if (fromPrice !== "unknown") return fromPrice;
     if (legacyStrict) return "strict_unlock" as PurchaseKind;
     return parsePurchaseKind(params.get("kind"));
   })();
-  const described = price === "unknown"
+  const described = isProduct
+    ? { plan: params.get("product")?.slice(0, 40) || "product", billing: "one_time" }
+    : price === "unknown"
     ? legacyStrict
       ? { plan: "strict_unlock", billing: "one_time" }
       : { plan: "unknown", billing: "unknown" }

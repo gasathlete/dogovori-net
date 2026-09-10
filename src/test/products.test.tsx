@@ -52,11 +52,11 @@ describe("продуктова конфигурация — единствен �
     );
     expect(getProduct("contract_check").ctaLabel).toBe("Проверете документ");
     expect(getProduct("contract_check").ctaHref).toBe(
-      "/analiz?product=contract_check",
+      "/produkti/proverka-predi-podpis/start",
     );
     expect(getProduct("contract_improve").badge).toBe("Най-предпочитан");
     expect(getProduct("contract_improve").ctaHref).toBe(
-      "/analiz?product=contract_improve",
+      "/produkti/popravi-dokument/start",
     );
     const pkg = getProduct("negotiation_package");
     expect(pkg.name).toBe("Пълен пакет за преговори");

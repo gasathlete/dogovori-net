@@ -93,6 +93,8 @@ const Catalog = lazy(() => import("./pages/Catalog.tsx"));
 const Start = lazy(() => import("./pages/Start.tsx"));
 const Products = lazy(() => import("./pages/Products.tsx"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail.tsx"));
+const ProductCheckout = lazy(() => import("./pages/ProductCheckout.tsx"));
+const ProductResult = lazy(() => import("./pages/ProductResult.tsx"));
 const Analyze = lazy(() => import("./pages/Analyze.tsx"));
 const ProcessStep = lazy(() => import("./pages/ProcessStep.tsx"));
 const Tools = lazy(() => import("./pages/Tools.tsx"));
@@ -345,6 +347,12 @@ const AnimatedRoutes = () => {
         <Route path="/produkti/biznes-karta" element={<Navigate to="/produkti/palen-paket-pregovori" replace />} />
         <Route path="/produkti/biznes-karta-dokumenti" element={<Navigate to="/produkti/palen-paket-pregovori" replace />} />
         {/* Самостоятелните продуктови страници — стабилни ASCII slug-ове. */}
+        {/* Покупката и състоянието на поръчката — само за влезли потребители. */}
+        <Route path="/produkti/rezultat" element={<ProtectedRoute><ProductResult /></ProtectedRoute>} />
+        <Route
+          path="/produkti/:slug/start"
+          element={<ProtectedRoute><ProductCheckout /></ProtectedRoute>}
+        />
         <Route path="/produkti/:slug" element={<ProductDetail />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />

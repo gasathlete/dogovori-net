@@ -94,7 +94,7 @@ export const ONE_TIME_PRODUCTS: readonly OneTimeProduct[] = Object.freeze([
       "Въпроси, които да зададете, и разбор за сваляне в PDF",
     ]),
     ctaLabel: "Проверете документ",
-    ctaHref: "/analiz?product=contract_check",
+    ctaHref: "/produkti/proverka-predi-podpis/start",
     demo: "scan",
     page: Object.freeze({
       title: "Подробна проверка на документ — 2,99 € еднократно",
@@ -186,7 +186,7 @@ export const ONE_TIME_PRODUCTS: readonly OneTimeProduct[] = Object.freeze([
       "Поправен документ в DOCX и PDF плюс отчет за промените",
     ]),
     ctaLabel: "Поправете документ",
-    ctaHref: "/analiz?product=contract_improve",
+    ctaHref: "/produkti/popravi-dokument/start",
     demo: "diff",
     page: Object.freeze({
       title: "Подробна поправка на документ — 3,99 € еднократно",
@@ -279,7 +279,7 @@ export const ONE_TIME_PRODUCTS: readonly OneTimeProduct[] = Object.freeze([
       "Едно допълнително прецизиране на избраната версия",
     ]),
     ctaLabel: "Подгответе документа за преговори",
-    ctaHref: "/analiz?product=negotiation_package",
+    ctaHref: "/produkti/palen-paket-pregovori/start",
     demo: "package",
     page: Object.freeze({
       title: "Пълен пакет за преговори — 7,99 € еднократно",
@@ -421,6 +421,18 @@ export function getProductBySlug(
   if (typeof slug !== "string") return null;
   return BY_SLUG[slug] ?? null;
 }
+
+/** Пътят на самата покупка — документът се качва там, преди плащане. */
+export function productStartPath(product: OneTimeProduct): string {
+  return `${productPath(product)}/start`;
+}
+
+export function productStartPathById(id: OneTimeProductId): string {
+  return productStartPath(BY_ID[id]);
+}
+
+/** Каноничният път на резултата след платена покупка. */
+export const PRODUCT_RESULT_PATH = "/produkti/rezultat";
 
 /** Всички продуктови пътища — за sitemap и вътрешни връзки. */
 export const ONE_TIME_PRODUCT_PATHS: readonly string[] = Object.freeze(
