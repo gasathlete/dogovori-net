@@ -466,3 +466,35 @@ describe("Резултат v2 — общи откази", () => {
     expect(src).not.toMatch(/Deno\.|createClient|fetch\(/);
   });
 });
+
+describe("Резултат v2 — стабилните идентификатори не се повтарят", () => {
+  const cases: ReadonlyArray<readonly [unknown, string, string]> = [
+    [CONTRACT_CHECK_FIXTURE, "payload.findings", "находки"],
+    [CONTRACT_CHECK_FIXTURE, "payload.obligations", "задължения"],
+    [CONTRACT_CHECK_FIXTURE, "payload.economic_terms", "парични условия"],
+    [CONTRACT_CHECK_FIXTURE, "payload.absence_checks", "проверки за отсъствие"],
+    [CONTRACT_CHECK_FIXTURE, "payload.missing_protections", "липсващи защити"],
+    [CONTRACT_CHECK_FIXTURE, "payload.questions", "въпроси"],
+    [CONTRACT_IMPROVE_FIXTURE, "payload.corrections", "поправки"],
+    [NEGOTIATION_PACKAGE_FIXTURE, "payload.actions", "действия"],
+  ];
+
+  for (const [fixture, path, label] of cases) {
+    it(`отказва повтарящ се идентификатор: ${label}`, () => {
+      const copy = cloneRaw(fixture);
+      const list = getPath(copy, path) as unknown[];
+      expect(Array.isArray(list) && list.length > 0, `${path} трябва да има елемент`).toBe(true);
+      setPath(copy, path, [...list, structuredClone(list[0])]);
+      expectInvalid(copy, `две записа с един идентификатор в ${label}`);
+    });
+
+    it(`празната сбирка остава валидна там, където е позволена: ${label}`, () => {
+      const copy = cloneRaw(fixture);
+      const list = getPath(copy, path) as unknown[];
+      expect(Array.isArray(list)).toBe(true);
+      // Уникалността не въвежда изкуствен минимум: проверява се само повторение.
+      const ids = list.map((i) => (i as { id?: unknown }).id).filter((i) => typeof i === "string");
+      expect(new Set(ids).size).toBe(ids.length);
+    });
+  }
+});
