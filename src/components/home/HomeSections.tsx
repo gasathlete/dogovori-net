@@ -46,6 +46,15 @@ export function HomeSections() {
         </Suspense>
       </LazyOnVisible>
 
+      {/* DogovaryAI веднага след продуктите — видим е и на телефон, рано. */}
+      <LazyOnVisible minHeight={520}>
+        <Suspense fallback={<SectionSkeleton />}>
+          <BackdropSection variant="rings" align="center">
+            <DogovaryAIShowcase />
+          </BackdropSection>
+        </Suspense>
+      </LazyOnVisible>
+
       <BackdropSection variant="rings">
         <PrimaryChoice />
       </BackdropSection>
@@ -112,15 +121,6 @@ export function HomeSections() {
         <Suspense fallback={<SectionSkeleton />}>
           <BackdropSection variant="shield" intensity="medium">
             <ComplianceSection />
-          </BackdropSection>
-        </Suspense>
-      </LazyOnVisible>
-
-      {/* DogovaryAI — второстепенна възможност, след процеса и доверието */}
-      <LazyOnVisible minHeight={520}>
-        <Suspense fallback={<SectionSkeleton />}>
-          <BackdropSection variant="rings" align="center">
-            <DogovaryAIShowcase />
           </BackdropSection>
         </Suspense>
       </LazyOnVisible>

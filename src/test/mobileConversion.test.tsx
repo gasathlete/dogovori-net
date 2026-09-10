@@ -22,18 +22,85 @@ const wrap = (ui: React.ReactNode) => <MemoryRouter>{ui}</MemoryRouter>;
 const read = (f: string) => readFileSync(f, "utf8");
 
 describe("мобилна долна навигация", () => {
-  it("има точно четири основни изхода в поискания ред", () => {
+  it("има точно петте основни изхода в поискания ред", () => {
     expect(MOBILE_NAV_ITEMS.map((i) => [i.label, i.to])).toEqual([
-      ["Продукти", "/produkti"],
-      ["Качи", "/analiz"],
+      ["Начало", "/"],
+      ["Каталог", "/catalog"],
       ["Изготви", "/build"],
+      ["DogovaryAI", "/assistant"],
       ["Профил", "/account"],
     ]);
   });
 
-  it("не съдържа каталог и DogovaryAI", () => {
-    const labels = MOBILE_NAV_ITEMS.map((i) => i.label).join("|");
-    expect(labels).not.toMatch(/Каталог|DogovaryAI/);
+  it("активният маршрут се разпознава точно", () => {
+    const byLabel = (l: string) => MOBILE_NAV_ITEMS.find((i) => i.label === l)!;
+    expect(byLabel("Начало").match("/")).toBe(true);
+    expect(byLabel("Начало").match("/catalog")).toBe(false);
+    expect(byLabel("Каталог").match("/catalog/naem")).toBe(true);
+    expect(byLabel("DogovaryAI").match("/assistant")).toBe(true);
+    expect(byLabel("DogovaryAI").match("/")).toBe(false);
+    expect(byLabel("Профил").match("/auth")).toBe(true);
+    expect(byLabel("Изготви").match("/wizard/naem")).toBe(true);
+  });
+
+  it("DogovaryAI ползва брандовия знак, останалите иконки", () => {
+    const ai = MOBILE_NAV_ITEMS.find((i) => i.label === "DogovaryAI")!;
+    expect(ai.brandMark).toBe("/dogovai-favicon.png");
+    for (const item of MOBILE_NAV_ITEMS.filter((i) => i.label !== "DogovaryAI")) {
+      expect(item.icon).toBeTruthy();
+    }
+  });
+
+  it("петте изхода се разполагат в пет колони при 360px", () => {
+    const src = read("src/components/MobileBottomNav.tsx");
+    expect(src).toContain("grid-cols-5");
+    expect(src).toContain("min-h-[44px]");
+    expect(src).not.toMatch(/w-\[\d{3,}px\]/);
+  });
+});
+
+describe("hero — безплатното начало е водещо", () => {
+  const hero = read("src/components/Hero.tsx");
+
+  it("основният CTA е „Започнете безплатно“ към /start", () => {
+    expect(hero).toContain('to="/start"');
+    expect(hero).toContain("Започнете безплатно");
+    expect(hero).not.toContain("Изберете какво Ви трябва");
+  });
+
+  it("основният CTA стои преди платения ред и е визуално по-силен", () => {
+    expect(hero.indexOf("Започнете безплатно")).toBeLessThan(
+      hero.indexOf("<HeroProductRail />"),
+    );
+    expect(hero).toMatch(/min-h-\[56px\][^"]*text-\[18px\]/);
+  });
+
+  it("не обещава неограничено безплатно ползване", () => {
+    expect(hero).toContain("FREE_OFFER_RULE");
+    expect(hero.toLowerCase()).not.toContain("неограничен");
+  });
+});
+
+describe("DogovaryAI рано на началната страница", () => {
+  const home = read("src/components/home/HomeSections.tsx");
+
+  it("стои веднага след продуктовата секция и преди PrimaryChoice", () => {
+    const products = home.indexOf("<ProductsSection />");
+    const ai = home.indexOf("<DogovaryAIShowcase />");
+    const primary = home.indexOf("<PrimaryChoice />");
+    expect(products).toBeGreaterThan(-1);
+    expect(ai).toBeGreaterThan(products);
+    expect(ai).toBeLessThan(primary);
+  });
+
+  it("има точно едно място в композицията", () => {
+    expect(home.split("<DogovaryAIShowcase />").length - 1).toBe(1);
+  });
+
+  it("води към /assistant, без плаващо балонче", () => {
+    const showcase = read("src/components/home/DogovaryAIShowcase.tsx");
+    expect(showcase).toContain('to="/assistant"');
+    expect(showcase).not.toContain('new CustomEvent("dogovai:open")');
   });
 });
 
@@ -45,8 +112,9 @@ describe("ранен продуктов ред в hero-а", () => {
       expect(link).toHaveAttribute("href", productPath(p));
       expect(link).toHaveTextContent(productPriceLabel(p.id));
     }
-    // „еднократно" се появява точно веднъж — за групата.
-    expect(screen.getAllByText("еднократно")).toHaveLength(1);
+    // Условието „еднократно" се появява точно веднъж — за групата.
+    expect(screen.getAllByText(/еднократно/)).toHaveLength(1);
+    expect(screen.getByRole("heading", { name: "Еднократни продукти" })).toBeInTheDocument();
   });
 
   it("няма автоматична въртележка, popup или изкуствен недостиг", () => {
@@ -217,9 +285,9 @@ describe("hero копие и продуктови карти", () => {
     expect(audience).toContain("Започнете от шаблон или качете свой файл.");
   });
 
-  it("основното действие води към продуктите, а второстепенните са реални пътища", () => {
-    expect(hero).toContain("Изберете какво Ви трябва");
-    expect(hero).toContain('to="/produkti"');
+  it("основното действие е безплатното начало, а второстепенните са реални пътища", () => {
+    expect(hero).toContain("Започнете безплатно");
+    expect(hero).toContain('to="/start"');
     expect(hero).toContain("Създайте документ");
     expect(hero).toContain("Качете за проверка");
   });

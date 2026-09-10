@@ -14,14 +14,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 
-describe("Hero — едно основно действие към продуктите", () => {
+describe("Hero — едно основно действие към безплатното начало", () => {
   const src = read("src/components/Hero.tsx");
 
-  it("основният CTA е реален Link към /produkti и за анонимни, и за влезли", () => {
-    expect(src).toContain('to="/produkti"');
-    expect(src).toContain("Изберете какво Ви трябва");
+  it("основният CTA е реален Link към /start и за анонимни, и за влезли", () => {
+    expect(src).toContain('to="/start"');
+    expect(src).toContain("Започнете безплатно");
     expect(src).toContain('trackFunnelEvent("home_primary_cta_clicked"');
-    expect(src).toContain('destination: "/produkti"');
+    expect(src).toContain('destination: "/start"');
   });
 
   it("има само едно златно (primary) действие", () => {
@@ -51,9 +51,10 @@ describe("Hero — едно основно действие към продук�
   });
 
   it("trust линията ползва каноничния текст и пази „Старт без регистрация“", async () => {
-    const { FREE_OFFER_ANON_HELPER } = await import("@/lib/pricing");
-    expect(src).toContain("FREE_OFFER_ANON_HELPER");
-    expect(FREE_OFFER_ANON_HELPER).toContain("Старт без регистрация");
+    const { FREE_OFFER_RULE } = await import("@/lib/pricing");
+    expect(src).toContain("FREE_OFFER_RULE");
+    expect(FREE_OFFER_RULE.length).toBeGreaterThan(10);
+    expect(src).toContain("Старт без регистрация");
     expect(src).not.toContain("5 безплатни операции");
   });
 });

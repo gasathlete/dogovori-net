@@ -56,12 +56,15 @@ describe("позициониране на началната страница", 
     expect(showcase).not.toContain("отговаря като юрист");
     expect(showcase).toContain("Не замества индивидуална правна консултация");
 
-    // Богатата десктоп подредба живее в HomeSections.tsx (Index е само входът).
+    // Богатата подредба живее в HomeSections.tsx (Index е само входът).
+    // DogovaryAI стои веднага след продуктите — рано и на телефон.
     const index = read("src/components/home/HomeSections.tsx");
     expect(index.indexOf("<DogovaryAIShowcase />")).toBeGreaterThan(
-      index.indexOf("<ComplianceSection />"),
+      index.indexOf("<ProductsSection />"),
     );
-    expect(index.indexOf("<DogovaryAIShowcase />")).toBeLessThan(index.indexOf("<FAQ />"));
+    expect(index.indexOf("<DogovaryAIShowcase />")).toBeLessThan(
+      index.indexOf("<PrimaryChoice />"),
+    );
   });
 });
 
