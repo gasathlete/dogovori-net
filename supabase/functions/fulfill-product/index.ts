@@ -206,8 +206,10 @@ Deno.serve(async (req) => {
     ) {
       return fail("payment_unverified", 409, headers, cid);
     }
+    // Версията на политиката е ЗАДЪЛЖИТЕЛНА: липсваща стойност спира обработката,
+    // вместо да я приеме наум.
     const storedPolicy = intake.generation_policy_version ?? ent.generation_policy_version ?? null;
-    if (storedPolicy !== null && storedPolicy !== PRODUCT_GENERATION_POLICY_VERSION) {
+    if (storedPolicy !== PRODUCT_GENERATION_POLICY_VERSION) {
       const code: EligibilityCode = "policy_changed";
       return fail(code, 409, headers, cid, eligibilityMessage(code));
     }
