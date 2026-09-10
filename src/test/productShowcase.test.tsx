@@ -207,6 +207,17 @@ describe("намалено движение", () => {
     fireEvent.click(screen.getByRole("tab", { name: /Пълен пакет/ }));
     expect(activeId()).toBe("negotiation_package");
   });
+
+  it("няма подвеждащ бутон за пауза, а честен надпис", () => {
+    render(wrap(<ProductShowcaseCarousel source="test" />));
+    expect(screen.queryByTestId("showcase-toggle")).toBeNull();
+    expect(screen.getByTestId("showcase-rotation-note")).toHaveTextContent(
+      "Автоматичната смяна е изключена.",
+    );
+    // Ръчните стрелки остават налични.
+    fireEvent.click(screen.getByRole("button", { name: "Следващ продукт" }));
+    expect(activeId()).toBe("contract_improve");
+  });
 });
 
 describe("достъпност и съдържание на витрината", () => {
