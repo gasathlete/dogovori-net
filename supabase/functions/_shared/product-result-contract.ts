@@ -862,8 +862,10 @@ function checkCorrections(
   o: Record<string, unknown>,
   binding: ProductSourceBinding | null,
 ): void {
+  checkUniqueIds(c, `${path}.corrections`, o.corrections);
   const list = c.arr(`${path}.corrections`, o.corrections, RESULT_LIMITS.corrections);
   if (!list) return;
+
   const ids = new Set<string>();
   const ranges: Array<{ start: number; end: number; path: string }> = [];
   list.forEach((item, i) => {
@@ -941,6 +943,8 @@ function checkCorrections(
 }
 
 function checkNegotiation(c: Checker, path: string, o: Record<string, unknown>): void {
+  checkUniqueIds(c, `${path}.actions`, o.actions);
+
   const lists = [
     "objectives",
     "red_lines",
