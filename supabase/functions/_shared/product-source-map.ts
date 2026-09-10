@@ -42,6 +42,34 @@ export function sliceByCodePoints(text: string, start: number, end: number): str
 const SECTION_RE =
   /^(?:(?:чл\.|член|раздел|глава|приложение)\s*[^\n]{0,80}|[IVXLC]{1,6}\.\s*[^\n]{0,80}|\d{1,3}(?:\.\d{1,3})*\.?\s*[^\n]{0,80})$/i;
 
+/**
+ * Проверява подадената карта на страниците. Правилото е ЕДНО и документирано:
+ * невалидна карта се смята за ЛИПСВАЩА (никой абзац не твърди страница), вместо
+ * да закачи грешна страница към текст.
+ *
+ * Валидна карта: положителни уникални номера, цели интервали [start, end) в
+ * рамките на източника, подредени и без застъпване.
+ */
+export function validatePageBoundaries(
+  pages: readonly PageBoundary[] | null | undefined,
+  charCount: number,
+): readonly PageBoundary[] | null {
+  if (!pages || pages.length === 0) return null;
+  const sorted = [...pages].sort((a, b) => a.start - b.start);
+  const seen = new Set<number>();
+  let prevEnd = 0;
+  for (const p of sorted) {
+    if (!Number.isInteger(p.page) || p.page < 1) return null;
+    if (seen.has(p.page)) return null;
+    seen.add(p.page);
+    if (!Number.isInteger(p.start) || !Number.isInteger(p.end)) return null;
+    if (p.start < 0 || p.end <= p.start || p.end > charCount) return null;
+    if (p.start < prevEnd) return null;
+    prevEnd = p.end;
+  }
+  return sorted;
+}
+
 function pageForOffset(pages: readonly PageBoundary[] | null, offset: number): number | null {
   if (!pages) return null;
   for (const p of pages) {
@@ -60,7 +88,7 @@ export function buildSourceMap(
 ): SourceMap {
   const cps = Array.from(text);
   const charCount = cps.length;
-  const knownPages = pages && pages.length > 0 ? [...pages].sort((a, b) => a.start - b.start) : null;
+  const knownPages = validatePageBoundaries(pages, charCount);
 
   const paragraphs: ParagraphEntry[] = [];
   let currentSection: string | null = null;
