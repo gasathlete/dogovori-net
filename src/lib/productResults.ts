@@ -1,184 +1,345 @@
 /**
- * Строга схема на резултата от еднократните продукти (frontend слой).
+ * Строгата схема на резултата от еднократните продукти — frontend слой (v2).
  *
- * Типовете и константите идват от каноничния Edge-safe договор
- * `supabase/functions/_shared/product-result-contract.ts`; тук добавяме само
- * runtime валидация с вече наличния в проекта `zod` и човешките български
- * етикети за интерфейса. Технически ключове — на английски.
+ * Типовете и границите идват от каноничния Edge-safe договор
+ * `supabase/functions/_shared/product-result-contract.ts`; тук описваме същите
+ * правила с `zod`, за да имаме един и същ отговор в браузъра и на сървъра.
+ * Има parity тест: за един и същ вход двете проверки дават един и същ извод.
  */
 import { z } from "zod";
 import {
+  ABSENCE_COVERAGE,
+  CORRECTION_MODES,
   CORRECTION_STRATEGIES,
+  ECONOMIC_TERM_KINDS,
+  MAX_REFINEMENTS,
+  MESSAGE_TONES,
   PRODUCT_RESULT_IDS,
   PRODUCT_RESULT_SCHEMA_VERSION,
+  RESULT_LIMITS,
+  RESULT_PARTIES,
   RESULT_SEVERITIES,
-  RESULT_STATUSES,
+  SOURCE_KINDS,
+  matchesSourceBinding,
+  readyProductResult,
+  validateProductResult,
+  type Correction,
   type CorrectionStrategy,
   type ProductResult,
   type ProductResultId,
+  type ProductSourceBinding,
+  type ReadyProductResult,
   type ResultSeverity,
+  type SourceSpan,
 } from "../../supabase/functions/_shared/product-result-contract";
+import {
+  PRODUCT_MAX_SOURCE_CHARS,
+  PRODUCT_MIN_SOURCE_CHARS,
+  PRODUCT_SOURCE_CHAR_UNIT,
+  countProductSourceChars,
+} from "@/lib/productSource";
 
 export {
+  ABSENCE_COVERAGE,
+  CORRECTION_MODES,
   CORRECTION_STRATEGIES,
+  ECONOMIC_TERM_KINDS,
+  MAX_REFINEMENTS,
+  MESSAGE_TONES,
   PRODUCT_RESULT_IDS,
   PRODUCT_RESULT_SCHEMA_VERSION,
+  RESULT_LIMITS,
+  RESULT_PARTIES,
   RESULT_SEVERITIES,
-  RESULT_STATUSES,
+  matchesSourceBinding,
+  readyProductResult,
+  validateProductResult,
 };
 export type {
+  Correction,
   CorrectionStrategy,
   ProductResult,
   ProductResultId,
+  ProductSourceBinding,
+  ReadyProductResult,
   ResultSeverity,
+  SourceSpan,
 };
 
-const nonEmpty = z.string().trim().min(1);
+/** Текст с горна граница в каноничната единица (Unicode кодови точки). */
+const text = (max: number) =>
+  z.string().refine((v) => v.trim().length > 0, "текстът е празен").refine(
+    (v) => countProductSourceChars(v) <= max,
+    `текстът надхвърля ${max} знака`,
+  );
 
-/** Доказателство без извадка от източника е невалидно. */
-export const sourceSpanSchema = z.object({
-  page: z.number().int().positive().optional(),
-  section: nonEmpty.optional(),
-  paragraph: z.number().int().positive().optional(),
-  excerpt: nonEmpty,
+const nullableText = (max: number) => text(max).nullable();
+
+const idSchema = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$/, "невалиден идентификатор");
+
+const isoSchema = z.string().refine((v) => !Number.isNaN(Date.parse(v)), "невалидна дата/час");
+
+export const sourceBindingSchema = z.object({
+  document_id: z.string().uuid(),
+  source_hash: z.string().regex(/^[0-9a-f]{64}$/),
+  source_kind: z.enum(SOURCE_KINDS),
+  char_count: z.number().int().min(PRODUCT_MIN_SOURCE_CHARS).max(PRODUCT_MAX_SOURCE_CHARS),
+  char_unit: z.literal(PRODUCT_SOURCE_CHAR_UNIT),
+  source_updated_at: isoSchema,
+  page_count: z.number().int().positive().max(10000).nullable(),
 });
 
-export const passportSchema = z.object({
-  document_type: nonEmpty,
-  purpose: nonEmpty,
-  language: nonEmpty,
-  parties: z.array(z.object({ role: nonEmpty, name: nonEmpty.optional() })),
-  section_count: z.number().int().nonnegative().optional(),
-  page_count: z.number().int().nonnegative().optional(),
+export const sourceSpanSchema = z
+  .object({
+    start: z.number().int().min(0).max(PRODUCT_MAX_SOURCE_CHARS),
+    end: z.number().int().min(0).max(PRODUCT_MAX_SOURCE_CHARS),
+    excerpt: text(RESULT_LIMITS.excerpt),
+    page: z.number().int().positive().max(10000).nullish(),
+    section: text(RESULT_LIMITS.shortText).nullish(),
+    paragraph: z.number().int().min(0).max(100000).nullish(),
+  })
+  .refine((s) => s.end > s.start, "краят трябва да е след началото")
+  .refine(
+    (s) => countProductSourceChars(s.excerpt) === s.end - s.start,
+    "извадката не съвпада по дължина с мястото в източника",
+  );
+
+export const legalBasisSchema = z.object({
+  provision_id: idSchema,
+  version_id: idSchema,
+  source_id: idSchema,
+  canonical_url: z.string().regex(/^https:\/\/[^\s]+$/),
+  label: text(RESULT_LIMITS.shortText),
 });
 
-export const reviewFindingSchema = z.object({
-  id: nonEmpty,
-  title: nonEmpty,
+const legalBasisList = z.array(legalBasisSchema).max(RESULT_LIMITS.legalBases).optional();
+
+const findingSchema = z.object({
+  id: idSchema,
+  title: text(RESULT_LIMITS.shortText),
   severity: z.enum(RESULT_SEVERITIES),
-  consequence: nonEmpty,
-  next_step: nonEmpty,
-  source: sourceSpanSchema,
-  legal_reference: nonEmpty.optional(),
+  affected_party: z.enum(RESULT_PARTIES),
+  explanation: text(RESULT_LIMITS.text),
+  span: sourceSpanSchema,
+  legal_basis: legalBasisList,
 });
 
-export const reviewPayloadSchema = z.object({
-  passport: passportSchema,
-  executive_summary: nonEmpty,
-  // Без изкуствен минимален брой: документ без съществени въпроси е валиден.
-  priority_summary: z.array(nonEmpty),
-  findings: z.array(reviewFindingSchema),
-  obligations: z.array(
-    z.object({
-      party: nonEmpty,
-      obligation: nonEmpty,
-      deadline: nonEmpty.optional(),
-      source: sourceSpanSchema,
-    }),
-  ),
-  money_and_dates: z.array(
-    z.object({
-      label: nonEmpty,
-      amount: nonEmpty.optional(),
-      date: nonEmpty.optional(),
-      source: sourceSpanSchema,
-    }),
-  ),
-  termination_and_disputes: z.array(
-    z.object({ text: nonEmpty, source: sourceSpanSchema }),
-  ),
-  contradictions: z.array(
-    z.object({ text: nonEmpty, sources: z.array(sourceSpanSchema).min(2) }),
-  ),
-  missing_protections: z.array(z.object({ text: nonEmpty, why: nonEmpty })),
-  questions_to_clarify: z.array(nonEmpty),
-  printable: z.literal(true),
-});
-
-export const correctionItemSchema = z.object({
-  id: nonEmpty,
-  clause_label: nonEmpty,
-  problem: nonEmpty,
-  rationale: nonEmpty,
-  original_text: nonEmpty,
-  source: sourceSpanSchema,
-  options: z
-    .array(
-      z.object({
-        strategy: z.enum(CORRECTION_STRATEGIES),
-        replacement_text: nonEmpty,
-        trade_off: nonEmpty,
-      }),
-    )
-    .length(3)
-    .refine(
-      (opts) =>
-        new Set(opts.map((o) => o.strategy)).size === CORRECTION_STRATEGIES.length,
-      { message: "всяка поправка носи точно трите различни подхода" },
-    ),
-});
-
-const outputsSchema = z.object({
-  docx: z.literal(true),
-  pdf: z.literal(true),
-  change_report: z.literal(true),
-});
-
-export const correctionPayloadSchema = z.object({
-  review: reviewPayloadSchema,
-  default_strategy: z.enum(CORRECTION_STRATEGIES),
-  corrections: z.array(correctionItemSchema),
-  outputs: outputsSchema,
-});
-
-export const negotiationPayloadSchema = z.object({
-  correction: correctionPayloadSchema,
-  brief: z.object({
-    objectives: z.array(nonEmpty).min(1),
-    red_lines: z.array(nonEmpty).min(1),
-    acceptable_concessions: z.array(nonEmpty).min(1),
-    fallback_positions: z.array(nonEmpty).min(1),
-    questions: z.array(nonEmpty).min(1),
+const reviewShape = {
+  passport: z.object({
+    title: text(RESULT_LIMITS.shortText),
+    document_type: text(RESULT_LIMITS.shortText),
+    parties: z
+      .array(
+        z.object({
+          role: text(RESULT_LIMITS.shortText),
+          name: text(RESULT_LIMITS.shortText),
+          span: sourceSpanSchema,
+        }),
+      )
+      .max(RESULT_LIMITS.parties),
+    governing_law: nullableText(RESULT_LIMITS.shortText),
+    signature_state: nullableText(RESULT_LIMITS.shortText),
   }),
-  action_table: z
+  executive_summary: text(RESULT_LIMITS.longText),
+  priority_summary: z
     .array(
       z.object({
-        action: nonEmpty,
-        owner: nonEmpty,
-        due: nonEmpty.optional(),
-        source: sourceSpanSchema.optional(),
+        finding_id: idSchema,
+        rank: z.number().int().min(1).max(RESULT_LIMITS.priorities),
+        reason: text(RESULT_LIMITS.text),
       }),
     )
-    .min(1),
-  messages: z
+    .max(RESULT_LIMITS.priorities),
+  // Нула находки е допустимо: изправен документ не се украсява с находки.
+  findings: z.array(findingSchema).max(RESULT_LIMITS.findings),
+  obligations: z
     .array(
-      z.object({ tone: z.enum(["neutral", "firm"]), body: nonEmpty }),
+      z.object({
+        id: idSchema,
+        party: z.enum(RESULT_PARTIES),
+        summary: text(RESULT_LIMITS.text),
+        deadline: nullableText(RESULT_LIMITS.shortText),
+        span: sourceSpanSchema,
+      }),
     )
-    .length(2)
-    .refine((m) => m[0].tone !== m[1].tone, {
-      message: "двете писма са неутрално и твърдо",
+    .max(RESULT_LIMITS.obligations),
+  economic_terms: z
+    .array(
+      z.object({
+        id: idSchema,
+        kind: z.enum(ECONOMIC_TERM_KINDS),
+        label: text(RESULT_LIMITS.shortText),
+        value_text: text(RESULT_LIMITS.shortText),
+        span: sourceSpanSchema,
+      }),
+    )
+    .max(RESULT_LIMITS.economicTerms),
+  termination: z.object({
+    summary: text(RESULT_LIMITS.text),
+    spans: z.array(sourceSpanSchema).max(RESULT_LIMITS.spansPerItem),
+  }),
+  disputes: z.object({
+    summary: text(RESULT_LIMITS.text),
+    spans: z.array(sourceSpanSchema).max(RESULT_LIMITS.spansPerItem),
+  }),
+  contradictions: z
+    .array(
+      z.object({
+        id: idSchema,
+        summary: text(RESULT_LIMITS.text),
+        spans: z
+          .array(sourceSpanSchema)
+          .min(2, "противоречието изисква поне две места")
+          .max(RESULT_LIMITS.spansPerItem),
+      }),
+    )
+    .max(RESULT_LIMITS.contradictions),
+  absence_checks: z
+    .array(
+      z
+        .object({
+          id: idSchema,
+          concept: text(RESULT_LIMITS.shortText),
+          searched_terms: z
+            .array(text(RESULT_LIMITS.shortText))
+            .min(1, "проверката за отсъствие изисква търсени изрази")
+            .max(RESULT_LIMITS.searchedTerms),
+          coverage: z.literal(ABSENCE_COVERAGE),
+          found: z.boolean(),
+          spans: z.array(sourceSpanSchema).max(RESULT_LIMITS.spansPerItem),
+          note: nullableText(RESULT_LIMITS.text),
+        })
+        .refine((a) => (a.found ? a.spans.length >= 1 : a.spans.length === 0),
+          "намереното изисква място, ненамереното не сочи място"),
+    )
+    .max(RESULT_LIMITS.absenceChecks),
+  questions: z
+    .array(
+      z.object({
+        id: idSchema,
+        question: text(RESULT_LIMITS.text),
+        why: text(RESULT_LIMITS.text),
+      }),
+    )
+    .max(RESULT_LIMITS.questions),
+};
+
+const priorityRefsValid = (raw: unknown) => {
+  const payload = raw as {
+    findings: { id: string }[];
+    priority_summary: { finding_id: string; rank: number }[];
+  };
+  const ids = new Set(payload.findings.map((f) => f.id));
+  const ranks = new Set<number>();
+  for (const p of payload.priority_summary) {
+    if (!ids.has(p.finding_id)) return false;
+    if (ranks.has(p.rank)) return false;
+    ranks.add(p.rank);
+  }
+  return new Set(payload.findings.map((f) => f.id)).size === payload.findings.length;
+};
+
+export const reviewPayloadSchema = z
+  .object(reviewShape)
+  .strict()
+  .refine(priorityRefsValid, "приоритетите сочат само към съществуващи находки");
+
+const correctionSchema = z
+  .object({
+    id: idSchema,
+    title: text(RESULT_LIMITS.shortText),
+    mode: z.enum(CORRECTION_MODES),
+    span: sourceSpanSchema,
+    original_text: text(RESULT_LIMITS.excerpt),
+    rationale: text(RESULT_LIMITS.text),
+    options: z
+      .array(
+        z.object({
+          stance: z.enum(CORRECTION_STRATEGIES),
+          replacement_text: text(RESULT_LIMITS.text),
+          trade_off: text(RESULT_LIMITS.text),
+        }),
+      )
+      .length(3, "очакват се точно три варианта"),
+    legal_basis: legalBasisList,
+  })
+  .refine((c) => c.original_text === c.span.excerpt,
+    "оригиналният текст трябва да е точно извадката от мястото")
+  .refine(
+    (c) => CORRECTION_STRATEGIES.every((s) => c.options.some((o) => o.stance === s)),
+    "вариантите трябва да са консервативен, балансиран и по-настъпателен",
+  )
+  .refine(
+    (c) => new Set(c.options.map((o) => o.replacement_text.trim())).size === c.options.length,
+    "вариантите трябва да са наистина различни",
+  );
+
+const noOverlap = (raw: readonly unknown[]) => {
+  const corrections = raw as readonly { id: string; span: { start: number; end: number } }[];
+  if (new Set(corrections.map((c) => c.id)).size !== corrections.length) return false;
+  const sorted = [...corrections].sort((a, b) => a.span.start - b.span.start);
+  for (let i = 1; i < sorted.length; i += 1) {
+    if (sorted[i].span.start < sorted[i - 1].span.end) return false;
+  }
+  return true;
+};
+
+export const correctionPayloadSchema = z
+  .object({ ...reviewShape, corrections: z.array(correctionSchema).max(RESULT_LIMITS.corrections) })
+  .strict()
+  .refine(priorityRefsValid, "приоритетите сочат само към съществуващи находки")
+  .refine((p) => noOverlap(p.corrections as readonly unknown[]), "поправките не може да се застъпват");
+
+const stringList = z.array(text(RESULT_LIMITS.text)).max(RESULT_LIMITS.listItems);
+
+export const negotiationPayloadSchema = z
+  .object({
+    ...reviewShape,
+    corrections: z.array(correctionSchema).max(RESULT_LIMITS.corrections),
+    objectives: stringList,
+    red_lines: stringList,
+    acceptable_concessions: stringList,
+    fallbacks: stringList,
+    negotiation_questions: stringList,
+    actions: z
+      .array(
+        z.object({
+          id: idSchema,
+          action: text(RESULT_LIMITS.text),
+          owner: text(RESULT_LIMITS.shortText),
+          due: nullableText(RESULT_LIMITS.shortText),
+          priority: z.enum(RESULT_SEVERITIES),
+        }),
+      )
+      .max(RESULT_LIMITS.actions),
+    messages: z
+      .array(
+        z.object({
+          tone: z.enum(MESSAGE_TONES),
+          subject: text(RESULT_LIMITS.shortText),
+          body: text(RESULT_LIMITS.longText),
+        }),
+      )
+      .length(2, "очакват се точно две писма")
+      .refine((m) => MESSAGE_TONES.every((t) => m.some((x) => x.tone === t)),
+        "писмата трябва да са неутрално и твърдо"),
+    refinement: z.object({
+      included: z.literal(MAX_REFINEMENTS),
+      used: z.number().int().min(0).max(MAX_REFINEMENTS),
     }),
-  outputs: outputsSchema,
-  included_refinements: z.literal(1),
-  refinements_used: z.number().int().min(0).max(1),
-});
+  })
+  .strict()
+  .refine(priorityRefsValid, "приоритетите сочат само към съществуващи находки")
+  .refine((p) => noOverlap(p.corrections as readonly unknown[]), "поправките не може да се застъпват");
 
 const envelope = {
   schema_version: z.literal(PRODUCT_RESULT_SCHEMA_VERSION),
-  source_document_id: nonEmpty,
-  /** Обвързване с точната версия на качения файл. */
-  source_hash: z.string().regex(/^[a-f0-9]{64}$/),
-  source_revision: z.number().int().nonnegative(),
-  generated_at: z.string().datetime(),
-  status: z.enum(RESULT_STATUSES),
+  source: sourceBindingSchema,
+  generated_at: isoSchema,
 };
 
 export const productResultSchema = z.discriminatedUnion("product_id", [
-  z.object({
-    ...envelope,
-    product_id: z.literal("contract_check"),
-    payload: reviewPayloadSchema,
-  }),
+  z.object({ ...envelope, product_id: z.literal("contract_check"), payload: reviewPayloadSchema }),
   z.object({
     ...envelope,
     product_id: z.literal("contract_improve"),
@@ -193,43 +354,43 @@ export const productResultSchema = z.discriminatedUnion("product_id", [
 
 export type ProductResultParsed = z.infer<typeof productResultSchema>;
 
-export function parseProductResult(value: unknown): ProductResultParsed {
-  return productResultSchema.parse(value);
-}
-
-export function isProductResult(value: unknown): value is ProductResultParsed {
-  return productResultSchema.safeParse(value).success;
+/** Кратък извод: валиден ли е резултатът според frontend схемата. */
+export function isValidProductResult(raw: unknown): boolean {
+  return productResultSchema.safeParse(raw).success;
 }
 
 /**
- * Резултатът важи само за версията, от която е роден. При различен hash или
- * ревизия нищо не се прилага безшумно.
+ * Готов за показване резултат: пълна схема + точно обвързване с източника и
+ * закупения продукт. Всичко останало не се показва като готов резултат.
  */
-export function matchesSource(
-  result: ProductResultParsed,
-  source: { source_hash: string; source_revision: number },
-): boolean {
-  return (
-    result.source_hash === source.source_hash &&
-    result.source_revision === source.source_revision
-  );
+export function parseReadyProductResult(
+  raw: unknown,
+  expected: ProductSourceBinding,
+  expectedProductId: ProductResultId,
+):
+  | { ok: true; result: ReadyProductResult }
+  | { ok: false; errors: string[] } {
+  const parsed = productResultSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, errors: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`) };
+  }
+  const ready = readyProductResult(raw, expected, expectedProductId);
+  if (ready.ok) return { ok: true, result: ready.result };
+  const failed = ready as { readonly errors: readonly string[] };
+  return { ok: false, errors: [...failed.errors] };
 }
 
-/* ---------------------- Човешки етикети за UI ---------------------- */
+/** Човешките български етикети за интерфейса. Технически ключове — английски. */
+export const SEVERITY_LABELS_BG: Record<ResultSeverity, string> = {
+  critical: "Критично",
+  high: "Високо",
+  medium: "Средно",
+  low: "Ниско",
+  info: "За сведение",
+};
 
-export const SEVERITY_LABELS: Readonly<Record<ResultSeverity, string>> =
-  Object.freeze({
-    high: "Висока",
-    medium: "Средна",
-    low: "Ниска",
-  });
-
-export const STRATEGY_LABELS: Readonly<Record<CorrectionStrategy, string>> =
-  Object.freeze({
-    conservative: "Консервативен",
-    balanced: "Балансиран",
-    assertive: "По-настъпателен",
-  });
-
-export const MESSAGE_TONE_LABELS: Readonly<Record<"neutral" | "firm", string>> =
-  Object.freeze({ neutral: "Неутрално", firm: "Твърдо" });
+export const STRATEGY_LABELS_BG: Record<CorrectionStrategy, string> = {
+  conservative: "Консервативен",
+  balanced: "Балансиран",
+  assertive: "По-настъпателен",
+};

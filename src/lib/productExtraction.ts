@@ -12,6 +12,8 @@
 import {
   PRODUCT_MAX_SOURCE_CHARS,
   PRODUCT_MIN_SOURCE_CHARS,
+  PRODUCT_SOURCE_CHAR_UNIT,
+  countProductSourceChars,
   normalizeProductSourceText,
   type ProductExtractionStatus,
   type ProductSourceKind,
@@ -24,6 +26,8 @@ export interface ProductExtractionResult {
   /** Пълният нормализиран текст. Празен, когато статусът е `partial`. */
   readonly text: string;
   readonly charCount: number;
+  /** Каноничната мерна единица на `charCount` — винаги Unicode кодови точки. */
+  readonly charUnit: typeof PRODUCT_SOURCE_CHAR_UNIT;
   /** Измерен брой страници, когато е известен. */
   readonly pageCount: number | null;
   /** SHA-256 върху ЦЕЛИЯ нормализиран текст. Празен при `partial`. */
@@ -68,6 +72,7 @@ function blocked(
     sourceKind,
     text: "",
     charCount,
+    charUnit: PRODUCT_SOURCE_CHAR_UNIT,
     pageCount,
     sourceHash: "",
     blockedReason: reason,
@@ -84,7 +89,8 @@ async function complete(
     status: "full",
     sourceKind,
     text,
-    charCount: text.length,
+    charCount: countProductSourceChars(text),
+    charUnit: PRODUCT_SOURCE_CHAR_UNIT,
     pageCount,
     sourceHash: await sha256Hex(text),
   };
@@ -122,8 +128,8 @@ async function extractDocxSource(
     return blocked("docx", "unreadable", null);
   }
   const text = normalizeProductSourceText(raw);
-  if (text.length > PRODUCT_MAX_SOURCE_CHARS) return blocked("docx", "too_long", null, text.length);
-  if (text.length < PRODUCT_MIN_SOURCE_CHARS) return blocked("docx", "too_short", null, text.length);
+  if (countProductSourceChars(text) > PRODUCT_MAX_SOURCE_CHARS) return blocked("docx", "too_long", null, countProductSourceChars(text));
+  if (countProductSourceChars(text) < PRODUCT_MIN_SOURCE_CHARS) return blocked("docx", "too_short", null, countProductSourceChars(text));
   return complete("docx", text, null);
 }
 
@@ -192,7 +198,7 @@ async function extractPdfSource(
       const pageText = normalizeProductSourceText(
         content.items.map((it) => it.str ?? "").join(" "),
       );
-      if (pageText.length < MIN_PDF_CHARS_PER_PAGE) emptyPages += 1;
+      if (countProductSourceChars(pageText) < MIN_PDF_CHARS_PER_PAGE) emptyPages += 1;
       parts.push(pageText);
     }
   } catch {
@@ -203,17 +209,17 @@ async function extractPdfSource(
   const text = normalizeProductSourceText(parts.join("\n\n"));
 
   // Изцяло сканиран документ.
-  if (emptyPages === pageCount) return blocked("pdf", "no_text_layer", pageCount, text.length);
+  if (emptyPages === pageCount) return blocked("pdf", "no_text_layer", pageCount, countProductSourceChars(text));
   // Частично сканиран: една липсваща страница прави резултата непълен.
-  if (emptyPages > 0) return blocked("pdf", "page_without_text", pageCount, text.length);
-  if (text.length < PRODUCT_MIN_SOURCE_CHARS) {
-    return blocked("pdf", "too_short", pageCount, text.length);
+  if (emptyPages > 0) return blocked("pdf", "page_without_text", pageCount, countProductSourceChars(text));
+  if (countProductSourceChars(text) < PRODUCT_MIN_SOURCE_CHARS) {
+    return blocked("pdf", "too_short", pageCount, countProductSourceChars(text));
   }
   if (!looksLikeReadableText(text)) {
-    return blocked("pdf", "low_text_quality", pageCount, text.length);
+    return blocked("pdf", "low_text_quality", pageCount, countProductSourceChars(text));
   }
-  if (text.length > PRODUCT_MAX_SOURCE_CHARS) {
-    return blocked("pdf", "too_long", pageCount, text.length);
+  if (countProductSourceChars(text) > PRODUCT_MAX_SOURCE_CHARS) {
+    return blocked("pdf", "too_long", pageCount, countProductSourceChars(text));
   }
   return complete("pdf", text, pageCount);
 }

@@ -8,7 +8,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { type ExtractSource } from "@/lib/extractContractText";
 import { extractProductSource } from "@/lib/productExtraction";
-import { PRODUCT_MIN_SOURCE_CHARS } from "@/lib/productSource";
+import { PRODUCT_MIN_SOURCE_CHARS, PRODUCT_SOURCE_CHAR_UNIT, countProductSourceChars } from "@/lib/productSource";
 
 export const MAX_PRODUCT_FILE_BYTES = 10 * 1024 * 1024;
 export const MIN_PRODUCT_TEXT_LENGTH = PRODUCT_MIN_SOURCE_CHARS;
@@ -17,7 +17,9 @@ export interface PreparedProductDocument {
   readonly uploadedContractId: string;
   readonly title: string;
   readonly source: ExtractSource;
+  /** Дължина в каноничната единица (Unicode кодови точки). */
   readonly textLength: number;
+  readonly charUnit: typeof PRODUCT_SOURCE_CHAR_UNIT;
   readonly sourceHash: string;
   readonly originalFilename: string | null;
   /** Винаги `full` — частичен източник не стига до тук. */
@@ -99,6 +101,7 @@ export async function prepareProductDocument(
     throw new ProductUploadError(extraction.message ?? "Не можем да приемем този документ.");
   }
   const text = extraction.text;
+  const charCount = countProductSourceChars(text);
   const pageCount = extraction.pageCount;
   const sourceHash = extraction.sourceHash;
 
@@ -120,7 +123,7 @@ export async function prepareProductDocument(
     extracted_text: text,
     text_hash: sourceHash,
     product_extraction_status: "full",
-    product_extracted_chars: text.length,
+    product_extracted_chars: charCount,
     product_source_pages: pageCount,
     product_source_kind: source,
     product_extraction_at: new Date().toISOString(),
@@ -144,7 +147,8 @@ export async function prepareProductDocument(
     uploadedContractId: (res.data as { id: string }).id,
     title,
     source,
-    textLength: text.length,
+    textLength: charCount,
+    charUnit: PRODUCT_SOURCE_CHAR_UNIT,
     sourceHash,
     originalFilename: input.file.name,
     extractionStatus: "full",

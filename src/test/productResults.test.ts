@@ -1,245 +1,297 @@
 /**
- * Версионираният договор за резултата от еднократните продукти.
- *
- * Проверява обвързването с източника, доказателствата с извадка, липсата на
- * изкуствен минимален брой находки, трите подхода на поправка и пълния състав
- * на пакета за преговори. Няма плащане, quota или мрежа.
+ * Схема v2 на платения резултат: успех, отказ и еднакъв извод в браузъра и в
+ * Edge валидатора. Само синтетични примери.
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import {
-  CORRECTION_STRATEGIES,
-  PRODUCT_RESULT_IDS,
-  PRODUCT_RESULT_SCHEMA_VERSION,
-  isProductResult,
-  matchesSource,
-  parseProductResult,
+  isValidProductResult,
+  parseReadyProductResult,
   productResultSchema,
-  reviewPayloadSchema,
+  validateProductResult,
+  PRODUCT_RESULT_SCHEMA_VERSION,
 } from "@/lib/productResults";
-import type { ProductResultParsed } from "@/lib/productResults";
 import {
+  ALL_FIXTURES,
   CONTRACT_CHECK_FIXTURE,
   CONTRACT_IMPROVE_FIXTURE,
+  FIXTURE_BINDING,
   NEGOTIATION_PACKAGE_FIXTURE,
-  PRODUCT_RESULT_FIXTURES,
+  cloneFixture,
+  cloneRaw,
+  fixtureSpan,
+  getPath,
+  setPath,
 } from "@/lib/productResultFixtures";
 
-/** Валидира фикстурата и я стеснява до конкретния продукт. */
-function payloadOfCheck(fixture: ProductResultParsed) {
-  const parsed = parseProductResult(fixture);
-  if (parsed.product_id !== "contract_check") throw new Error("грешен продукт във фикстурата");
-  return parsed.payload;
+function expectValid(raw: unknown) {
+  const edge = validateProductResult(raw);
+  expect(edge.ok, JSON.stringify(edge)).toBe(true);
+  expect(productResultSchema.safeParse(raw).success).toBe(true);
 }
 
-function payloadOfImprove(fixture: ProductResultParsed) {
-  const parsed = parseProductResult(fixture);
-  if (parsed.product_id !== "contract_improve") throw new Error("грешен продукт във фикстурата");
-  return parsed.payload;
+function expectInvalid(raw: unknown, label: string) {
+  expect(validateProductResult(raw).ok, `Edge валидаторът прие ${label}`).toBe(false);
+  expect(productResultSchema.safeParse(raw).success, `frontend схемата прие ${label}`).toBe(false);
 }
 
-function payloadOfNegotiation(fixture: ProductResultParsed) {
-  const parsed = parseProductResult(fixture);
-  if (parsed.product_id !== "negotiation_package") throw new Error("грешен продукт във фикстурата");
-  return parsed.payload;
+/** Валиден пример, счупен точно на едно място. */
+function broken(fixture: unknown, path: string, value: unknown): Record<string, unknown> {
+  const copy = cloneRaw(fixture);
+  setPath(copy, path, value);
+  return copy;
 }
 
-describe("схема на резултата — версия и обвързване с източника", () => {
-  it("версията е една и същата навсякъде", () => {
-    expect(PRODUCT_RESULT_SCHEMA_VERSION).toBe(1);
-    for (const f of PRODUCT_RESULT_FIXTURES) {
-      expect(f.schema_version).toBe(PRODUCT_RESULT_SCHEMA_VERSION);
-    }
+describe("Резултат v2 — валидни примери", () => {
+  it("приема тримата канонични продукта", () => {
+    for (const fixture of ALL_FIXTURES) expectValid(cloneRaw(fixture));
   });
 
-  it("трите продукта са точно каноничните идентификатори", () => {
-    expect([...PRODUCT_RESULT_IDS]).toEqual([
-      "contract_check",
+  it("версията на схемата е 2 и v1 не се приема", () => {
+    expect(PRODUCT_RESULT_SCHEMA_VERSION).toBe(2);
+    expectInvalid(broken(CONTRACT_CHECK_FIXTURE, "schema_version", 1), "стара версия");
+  });
+
+  it("документ без находки е валиден резултат", () => {
+    const clean = cloneRaw(CONTRACT_CHECK_FIXTURE);
+    setPath(clean, "payload.findings", []);
+    setPath(clean, "payload.priority_summary", []);
+    setPath(clean, "payload.absence_checks", []);
+    setPath(clean, "payload.contradictions", []);
+    expectValid(clean);
+  });
+
+  it("страницата може да липсва, когато не е измерена", () => {
+    const noPages = cloneRaw(CONTRACT_CHECK_FIXTURE);
+    setPath(noPages, "source.page_count", null);
+    setPath(noPages, "payload.findings.0.span.page", null);
+    expectValid(noPages);
+  });
+});
+
+describe("Резултат v2 — обвързване с източника", () => {
+  it("грешен продукт не се показва като готов", () => {
+    const res = parseReadyProductResult(
+      cloneFixture(CONTRACT_CHECK_FIXTURE),
+      FIXTURE_BINDING,
       "contract_improve",
+    );
+    expect(res.ok).toBe(false);
+  });
+
+  it("правилният продукт и източник дават готов резултат", () => {
+    const res = parseReadyProductResult(
+      cloneFixture(NEGOTIATION_PACKAGE_FIXTURE),
+      FIXTURE_BINDING,
       "negotiation_package",
-    ]);
-    expect(PRODUCT_RESULT_IDS).not.toContain("business_contract_map");
+    );
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.result.ready).toBe(true);
   });
 
-  it("всяка фикстура минава runtime валидацията", () => {
-    for (const f of PRODUCT_RESULT_FIXTURES) {
-      expect(() => parseProductResult(f)).not.toThrow();
-      expect(isProductResult(f)).toBe(true);
-    }
-  });
-
-  it("липсващо или подправено обвързване с източника е невалидно", () => {
-    const { source_hash: _h, ...noHash } = CONTRACT_CHECK_FIXTURE;
-    expect(productResultSchema.safeParse(noHash).success).toBe(false);
-    expect(
-      productResultSchema.safeParse({
-        ...CONTRACT_CHECK_FIXTURE,
-        source_hash: "не-е-хеш",
-      }).success,
-    ).toBe(false);
-    expect(
-      productResultSchema.safeParse({
-        ...CONTRACT_CHECK_FIXTURE,
-        schema_version: 2,
-      }).success,
-    ).toBe(false);
-  });
-
-  it("резултат от друга версия на документа не се приема за актуален", () => {
-    const f = CONTRACT_CHECK_FIXTURE;
-    expect(
-      matchesSource(f, {
-        source_hash: f.source_hash,
-        source_revision: f.source_revision,
-      }),
-    ).toBe(true);
-    expect(
-      matchesSource(f, {
-        source_hash: f.source_hash,
-        source_revision: f.source_revision + 1,
-      }),
-    ).toBe(false);
-    expect(
-      matchesSource(f, {
-        source_hash: "b".repeat(64),
-        source_revision: f.source_revision,
-      }),
-    ).toBe(false);
-  });
-});
-
-describe("подробна проверка", () => {
-  const payload = payloadOfCheck(CONTRACT_CHECK_FIXTURE);
-
-  it("носи паспорт, резюме и находки с точно място в текста", () => {
-    expect(payload.passport.document_type.length).toBeGreaterThan(3);
-    expect(payload.executive_summary.length).toBeGreaterThan(30);
-    expect(payload.findings.length).toBeGreaterThan(0);
-    for (const finding of payload.findings) {
-      expect(finding.source.excerpt.length).toBeGreaterThan(5);
-      expect(finding.consequence.length).toBeGreaterThan(5);
-      expect(finding.next_step.length).toBeGreaterThan(5);
-      expect(["high", "medium", "low"]).toContain(finding.severity);
-    }
-  });
-
-  it("покрива задължения, пари, срокове, прекратяване и липсващи защити", () => {
-    expect(payload.obligations.length).toBeGreaterThan(0);
-    expect(payload.money_and_dates.length).toBeGreaterThan(0);
-    expect(payload.termination_and_disputes.length).toBeGreaterThan(0);
-    expect(payload.missing_protections.length).toBeGreaterThan(0);
-    expect(payload.questions_to_clarify.length).toBeGreaterThan(0);
-    expect(payload.printable).toBe(true);
-  });
-
-  it("не налага изкуствен минимален брой находки", () => {
-    const empty = { ...payload, findings: [], priority_summary: [] };
-    expect(reviewPayloadSchema.safeParse(empty).success).toBe(true);
-  });
-
-  it("доказателство без извадка от източника е невалидно", () => {
-    const broken = {
-      ...payload,
-      findings: [
-        { ...payload.findings[0], source: { section: "чл. 5", excerpt: "" } },
-      ],
-    };
-    expect(reviewPayloadSchema.safeParse(broken).success).toBe(false);
-  });
-});
-
-describe("подробна поправка", () => {
-  const payload = payloadOfImprove(CONTRACT_IMPROVE_FIXTURE);
-
-  it("включва цялата проверка и дава изходни файлове", () => {
-    expect(payload.review.findings.length).toBeGreaterThan(0);
-    expect(payload.outputs).toEqual({ docx: true, pdf: true, change_report: true });
-    expect(CORRECTION_STRATEGIES).toContain(payload.default_strategy);
-  });
-
-  it("всяка поправка носи трите различни подхода и точен източник", () => {
-    expect(payload.corrections.length).toBeGreaterThan(1);
-    for (const c of payload.corrections) {
-      expect(c.options).toHaveLength(3);
-      expect(c.options.map((o) => o.strategy).sort()).toEqual(
-        [...CORRECTION_STRATEGIES].sort(),
+  it("друга ревизия, хеш, вид или дължина на източника е друг резултат", () => {
+    for (const patch of [
+      { source_hash: "b".repeat(64) },
+      { source_updated_at: "2026-09-13T08:30:00.000Z" },
+      { source_kind: "docx" as const },
+      { char_count: FIXTURE_BINDING.char_count - 1 },
+      { document_id: "11111111-2222-3333-4444-555555555555" },
+      { page_count: null },
+    ]) {
+      const res = parseReadyProductResult(
+        cloneFixture(CONTRACT_CHECK_FIXTURE),
+        { ...FIXTURE_BINDING, ...patch },
+        "contract_check",
       );
-      for (const o of c.options) {
-        expect(o.replacement_text.length).toBeGreaterThan(10);
-        expect(o.trade_off.length).toBeGreaterThan(10);
-      }
-      expect(c.original_text.length).toBeGreaterThan(10);
-      expect(c.source.excerpt.length).toBeGreaterThan(5);
-      expect(c.rationale.length).toBeGreaterThan(5);
+      expect(res.ok, JSON.stringify(patch)).toBe(false);
     }
   });
 
-  it("поправка с по-малко от три подхода не се приема", () => {
-    const broken = {
-      ...CONTRACT_IMPROVE_FIXTURE,
-      payload: {
-        ...payload,
-        corrections: [
-          {
-            ...payload.corrections[0],
-            options: payload.corrections[0].options.slice(0, 2),
-          },
-        ],
-      },
-    };
-    expect(productResultSchema.safeParse(broken).success).toBe(false);
+  it("мерната единица за дължина е само Unicode кодови точки", () => {
+    expectInvalid(
+      broken(CONTRACT_CHECK_FIXTURE, "source.char_unit", "utf16_units"),
+      "друга мерна единица",
+    );
+  });
+
+  it("непълен или прекалено дълъг източник не е валиден резултат", () => {
+    expectInvalid(broken(CONTRACT_CHECK_FIXTURE, "source.char_count", 10), "твърде къс източник");
+    expectInvalid(broken(CONTRACT_CHECK_FIXTURE, "source.char_count", 60001), "твърде дълъг източник");
   });
 });
 
-describe("пълен пакет за преговори", () => {
-  const payload = payloadOfNegotiation(NEGOTIATION_PACKAGE_FIXTURE);
-
-  it("включва проверката, поправката и записката за преговори", () => {
-    expect(payload.correction.corrections.length).toBeGreaterThan(0);
-    expect(payload.brief.objectives.length).toBeGreaterThan(0);
-    expect(payload.brief.red_lines.length).toBeGreaterThan(0);
-    expect(payload.brief.acceptable_concessions.length).toBeGreaterThan(0);
-    expect(payload.brief.fallback_positions.length).toBeGreaterThan(0);
-    expect(payload.brief.questions.length).toBeGreaterThan(0);
+describe("Резултат v2 — доказателството е задължително", () => {
+  it("извадка, която не съвпада по дължина с мястото, е невалидна", () => {
+    expectInvalid(
+      broken(CONTRACT_CHECK_FIXTURE, "payload.findings.0.span.excerpt", "друг текст"),
+      "измислена извадка",
+    );
   });
 
-  it("има таблица с действия, две писма и едно прецизиране", () => {
-    expect(payload.action_table.length).toBeGreaterThan(0);
-    expect(payload.messages.map((m) => m.tone).sort()).toEqual(["firm", "neutral"]);
-    expect(payload.outputs).toEqual({ docx: true, pdf: true, change_report: true });
-    expect(payload.included_refinements).toBe(1);
-    expect(payload.refinements_used).toBeLessThanOrEqual(1);
+  it("място извън приетия източник е невалидно", () => {
+    const bad = cloneRaw(CONTRACT_CHECK_FIXTURE);
+    setPath(bad, "payload.findings.0.span.start", 0);
+    setPath(bad, "payload.findings.0.span.end", FIXTURE_BINDING.char_count + 50);
+    expectInvalid(bad, "място извън източника");
   });
 
-  it("две писма с еднакъв тон или второ прецизиране не се приемат", () => {
-    const sameTone = {
-      ...NEGOTIATION_PACKAGE_FIXTURE,
-      payload: {
-        ...payload,
-        messages: [payload.messages[0], { ...payload.messages[1], tone: "neutral" }],
-      },
-    };
-    expect(productResultSchema.safeParse(sameTone).success).toBe(false);
-    const extra = {
-      ...NEGOTIATION_PACKAGE_FIXTURE,
-      payload: { ...payload, refinements_used: 2 },
-    };
-    expect(productResultSchema.safeParse(extra).success).toBe(false);
+  it("приоритет към несъществуваща находка е невалиден", () => {
+    expectInvalid(
+      broken(CONTRACT_CHECK_FIXTURE, "payload.priority_summary.0.finding_id", "f_missing"),
+      "приоритет без находка",
+    );
+  });
+
+  it("ненамерено понятие не сочи място в източника", () => {
+    expectInvalid(
+      broken(CONTRACT_CHECK_FIXTURE, "payload.absence_checks.0.spans", [
+        fixtureSpan("едномесечно писмено предизвестие"),
+      ]),
+      "отсъствие с място",
+    );
+  });
+
+  it("проверка за отсъствие без търсени изрази е невалидна", () => {
+    expectInvalid(
+      broken(CONTRACT_CHECK_FIXTURE, "payload.absence_checks.0.searched_terms", []),
+      "отсъствие без търсени изрази",
+    );
+  });
+
+  it("противоречие с едно място е невалидно", () => {
+    expectInvalid(
+      broken(CONTRACT_CHECK_FIXTURE, "payload.contradictions", [
+        {
+          id: "c_one",
+          summary: "Две различни правила за подсъдност.",
+          spans: [fixtureSpan("съда по седалището на Възложителя")],
+        },
+      ]),
+      "противоречие с едно място",
+    );
+  });
+
+  it("правно основание без канонична връзка се отхвърля", () => {
+    expectInvalid(
+      broken(CONTRACT_CHECK_FIXTURE, "payload.findings.0.legal_basis", [
+        {
+          provision_id: "zzd_92",
+          version_id: "v_2026_01",
+          source_id: "lex_zzd",
+          canonical_url: "не е връзка",
+          label: "ЗЗД, чл. 92",
+        },
+      ]),
+      "правно основание без канонична връзка",
+    );
+  });
+
+  it("структурирано правно основание с канонична връзка е допустимо", () => {
+    expectValid(
+      broken(CONTRACT_CHECK_FIXTURE, "payload.findings.0.legal_basis", [
+        {
+          provision_id: "zzd_92",
+          version_id: "v_2026_01",
+          source_id: "lex_zzd",
+          canonical_url: "https://lex.example/zzd/92",
+          label: "ЗЗД, чл. 92",
+        },
+      ]),
+    );
   });
 });
 
-describe("договорът е споделен и без тежки зависимости", () => {
-  const shared = readFileSync(
-    "supabase/functions/_shared/product-result-contract.ts",
-    "utf8",
-  );
-
-  it("Edge файлът не внася пакети", () => {
-    expect(shared).not.toMatch(/^import .* from/m);
-    expect(shared).toContain("PRODUCT_RESULT_SCHEMA_VERSION");
+describe("Резултат v2 — продуктови граници", () => {
+  it("проверката преди подпис не носи поправки или писма", () => {
+    expectInvalid(
+      broken(
+        CONTRACT_CHECK_FIXTURE,
+        "payload.corrections",
+        getPath(cloneRaw(CONTRACT_IMPROVE_FIXTURE), "payload.corrections"),
+      ),
+      "проверка с поправки",
+    );
   });
 
-  it("забранява недоказани твърдения изрично", () => {
-    expect(shared).toMatch(/източник|извадка/);
+  it("поправката изисква точно три различни варианта", () => {
+    const two = cloneRaw(CONTRACT_IMPROVE_FIXTURE);
+    const options = getPath(two, "payload.corrections.0.options") as unknown[];
+    setPath(two, "payload.corrections.0.options", options.slice(0, 2));
+    expectInvalid(two, "две опции");
+
+    const same = cloneRaw(CONTRACT_IMPROVE_FIXTURE);
+    setPath(
+      same,
+      "payload.corrections.0.options.1.replacement_text",
+      getPath(same, "payload.corrections.0.options.0.replacement_text"),
+    );
+    expectInvalid(same, "еднакви варианти");
+  });
+
+  it("оригиналният текст е точно извадката от мястото", () => {
+    expectInvalid(
+      broken(CONTRACT_IMPROVE_FIXTURE, "payload.corrections.0.original_text", "нещо друго"),
+      "оригинал, различен от извадката",
+    );
+  });
+
+  it("застъпващи се поправки се отхвърлят", () => {
+    const bad = cloneRaw(CONTRACT_IMPROVE_FIXTURE);
+    setPath(bad, "payload.corrections.1.span", getPath(bad, "payload.corrections.0.span"));
+    setPath(
+      bad,
+      "payload.corrections.1.original_text",
+      getPath(bad, "payload.corrections.0.original_text"),
+    );
+    expectInvalid(bad, "застъпени поправки");
+  });
+
+  it("пълният пакет иска точно две писма и едно уточнение", () => {
+    const one = cloneRaw(NEGOTIATION_PACKAGE_FIXTURE);
+    const messages = getPath(one, "payload.messages") as unknown[];
+    setPath(one, "payload.messages", [messages[0]]);
+    expectInvalid(one, "едно писмо");
+
+    expectInvalid(
+      broken(NEGOTIATION_PACKAGE_FIXTURE, "payload.messages.1.tone", "neutral"),
+      "две неутрални писма",
+    );
+    expectInvalid(
+      broken(NEGOTIATION_PACKAGE_FIXTURE, "payload.refinement", { included: 2, used: 0 }),
+      "две уточнения",
+    );
+    expectInvalid(
+      broken(NEGOTIATION_PACKAGE_FIXTURE, "payload.refinement", { included: 1, used: 2 }),
+      "повече използвани от включените",
+    );
+  });
+
+  it("писма има само пълният пакет", () => {
+    expectInvalid(
+      broken(
+        CONTRACT_IMPROVE_FIXTURE,
+        "payload.messages",
+        getPath(cloneRaw(NEGOTIATION_PACKAGE_FIXTURE), "payload.messages"),
+      ),
+      "поправка с писма",
+    );
+  });
+});
+
+describe("Резултат v2 — общи откази", () => {
+  it("отхвърля напълно грешни входове", () => {
+    for (const raw of [null, 42, "текст", [], {}, { schema_version: 2 }]) {
+      expect(isValidProductResult(raw)).toBe(false);
+      expect(validateProductResult(raw).ok).toBe(false);
+    }
+  });
+
+  it("непознат продукт не е резултат", () => {
+    expectInvalid(broken(CONTRACT_CHECK_FIXTURE, "product_id", "contract_map"), "непознат продукт");
+  });
+
+  it("Edge договорът е чист: без Deno, база и мрежа", () => {
+    const src = readFileSync("supabase/functions/_shared/product-result-contract.ts", "utf8");
+    expect(src).not.toMatch(/Deno\.|createClient|fetch\(/);
   });
 });

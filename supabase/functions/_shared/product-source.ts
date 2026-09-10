@@ -14,6 +14,21 @@ export const PRODUCT_MAX_SOURCE_CHARS = 60000;
 /** Минимум знаци, под които не можем да твърдим, че документът е прочетен. */
 export const PRODUCT_MIN_SOURCE_CHARS = 80;
 
+/**
+ * ЕДИНСТВЕНАТА мерна единица за дължината на източника: Unicode кодови точки.
+ * Съвпада с `length(text)` в PostgreSQL и с итерирането по низ в JavaScript.
+ * `String.length` (UTF-16 units) НЕ се ползва никъде по продуктовия път.
+ */
+export const PRODUCT_SOURCE_CHAR_UNIT = "unicode_code_points" as const;
+export type ProductSourceCharUnit = typeof PRODUCT_SOURCE_CHAR_UNIT;
+
+/** Каноничният брой знаци на източника (Unicode кодови точки). */
+export function countProductSourceChars(text: string): number {
+  let count = 0;
+  for (const _ch of text) count += 1;
+  return count;
+}
+
 /** Платеният продукт е обвързан с ФАЙЛ: PDF с четим текст или DOCX. */
 export type ProductSourceKind = "pdf" | "docx";
 
@@ -65,6 +80,8 @@ export interface StoredProductSource {
 export interface VerifiedProductSource {
   readonly text: string;
   readonly charCount: number;
+  /** Мерната единица на `charCount` — винаги Unicode кодови точки. */
+  readonly charUnit: ProductSourceCharUnit;
   readonly sourceHash: string;
   readonly sourceKind: ProductSourceKind;
   /** Измерен брой страници, когато е известен. Не е доказателство за пълнота. */
@@ -95,8 +112,9 @@ export async function verifyStoredProductSource(
   if (raw !== normalizeProductSourceText(raw)) {
     throw new ProductSourceError("source_not_normalized");
   }
-  if (raw.length < PRODUCT_MIN_SOURCE_CHARS) throw new ProductSourceError("source_too_short");
-  if (raw.length > PRODUCT_MAX_SOURCE_CHARS) throw new ProductSourceError("source_too_long");
+  const charCount = countProductSourceChars(raw);
+  if (charCount < PRODUCT_MIN_SOURCE_CHARS) throw new ProductSourceError("source_too_short");
+  if (charCount > PRODUCT_MAX_SOURCE_CHARS) throw new ProductSourceError("source_too_long");
 
   const storedHash = typeof row?.text_hash === "string" ? row.text_hash.toLowerCase() : "";
   if (!HEX64.test(storedHash)) throw new ProductSourceError("source_hash_mismatch");
@@ -107,7 +125,8 @@ export async function verifyStoredProductSource(
   if (row?.product_extraction_status !== "full") {
     throw new ProductSourceError("source_incomplete");
   }
-  if (row?.product_extracted_chars !== raw.length) {
+  // Записаният брой знаци трябва да е в КАНОНИЧНАТА единица (кодови точки).
+  if (row?.product_extracted_chars !== charCount) {
     throw new ProductSourceError("source_incomplete");
   }
   const kind = row?.product_source_kind;
@@ -120,7 +139,8 @@ export async function verifyStoredProductSource(
   const pages = row?.product_source_pages;
   return {
     text: raw,
-    charCount: raw.length,
+    charCount,
+    charUnit: PRODUCT_SOURCE_CHAR_UNIT,
     sourceHash: actual,
     sourceKind: kind,
     pageCount: typeof pages === "number" && pages > 0 ? pages : null,

@@ -21,7 +21,11 @@ import {
   requireProductPrice,
   requireProductSpec,
 } from "../_shared/product-purchase.ts";
-import { ProductSourceError, verifyStoredProductSource } from "../_shared/product-source.ts";
+import {
+  PRODUCT_SOURCE_CHAR_UNIT,
+  ProductSourceError,
+  verifyStoredProductSource,
+} from "../_shared/product-source.ts";
 import {
   ConsentMissingError,
   LEGAL_VERSIONS,
@@ -208,7 +212,7 @@ Deno.serve(async (req) => {
     const { data: existingIntake } = await admin
       .from("product_checkout_intakes")
       .select(
-        "id, product_id, source_hash, source_updated_at, uploaded_contract_id, environment, status, stripe_session_id, stripe_price_id, stripe_price_lookup_key, expected_amount_cents, context, terms_accepted, ai_ack_accepted, immediate_performance_consent, withdrawal_loss_acknowledged, terms_version, privacy_version, withdrawal_version, refund_version, ai_notice_version, source_char_count, source_extraction_status",
+        "id, product_id, source_hash, source_updated_at, uploaded_contract_id, environment, status, stripe_session_id, stripe_price_id, stripe_price_lookup_key, expected_amount_cents, context, terms_accepted, ai_ack_accepted, immediate_performance_consent, withdrawal_loss_acknowledged, terms_version, privacy_version, withdrawal_version, refund_version, ai_notice_version, source_char_count, source_char_unit, source_kind, source_page_count, source_extraction_status",
       )
       .eq("user_id", userId)
       .eq("request_id", requestId)
@@ -230,6 +234,9 @@ Deno.serve(async (req) => {
         existingIntake.stripe_price_id !== price.id ||
         existingIntake.source_extraction_status !== "full" ||
         existingIntake.source_char_count !== verifiedSource.charCount ||
+        existingIntake.source_char_unit !== PRODUCT_SOURCE_CHAR_UNIT ||
+        existingIntake.source_kind !== verifiedSource.sourceKind ||
+        (existingIntake.source_page_count ?? null) !== verifiedSource.pageCount ||
         existingIntake.terms_accepted !== true ||
         existingIntake.ai_ack_accepted !== true ||
         existingIntake.immediate_performance_consent !== true ||
@@ -291,6 +298,8 @@ Deno.serve(async (req) => {
           consent_recorded_at: new Date().toISOString(),
           // Измерената истина за източника — само пълно прочетен документ.
           source_char_count: verifiedSource.charCount,
+          source_char_unit: PRODUCT_SOURCE_CHAR_UNIT,
+          source_kind: verifiedSource.sourceKind,
           source_page_count: verifiedSource.pageCount,
           source_extraction_status: "full",
         })
