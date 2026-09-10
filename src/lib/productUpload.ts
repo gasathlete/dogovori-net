@@ -6,10 +6,12 @@
  * извикване или анализ.
  */
 import { supabase } from "@/integrations/supabase/client";
-import { extractTextFromFile, sha256Hex, type ExtractSource } from "@/lib/extractContractText";
+import { type ExtractSource } from "@/lib/extractContractText";
+import { extractProductSource } from "@/lib/productExtraction";
+import { PRODUCT_MIN_SOURCE_CHARS } from "@/lib/productSource";
 
 export const MAX_PRODUCT_FILE_BYTES = 10 * 1024 * 1024;
-export const MIN_PRODUCT_TEXT_LENGTH = 80;
+export const MIN_PRODUCT_TEXT_LENGTH = PRODUCT_MIN_SOURCE_CHARS;
 
 export interface PreparedProductDocument {
   readonly uploadedContractId: string;
@@ -18,6 +20,9 @@ export interface PreparedProductDocument {
   readonly textLength: number;
   readonly sourceHash: string;
   readonly originalFilename: string | null;
+  /** Винаги `full` — частичен източник не стига до тук. */
+  readonly extractionStatus: "full";
+  readonly pageCount: number | null;
 }
 
 export class ProductUploadError extends Error {}
@@ -90,15 +95,20 @@ export async function prepareProductDocument(
   let mime: string | null = null;
   let size: number | null = null;
 
+  let pageCount: number | null = null;
+  let sourceHash = "";
+
   if (input.file) {
     source = await validateProductFile(input.file);
-    phase("Извличане на текста…");
-    text = await extractTextFromFile(input.file, source, phase);
-    if (text.trim().length < MIN_PRODUCT_TEXT_LENGTH) {
-      throw new ProductUploadError(
-        "Не успяхме да извлечем достатъчно текст. Опитайте с друг файл или поставете текста.",
-      );
+    phase("Прочитаме документа…");
+    // Продуктовият път чете целия документ и НЕ ползва OCR/операции.
+    const extraction = await extractProductSource({ file: input.file }, phase);
+    if (extraction.status !== "full") {
+      throw new ProductUploadError(extraction.message ?? "Не можем да приемем този документ.");
     }
+    text = extraction.text;
+    pageCount = extraction.pageCount;
+    sourceHash = extraction.sourceHash;
     phase("Качване на оригинала…");
     await ensureFreshSession();
     const ext = source === "pdf" ? "pdf" : "docx";
@@ -109,37 +119,48 @@ export async function prepareProductDocument(
     mime = input.file.type || null;
     size = input.file.size;
   } else {
-    text = (input.pastedText ?? "").trim();
-    if (text.length < MIN_PRODUCT_TEXT_LENGTH) {
-      throw new ProductUploadError("Текстът е твърде кратък (минимум 80 знака).");
+    const extraction = await extractProductSource({ pastedText: input.pastedText ?? "" });
+    if (extraction.status !== "full") {
+      throw new ProductUploadError(extraction.message ?? "Не можем да приемем този текст.");
     }
+    text = extraction.text;
+    sourceHash = extraction.sourceHash;
   }
 
   phase("Запис…");
-  const sourceHash = await sha256Hex(text);
+  // Колоните за пълнотата идват с добавъчната миграция; типовете се
+  // регенерират след прилагането ѝ.
+  const payload = {
+    user_id: input.userId,
+    title,
+    source,
+    original_filename: originalName,
+    storage_path: storagePath,
+    mime_type: mime,
+    size_bytes: size,
+    extracted_text: text,
+    text_hash: sourceHash,
+    product_extraction_status: "full",
+    product_extracted_chars: text.length,
+    product_source_pages: pageCount,
+    product_source_kind: source,
+    product_extraction_at: new Date().toISOString(),
+  };
   const res = await supabase
     .from("uploaded_contracts")
-    .insert({
-      user_id: input.userId,
-      title,
-      source,
-      original_filename: originalName,
-      storage_path: storagePath,
-      mime_type: mime,
-      size_bytes: size,
-      extracted_text: text,
-      text_hash: sourceHash,
-    })
+    .insert(payload as never)
     .select("id")
     .single();
   if (res.error) throw new ProductUploadError(res.error.message);
 
   return {
-    uploadedContractId: res.data!.id as string,
+    uploadedContractId: (res.data as { id: string }).id,
     title,
     source,
     textLength: text.length,
     sourceHash,
     originalFilename: originalName,
+    extractionStatus: "full",
+    pageCount,
   };
 }
