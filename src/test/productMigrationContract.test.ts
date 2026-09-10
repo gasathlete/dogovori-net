@@ -391,9 +391,15 @@ describe("Stage 2B1A коригираща миграция — обвързва�
   });
 
   it("не остава нито един стар плосък път на обвързването", () => {
-    expect(patch).not.toContain("result ->> 'source_hash'");
-    expect(patch).not.toContain("p_result ->> 'source_hash'");
+    // Само изпълнимият SQL: обяснителните коментари цитират стария път нарочно.
+    const code = patch
+      .split("\n")
+      .filter((line) => !line.trimStart().startsWith("--"))
+      .join("\n");
+    expect(code).not.toContain("result ->> 'source_hash'");
+    expect(code).not.toContain("p_result ->> 'source_hash'");
   });
+
 
   it("готов резултат изисква точно версия 2 и ЦЯЛОТО вложено обвързване", () => {
     for (const fragment of [
