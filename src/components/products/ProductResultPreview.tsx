@@ -8,7 +8,7 @@
  * Няма твърдение, че това е документът на посетителя, нито че резултатът е
  * запазен или платен.
  */
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { FileText, ListChecks, MessageSquareQuote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { OneTimeProductId } from "@/lib/products";
@@ -216,9 +216,48 @@ function CheckPreview({ size }: { size: Size }) {
 
 /* ----------------------------- Поправка ----------------------------- */
 
+/**
+ * Клавиатурно движение по хоризонтален списък от контроли: стрелки, Home/End.
+ * Спира разпространението, за да не сменя продукта на външната витрина.
+ */
+function useRovingKeys<T extends string>(
+  ids: readonly T[],
+  active: T,
+  setActive: (id: T) => void,
+) {
+  const refs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const i = ids.indexOf(active);
+    const map: Record<string, number | undefined> = {
+      ArrowRight: i + 1,
+      ArrowDown: i + 1,
+      ArrowLeft: i - 1,
+      ArrowUp: i - 1,
+      Home: 0,
+      End: ids.length - 1,
+    };
+    const next = map[e.key];
+    if (next === undefined) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const id = ids[(next + ids.length) % ids.length];
+    setActive(id);
+    refs.current[id]?.focus();
+  };
+  const register = (id: T) => (el: HTMLButtonElement | null) => {
+    refs.current[id] = el;
+  };
+  return { onKeyDown, register };
+}
+
 function ImprovePreview({ size }: { size: Size }) {
   const [active, setActive] = useState<ImproveStrategyId>("balanced");
   const groupId = useId();
+  const roving = useRovingKeys<ImproveStrategyId>(
+    IMPROVE_STRATEGIES.map((s) => s.id),
+    active,
+    setActive,
+  );
 
   return (
     <>
@@ -261,6 +300,7 @@ function ImprovePreview({ size }: { size: Size }) {
         <div
           role="radiogroup"
           aria-labelledby={groupId}
+          onKeyDown={roving.onKeyDown}
           className="mt-2 flex flex-wrap gap-2"
         >
           {IMPROVE_STRATEGIES.map((s) => (
@@ -268,7 +308,9 @@ function ImprovePreview({ size }: { size: Size }) {
               key={s.id}
               type="button"
               role="radio"
+              ref={roving.register(s.id)}
               aria-checked={s.id === active}
+              tabIndex={s.id === active ? 0 : -1}
               onClick={() => setActive(s.id)}
               className={cn(
                 "min-h-11 rounded-full border px-4 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -318,6 +360,11 @@ function ImprovePreview({ size }: { size: Size }) {
 function PackagePreview({ size }: { size: Size }) {
   const [active, setActive] = useState<PackageTabId>("plan");
   const base = useId();
+  const roving = useRovingKeys<PackageTabId>(
+    PACKAGE_TABS.map((t) => t.id),
+    active,
+    setActive,
+  );
 
   return (
     <>
@@ -325,6 +372,7 @@ function PackagePreview({ size }: { size: Size }) {
       <div
         role="tablist"
         aria-label="Части от пакета за преговори"
+        onKeyDown={roving.onKeyDown}
         className="flex flex-wrap gap-2"
       >
         {PACKAGE_TABS.map((t) => (
@@ -332,6 +380,7 @@ function PackagePreview({ size }: { size: Size }) {
             key={t.id}
             type="button"
             role="tab"
+            ref={roving.register(t.id)}
             id={`${base}-tab-${t.id}`}
             aria-selected={t.id === active}
             aria-controls={`${base}-panel-${t.id}`}

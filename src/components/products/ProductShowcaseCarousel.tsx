@@ -7,9 +7,10 @@
  * демонстрация. Цените и връзките идват от `@/lib/products`.
  *
  * Ротацията е бавна и се спира при всяко човешко взаимодействие, при скрита
- * страница и при заявено намалено движение.
+ * страница и при заявено намалено движение. Автоматичната смяна НЕ се обявява
+ * на екранен четец — обявяваме само след изрично човешко действие.
  */
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { ArrowLeft, ArrowRight } from "@/icons";
 import { Pause, Play } from "lucide-react";
@@ -17,7 +18,6 @@ import { cn } from "@/lib/utils";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { ProductPrice } from "@/components/products/ProductPrice";
 import { ProductResultPreview } from "@/components/products/ProductResultPreview";
-import { PREVIEW_TITLE } from "@/components/products/previewData";
 import { trackFunnelEvent } from "@/lib/funnel";
 import {
   ONE_TIME_PRODUCTS,
@@ -49,15 +49,13 @@ export function ProductShowcaseCarousel({
   const [held, setHeld] = useState(false);
   const [interacting, setInteracting] = useState(false);
   const [pageHidden, setPageHidden] = useState(false);
+  /** Обявява се само след човешко действие; при автоматична смяна е празно. */
+  const [announcement, setAnnouncement] = useState("");
 
   const active = slides[index];
   const touch = useRef<{ x: number; y: number } | null>(null);
   const resumeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const go = useCallback(
-    (next: number) => setIndex((n) => (next + slides.length) % slides.length),
-    [slides.length],
-  );
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   /** Всяко човешко действие спира ротацията и я връща след спокойна пауза. */
   const holdForInteraction = useCallback(() => {
@@ -84,33 +82,43 @@ export function ProductShowcaseCarousel({
 
   useEffect(() => {
     if (!running) return;
-    const t = setTimeout(() => go(index + 1), SHOWCASE_INTERVAL_MS);
+    const t = setTimeout(
+      () => setIndex((n) => (n + 1) % slides.length),
+      SHOWCASE_INTERVAL_MS,
+    );
     return () => clearTimeout(t);
-  }, [running, index, go]);
+  }, [running, index, slides.length]);
 
-  const select = (i: number) => {
-    holdForInteraction();
-    setIndex(i);
-  };
-
-  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    // Стрелките работят само върху самата въртележка и контролите ѝ, за да не
-    // отнемат стрелките на радио групата вътре в примерния резултат.
-    const target = e.target as HTMLElement;
-    if (target.closest("[data-showcase-panel]")) return;
-    if (e.key === "ArrowRight") {
-      e.preventDefault();
-      select(index + 1 >= slides.length ? 0 : index + 1);
-    } else if (e.key === "ArrowLeft") {
-      e.preventDefault();
-      select(index - 1 < 0 ? slides.length - 1 : index - 1);
-    }
-  };
-
-  const announcement = useMemo(
-    () => `Продукт ${index + 1} от ${slides.length}: ${active.name}`,
-    [index, slides.length, active.name],
+  /** Човешки избор: спира ротацията и обявява кратко кой продукт е активен. */
+  const select = useCallback(
+    (i: number, opts?: { focusTab?: boolean }) => {
+      const next = (i + slides.length) % slides.length;
+      holdForInteraction();
+      setIndex(next);
+      setAnnouncement(
+        `Продукт ${next + 1} от ${slides.length}: ${slides[next].name}`,
+      );
+      if (opts?.focusTab) tabRefs.current[next]?.focus();
+    },
+    [holdForInteraction, slides],
   );
+
+  /** Клавиатурна навигация през трите селектора, с местене на фокуса. */
+  const onTabsKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const map: Record<string, number | undefined> = {
+      ArrowRight: index + 1,
+      ArrowDown: index + 1,
+      ArrowLeft: index - 1,
+      ArrowUp: index - 1,
+      Home: 0,
+      End: slides.length - 1,
+    };
+    const next = map[e.key];
+    if (next === undefined) return;
+    e.preventDefault();
+    e.stopPropagation();
+    select(next, { focusTab: true });
+  };
 
   return (
     <div
@@ -120,8 +128,6 @@ export function ProductShowcaseCarousel({
       role="group"
       aria-roledescription="въртележка"
       aria-label="Примерни резултати по продукт"
-      tabIndex={0}
-      onKeyDown={onKeyDown}
       onMouseEnter={() => setHeld(true)}
       onMouseLeave={() => setHeld(false)}
       onFocus={() => setHeld(true)}
@@ -133,14 +139,14 @@ export function ProductShowcaseCarousel({
         if ((e.target as HTMLElement).closest("[data-showcase-panel]")) holdForInteraction();
       }}
       className={cn(
-        "rounded-2xl border border-border/70 bg-card/40 p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-5",
+        "rounded-2xl border border-border/70 bg-card/40 p-3 sm:p-5",
         className,
       )}
     >
       {/* Кой продукт е активен — име, цена, отстъпка, един ред резултат. */}
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
         <div className="min-w-0">
-          <h3 className="font-serif text-[19px] font-bold leading-tight text-foreground sm:text-[22px]">
+          <h3 className="font-serif text-[22px] font-bold leading-tight tracking-tight text-foreground sm:text-[26px]">
             <Link to={productPath(active)} className="hover:text-gold">
               {active.name}
             </Link>
@@ -158,7 +164,7 @@ export function ProductShowcaseCarousel({
           <div
             role="tablist"
             aria-label="Изберете продукт"
-            aria-orientation="vertical"
+            onKeyDown={onTabsKeyDown}
             className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0"
           >
             {slides.map((p, i) => (
@@ -166,6 +172,9 @@ export function ProductShowcaseCarousel({
                 key={p.id}
                 type="button"
                 role="tab"
+                ref={(el) => {
+                  tabRefs.current[i] = el;
+                }}
                 id={`${base}-tab-${p.id}`}
                 aria-controls={`${base}-panel-${p.id}`}
                 aria-selected={i === index}
@@ -193,29 +202,31 @@ export function ProductShowcaseCarousel({
           >
             <button
               type="button"
-              onClick={() => select(index - 1 < 0 ? slides.length - 1 : index - 1)}
+              onClick={() => select(index - 1)}
               aria-label="Предишен продукт"
               className="inline-flex size-11 items-center justify-center rounded-xl border border-border/70 text-muted-foreground transition-colors hover:border-gold/40 hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <ArrowLeft className="size-4" />
             </button>
+            {!reduced && (
+              <button
+                type="button"
+                data-testid="showcase-toggle"
+                aria-pressed={userPaused}
+                onClick={() => setUserPaused((v) => !v)}
+                aria-label={userPaused ? "Пусни смяната на продуктите" : "Спри смяната на продуктите"}
+                className="inline-flex size-11 items-center justify-center rounded-xl border border-border/70 text-muted-foreground transition-colors hover:border-gold/40 hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {userPaused ? (
+                  <Play className="size-4" aria-hidden="true" />
+                ) : (
+                  <Pause className="size-4" aria-hidden="true" />
+                )}
+              </button>
+            )}
             <button
               type="button"
-              data-testid="showcase-toggle"
-              aria-pressed={userPaused}
-              onClick={() => setUserPaused((v) => !v)}
-              aria-label={userPaused ? "Пусни смяната на продуктите" : "Спри смяната на продуктите"}
-              className="inline-flex size-11 items-center justify-center rounded-xl border border-border/70 text-muted-foreground transition-colors hover:border-gold/40 hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              {userPaused ? (
-                <Play className="size-4" aria-hidden="true" />
-              ) : (
-                <Pause className="size-4" aria-hidden="true" />
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => select(index + 1 >= slides.length ? 0 : index + 1)}
+              onClick={() => select(index + 1)}
               aria-label="Следващ продукт"
               className="inline-flex size-11 items-center justify-center rounded-xl border border-border/70 text-muted-foreground transition-colors hover:border-gold/40 hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
@@ -223,8 +234,13 @@ export function ProductShowcaseCarousel({
             </button>
           </div>
 
-          <p className="text-[11.5px] leading-snug text-muted-foreground">
-            Продуктите се сменят сами и спират, докато разглеждате.
+          <p
+            data-testid="showcase-rotation-note"
+            className="text-[11.5px] leading-snug text-muted-foreground"
+          >
+            {reduced
+              ? "Автоматичната смяна е изключена."
+              : "Продуктите се сменят сами и спират, докато разглеждате."}
           </p>
         </div>
 
@@ -257,9 +273,6 @@ export function ProductShowcaseCarousel({
               </span>
               <span className="truncate text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 Dogovori.net · работен изглед
-              </span>
-              <span className="ml-auto shrink-0 rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gold">
-                {PREVIEW_TITLE}
               </span>
             </div>
             <div className="min-h-[420px] p-2 sm:min-h-[460px] sm:p-3">
@@ -315,7 +328,7 @@ export function ProductShowcaseCarousel({
         </span>
       </div>
 
-      <p aria-live="polite" className="sr-only">
+      <p aria-live="polite" data-testid="showcase-live" className="sr-only">
         {announcement}
       </p>
     </div>

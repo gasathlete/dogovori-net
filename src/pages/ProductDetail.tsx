@@ -111,7 +111,7 @@ export default function ProductDetail() {
 
           <div className="mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:items-start">
             <div className="min-w-0">
-              <h1 className="font-serif text-[28px] font-bold leading-[1.12] tracking-tight sm:text-4xl">
+              <h1 className="font-serif text-[32px] font-bold leading-[1.12] tracking-tight [text-wrap:balance] sm:text-4xl">
                 {product.page.h1}
               </h1>
               <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-base">

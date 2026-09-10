@@ -117,15 +117,56 @@ describe("ротация на витрината", () => {
     spy.mockRestore();
   });
 
-  it("стрелките сменят продукта, когато въртележката е на фокус", async () => {
+  it("стрелките сменят продукта, местят фокуса и се въртят в кръг", () => {
     render(wrap(<ProductShowcaseCarousel source="test" />));
-    const root = screen.getByTestId("product-showcase");
-    fireEvent.keyDown(root, { key: "ArrowRight" });
+    const tablist = screen.getByRole("tablist", { name: "Изберете продукт" });
+    const tabs = within(tablist).getAllByRole("tab");
+    tabs[0].focus();
+
+    fireEvent.keyDown(tablist, { key: "ArrowRight" });
     expect(activeId()).toBe("contract_improve");
-    fireEvent.keyDown(root, { key: "ArrowLeft" });
-    expect(activeId()).toBe("contract_check");
-    fireEvent.keyDown(root, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(tabs[1]);
+    expect(tabs[1]).toHaveAttribute("aria-selected", "true");
+    expect(tabs[0]).toHaveAttribute("tabindex", "-1");
+
+    fireEvent.keyDown(tablist, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(tabs[0]);
+    fireEvent.keyDown(tablist, { key: "ArrowLeft" });
     expect(activeId()).toBe("negotiation_package");
+    expect(document.activeElement).toBe(tabs[2]);
+
+    fireEvent.keyDown(tablist, { key: "Home" });
+    expect(activeId()).toBe("contract_check");
+    expect(document.activeElement).toBe(tabs[0]);
+    fireEvent.keyDown(tablist, { key: "End" });
+    expect(activeId()).toBe("negotiation_package");
+    expect(document.activeElement).toBe(tabs[2]);
+
+    const panels = document.querySelectorAll('[role="tabpanel"]');
+    expect(panels[2]).not.toHaveAttribute("hidden");
+    expect(panels[0]).toHaveAttribute("hidden");
+  });
+
+  it("автоматичната смяна не се обявява, а човешката — да", async () => {
+    render(wrap(<ProductShowcaseCarousel source="test" />));
+    const live = screen.getByTestId("showcase-live");
+    // Начален render: тихо.
+    expect(live).toHaveTextContent("");
+
+    await advance(SHOWCASE_INTERVAL_MS + 10);
+    expect(activeId()).toBe("contract_improve");
+    expect(live.textContent).toBe("");
+
+    await advance(SHOWCASE_INTERVAL_MS + 10);
+    expect(activeId()).toBe("negotiation_package");
+    expect(live.textContent).toBe("");
+
+    fireEvent.click(screen.getByRole("button", { name: "Следващ продукт" }));
+    expect(live).toHaveTextContent("Продукт 1 от 3: Подробна проверка преди подпис");
+
+    const tablist = screen.getByRole("tablist", { name: "Изберете продукт" });
+    fireEvent.keyDown(tablist, { key: "ArrowRight" });
+    expect(live).toHaveTextContent("Продукт 2 от 3");
   });
 
   it("хоризонталното плъзгане сменя продукта, вертикалното — не", () => {
@@ -166,6 +207,17 @@ describe("намалено движение", () => {
     fireEvent.click(screen.getByRole("tab", { name: /Пълен пакет/ }));
     expect(activeId()).toBe("negotiation_package");
   });
+
+  it("няма подвеждащ бутон за пауза, а честен надпис", () => {
+    render(wrap(<ProductShowcaseCarousel source="test" />));
+    expect(screen.queryByTestId("showcase-toggle")).toBeNull();
+    expect(screen.getByTestId("showcase-rotation-note")).toHaveTextContent(
+      "Автоматичната смяна е изключена.",
+    );
+    // Ръчните стрелки остават налични.
+    fireEvent.click(screen.getByRole("button", { name: "Следващ продукт" }));
+    expect(activeId()).toBe("contract_improve");
+  });
 });
 
 describe("достъпност и съдържание на витрината", () => {
@@ -186,11 +238,52 @@ describe("достъпност и съдържание на витрината",
     expect(panels[1]).toHaveAttribute("hidden");
   });
 
-  it("активният продукт е обявен учтиво и само веднъж", () => {
+  it("има едно учтиво съобщение, празно преди човешко действие", () => {
     render(wrap(<ProductShowcaseCarousel source="test" />));
     const live = document.querySelectorAll('[aria-live="polite"]');
     expect(live).toHaveLength(1);
-    expect(live[0]).toHaveTextContent("Продукт 1 от 3: Подробна проверка преди подпис");
+    expect(live[0].textContent).toBe("");
+    fireEvent.click(screen.getByRole("tab", { name: /Поправка/ }));
+    expect(live[0]).toHaveTextContent("Продукт 2 от 3");
+  });
+
+  it("надписът „Примерен резултат“ не е дублиран в рамката на витрината", () => {
+    render(wrap(<ProductShowcaseCarousel source="test" />));
+    const shown = screen
+      .getAllByText(PREVIEW_TITLE)
+      .filter((el) => !el.closest("[hidden]"));
+    expect(shown).toHaveLength(1);
+  });
+
+  it("вътрешните контроли се движат с клавиши, без да сменят продукта", () => {
+    render(wrap(<ProductShowcaseCarousel source="test" />));
+    fireEvent.click(screen.getByRole("tab", { name: /Поправка/ }));
+    const group = screen.getByRole("radiogroup", {
+      name: "Изберете вариант за тази клауза",
+    });
+    const radios = within(group).getAllByRole("radio");
+    radios[1].focus();
+    fireEvent.keyDown(group, { key: "ArrowRight" });
+    expect(radios[2]).toHaveAttribute("aria-checked", "true");
+    expect(document.activeElement).toBe(radios[2]);
+    fireEvent.keyDown(group, { key: "Home" });
+    expect(radios[0]).toHaveAttribute("aria-checked", "true");
+    expect(document.activeElement).toBe(radios[0]);
+    expect(activeId()).toBe("contract_improve");
+
+    fireEvent.click(screen.getByRole("tab", { name: /Пълен пакет/ }));
+    const inner = screen.getByRole("tablist", {
+      name: "Части от пакета за преговори",
+    });
+    const innerTabs = within(inner).getAllByRole("tab");
+    innerTabs[0].focus();
+    fireEvent.keyDown(inner, { key: "ArrowRight" });
+    expect(innerTabs[1]).toHaveAttribute("aria-selected", "true");
+    expect(document.activeElement).toBe(innerTabs[1]);
+    fireEvent.keyDown(inner, { key: "End" });
+    expect(innerTabs[2]).toHaveAttribute("aria-selected", "true");
+    expect(document.activeElement).toBe(innerTabs[2]);
+    expect(activeId()).toBe("negotiation_package");
   });
 
   it("показва цената, старата цена, отстъпката и каноничната връзка", () => {
@@ -222,6 +315,7 @@ describe("достъпност и съдържание на витрината",
   });
 
   it("бутоните за управление са с достатъчна големина за пръст", () => {
+    setReducedMotion(false);
     render(wrap(<ProductShowcaseCarousel source="test" />));
     for (const label of ["Предишен продукт", "Следващ продукт"]) {
       expect(screen.getByRole("button", { name: label }).className).toContain("size-11");
