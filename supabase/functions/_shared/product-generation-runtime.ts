@@ -111,6 +111,12 @@ export interface ProductGenerationArtifact {
   readonly digest: string;
 }
 
+export interface SerializedProductGenerationState {
+  readonly version: typeof PRODUCT_GENERATION_ARTIFACT_VERSION;
+  readonly artifacts: readonly ProductGenerationArtifact[];
+  readonly completedCallIds: readonly string[];
+}
+
 export interface ProductGenerationState {
   readonly entitlementId: string;
   readonly productId: ProductPurchaseId;
@@ -417,4 +423,29 @@ export class ProductGenerationRuntime {
       telemetry: { callId, routeKey: route, model: bound.model, elapsedMs: Math.max(0, Math.trunc(response.elapsedMs)), retryCount: 0, repairCount: 0, inputTokens: response.inputTokens, outputTokens: response.outputTokens, costMicroUsd: cost },
     };
   }
+}
+
+/** Restores server-owned resumable artifacts; malformed state is never repaired silently. */
+export function parseGenerationArtifacts(raw: unknown): SerializedProductGenerationState {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { version: PRODUCT_GENERATION_ARTIFACT_VERSION, artifacts: [], completedCallIds: [] };
+  }
+  const value = raw as Record<string, unknown>;
+  if (value.version !== PRODUCT_GENERATION_ARTIFACT_VERSION || !Array.isArray(value.artifacts) || !Array.isArray(value.completedCallIds)) {
+    throw new ProductGenerationError("invalid_cursor");
+  }
+  const artifacts = value.artifacts.filter((item): item is ProductGenerationArtifact => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return false;
+    const row = item as Record<string, unknown>;
+    return row.version === PRODUCT_GENERATION_ARTIFACT_VERSION && typeof row.cursorKey === "string" &&
+      typeof row.stage === "string" && typeof row.digest === "string" && /^[0-9a-f]{64}$/.test(row.digest);
+  });
+  if (artifacts.length !== value.artifacts.length || !value.completedCallIds.every((item) => typeof item === "string")) {
+    throw new ProductGenerationError("invalid_cursor");
+  }
+  return {
+    version: PRODUCT_GENERATION_ARTIFACT_VERSION,
+    artifacts: Object.freeze(artifacts),
+    completedCallIds: Object.freeze(value.completedCallIds as string[]),
+  };
 }

@@ -14,6 +14,7 @@ import {
   jobIdempotencyKey,
   parseJobCursor,
   resolveProductGenerationAdapter,
+  registerProductGenerationAdapter,
   usageWithinBounds,
 } from "./product-jobs.ts";
 import { computeProductCostBounds } from "./product-generation-policy.ts";
@@ -120,7 +121,11 @@ Deno.test("разходът не може да надхвърли ОТДЕЛНИ
   assertEquals(Object.keys(ZERO_USAGE).includes("cost_milli_cents"), false);
 });
 
-Deno.test("в този етап НЯМА адаптер за генерация", () => {
+Deno.test("адаптерът няма неявен provider и се регистрира само изрично", () => {
   assertEquals(resolveProductGenerationAdapter(), null);
+  const adapter = { policyVersion: "test", runStep: async () => ({ nextCursor: AWAITING_GENERATION_CURSOR, usage: ZERO_USAGE }) };
+  registerProductGenerationAdapter(adapter);
+  assertEquals(resolveProductGenerationAdapter(), adapter);
+  registerProductGenerationAdapter(null);
   assertEquals(PRODUCT_JOB_MAX_ATTEMPTS, 20);
 });

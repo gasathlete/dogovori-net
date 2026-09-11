@@ -10,6 +10,7 @@ import type { ProductCostBounds } from "./product-generation-policy.ts";
 import type { ProductPurchaseId } from "./product-purchase.ts";
 import type { ProductResult } from "./product-result-contract.ts";
 import type { ProductSourceBinding } from "./product-result-contract.ts";
+import type { ProductContext } from "./product-intake-context.ts";
 
 /** Затворен списък на етапите. Нищо извън него не е валидно състояние. */
 export const PRODUCT_JOB_STAGES = Object.freeze([
@@ -190,10 +191,17 @@ export function usageWithinBounds(usage: ProductJobUsage, bounds: ProductCostBou
 
 /** Входът за една ОГРАНИЧЕНА стъпка на генерацията. */
 export interface ProductGenerationStep {
+  readonly entitlementId: string;
   readonly productId: ProductPurchaseId;
+  readonly sourceText: string;
   readonly binding: ProductSourceBinding;
+  readonly context: ProductContext;
   readonly cursor: ProductJobCursor;
   readonly bounds: ProductCostBounds;
+  readonly usage: ProductJobUsage;
+  readonly zeroRetentionVerified: boolean;
+  readonly artifacts: readonly unknown[];
+  readonly completedCallIds: ReadonlySet<string>;
   readonly dataSafety: {
     readonly redactionRequired: boolean;
     readonly redactionCompleted: boolean;
@@ -210,6 +218,7 @@ export interface ProductGenerationStepResult {
   readonly usage: ProductJobUsage;
   /** Пълен резултат само когато етапът е приключил целия продукт. */
   readonly result?: ProductResult;
+  readonly artifact?: unknown;
 }
 
 /**
@@ -222,8 +231,15 @@ export interface ProductGenerationAdapter {
 }
 
 /** В този етап адаптер НЯМА. Никога не връща подставен/частичен резултат. */
+let registeredAdapter: ProductGenerationAdapter | null = null;
+
+/** Explicit composition root: no provider or model is silently substituted. */
+export function registerProductGenerationAdapter(adapter: ProductGenerationAdapter | null): void {
+  registeredAdapter = adapter;
+}
+
 export function resolveProductGenerationAdapter(): ProductGenerationAdapter | null {
-  return null;
+  return registeredAdapter;
 }
 
 export const AWAITING_GENERATION_CURSOR: ProductJobCursor = Object.freeze({
