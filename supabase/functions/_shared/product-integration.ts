@@ -15,7 +15,7 @@ export type EnvReader = (key: string) => string | undefined;
 
 /** Последната миграция, която ТРЯБВА да е приложена преди включване. */
 export const PRODUCT_EXPECTED_MIGRATION =
-  "0024_product_generation_runtime_safety_correction" as const;
+  "0025_product_result_selections" as const;
 
 export const PRODUCT_INTEGRATION_ENV = Object.freeze({
   gatewayKey: "LOVABLE_API_KEY",
@@ -165,22 +165,26 @@ export interface ProductRpcProbeClient {
 }
 
 /**
- * Схемната способност, която ДОКАЗВА, че миграцията 0024 е приложена.
+ * Read-only схемна способност, която ДОКАЗВА, че миграцията 0025 е приложена.
  *
- * Функцията е IMMUTABLE и не чете редове: пробата не пише, не заявява задача и
- * не докосва плащане. Константа в кода НЕ е доказателство — доказателство е
- * само отговорът на сървъра. Липсваща функция → затворено.
+ * Пробата чете несъществуващ UUID и очаква ограничения `not_found`: не пише,
+ * не заявява задача и не докосва плащане. Това доказва функцията и зависимите
+ * таблици от 0025. Липсваща функция или различен отговор → затворено.
  */
-export const PRODUCT_MIGRATION_CAPABILITY_RPC = "product_job_cursor_advances" as const;
+export const PRODUCT_MIGRATION_CAPABILITY_RPC = "load_product_result_state" as const;
 
 export async function isProductMigrationApplied(db: ProductRpcProbeClient): Promise<boolean> {
   try {
     const { data, error } = await db.rpc(PRODUCT_MIGRATION_CAPABILITY_RPC, {
-      p_product_id: "contract_check",
-      p_current: { stage: "awaiting_generation", batch_index: 0, chunk_index: 0 },
-      p_next: { stage: "review", batch_index: 0, chunk_index: 0 },
+      p_user_id: "00000000-0000-0000-0000-000000000000",
+      p_entitlement_id: "00000000-0000-0000-0000-000000000000",
+      p_result_digest: "0".repeat(64),
     });
-    return !error && data === true;
+    return !error &&
+      typeof data === "object" &&
+      data !== null &&
+      (data as { ok?: unknown }).ok === false &&
+      (data as { reason?: unknown }).reason === "not_found";
   } catch {
     return false;
   }

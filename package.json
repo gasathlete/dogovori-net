@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "lead-magnets:build": "bun run scripts/generate-lead-magnets.ts",
     "lead-magnets:check": "bun run scripts/generate-lead-magnets.ts --check",
+    "product-rollout:preflight": "bun run scripts/product-rollout-preflight.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

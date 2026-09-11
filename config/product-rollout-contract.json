@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "expectedMigration": "0025_product_result_selections",
+  "schemaCapability": {
+    "rpc": "load_product_result_state",
+    "expected": { "ok": false, "reason": "not_found" },
+    "readOnly": true
+  },
+  "currency": "eur",
+  "taxBehavior": "inclusive",
+  "priceType": "one_time",
+  "products": [
+    { "id": "contract_check", "lookupKey": "contract_check_299", "amountCents": 299, "refinementsIncluded": 0 },
+    { "id": "contract_improve", "lookupKey": "contract_improve_399", "amountCents": 399, "refinementsIncluded": 0 },
+    { "id": "negotiation_package", "lookupKey": "negotiation_package_799", "amountCents": 799, "refinementsIncluded": 1 }
+  ],
+  "environmentNames": ["sandbox", "live"],
+  "envNameAllowlist": [
+    "APP_BASE_URL",
+    "LOVABLE_API_KEY",
+    "PAYMENTS_LIVE_WEBHOOK_SECRET",
+    "PAYMENTS_SANDBOX_WEBHOOK_SECRET",
+    "PRODUCT_AI_FULFILLMENT_ENABLED",
+    "PRODUCT_AI_ZERO_RETENTION_VERIFIED",
+    "PRODUCT_CHECKOUT_ENABLED",
+    "STRIPE_LIVE_API_KEY",
+    "STRIPE_SANDBOX_API_KEY",
+    "SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "SUPABASE_URL"
+  ],
+  "flags": [
+    { "name": "PRODUCT_CHECKOUT_ENABLED", "enabledValue": "true", "default": false },
+    { "name": "PRODUCT_AI_FULFILLMENT_ENABLED", "enabledValue": "true", "default": false },
+    { "name": "PRODUCT_AI_ZERO_RETENTION_VERIFIED", "enabledValue": "true", "default": false }
+  ],
+  "prepaymentGates": ["database", "exact_stripe_mapping", "webhook", "fulfillment", "gateway", "zero_retention", "legal_sources", "privacy_residency", "schema_capability"],
+  "paidPathFiles": [
+    "supabase/functions/create-product-checkout/index.ts",
+    "supabase/functions/fulfill-product/index.ts",
+    "supabase/functions/payments-webhook/handlers.ts",
+    "supabase/functions/product-result-state/index.ts",
+    "supabase/functions/refine-product/index.ts",
+    "supabase/functions/_shared/product-paid-access.ts"
+  ]
+}

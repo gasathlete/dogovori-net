@@ -454,9 +454,12 @@ function rpcProbe(data: unknown, error: unknown = null) {
   };
 }
 
+const MIGRATION_CAPABILITY_OK = Object.freeze({ ok: false, reason: "not_found" });
+
 Deno.test("migration is proven only by the server, never by a constant", async () => {
-  assertEquals(PRODUCT_MIGRATION_CAPABILITY_RPC, "product_job_cursor_advances");
-  assert(await isProductMigrationApplied(rpcProbe(true)));
+  assertEquals(PRODUCT_MIGRATION_CAPABILITY_RPC, "load_product_result_state");
+  assert(await isProductMigrationApplied(rpcProbe(MIGRATION_CAPABILITY_OK)));
+  assertFalse(await isProductMigrationApplied(rpcProbe(true)));
   assertFalse(await isProductMigrationApplied(rpcProbe(false)));
   assertFalse(await isProductMigrationApplied(rpcProbe(null)));
   assertFalse(await isProductMigrationApplied(rpcProbe(true, { message: "missing function" })));
@@ -471,7 +474,7 @@ Deno.test("prepayment gate fails closed on legal, migration and residency", asyn
   const config = readProductIntegrationConfig(reader());
   const open = {
     legalDb: legalDb(ACTIVE),
-    rpc: rpcProbe(true),
+    rpc: rpcProbe(MIGRATION_CAPABILITY_OK),
     residencyDb: profileDb({ allow_third_country_ai: true }),
     userId: "u1",
   };
@@ -509,7 +512,7 @@ Deno.test("readiness exposes only safe booleans and codes", async () => {
   const readiness = await productIntegrationReadiness(
     readProductIntegrationConfig(reader()),
     legalDb(ACTIVE),
-    rpcProbe(true),
+    rpcProbe(MIGRATION_CAPABILITY_OK),
   );
   assert(readiness.fulfillment_ready);
   assert(readiness.checkout_ready.live);
