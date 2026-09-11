@@ -140,6 +140,27 @@ describe("Изпълнението е устойчиво и остава без 
     expect(FULFILL).not.toMatch(/\?\.ok !== true\) return fail\("failed_retryable"/);
   });
 
+  it("четенето на трайното състояние и разчитането на артефактите са ВЪТРЕ в защитената граница", () => {
+    const claim = FULFILL.indexOf("const claimedStage");
+    const release = FULFILL.indexOf("const releaseRetryable");
+    const handler = FULFILL.indexOf("const handlePostClaimFailure");
+    const tryStart = FULFILL.indexOf("\n    try {", handler);
+    const load = FULFILL.indexOf('admin.rpc("load_product_generation_state"');
+    const parse = FULFILL.indexOf("await parseGenerationArtifacts({");
+    const usage = FULFILL.indexOf("const usageRaw");
+    const checkpoint = FULFILL.indexOf('admin.rpc("record_product_job_checkpoint"');
+    // Помощниците се дефинират веднага след заявяването, преди всяка друга работа.
+    expect(release).toBeGreaterThan(claim);
+    expect(handler).toBeGreaterThan(claim);
+    expect(tryStart).toBeGreaterThan(handler);
+    for (const position of [checkpoint, load, parse, usage]) {
+      expect(position).toBeGreaterThan(tryStart);
+    }
+    // Проблем при ЧЕТЕНЕ на състоянието е повторим, не окончателен.
+    expect(FULFILL).not.toContain('p_error_code: "resume_state_invalid"');
+    expect(FULFILL).not.toContain('p_error_code: "checkpoint_failed"');
+  });
+
   it("активен наем, завършена и постоянно пропаднала задача се обработват честно", () => {
     expect(FULFILL).toContain('if (reason === "lease_active")');
     expect(FULFILL).toContain('if (reason === "already_completed")');
