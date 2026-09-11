@@ -17,7 +17,9 @@ describe("network-silent product rollout preflight", () => {
   it.each([
     ["missing env declaration", "config/product-rollout-contract.json", (s: string) => s.replace('    "APP_BASE_URL",\n', ""), "allowlist"],
     ["wrong environment", "config/product-rollout-contract.json", (s: string) => s.replace('"sandbox", "live"', '"preview", "live"'), "environment separation"],
+    ["wrong product ID", "config/product-rollout-contract.json", (s: string) => s.replace('"id": "contract_check"', '"id": "contract_scan"'), "product ID/price"],
     ["wrong product price", "config/product-rollout-contract.json", (s: string) => s.replace('"amountCents": 299', '"amountCents": 300'), "product ID/price"],
+    ["wrong currency", "config/product-rollout-contract.json", (s: string) => s.replace('"currency": "eur"', '"currency": "usd"'), "currency/tax"],
     ["unsafe flag default", "config/product-rollout-contract.json", (s: string) => s.replace('"default": false', '"default": true'), "unsafe feature flag"],
     ["partial schema", "config/product-rollout-contract.json", (s: string) => s.replace(', "schema_capability"', ""), "prepayment gate"],
     ["migration order", "docs/migrations/product-rollout-manifest.json", (s: string) => s.replace('"dependsOn": "0023_product_generation_artifacts_correction"', '"dependsOn": "0022_product_generation_artifacts"'), "dependency mismatch"],

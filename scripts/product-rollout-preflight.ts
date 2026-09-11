@@ -43,6 +43,14 @@ export function validateProductRollout(source: RolloutSource): string[] {
     return [`configuration declaration missing or invalid: ${(error as Error).message}`];
   }
 
+  try {
+    const base = source.read(manifest.base.file);
+    if (base !== source.read(manifest.base.review)) fail("base migration mirror drift");
+    if (sha256(base) !== manifest.base.sha256) fail("base migration checksum drift");
+  } catch {
+    fail("base migration or review file missing");
+  }
+
   if (manifest.migrations.length !== 8) fail("migration manifest must contain exactly 0018–0025");
   let dependency = "20260910090000_product_checkout_entitlements";
   for (let index = 0; index < manifest.migrations.length; index++) {
