@@ -467,65 +467,11 @@ Deno.serve(async (req) => {
     const leaseToken = String(claimResult.lease_token);
     const claimedStage = String(claimResult.stage ?? "queued");
 
-    // 8) Изпълнява се най-много една ограничена стъпка.
-    const callStore = createProductCallStore(admin as unknown as RpcClient, jobId, leaseToken);
-    const dependencies = resolveProductGenerationDependencies(() =>
-      generationDependencies(callStore, ports)
-    );
-    const adapter = dependencies.adapter!;
-
-    // 8а) Първата стъпка на нова задача е само преход queued → awaiting_generation.
-    if (claimedStage === "queued") {
-      const { data: cp, error: cpErr } = await admin.rpc("record_product_job_checkpoint", {
-        p_job_id: jobId,
-        p_lease_token: leaseToken,
-        p_next_cursor: AWAITING_GENERATION_CURSOR,
-        p_usage_calls: 0,
-        p_usage_input_tokens: 0,
-        p_usage_output_tokens: 0,
-        p_usage_cost_micro_usd: 0,
-        p_payload_digest: null,
-        p_release_lease: true,
-      });
-      const cpResult = (cp ?? {}) as Record<string, unknown>;
-      if (cpErr || cpResult.ok !== true) {
-        await admin.rpc("fail_product_job", {
-          p_job_id: jobId,
-          p_lease_token: leaseToken,
-          p_error_class: "retryable",
-          p_error_code: "checkpoint_failed",
-        });
-        return fail("failed_retryable", 503, headers, cid);
-      }
-      return json(
-        { status: "processing", stage: AWAITING_GENERATION_CURSOR.stage, message: MESSAGES.processing, correlation_id: cid },
-        202,
-        headers,
-      );
-    }
-
-
-
-
-    const { data: durable, error: durableErr } = await admin.rpc("load_product_generation_state", {
-      p_job_id: jobId,
-      p_lease_token: leaseToken,
-    });
-    const durableState = (durable ?? {}) as Record<string, unknown>;
-    const cursor = parseJobCursor(durableState.cursor);
-    if (durableErr || durableState.ok !== true || !cursor || typeof durableState.generation_timestamp !== "string") {
-      await admin.rpc("fail_product_job", { p_job_id: jobId, p_lease_token: leaseToken, p_error_class: "retryable", p_error_code: "resume_state_invalid" });
-      return fail("failed_retryable", 503, headers, cid);
-    }
-    const serialized = await parseGenerationArtifacts({
-      version: 1,
-      artifacts: durableState.artifacts,
-      completedCallIds: durableState.completedCallIds,
-    });
-    const usageRaw = durableState.usage as Record<string, unknown>;
     // Всеки провал СЛЕД заявяването на задачата минава оттук: или наемът се
     // освобождава веднага (повторим), или задачата се маркира като окончателно
-    // пропаднала. Никога не остава мъртъв наем.
+    // пропаднала. Границата започва НЕПОСРЕДСТВЕНО след заявяването, така че
+    // четенето на трайното състояние, разчитането на артефактите и проверката
+    // на изразходването също са защитени. Никога не остава мъртъв наем.
     const releaseRetryable = async (): Promise<Response> => {
       await admin.rpc("release_product_job_lease", { p_job_id: jobId, p_lease_token: leaseToken });
       return fail("failed_retryable", 503, headers, cid);
@@ -564,6 +510,71 @@ Deno.serve(async (req) => {
     };
 
     try {
+      // 8) Изпълнява се най-много една ограничена стъпка.
+      const callStore = createProductCallStore(admin as unknown as RpcClient, jobId, leaseToken);
+      const dependencies = resolveProductGenerationDependencies(() =>
+        generationDependencies(callStore, ports)
+      );
+      const adapter = dependencies.adapter!;
+
+      // 8а) Първата стъпка на нова задача е само преход queued → awaiting_generation.
+      if (claimedStage === "queued") {
+        const { data: cp, error: cpErr } = await admin.rpc("record_product_job_checkpoint", {
+          p_job_id: jobId,
+          p_lease_token: leaseToken,
+          p_next_cursor: AWAITING_GENERATION_CURSOR,
+          p_usage_calls: 0,
+          p_usage_input_tokens: 0,
+          p_usage_output_tokens: 0,
+          p_usage_cost_micro_usd: 0,
+          p_payload_digest: null,
+          p_release_lease: true,
+        });
+        const cpResult = (cp ?? {}) as Record<string, unknown>;
+        if (cpErr || cpResult.ok !== true) {
+          // Повторим провал при запис на контролната точка: наемът се освобождава,
+          // курсорът не се мести и задачата НЕ се маркира окончателно.
+          return await releaseRetryable();
+        }
+        return json(
+          { status: "processing", stage: AWAITING_GENERATION_CURSOR.stage, message: MESSAGES.processing, correlation_id: cid },
+          202,
+          headers,
+        );
+      }
+
+      // 8б) Четенето и проверката на трайното състояние стоят ВЪТРЕ в границата.
+      const { data: durable, error: durableErr } = await admin.rpc("load_product_generation_state", {
+        p_job_id: jobId,
+        p_lease_token: leaseToken,
+      });
+      const durableState = (durable ?? {}) as Record<string, unknown>;
+      const cursor = parseJobCursor(durableState.cursor);
+      if (durableErr || durableState.ok !== true || !cursor || typeof durableState.generation_timestamp !== "string") {
+        // Проблем при ЧЕТЕНЕ на състоянието е повторим: не маркираме окончателен
+        // провал само за да освободим наема.
+        return await releaseRetryable();
+      }
+      // Разчитането на артефактите може да хвърли — затова е вътре в границата.
+      const serialized = await parseGenerationArtifacts({
+        version: 1,
+        artifacts: durableState.artifacts,
+        completedCallIds: durableState.completedCallIds,
+      });
+      const usageRaw = (durableState.usage ?? {}) as Record<string, unknown>;
+      const usage = {
+        calls: Number(usageRaw.calls),
+        input_tokens: Number(usageRaw.input_tokens),
+        output_tokens: Number(usageRaw.output_tokens),
+        cost_micro_usd: Number(usageRaw.cost_micro_usd),
+      };
+      // Невалидно записано изразходване е локално установена НЕВАЛИДНА трайна
+      // стойност: окончателен провал, а не тих сбор.
+      for (const value of Object.values(usage)) {
+        if (!Number.isFinite(value) || !Number.isInteger(value) || value < 0) {
+          throw new ProductGenerationError("invalid_model_output");
+        }
+      }
       const step = await adapter.runStep({
         entitlementId,
         productId: spec.id,
