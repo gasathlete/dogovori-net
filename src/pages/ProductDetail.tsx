@@ -16,6 +16,10 @@ import { ProductPrice } from "@/components/products/ProductPrice";
 import { PlanAlternativeNote } from "@/components/products/PlanAlternativeNote";
 import { trackFunnelEvent } from "@/lib/funnel";
 import {
+  PRODUCT_ACCEPTED_INPUT,
+  PRODUCT_MAX_SOURCE_CHARS,
+} from "@/lib/productSource";
+import {
   ONE_TIME_PRODUCTS,
   ONE_TIME_TERMS,
   PRODUCT_EVENTS,
