@@ -19,10 +19,10 @@ describe("Stage 2B1C — миграция за избор и уточнение"
 
   it("не пипа защитените миграции 0018–0024", () => {
     for (const name of [
-      "0018_product_result_v2_binding.sql",
-      "0019_product_generation_jobs.sql",
-      "0020_product_generation_jobs_correction.sql",
-      "0021_product_generation_jobs_acceptance.sql",
+      "0018_product_result_v2_binding_patch.sql",
+      "0019_product_fulfillment_jobs.sql",
+      "0020_product_fulfillment_jobs_correction.sql",
+      "0021_product_policy_binding_patch.sql",
       "0022_product_generation_artifacts.sql",
       "0023_product_generation_artifacts_correction.sql",
       "0024_product_generation_runtime_safety_correction.sql",

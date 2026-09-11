@@ -283,7 +283,10 @@ BEGIN
                  AND lease_expires_at > now()) THEN
       RETURN jsonb_build_object('ok', false, 'reason', 'lease_active');
     END IF;
-    DELETE FROM public.product_result_refinements
+    -- Изтекъл наем се затваря като провал, а не се изтрива: историята остава.
+    UPDATE public.product_result_refinements
+      SET status = 'failed', lease_token = NULL, lease_expires_at = NULL,
+          error_code = COALESCE(error_code, 'lease_expired'), updated_at = now()
       WHERE entitlement_id = p_entitlement_id AND status = 'pending' AND lease_expires_at <= now();
     token := gen_random_uuid();
     INSERT INTO public.product_result_refinements (
