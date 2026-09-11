@@ -27,8 +27,16 @@ import {
   resolveProductGenerationDependencies,
 } from "../_shared/product-jobs.ts";
 import {
+  canonicalProductJson,
+  createProductGenerationAdapter,
   parseGenerationArtifacts,
+  productCanonicalDigest,
   ProductGenerationError,
+  type ProductCallStore,
+  type ProductLegalBasisPort,
+  type ProductModelPort,
+  type ProductModelRequest,
+  type ProductModelResponse,
 } from "../_shared/product-generation-runtime.ts";
 import { requireProductSpec } from "../_shared/product-purchase.ts";
 import {
@@ -45,7 +53,50 @@ const ALLOWED_BODY_KEYS = Object.freeze(["entitlement_id"]);
  * Immutable production composition. Source builds deliberately have no live
  * provider; deployment must inject a reviewed adapter and verified retention.
  */
-export const generationDependencies = () => ({
+type StoredCallRequest = ProductModelRequest & { readonly requestDigest: string; readonly cursorKey: string };
+interface RpcClient {
+  rpc(name: string, args: Record<string, unknown>): Promise<{ data: unknown; error: unknown }>;
+}
+
+export function createProductCallStore(admin: RpcClient, jobId: string, leaseToken: string): ProductCallStore {
+  return Object.freeze({
+    async reserve(request: StoredCallRequest) {
+      const { data, error } = await admin.rpc("reserve_product_generation_call", {
+        p_job_id: jobId, p_lease_token: leaseToken, p_call_id: request.callId,
+        p_cursor_key: request.cursorKey, p_stage: request.routeKey, p_model: request.model,
+        p_request_digest: request.requestDigest,
+      });
+      const row = (data ?? {}) as Record<string, unknown>;
+      if (error || row.ok !== true) throw new ProductGenerationError("invalid_cursor", true);
+      if (row.status === "pending") return { status: "pending" as const };
+      if (row.status === "complete") {
+        const response = row.response as Record<string, unknown> | undefined;
+        if (!response || !("output" in response) || !Number.isSafeInteger(response.inputTokens) || !Number.isSafeInteger(response.outputTokens)) {
+          throw new ProductGenerationError("invalid_cursor");
+        }
+        return { status: "complete" as const, response: response as unknown as Awaited<ReturnType<ProductModelPort["invoke"]>> };
+      }
+      if (row.status !== "acquired" || typeof row.reservation_token !== "string") throw new ProductGenerationError("invalid_cursor");
+      return { status: "acquired" as const, reservationToken: row.reservation_token };
+    },
+    async complete(request: StoredCallRequest, response: ProductModelResponse, reservationToken: string, costMicroUsd: number) {
+      const canonical = canonicalProductJson(response.output);
+      const artifactDigest = await productCanonicalDigest(response.output);
+      const { data, error } = await admin.rpc("complete_product_generation_call", {
+        p_job_id: jobId, p_lease_token: leaseToken, p_call_id: request.callId,
+        p_request_digest: request.requestDigest, p_reservation_token: reservationToken,
+        p_redacted_artifact: response.output, p_redacted_artifact_canonical: canonical,
+        p_artifact_digest: artifactDigest, p_usage_input_tokens: response.inputTokens,
+        p_usage_output_tokens: response.outputTokens, p_usage_cost_micro_usd: costMicroUsd,
+      });
+      if (error || (data as Record<string, unknown> | null)?.ok !== true) throw new ProductGenerationError("invalid_cursor", true);
+    },
+  });
+}
+
+type AdapterFactory = (model: ProductModelPort, legal: ProductLegalBasisPort, calls: ProductCallStore) => ReturnType<typeof createProductGenerationAdapter>;
+export const generationDependencies = (_calls?: ProductCallStore, _factory?: AdapterFactory) => ({
+  // Source-only release gate: a reviewed provider factory must be injected explicitly.
   adapter: null,
   zeroRetentionVerified: Deno.env.get("PRODUCT_AI_ZERO_RETENTION_VERIFIED") === "true",
 } as const);
@@ -365,7 +416,8 @@ Deno.serve(async (req) => {
 
     // 8) Изпълнява се най-много една ограничена стъпка. Production композицията
     // остава затворена, докато zero-retention и provider портът не са проверени.
-    const dependencies = resolveProductGenerationDependencies(generationDependencies);
+    const callStore = createProductCallStore(admin as unknown as RpcClient, jobId, leaseToken);
+    const dependencies = resolveProductGenerationDependencies(() => generationDependencies(callStore));
     const adapter = dependencies.adapter;
     if (!adapter) {
       // Повторна заявка на вече изчакваща задача: НЕ записваме втора контролна
@@ -460,29 +512,38 @@ Deno.serve(async (req) => {
         modelCallAllowed: !eligibility.policy.userConfirmationRequired,
       },
     });
-    const artifact = step.artifact as { digest?: unknown; payload?: unknown } | undefined;
+    const artifact = step.artifact as { cursorKey?: unknown; stage?: unknown; digest?: unknown; payload?: unknown } | undefined;
     if (!artifact || typeof artifact.digest !== "string") throw new ProductGenerationError("invalid_model_output");
     const callIds = [...(step.callIds ?? [])];
-    const { data: stored, error: storedErr } = await admin.rpc("record_product_generation_artifact", {
-      p_job_id: jobId, p_lease_token: leaseToken, p_next_cursor: step.nextCursor,
-      p_call_ids: callIds, p_payload: artifact.payload, p_payload_canonical: JSON.stringify(artifact.payload),
-      p_payload_digest: artifact.digest,
-      p_coverage: null, p_release_lease: step.result === undefined,
-    });
-    if (storedErr || (stored as Record<string, unknown> | null)?.ok !== true) {
-      return fail("failed_retryable", 503, headers, cid);
+    const currentCursorKey = `${cursor.stage}:${cursor.batch_index}:${cursor.chunk_index}`;
+    if (artifact.cursorKey !== currentCursorKey || artifact.stage !== cursor.stage && !(cursor.stage === "awaiting_generation" && artifact.stage === "passport")) {
+      throw new ProductGenerationError("invalid_cursor");
     }
+    const canonical = canonicalProductJson(artifact.payload);
     if (step.result) {
-      const { data: finished, error: finishErr } = await admin.rpc("finish_product_generation", {
-        p_job_id: jobId, p_lease_token: leaseToken, p_result: step.result,
-        p_result_canonical: JSON.stringify(step.result), p_result_digest: artifact.digest,
+      const { data: finished, error: finishErr } = await admin.rpc("commit_product_generation_result", {
+        p_job_id: jobId, p_lease_token: leaseToken, p_current_cursor_key: currentCursorKey,
+        p_artifact_stage: "synthesis", p_call_ids: callIds, p_result: step.result,
+        p_result_canonical: canonical, p_result_digest: artifact.digest,
+        p_generation_timestamp: durableState.generation_timestamp,
       });
       if (finishErr || (finished as Record<string, unknown> | null)?.ok !== true) return fail("failed_retryable", 503, headers, cid);
-      return json({ status: "ready", result: step.result, correlation_id: cid }, 200, headers);
+      const storedResult = (finished as Record<string, unknown>).result ?? step.result;
+      return json({ status: "ready", result: storedResult, correlation_id: cid }, 200, headers);
     }
+    const { data: stored, error: storedErr } = await admin.rpc("record_product_generation_artifact", {
+      p_job_id: jobId, p_lease_token: leaseToken, p_current_cursor_key: currentCursorKey,
+      p_artifact_stage: artifact.stage, p_next_cursor: step.nextCursor, p_call_ids: callIds,
+      p_payload: artifact.payload, p_payload_canonical: canonical, p_payload_digest: artifact.digest,
+      p_generation_timestamp: durableState.generation_timestamp, p_coverage: null, p_release_lease: true,
+    });
+    if (storedErr || (stored as Record<string, unknown> | null)?.ok !== true) return fail("failed_retryable", 503, headers, cid);
     return json({ status: "processing", stage: step.nextCursor.stage, message: MESSAGES.processing, correlation_id: cid }, 202, headers);
   } catch (e) {
     if (e instanceof ProductSourceError) return fail("source_changed", 409, headers, cid);
+    if (e instanceof ProductGenerationError) {
+      return fail(e.retryable ? "failed_retryable" : "failed_permanent", e.retryable ? 503 : 409, headers, cid);
+    }
     // Никога не логваме текст, откъс, име на файл, контекст или лични данни.
     console.error("fulfill-product error", { cid, name: e instanceof Error ? e.name : "unknown" });
     return fail("internal", 500, headers, cid);

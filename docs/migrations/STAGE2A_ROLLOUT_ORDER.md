@@ -21,6 +21,9 @@
 6. `drizzle/migrations/0022_product_generation_artifacts.sql`
    — трайни, service-only артефакти, точни call ID разписки, стабилен timestamp,
    безопасно възстановяване и атомарно завършване. **Веднага след 0021.**
+7. `drizzle/migrations/0023_product_generation_artifacts_correction.sql`
+   — коригира текущия курсор/етап, строгото повторение, безопасната резервация
+   на моделно извикване и атомарното записване на финалния резултат. **Веднага след 0022.**
 
 Защо редът е задължителен: базовата миграция създава таблиците, ограничението
 `product_entitlements_ready_ck` и функциите, които записват резултат, но сверява
@@ -48,6 +51,7 @@ content-free разход) и колоната `generation_policy_version`, ко
 - `docs/migrations/stage2b1b1_product_fulfillment_jobs_correction.sql`
 - `docs/migrations/stage2b1b1_product_policy_binding_patch.sql`
 - `docs/migrations/stage2b1b2_product_generation_artifacts.sql`
+- `docs/migrations/stage2b1b2_product_generation_artifacts_correction.sql`
 
 Контролни суми (SHA-256) на изпълнимите файлове:
 
@@ -56,12 +60,13 @@ content-free разход) и колоната `generation_policy_version`, ко
 - 0020: `328c108abb489063309eaad6cafc31e679a4454355445677fb009a8e2b859629`
 - 0021: `8e9150f9154e55baf413703847aade5e12f84ae4331eeebaef093219e87af821`
 - 0022: `65797186dc7635d27be8b1fc258a5ef02cc54dd280ef3a486b0360231f68ba3c`
+- 0023: `484199ee7ed7b683e7c428ae007f5607001010872bfdb91dc73b0e3af0092ab8`
 
 Нито един от файловете не е записан в `drizzle/migrations/meta/_journal.json`:
 в това хранилище няма доказана конвенция за журнал на ръчни SQL кръпки, а този
 документ е авторитетният ред.
 
-Номер `0023` е **запазен** за състоянието на избора/уточнението (selection и
+Номер `0024` е **запазен** за състоянието на избора/уточнението (selection и
 refinement) в следващ етап. Обратимата карта за редакция не се записва: няма
 одобрен шифроващ примитив. Live provider остава затворен до доказан zero-retention gate.
 
