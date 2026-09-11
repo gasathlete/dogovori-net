@@ -3,6 +3,8 @@ import {
   COST_UNIT,
   INPUT_TOKENS_PER_CODE_POINT,
   MAX_MODEL_CALLS,
+  MAX_CONTEXT_CODE_POINTS,
+  MAX_CONTEXT_TOKENS,
   MAX_TOTAL_TOKENS,
   PRICE_TABLE_DATE,
   PRICE_TABLE_VERSION,
@@ -14,6 +16,7 @@ import {
   MODEL_PRICES,
   ProductBudgetError,
   computeProductCostBounds,
+  modelPrice,
 } from "./product-generation-policy.ts";
 import type { Classification } from "./classify.ts";
 import { classifyDocumentBeforeAI } from "./classify.ts";
@@ -27,10 +30,10 @@ function lowRiskClassification(): Classification {
 }
 
 Deno.test("политиката има точна версия, единица и датирана таблица с цени", () => {
-  assertEquals(PRODUCT_GENERATION_POLICY_VERSION, "2b1b1.2");
+  assertEquals(PRODUCT_GENERATION_POLICY_VERSION, "2b1b1.3");
   assertEquals(COST_UNIT, "micro_usd");
-  assertEquals(PRICE_TABLE_VERSION, "2026-03-provider-standard");
-  assertEquals(PRICE_TABLE_DATE, "2026-03-01");
+  assertEquals(PRICE_TABLE_VERSION, "2026-09-11-provider-standard");
+  assertEquals(PRICE_TABLE_DATE, "2026-09-11");
 });
 
 Deno.test("платеният маршрут ползва САМО текущите поддържани модели", () => {
@@ -65,6 +68,12 @@ Deno.test("горната граница за входа е UTF-8 безопас
   const passport = bounds.calls.find((c) => c.stage === "passport");
   assert(passport);
   assert(passport!.maxInputTokens >= 1_000 * 4);
+});
+
+Deno.test("контекстът се извежда от максималните полета и включва JSON overhead", () => {
+  assertEquals(MAX_CONTEXT_CODE_POINTS, 120 + 400 + 400 + 12);
+  assert(MAX_CONTEXT_TOKENS > MAX_CONTEXT_CODE_POINTS * INPUT_TOKENS_PER_CODE_POINT);
+  assert(MAX_CONTEXT_TOKENS >= 4_240);
 });
 
 Deno.test("границите се изчисляват за всеки продукт до точния лимит от 60 000", () => {
@@ -192,13 +201,48 @@ Deno.test("само премиумът заделя истинско извик�
   assert(premium.maxCostMicroUsd >= premium.reservedRefinementCostMicroUsd);
 });
 
-Deno.test("непознат модел в маршрута се отказва, а не се приема на нулева цена", () => {
+Deno.test("ценовата справка директно отказва непознат модел", () => {
+  const err = assertThrows(() => modelPrice("vendor/unknown-model"), ProductBudgetError);
+  assertEquals((err as ProductBudgetError).reason, "unknown_model_price");
+});
+
+Deno.test("класификацията не може да вкара непознат модел в продуктовия маршрут", () => {
   const cls = lowRiskClassification();
   const blocked: Classification = { ...cls, allowed_models: ["vendor/unknown-model"] };
   // Маршрутът е СЪРВЪРЕН: класификацията не може да наложи чужд модел, но
   // непозната цена винаги се проваля затворено.
   const bounds = computeProductCostBounds("contract_check", 10_000, blocked);
   for (const call of bounds.calls) assert(PRODUCT_ALLOWED_MODELS.includes(call.model));
+});
+
+Deno.test("обемните партиди и поправките са Flash Lite, качествените финали са Flash", () => {
+  const bounds = computeProductCostBounds("negotiation_package", 60_000, lowRiskClassification());
+  for (const call of bounds.calls) {
+    if (["passport", "review", "review_repair", "corrections", "corrections_repair"].includes(call.stage)) {
+      assertEquals(call.model, PRODUCT_MODEL_FLASH_LITE, call.stage);
+    } else {
+      assertEquals(call.model, PRODUCT_MODEL_FLASH, call.stage);
+    }
+  }
+});
+
+Deno.test("договорът за данни забранява модел преди редакция и повторна класификация", () => {
+  const classified = lowRiskClassification();
+  const sensitive: Classification = {
+    ...classified,
+    risk_level: "medium",
+    contains_personal_data: true,
+    redaction_required: true,
+  };
+  const bounds = computeProductCostBounds("contract_check", 10_000, sensitive);
+  assertEquals(bounds.redactionRequired, true);
+  assertEquals(bounds.postRedactionReclassificationRequired, true);
+  assertEquals(bounds.modelCallAllowed, false);
+  for (const call of bounds.calls) {
+    assertEquals(call.redactionRequired, true);
+    assertEquals(call.postRedactionReclassificationRequired, true);
+    assertEquals(call.modelCallAllowed, false);
+  }
 });
 
 Deno.test("блокирана класификация не получава бюджет", () => {

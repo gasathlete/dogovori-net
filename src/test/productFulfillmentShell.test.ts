@@ -23,6 +23,16 @@ describe("Заявката се отказва ПРЕДИ плащане, ако
     expect(CHECKOUT).toContain("validateProductContext(body.context, spec.id)");
   });
 
+  it("особено чувствителните данни се отказват от общата проверка преди Stripe", () => {
+    const ELIGIBILITY = readFileSync("supabase/functions/_shared/product-eligibility.ts", "utf8");
+    expect(ELIGIBILITY).toContain(
+      'if (classification.contains_special_category_data) return reject("processing_not_allowed")',
+    );
+    expect(CHECKOUT.indexOf("evaluateProductEligibility({")).toBeLessThan(
+      CHECKOUT.indexOf("createStripeClient(environment)"),
+    );
+  });
+
   it("преизползва сесия само при ТОЧНО съвпадение на версията на политиката", () => {
     expect(CHECKOUT).toContain(
       "existingIntake.generation_policy_version !== PRODUCT_GENERATION_POLICY_VERSION",
@@ -132,6 +142,20 @@ describe("Изпълнението е обвивка без модел (Stage 2B
     expect(FULFILL).toContain("eligibility.policy.bounds");
     expect(FULFILL).toContain("p_budget_max_calls: bounds.maxModelCalls");
     expect(FULFILL).not.toMatch(/body\.(model|classification|budget)/);
+  });
+
+  it("бъдещият адаптер получава затворен договор за редакция и повторна класификация", () => {
+    for (const token of [
+      "redactionRequired",
+      "redactionCompleted",
+      "postRedactionReclassificationRequired",
+      "postRedactionReclassificationCompleted",
+      "userConfirmationRequired",
+      "userConfirmationCompleted",
+      "modelCallAllowed",
+    ]) {
+      expect(JOBS).toContain(token);
+    }
   });
 
   it("грешките са безопасни и не носят съдържание на документа", () => {
