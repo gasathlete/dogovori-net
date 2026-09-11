@@ -425,7 +425,44 @@ Deno.serve(async (req) => {
     // 8) Изпълнява се най-много една ограничена стъпка. Production композицията
     // остава затворена, докато zero-retention и provider портът не са проверени.
     const callStore = createProductCallStore(admin as unknown as RpcClient, jobId, leaseToken);
-    const dependencies = resolveProductGenerationDependencies(() => generationDependencies(callStore));
+
+    // 8а) Конфигурационната граница. Портовете се сглобяват за ТАЗИ заявка и само
+    // когато всяко условие е изпълнено: ключ, проверено нулево съхранение, база,
+    // готова правна основа и разрешена AI обработка извън ЕИП. Провалът е
+    // затворен: нищо не се изпраща към доставчик при непълна конфигурация.
+    const integration = readProductIntegrationConfig((key) => Deno.env.get(key));
+    const configBlockers = productFulfillmentBlockers(integration);
+    let ports: ProductProviderPorts | undefined;
+    if (configBlockers.length === 0) {
+      const residencyAllowed = await isProductAiResidencyAllowed(
+        admin as unknown as Parameters<typeof isProductAiResidencyAllowed>[0],
+        userId,
+      );
+      if (!residencyAllowed) {
+        await admin.rpc("release_product_job_lease", { p_job_id: jobId, p_lease_token: leaseToken });
+        return fail(
+          "residency_not_allowed",
+          409,
+          headers,
+          cid,
+          productIntegrationMessage("residency_not_allowed"),
+        );
+      }
+      const legalDb = admin as unknown as LegalDbClient;
+      if (await isLegalKnowledgeBaseReady(legalDb)) {
+        ports = Object.freeze({
+          model: createProductModelPort({
+            apiKey: Deno.env.get("LOVABLE_API_KEY")!,
+            fetchImpl: fetch,
+          }),
+          legal: createProductLegalBasisPort(legalDb),
+        });
+      }
+    }
+
+    const dependencies = resolveProductGenerationDependencies(() =>
+      generationDependencies(callStore, ports)
+    );
     const adapter = dependencies.adapter;
     if (!adapter) {
       // Повторна заявка на вече изчакваща задача: НЕ записваме втора контролна
