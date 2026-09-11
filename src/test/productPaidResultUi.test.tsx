@@ -4,6 +4,7 @@
  */
 import { describe, expect, it, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { readPaidAccessRequest, priceBg } from "@/lib/productPaidResult";
 import {
   buildChangeReportPdf,
@@ -144,6 +145,7 @@ describe("изборът по поправките", () => {
 
 describe("пакетът за преговори", () => {
   it("дава раздели, писма за копиране и едно уточнение", async () => {
+    const user = userEvent.setup();
     const onRefine = vi.fn().mockResolvedValue({ ok: true });
     render(
       <NegotiationWorkspace
@@ -152,12 +154,12 @@ describe("пакетът за преговори", () => {
         onRefine={onRefine}
       />,
     );
-    fireEvent.click(screen.getByRole("tab", { name: "Съобщения" }));
+    await user.click(screen.getByRole("tab", { name: "Съобщения" }));
     expect(await screen.findByText("Неутрално писмо")).toBeInTheDocument();
     expect(screen.getByText("Твърдо писмо")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /Копирай текста/ })).toHaveLength(2);
 
-    fireEvent.click(screen.getByRole("tab", { name: "Уточнение" }));
+    await user.click(screen.getByRole("tab", { name: "Уточнение" }));
     const submit = await screen.findByRole("button", { name: "Поискай уточнението" });
     expect(submit).toBeDisabled();
     fireEvent.change(screen.getByLabelText("Какво да прецизираме"), {
@@ -168,7 +170,8 @@ describe("пакетът за преговори", () => {
     await waitFor(() => expect(onRefine).toHaveBeenCalledTimes(1));
   });
 
-  it("казва честно, когато уточнението е използвано", () => {
+  it("казва честно, когато уточнението е използвано", async () => {
+    const user = userEvent.setup();
     render(
       <NegotiationWorkspace
         payload={{
@@ -179,7 +182,7 @@ describe("пакетът за преговори", () => {
         onRefine={vi.fn()}
       />,
     );
-    fireEvent.click(screen.getByRole("tab", { name: "Уточнение" }));
+    await user.click(screen.getByRole("tab", { name: "Уточнение" }));
     expect(screen.getByText(/вече е използвано \(1 от 1\)/)).toBeInTheDocument();
   });
 });
