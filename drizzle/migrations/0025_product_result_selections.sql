@@ -497,7 +497,7 @@ BEGIN
         RETURN jsonb_build_object('ok', false, 'reason', 'stored_call_invalid');
       END IF;
       RETURN jsonb_build_object('ok', true, 'status', 'complete',
-        'response', jsonb_build_object('output', c.response, 'inputTokens', c.usage_input_tokens,
+        'response', jsonb_build_object('output', c.response -> 'output', 'inputTokens', c.usage_input_tokens,
           'outputTokens', c.usage_output_tokens, 'elapsedMs', 0));
     END IF;
     RETURN jsonb_build_object('ok', true, 'status', 'pending', 'reason', 'call_completion_unknown');
