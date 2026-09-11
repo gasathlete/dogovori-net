@@ -12,7 +12,7 @@ import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import type { Billing, PlanId, PlanView } from "@/hooks/usePlans";
-import { usePlanRecommendation, LAWYER_DOC_COST_EUR, OPS_PER_DOC } from "@/hooks/usePlanRecommendation";
+import { usePlanRecommendation, OPS_PER_DOC } from "@/hooks/usePlanRecommendation";
 
 const PLAN_ICON: Record<PlanId, React.ComponentType<{ className?: string }>> = {
   free: Sparkles,
@@ -170,18 +170,17 @@ export function PlanScaleSlider({ plans, billing, isAuthed, onRecommend }: Props
             </div>
             <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.07] px-3 py-2.5">
               <dt className="text-[10px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                Икономия
+                Цена на документ
               </dt>
               <dd className="mt-1 text-sm font-semibold text-foreground tabular-nums">
-                {eur(rec.savedEur, 0)}
+                {eur(rec.perDocEur, 2)}
               </dd>
             </div>
           </dl>
 
           <p className="mt-2 text-[11px] text-muted-foreground">
-            Изчислено при {eur(LAWYER_DOC_COST_EUR, 0)} средно за изготвяне на един документ от
-            юрист и ≈ {OPS_PER_DOC} действия по документи за един готов документ (изготвяне,
-            преглед, подпис). ДДС включено.
+            Изчислено от цената на плана и ≈ {OPS_PER_DOC} действия по документи за един готов
+            документ (изготвяне, преглед, подпис). ДДС включено.
           </p>
         </div>
 

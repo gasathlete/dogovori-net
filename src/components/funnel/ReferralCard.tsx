@@ -56,7 +56,7 @@ export function ReferralCard({ userId, email }: { userId: string; email?: string
   };
 
   const nativeShare = async () => {
-    const text = `Опитай DogovaryAI — AI генерира и анализира български договори за минути. ${BENEFIT_OPS} безплатни операции с моя линк:`;
+    const text = `Опитай DogovaryAI — изготвяне и анализ на български документи. ${BENEFIT_OPS} безплатни операции с моя линк:`;
     try {
       if (navigator.share) {
         await navigator.share({ title: "DogovaryAI", text, url });

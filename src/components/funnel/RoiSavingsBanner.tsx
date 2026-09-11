@@ -5,8 +5,6 @@
 import { PiggyBank, Check } from "@/icons";
 import { useAudience } from "@/hooks/useAudience";
 import {
-  LAWYER_FEE_MAX_EUR,
-  LAWYER_FEE_MIN_EUR,
   PRICING_PLANS,
   monthlyLabel,
   opsLabel,
@@ -31,11 +29,7 @@ export function RoiSavingsBanner({ className = "" }: { className?: string }) {
         </span>
         <div className="min-w-0">
           <p className="text-sm font-semibold text-foreground">
-            Ориентировъчно сравнение с{" "}
-            <span className="text-gold">
-              {LAWYER_FEE_MIN_EUR}–{LAWYER_FEE_MAX_EUR} EUR
-            </span>{" "}
-            външен хонорар
+            Какво включва абонаментът
           </p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
             {isFreelancer ? (
@@ -44,10 +38,8 @@ export function RoiSavingsBanner({ className = "" }: { className?: string }) {
                 <span className="font-medium text-foreground">
                   {PRICING_PLANS.professional.name}
                 </span>{" "}
-                — {monthlyLabel("professional")} ({opsLabel("professional")}). Примерна сметка:
-                изготвянето на един договор при външен юрист обикновено се таксува{" "}
-                {LAWYER_FEE_MIN_EUR}–{LAWYER_FEE_MAX_EUR} EUR. Сравнете с реалната цена, която
-                плащате днес.
+                — {monthlyLabel("professional")} ({opsLabel("professional")}) на месец. Подходящ,
+                когато изготвяте документи редовно, а не еднократно.
               </>
             ) : (
               <>

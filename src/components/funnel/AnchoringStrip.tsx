@@ -1,7 +1,7 @@
 /**
- * AnchoringStrip — sits at the top of /plans (Step 4) and frames the price
- * against an external high-water mark („средна цена адвокат: ~290 €").
- * Classic decoy/anchoring pattern — proven 12–20 % lift on perceived value.
+ * AnchoringStrip — sits at the top of /plans and states, factually, when a
+ * one-time product fits and when a subscription fits. No external price
+ * comparisons and no computed savings.
  */
 import { Scale } from "@/icons";
 import { useAudience } from "@/hooks/useAudience";
@@ -27,7 +27,6 @@ export function AnchoringStrip() {
               </span>
             </span>
           ))}
-          <span className="font-semibold text-brand">спестяване &gt; 95%</span>
         </div>
       </div>
     </div>

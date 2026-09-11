@@ -33,8 +33,6 @@ export interface AudienceCopy {
   ctaExample: string;
   /** Anchoring редове в /plans. */
   anchors: string[];
-  /** ROI калкулатор пресети. */
-  roiPresets: { label: string; docs: number; fee: number }[];
   /** Социално доказателство. */
   socialProof: string;
 }
@@ -64,11 +62,6 @@ export const AUDIENCE_COPY: Record<Audience, AudienceCopy> = {
       "Обща история, версии и достъп за екипа",
       "Абонамент от 12,90 €/мес.",
     ],
-    roiPresets: [
-      { label: "2–5 договора/месец", docs: 4, fee: 145 },
-      { label: "10 договора/година", docs: 1, fee: 145 },
-      { label: "1 екип, 3 човека", docs: 9, fee: 145 },
-    ],
     socialProof: "фирми и екипи",
   },
   freelancer: {
@@ -93,11 +86,6 @@ export const AUDIENCE_COPY: Record<Audience, AudienceCopy> = {
       "Редовни договори — абонамент",
       "Преглед, сваляне и история на едно място",
       "Абонамент от 12,90 €/мес.",
-    ],
-    roiPresets: [
-      { label: "1–2 договора/месец", docs: 2, fee: 145 },
-      { label: "Нов клиент на квартал", docs: 1, fee: 200 },
-      { label: "1 неплатен аванс годишно", docs: 1, fee: 800 },
     ],
     socialProof: "специалисти на свободна практика",
   },

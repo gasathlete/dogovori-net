@@ -18,7 +18,6 @@ import { TrustGuaranteeBar } from "@/components/funnel/TrustGuaranteeBar";
 import { SoftCapPanel } from "@/components/paywall/SoftCapPanel";
 
 
-import { RoiCalculator } from "@/components/funnel/RoiCalculator";
 import { RoiSavingsBanner } from "@/components/funnel/RoiSavingsBanner";
 import { AudienceToggle } from "@/components/funnel/AudienceToggle";
 import {
@@ -654,17 +653,16 @@ export default function Plans() {
         </PlanStoryStage>
 
 
-        {/* 04 — Ориентировъчна сметка по ваши допускания */}
+        {/* 04 — Какво включва абонаментът */}
         <PlanStoryStage
           index="04"
-          title="Сравнете с вашия текущ начин на работа"
-          subtitle="По избор: въведете собствените си допускания за обем и разходи — сметката е ориентировъчна и служи само за сравнение, не е обещан резултат."
+          title="Един документ или редовна работа"
+          subtitle="Еднократните продукти са за един конкретен документ. Абонаментът е за редовна работа по документи — включените действия и цените са описани по-долу."
         >
 
           <div className="rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:p-6">
             <div className="mx-auto max-w-3xl">
-              <RoiSavingsBanner className="mb-5" />
-              <RoiCalculator />
+              <RoiSavingsBanner />
             </div>
           </div>
         </PlanStoryStage>

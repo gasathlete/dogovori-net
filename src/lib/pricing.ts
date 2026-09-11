@@ -95,9 +95,6 @@ export const ENTRY_PACK_CONFIG: EntryPackConfig = Object.freeze({
 /** Стойност в стотинки, която живата Stripe цена трябва да има точно. */
 export const ENTRY_PACK_AMOUNT_CENTS = Math.round(ENTRY_PACK_CONFIG.eur * 100);
 
-/** Ориентировъчен адвокатски хонорар за изготвяне на един документ (EUR). */
-export const LAWYER_FEE_MIN_EUR = 150;
-export const LAWYER_FEE_MAX_EUR = 400;
 
 /** Форматира EUR по български стандарт, винаги до 2 знака: 12,90 € / 129,00 € */
 export function fmtEur(amount: number): string {
@@ -260,16 +257,12 @@ export function promoPriceEur(amount: number): number {
 
 
 /**
- * ROI подзаглавие за платен план — колко правни разходи спестява месечно.
- * Базата е минималният адвокатски хонорар за един документ, умножен по
- * консервативни 1–2 документа месечно (спрямо обема на плана).
+ * Подзаглавие за платен план — само включеният обем от каноничната
+ * конфигурация. Без сравнения с външни хонорари и без изчислена икономия.
  */
 export function roiSubtitle(id: PricingPlanId): string {
   const p = PRICING_PLANS[id];
   const price = p.monthly ?? (p.yearly !== null ? Math.round((p.yearly / 12) * 100) / 100 : null);
   if (price === null || price === 0) return "";
-  const docsPerMonth = id === "professional" ? 1 : 2;
-  const saved = LAWYER_FEE_MIN_EUR * docsPerMonth - price;
-  const rounded = Math.floor(saved / 10) * 10;
-  return `Спестява над ${fmtEur(rounded)}/мес от правни услуги`;
+  return `Включени ${opsLabel(id)} на месец`;
 }

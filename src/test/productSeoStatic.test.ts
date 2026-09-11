@@ -184,3 +184,63 @@ describe.skipIf(!hasDist)("prerender изход за четирите адрес
     }
   });
 });
+
+/**
+ * Клиентски видимо копие: без недоказуеми икономии, сравнения с адвокатски
+ * хонорар и обещания за срок („за минути“). Сканират се само UI източниците —
+ * шаблони, блог съдържание и генерирани документи остават извън обхвата.
+ */
+describe("забранени твърдения в клиентски видимото копие", () => {
+  const CLAIM_PATTERNS: [RegExp, string][] = [
+    [/~?\s?290\s?(€|EUR)/, "сравнение с ~290 €"],
+    [/при адвокат\s*=/, "сравнение с цена при адвокат"],
+    [/вместо адвокат/i, "замяна на адвокат"],
+    [/адвокатск\w+ хонорар/i, "сравнение с адвокатски хонорар"],
+    [/адвокатска консултация/i, "сравнение с адвокатска консултация"],
+    [/(Спестявате|Спестихте|Спестете|Спестих|спестяваш|спестяване|спестени|спестено)/, "изчислена икономия"],
+    [/за минути/i, "обещание за срок"],
+    [/за секунди/i, "обещание за срок"],
+    [/не за дни/i, "обещание за срок"],
+    [/мин\.\s*спестени/i, "спестено време"],
+    [/>\s*95%/, "недоказуем процент"],
+  ];
+
+  const stripComments = (src: string) =>
+    src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+
+  const listFiles = async (dir: string): Promise<string[]> => {
+    const { readdir } = await import("node:fs/promises");
+    const out: string[] = [];
+    for (const entry of await readdir(resolve(root, dir), { withFileTypes: true })) {
+      const rel = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) {
+        if (/^(data|content|test|integrations)$/.test(entry.name)) continue;
+        out.push(...(await listFiles(rel)));
+      } else if (/\.(tsx?|html)$/.test(entry.name)) {
+        out.push(rel);
+      }
+    }
+    return out;
+  };
+
+  it("UI компонентите и страниците не съдържат икономии, хонорари и обещания за срок", async () => {
+    const files = [
+      ...(await listFiles("src/components")),
+      ...(await listFiles("src/pages")),
+      ...(await listFiles("src/lib")),
+      ...(await listFiles("src/hooks")),
+      "index.html",
+      "scripts/prerender.ts",
+    ].filter((f) => !/\.test\.tsx?$/.test(f));
+
+    const offenders: string[] = [];
+    for (const file of files) {
+      const src = stripComments(read(file));
+      for (const [pattern, label] of CLAIM_PATTERNS) {
+        const hit = src.match(pattern);
+        if (hit) offenders.push(`${file}: ${label} („${hit[0]}“)`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});

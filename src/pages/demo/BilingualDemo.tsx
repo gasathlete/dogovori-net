@@ -32,7 +32,7 @@ export default function BilingualDemo() {
     <div className="min-h-dvh bg-background">
       <Seo
         title="Двуезични договори · Пример BG/EN — Dogovori.net"
-        description="Вижте как изглежда професионален двуезичен договор BG/EN — клауза по клауза. Създайте свой с DogovaryAI за минути."
+        description="Вижте как изглежда професионален двуезичен договор BG/EN — клауза по клауза. Създайте свой с DogovaryAI."
         canonical="/demo/bilingual"
       />
       <Header />

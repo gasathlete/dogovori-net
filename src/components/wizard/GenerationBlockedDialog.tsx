@@ -19,7 +19,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { AlertCircle, ArrowRight, Coins, Crown, ShieldCheck } from "@/icons";
 import {
-  LAWYER_FEE_MIN_EUR,
   PRICING_PLANS,
   TOPUP_PACK_CONFIG,
   fmtEur,
@@ -82,7 +81,7 @@ export function GenerationBlockedDialog({ open, onOpenChange, reason, onConfirm 
           <>
             <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-3.5 text-[13px] leading-relaxed text-muted-foreground">
               <span className="font-semibold text-foreground">
-                Спестявате над {LAWYER_FEE_MIN_EUR} € адвокатски хонорар за всеки договор.
+                Абонаментът включва действия по документи всеки месец.
               </span>{" "}
               {PRICING_PLANS.professional.name} — {monthlyLabel("professional")} (
               {opsLabel("professional")}).
