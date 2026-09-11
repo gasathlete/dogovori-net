@@ -35,6 +35,7 @@ import {
   rehydrateProductOutput,
   type ProductRedactionMap,
 } from "./product-secure-redaction.ts";
+import type { ProductGenerationAdapter, ProductGenerationStep } from "./product-jobs.ts";
 
 export const PRODUCT_ZERO_RETENTION_GATE_VERSION = "zero-retention-unverified" as const;
 export const PRODUCT_GENERATION_ARTIFACT_VERSION = 1 as const;
@@ -423,6 +424,38 @@ export class ProductGenerationRuntime {
       telemetry: { callId, routeKey: route, model: bound.model, elapsedMs: Math.max(0, Math.trunc(response.elapsedMs)), retryCount: 0, repairCount: 0, inputTokens: response.inputTokens, outputTokens: response.outputTokens, costMicroUsd: cost },
     };
   }
+}
+
+/** Bridges the pure runtime into the server-owned job adapter without any live-provider default. */
+export function createProductGenerationAdapter(
+  model: ProductModelPort,
+  legal: ProductLegalBasisPort,
+): ProductGenerationAdapter {
+  const runtime = new ProductGenerationRuntime(model, legal);
+  return Object.freeze({
+    policyVersion: PRODUCT_GENERATION_POLICY_VERSION,
+    async runStep(step: ProductGenerationStep) {
+      const result = await runtime.runStep({
+        entitlementId: step.entitlementId,
+        productId: step.productId,
+        sourceText: step.sourceText,
+        binding: step.binding,
+        context: step.context,
+        cursor: step.cursor,
+        bounds: step.bounds,
+        usage: step.usage,
+        zeroRetentionVerified: step.zeroRetentionVerified,
+        artifacts: step.artifacts as readonly ProductGenerationArtifact[],
+        completedCallIds: step.completedCallIds,
+      });
+      return {
+        nextCursor: result.nextCursor,
+        usage: result.usage,
+        result: result.result,
+        artifact: result.artifact,
+      };
+    },
+  });
 }
 
 /** Restores server-owned resumable artifacts; malformed state is never repaired silently. */
