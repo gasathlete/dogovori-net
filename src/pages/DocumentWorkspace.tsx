@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Loader2, Sparkles, FileWarning } from "@/icons";
+import { WorkStateShell } from "@/components/workspace/WorkStateShell";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -104,15 +105,17 @@ export default function DocumentWorkspacePage() {
 
   if (!spec) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <FileWarning className="mx-auto h-10 w-10 text-muted-foreground" />
-        <h1 className="mt-4 font-serif text-2xl font-bold">Непознат вид документ</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Видът „{kind}" не се поддържа в момента.
-        </p>
-        <Button asChild variant="outline" className="mt-6">
-          <Link to={`/wizard-graph/${slug}/review`}>Обратно към договора</Link>
-        </Button>
+      <div className="px-4 py-16">
+        <WorkStateShell
+          testId="workspace-unknown-kind"
+          tone="problem"
+          eyebrow="Работен документ"
+          title="Непознат вид документ"
+          description={`Видът „${kind}" не се поддържа в момента.`}
+          icon={<FileWarning className="size-6" />}
+          actionLabel="Обратно към договора"
+          actionTo={`/wizard-graph/${slug}/review`}
+        />
       </div>
     );
   }
@@ -268,16 +271,15 @@ function PanelHeading({
 
 function EmptyParent({ slug }: { slug: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-border/60 bg-card/40 p-8 text-center">
-      <FileWarning className="mx-auto h-8 w-8 text-muted-foreground" />
-      <p className="mt-3 text-sm text-muted-foreground">
-        Основният договор не е намерен в текущата сесия. Върнете се и го
-        генерирайте отново.
-      </p>
-      <Button asChild variant="outline" size="sm" className="mt-4">
-        <Link to={`/wizard-graph/${slug}/review`}>Отвори договора</Link>
-      </Button>
-    </div>
+    <WorkStateShell
+      testId="workspace-empty-parent"
+      eyebrow="Основен договор"
+      title="Договорът не е отворен"
+      description="Основният договор не е намерен в текущата сесия. Отворете го отново, за да продължите."
+      icon={<FileWarning className="size-6" />}
+      actionLabel="Отвори договора"
+      actionTo={`/wizard-graph/${slug}/review`}
+    />
   );
 }
 

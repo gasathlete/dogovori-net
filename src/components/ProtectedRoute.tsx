@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2 } from "@/icons";
+import { WorkStateShell } from "@/components/workspace/WorkStateShell";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -8,8 +8,14 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-dvh items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-gold" />
+      <div className="flex min-h-dvh items-center justify-center px-4">
+        <WorkStateShell
+          testId="protected-loading"
+          tone="loading"
+          eyebrow="Dogovori.net"
+          title="Отваряме профила Ви"
+          description="Проверяваме дали сте влезли в акаунта си."
+        />
       </div>
     );
   }

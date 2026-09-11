@@ -19,6 +19,7 @@ import { useDownloadCounts, getDisplayCount } from "@/hooks/useDownloadCounts";
 import { useTemplateSearch } from "@/hooks/useTemplateSearch";
 import { SECTOR_META } from "@/data/sectorsMeta";
 import { SECTOR_IMAGES } from "@/lib/sectorImages";
+import { WorkStateShell } from "@/components/workspace/WorkStateShell";
 
 /**
  * Slugs that have a registered dynamic question graph (Sprint 1+2).
@@ -178,20 +179,20 @@ export default function CatalogPage() {
         <div className="absolute inset-0 bg-gradient-hero opacity-90" />
         <div className="absolute inset-0 bg-fine-grid opacity-50" />
         <div className="absolute inset-x-0 top-0 hairline-x" />
-        <div className="container relative py-16 md:py-24">
+        <div className="container relative py-9 md:py-14">
           <div className="mx-auto max-w-3xl text-center">
-            <div className="eyebrow mb-5 justify-center anim-rise" style={{ animationDelay: "0ms" }}>
+            <div className="eyebrow mb-3 justify-center anim-rise" style={{ animationDelay: "0ms" }}>
               <BookOpen className="h-3.5 w-3.5" />
               Каталог на документите
             </div>
-            <h1 className="font-serif text-3xl font-bold leading-[1.1] text-balance md:text-5xl lg:text-[56px] lg:leading-[1.15] anim-rise" style={{ animationDelay: "80ms" }}>
+            <h1 className="font-serif text-[28px] font-bold leading-[1.12] text-balance md:text-5xl anim-rise" style={{ animationDelay: "80ms" }}>
               {totalDocs}+ професионални договора и бланки
             </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-balance text-base leading-relaxed text-muted-foreground md:text-lg anim-rise" style={{ animationDelay: "160ms" }}>
-              Структуриран каталог по сектори — от трудови и наемни отношения до IT, крипто и
-              корпоративно управление. Всеки документ съдържа цел и ключова клауза.
+            <p className="mx-auto mt-3 max-w-2xl text-balance text-[15px] leading-relaxed text-muted-foreground md:text-base anim-rise" style={{ animationDelay: "160ms" }}>
+              Изберете вид документ или потърсете по име. Каталогът е подреден по
+              сектори — трудови и наемни отношения, IT, корпоративни документи.
             </p>
-            <div className="relative mx-auto mt-10 max-w-xl">
+            <div className="relative mx-auto mt-6 max-w-xl">
               <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 aria-label="Търсене в каталога с договори и бланки"
@@ -264,8 +265,12 @@ export default function CatalogPage() {
                 </div>
               )}
               {open && query.trim().length >= 2 && suggestions.length === 0 && (
-                <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-lg border border-border/60 bg-card/95 px-4 py-3 text-left text-sm text-muted-foreground shadow-elegant backdrop-blur-xl">
-                  Няма съвпадения за „{query}"
+                <div
+                  data-testid={searchLoading ? "catalog-search-loading" : "catalog-search-empty"}
+                  aria-live="polite"
+                  className="absolute left-0 right-0 top-full z-50 mt-2 rounded-lg border border-border/60 bg-card/95 px-4 py-3 text-left text-sm text-muted-foreground shadow-elegant backdrop-blur-xl"
+                >
+                  {searchLoading ? "Търсим в каталога…" : <>Няма съвпадения за „{query}"</>}
                 </div>
               )}
             </div>
@@ -307,7 +312,7 @@ export default function CatalogPage() {
                 <button
                   type="button"
                   className={
-                    "inline-flex items-center justify-between gap-3 rounded-md border px-3 py-1.5 text-sm transition-colors sm:min-w-[200px] " +
+                    "inline-flex min-h-11 items-center justify-between gap-3 rounded-md border px-3 py-1.5 text-sm transition-colors sm:min-w-[200px] " +
                     (activeVid
                       ? "border-gold/60 bg-gold/10 text-gold hover:bg-gold/15"
                       : "border-border/70 bg-card/40 text-foreground hover:border-gold/40")
@@ -376,7 +381,7 @@ export default function CatalogPage() {
                 </span>
                 <button
                   onClick={() => setVid(null)}
-                  className="inline-flex items-center gap-1 rounded-md border border-border/60 px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:border-gold/40 hover:text-gold"
+                  className="inline-flex min-h-11 items-center gap-1 rounded-md border border-border/60 px-3 py-1 text-[12px] text-muted-foreground transition-colors hover:border-gold/40 hover:text-gold"
                 >
                   <X className="h-3 w-3" /> Изчисти
                 </button>
@@ -391,7 +396,7 @@ export default function CatalogPage() {
               aria-pressed={bilingualOnly}
               title="Покажи само двуезични документи (BG/EN)"
               className={
-                "inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors " +
+                "inline-flex min-h-11 items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors " +
                 (bilingualOnly
                   ? "border-gold/60 bg-gold/10 text-gold hover:bg-gold/15"
                   : "border-border/70 bg-card/40 text-foreground hover:border-gold/40 hover:text-gold")
@@ -408,7 +413,7 @@ export default function CatalogPage() {
               aria-pressed={dynamicOnly}
               title="Покажи само документи с динамичен уизард (адаптира клаузите според отговорите)"
               className={
-                "inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors " +
+                "inline-flex min-h-11 items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors " +
                 (dynamicOnly
                   ? "border-emerald-400/60 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/15"
                   : "border-border/70 bg-card/40 text-foreground hover:border-emerald-400/40 hover:text-emerald-300")
@@ -455,7 +460,7 @@ export default function CatalogPage() {
       {/* Sectors grid — categories are grouped under their parent sector and shown
           as illustrated tiles. Each tile expands inline to reveal the first 5
           documents from that sector. */}
-      <main className="container py-14 md:py-20">
+      <main className="container py-10 md:py-14">
         <SectorCatalogGrid
           filtered={filtered}
           downloadCounts={downloadCounts}
@@ -463,45 +468,35 @@ export default function CatalogPage() {
         />
 
         {filtered.length === 0 && (
-          <div className="mt-12 rounded-2xl border border-gold/25 bg-gradient-card p-12 text-center shadow-soft">
-            <div className="eyebrow mb-3 justify-center">
-              <Search className="h-3.5 w-3.5" />
-              Няма резултати
-            </div>
-            <h3 className="font-serif text-2xl font-bold text-balance">
-              Не намерихме документи за „{query}"
-            </h3>
-            <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
-              Опитайте с по-кратка ключова дума или изчистете филтрите.
-            </p>
-            <div className="mt-6 flex flex-wrap justify-center gap-3">
-              <button
-                onClick={() => { setQuery(""); setVid(null); }}
-                className="btn-gold btn-sheen"
-              >
-                Изчисти филтри
-              </button>
-            </div>
-          </div>
+          <WorkStateShell
+            testId="catalog-empty"
+            eyebrow="Няма резултати"
+            title={`Не намерихме документи за „${query}"`}
+            description="Опитайте с по-кратка ключова дума или изчистете филтрите."
+            icon={<Search className="size-6" />}
+            actionLabel="Изчисти филтри"
+            onAction={() => { setQuery(""); setVid(null); }}
+            className="mt-10"
+          />
         )}
       </main>
 
-      {/* CTA */}
-      <section className="container pb-20">
-        <div className="relative overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-10 text-center shadow-elegant md:p-14">
+      {/* Затварящ ред — една стъпка напред, без излишни обещания. */}
+      <section className="container pb-16">
+        <div className="relative overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-7 text-center shadow-elegant md:p-10">
           <div className="absolute inset-x-0 top-0 hairline-x" />
-          <div className="eyebrow mb-4 justify-center">Готови ли сте?</div>
-          <h3 className="font-serif text-2xl font-bold leading-tight text-balance md:text-[34px]">
-            Започнете персонализиран договор сега
-          </h3>
-          <p className="mx-auto mt-4 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground md:text-base">
-            Стратегически интервюта и системен риск-анализ — в съответствие със ЗЗД, ТЗ и ЗУТ.
+          <h2 className="font-serif text-[22px] font-bold leading-tight text-balance md:text-[30px]">
+            Не намирате точния документ?
+          </h2>
+          <p className="mx-auto mt-2 max-w-xl text-balance text-[15px] leading-relaxed text-muted-foreground">
+            Изберете сектор и попълнете документа стъпка по стъпка.
           </p>
-          <Link to="/#sectors" className="btn-gold btn-sheen mt-7">
-            Намери договор <ArrowRight className="h-4 w-4" />
+          <Link to="/#sectors" className="btn-gold btn-sheen mt-5 min-h-11">
+            Изберете сектор <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </section>
+
 
       <SeoFooter />
     </div>

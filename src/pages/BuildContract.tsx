@@ -957,16 +957,17 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
               )}
               <span className="font-medium text-foreground line-clamp-1">{chromeTitle}</span>
             </div>
-            <div className="hidden items-center gap-4 text-muted-foreground sm:flex">
-              <a href="/ai" {...prefetchHandlers("/ai")} className="underline-offset-2 hover:text-gold hover:underline">Как работи AI</a>
-              <a href="/karta" {...prefetchHandlers("/karta")} className="underline-offset-2 hover:text-gold hover:underline">Карта на сайта</a>
-              <span className="opacity-50">·</span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_hsl(142_70%_45%/0.8)]" />
-                Системата е в готовност
+            {/* Тук стои само текущото състояние на документа, без обещания за време. */}
+            <div className="hidden items-center gap-3 text-muted-foreground sm:flex">
+              <span data-testid="build-topbar-step" className="font-medium text-foreground">
+                Стъпка {safeStepIdx + 1} от {totalSteps} · {STEPS[safeStepIdx].label}
               </span>
-              <span className="opacity-50">·</span>
-              <span>{isBilingualTemplate ? "Двуезичен · BG + EN" : "≤ 2 мин · AI-подпомогнат"}</span>
+              {isBilingualTemplate && (
+                <>
+                  <span className="opacity-50">·</span>
+                  <span>Двуезичен · BG + EN</span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -1010,8 +1011,9 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                     </Button>
                   </div>
                 )}
-                <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-                  Попълнете каквото знаете. <span className="text-gold">Празните полета</span> се попълват от Нашата Система&nbsp; с пазарно-стандартни клаузи. Готов документ до 2 минути.
+                <p className="mb-4 text-[15px] leading-relaxed text-muted-foreground">
+                  Попълнете каквото знаете — незададените полета се допълват със
+                  стандартен текст, който можете да промените преди сваляне.
                 </p>
 
                 <div className="space-y-4" onKeyDown={handleEnterFocusNext}>
@@ -1450,7 +1452,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                         return out;
                       })()}
                       <p className="text-[11px] italic text-muted-foreground">
-                        Празните полета ще бъдат попълнени автоматично с пазарно-стандартни клаузи.
+                        Незададените полета се допълват със стандартен текст, който можете да промените.
                       </p>
                     </div>
                   )}
