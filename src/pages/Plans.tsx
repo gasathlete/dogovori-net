@@ -35,6 +35,7 @@ import { useAudience } from "@/hooks/useAudience";
 import { markFunnelStep } from "@/lib/funnel";
 import { entryPackCtaHref } from "@/lib/entryPack";
 import { OneTaskAlternative } from "@/components/products/OneTaskAlternative";
+import { FrequencyCompare } from "@/components/products/FrequencyCompare";
 import { planVolumeSentence } from "@/components/products/PlanAlternativeNote";
 import { useEffect } from "react";
 
