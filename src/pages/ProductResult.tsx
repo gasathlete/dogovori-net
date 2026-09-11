@@ -110,10 +110,9 @@ export default function ProductResult() {
 
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
   const [state, setState] = useState<ProductResultStateResponse | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const attemptsRef = useRef(0);
   const fulfillRef = useRef(false);
-  const reloadRef = useRef(0);
 
   /* ------------------------- зареждане и изчакване ------------------------- */
 
@@ -170,7 +169,7 @@ export default function ProductResult() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [user, authLoading, access, reloadRef.current]);
+  }, [user, authLoading, access, reloadKey]);
 
   const entitlementId = phase.kind === "ready" ? phase.purchase.entitlement.id : null;
 
@@ -194,11 +193,11 @@ export default function ProductResult() {
     return () => {
       cancelled = true;
     };
-  }, [access, entitlementId, reloadRef.current]);
+  }, [access, entitlementId, reloadKey]);
 
   const reload = useCallback(() => {
     fulfillRef.current = false;
-    reloadRef.current += 1;
+    setReloadKey((v) => v + 1);
     setPhase({ kind: "loading" });
   }, []);
 
@@ -518,11 +517,6 @@ export default function ProductResult() {
         {isOneTimeProductId(row.product_id) ? getProduct(row.product_id).name : "Продукт"} ·{" "}
         {priceBg(row.amount_cents)}, еднократно
       </p>
-      {notice && (
-        <p aria-live="polite" className="mt-3 text-sm text-muted-foreground">
-          {notice}
-        </p>
-      )}
       <div className="mt-4">
         {isProductResult(result, "negotiation_package") ? (
           <NegotiationWorkspace
