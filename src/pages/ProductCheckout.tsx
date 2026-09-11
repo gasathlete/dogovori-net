@@ -408,14 +408,20 @@ export default function ProductCheckout() {
             без абонамент.
           </p>
           <ProductPrice id={product.id} size="md" showLabel className="mt-2" />
-          {activeStep !== "payment" ? (
+          {activeStep !== "payment" && (
             <p className="mt-3 text-sm text-muted-foreground">
               Условията и плащането се отварят, след като документът е прочетен и
               сте посочили коя страна сте.
             </p>
-          ) : (
+          )}
+          {(() => {
+            // Съгласията са видими винаги, но са неактивни, докато стъпката не е
+            // достъпна — няма контрола, която изглежда активна без основание.
+            const consentsDisabled = locked || activeStep !== "payment";
+            return (
             <>
               <div className="mt-4 space-y-3 text-sm">
+
                 <label className="flex min-h-11 items-start gap-3">
                   <Checkbox
                     checked={terms}
