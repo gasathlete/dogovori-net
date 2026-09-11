@@ -523,9 +523,48 @@ Deno.serve(async (req) => {
       completedCallIds: durableState.completedCallIds,
     });
     const usageRaw = durableState.usage as Record<string, unknown>;
-    let step: Awaited<ReturnType<typeof adapter.runStep>>;
+    // Всеки провал СЛЕД заявяването на задачата минава оттук: или наемът се
+    // освобождава веднага (повторим), или задачата се маркира като окончателно
+    // пропаднала. Никога не остава мъртъв наем.
+    const releaseRetryable = async (): Promise<Response> => {
+      await admin.rpc("release_product_job_lease", { p_job_id: jobId, p_lease_token: leaseToken });
+      return fail("failed_retryable", 503, headers, cid);
+    };
+    const handlePostClaimFailure = async (error: unknown): Promise<Response> => {
+      // Провалът на доставчика НИКОГА не изтича навън: нито тяло, нито подсказка,
+      // нито изход на модела. Остава само затворен код.
+      const gateway = error instanceof ProductModelGatewayError;
+      const generation = error instanceof ProductGenerationError;
+      const retryable = gateway || generation
+        ? (error as { retryable?: boolean }).retryable === true
+        : true;
+      if (retryable) {
+        // Повторимият провал НЕ мести курсора и НЕ изразходва контролна точка:
+        // само наемът се освобождава, за да няма десетминутна мъртва задача.
+        await admin.rpc("release_product_job_lease", {
+          p_job_id: jobId,
+          p_lease_token: leaseToken,
+        });
+        if (!gateway && !generation) {
+          console.error("fulfill-product step error", {
+            cid,
+            name: error instanceof Error ? error.name : "unknown",
+          });
+          return fail("internal", 500, headers, cid);
+        }
+        return fail("failed_retryable", 503, headers, cid);
+      }
+      await admin.rpc("fail_product_job", {
+        p_job_id: jobId,
+        p_lease_token: leaseToken,
+        p_error_class: "permanent",
+        p_error_code: gateway ? "provider_contract" : "generation_invalid",
+      });
+      return fail("failed_permanent", 409, headers, cid);
+    };
+
     try {
-      step = await adapter.runStep({
+      const step = await adapter.runStep({
         entitlementId,
         productId: spec.id,
         sourceText: verified.text,
@@ -559,65 +598,40 @@ Deno.serve(async (req) => {
           modelCallAllowed: !eligibility.policy.userConfirmationRequired,
         },
       });
-    } catch (error) {
-      // Провалът на доставчика НИКОГА не изтича навън: нито тяло, нито подсказка,
-      // нито изход на модела. Остава само затворен код.
-      const gateway = error instanceof ProductModelGatewayError;
-      const generation = error instanceof ProductGenerationError;
-      const retryable = gateway || generation
-        ? (error as { retryable?: boolean }).retryable === true
-        : true;
-      if (retryable) {
-        // Повторимият провал НЕ мести курсора и НЕ изразходва контролна точка:
-        // само наемът се освобождава, за да няма десетминутна мъртва задача.
-        await admin.rpc("release_product_job_lease", {
-          p_job_id: jobId,
-          p_lease_token: leaseToken,
-        });
-        if (!gateway && !generation) {
-          console.error("fulfill-product step error", {
-            cid,
-            name: error instanceof Error ? error.name : "unknown",
-          });
-          return fail("internal", 500, headers, cid);
-        }
-        return fail("failed_retryable", 503, headers, cid);
+      // 9) Проверката на артефакта и курсора стои В СЪЩИЯ блок: постоянният
+      // провал тук маркира задачата, а не оставя наем.
+      const artifact = step.artifact as { cursorKey?: unknown; stage?: unknown; digest?: unknown; payload?: unknown } | undefined;
+      if (!artifact || typeof artifact.digest !== "string") throw new ProductGenerationError("invalid_model_output");
+      const callIds = [...(step.callIds ?? [])];
+      const currentCursorKey = `${cursor.stage}:${cursor.batch_index}:${cursor.chunk_index}`;
+      if (artifact.cursorKey !== currentCursorKey || artifact.stage !== cursor.stage && !(cursor.stage === "awaiting_generation" && artifact.stage === "passport")) {
+        throw new ProductGenerationError("invalid_cursor");
       }
-      await admin.rpc("fail_product_job", {
-        p_job_id: jobId,
-        p_lease_token: leaseToken,
-        p_error_class: "permanent",
-        p_error_code: gateway ? "provider_contract" : "generation_invalid",
-      });
-      return fail("failed_permanent", 409, headers, cid);
-    }
-    const artifact = step.artifact as { cursorKey?: unknown; stage?: unknown; digest?: unknown; payload?: unknown } | undefined;
-    if (!artifact || typeof artifact.digest !== "string") throw new ProductGenerationError("invalid_model_output");
-    const callIds = [...(step.callIds ?? [])];
-    const currentCursorKey = `${cursor.stage}:${cursor.batch_index}:${cursor.chunk_index}`;
-    if (artifact.cursorKey !== currentCursorKey || artifact.stage !== cursor.stage && !(cursor.stage === "awaiting_generation" && artifact.stage === "passport")) {
-      throw new ProductGenerationError("invalid_cursor");
-    }
-    const canonical = canonicalProductJson(artifact.payload);
-    if (step.result) {
-      const { data: finished, error: finishErr } = await admin.rpc("commit_product_generation_result", {
+      const canonical = canonicalProductJson(artifact.payload);
+      if (step.result) {
+        const { data: finished, error: finishErr } = await admin.rpc("commit_product_generation_result", {
+          p_job_id: jobId, p_lease_token: leaseToken, p_current_cursor_key: currentCursorKey,
+          p_artifact_stage: "synthesis", p_call_ids: callIds, p_result: step.result,
+          p_result_canonical: canonical, p_result_digest: artifact.digest,
+          p_generation_timestamp: durableState.generation_timestamp,
+        });
+        // Провалът на записа е повторим: наемът се освобождава изрично, курсорът
+        // не се мести и контролна точка не се изразходва.
+        if (finishErr || (finished as Record<string, unknown> | null)?.ok !== true) return await releaseRetryable();
+        const storedResult = (finished as Record<string, unknown>).result ?? step.result;
+        return json({ status: "ready", result: storedResult, correlation_id: cid }, 200, headers);
+      }
+      const { data: stored, error: storedErr } = await admin.rpc("record_product_generation_artifact", {
         p_job_id: jobId, p_lease_token: leaseToken, p_current_cursor_key: currentCursorKey,
-        p_artifact_stage: "synthesis", p_call_ids: callIds, p_result: step.result,
-        p_result_canonical: canonical, p_result_digest: artifact.digest,
-        p_generation_timestamp: durableState.generation_timestamp,
+        p_artifact_stage: artifact.stage, p_next_cursor: step.nextCursor, p_call_ids: callIds,
+        p_payload: artifact.payload, p_payload_canonical: canonical, p_payload_digest: artifact.digest,
+        p_generation_timestamp: durableState.generation_timestamp, p_coverage: null, p_release_lease: true,
       });
-      if (finishErr || (finished as Record<string, unknown> | null)?.ok !== true) return fail("failed_retryable", 503, headers, cid);
-      const storedResult = (finished as Record<string, unknown>).result ?? step.result;
-      return json({ status: "ready", result: storedResult, correlation_id: cid }, 200, headers);
+      if (storedErr || (stored as Record<string, unknown> | null)?.ok !== true) return await releaseRetryable();
+      return json({ status: "processing", stage: step.nextCursor.stage, message: MESSAGES.processing, correlation_id: cid }, 202, headers);
+    } catch (error) {
+      return await handlePostClaimFailure(error);
     }
-    const { data: stored, error: storedErr } = await admin.rpc("record_product_generation_artifact", {
-      p_job_id: jobId, p_lease_token: leaseToken, p_current_cursor_key: currentCursorKey,
-      p_artifact_stage: artifact.stage, p_next_cursor: step.nextCursor, p_call_ids: callIds,
-      p_payload: artifact.payload, p_payload_canonical: canonical, p_payload_digest: artifact.digest,
-      p_generation_timestamp: durableState.generation_timestamp, p_coverage: null, p_release_lease: true,
-    });
-    if (storedErr || (stored as Record<string, unknown> | null)?.ok !== true) return fail("failed_retryable", 503, headers, cid);
-    return json({ status: "processing", stage: step.nextCursor.stage, message: MESSAGES.processing, correlation_id: cid }, 202, headers);
   } catch (e) {
     if (e instanceof ProductSourceError) return fail("source_changed", 409, headers, cid);
     if (e instanceof ProductGenerationError) {

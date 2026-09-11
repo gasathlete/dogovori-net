@@ -125,6 +125,21 @@ describe("Изпълнението е устойчиво и остава без 
     expect(FULFILL).toContain('status: "processing"');
   });
 
+  it("никакъв провал след заявката не оставя мъртъв наем", () => {
+    // Централизирана обработка: проверката на артефакта и записите стоят В блока.
+    const handler = FULFILL.indexOf("const handlePostClaimFailure");
+    const release = FULFILL.indexOf("const releaseRetryable");
+    expect(handler).toBeGreaterThan(0);
+    expect(release).toBeGreaterThan(0);
+    expect(FULFILL).toContain("return await handlePostClaimFailure(error);");
+    expect(FULFILL).toContain("return await releaseRetryable();");
+    // Валидацията вече не хвърля извън блока.
+    expect(FULFILL.lastIndexOf('throw new ProductGenerationError("invalid_cursor")')).toBeGreaterThan(handler);
+    expect(FULFILL.lastIndexOf('throw new ProductGenerationError("invalid_model_output")')).toBeGreaterThan(handler);
+    // Записът никога не връща 503 без освобождаване на наема.
+    expect(FULFILL).not.toMatch(/\?\.ok !== true\) return fail\("failed_retryable"/);
+  });
+
   it("активен наем, завършена и постоянно пропаднала задача се обработват честно", () => {
     expect(FULFILL).toContain('if (reason === "lease_active")');
     expect(FULFILL).toContain('if (reason === "already_completed")');
