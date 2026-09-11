@@ -147,21 +147,10 @@ export function AuthGateModal() {
             })}
           </div>
 
-          {/* Visual savings bar */}
+          {/* Цена на документ — само от каноничната конфигурация */}
           <div className="mt-4 rounded-xl border border-border/60 bg-background/40 p-3">
-            <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider">
-              <span className="text-muted-foreground">Адвокат</span>
-              <span className="text-emerald-500">DogovaryAI</span>
-            </div>
-            <div className="relative h-2 overflow-hidden rounded-full bg-muted">
-              <div className="absolute inset-y-0 left-0 w-full rounded-full bg-gradient-to-r from-rose-500/40 via-amber-400/40 to-emerald-500" />
-              <div
-                aria-hidden="true"
-                className="absolute inset-y-0 right-0 w-[4%] rounded-r-full bg-emerald-500"
-              />
-            </div>
-            <div className="mt-1.5 flex items-center justify-between text-[11px]">
-              <span className="text-muted-foreground line-through">~290 €</span>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-muted-foreground">Цена при абонамент</span>
               <span className="font-semibold text-emerald-500">
                 от {cheapestPerOpLabel()} / документ
               </span>
