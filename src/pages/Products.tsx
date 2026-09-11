@@ -64,7 +64,7 @@ export default function Products() {
               Продукти
             </p>
             <h1 className="mt-2 font-serif text-[32px] font-bold leading-[1.1] tracking-tight sm:text-4xl">
-              Три резултата за един документ
+              Разгледайте нашите продукти
             </h1>
             <p className="mx-auto mt-3 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-base">
               Проверка преди подпис, поправка на текста или пълен пакет за

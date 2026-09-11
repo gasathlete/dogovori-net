@@ -425,7 +425,7 @@ export default function ProductCheckout() {
                 <label className="flex min-h-11 items-start gap-3">
                   <Checkbox
                     checked={terms}
-                    disabled={locked}
+                    disabled={consentsDisabled}
                     onCheckedChange={(v) => setTerms(v === true)}
                   />
                   <span>
@@ -443,7 +443,7 @@ export default function ProductCheckout() {
                 <label className="flex min-h-11 items-start gap-3">
                   <Checkbox
                     checked={aiAck}
-                    disabled={locked}
+                    disabled={consentsDisabled}
                     onCheckedChange={(v) => setAiAck(v === true)}
                   />
                   <span>
@@ -453,7 +453,7 @@ export default function ProductCheckout() {
                 <label className="flex min-h-11 items-start gap-3">
                   <Checkbox
                     checked={immediate}
-                    disabled={locked}
+                    disabled={consentsDisabled}
                     onCheckedChange={(v) => setImmediate(v === true)}
                   />
                   <span>Искам обработката да започне веднага след плащането.</span>
@@ -461,7 +461,7 @@ export default function ProductCheckout() {
                 <label className="flex min-h-11 items-start gap-3">
                   <Checkbox
                     checked={withdrawal}
-                    disabled={locked}
+                    disabled={consentsDisabled}
                     onCheckedChange={(v) => setWithdrawal(v === true)}
                   />
                   <span>
@@ -497,7 +497,8 @@ export default function ProductCheckout() {
                 </div>
               )}
             </>
-          )}
+            );
+          })()}
         </Card>
       </main>
     </>
