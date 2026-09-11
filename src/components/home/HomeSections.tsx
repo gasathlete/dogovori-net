@@ -25,6 +25,7 @@ const Testimonials = lazy(() => import("@/components/Testimonials").then((m) => 
 const FAQ = lazy(() => import("@/components/FAQ").then((m) => ({ default: m.FAQ })));
 const ComplianceSection = lazy(() => import("@/components/ComplianceSection").then((m) => ({ default: m.ComplianceSection })));
 const CTABand = lazy(() => import("@/components/CTABand").then((m) => ({ default: m.CTABand })));
+const DocumentPathStrip = lazy(() => import("@/components/home/DocumentPathStrip").then((m) => ({ default: m.DocumentPathStrip })));
 
 export function HomeSections() {
   return (
@@ -41,6 +42,15 @@ export function HomeSections() {
         <Suspense fallback={<SectionSkeleton />}>
           <BackdropSection variant="grid" align="center">
             <ProductsSection />
+          </BackdropSection>
+        </Suspense>
+      </LazyOnVisible>
+
+      {/* Кратък визуален път на документа — компактно, преди дългите секции. */}
+      <LazyOnVisible minHeight={320}>
+        <Suspense fallback={<SectionSkeleton />}>
+          <BackdropSection variant="dots" align="center">
+            <DocumentPathStrip />
           </BackdropSection>
         </Suspense>
       </LazyOnVisible>
