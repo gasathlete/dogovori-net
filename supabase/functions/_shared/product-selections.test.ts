@@ -123,14 +123,14 @@ Deno.test("поправеният текст се получава детерм�
     return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
   };
   const first = await buildProductPatch(
-    { sourceText: SOURCE, binding, resultBinding: binding, corrections, decisions },
+    { sourceText: SOURCE, sourceBinding: binding, resultBinding: binding, corrections, decisions },
     digest,
   );
   const second = await buildProductPatch(
-    { sourceText: SOURCE, binding, resultBinding: binding, corrections, decisions },
+    { sourceText: SOURCE, sourceBinding: binding, resultBinding: binding, corrections, decisions },
     digest,
   );
-  assertEquals(first.patch_hash, second.patch_hash);
+  assertEquals(first.output_hash, second.output_hash);
   assertEquals(first.applied.length, 1);
   assertEquals(first.rejected.length, 1);
   assertEquals(first.corrected_text.startsWith("Цената е 120 лева"), true);
@@ -147,7 +147,7 @@ Deno.test("несъответстващ източник или застъпва
     ],  );
   await assertRejectsPatch(() =>
     buildProductPatch(
-      { sourceText: "Друг текст.", binding, resultBinding: binding, corrections, decisions },
+      { sourceText: "Друг текст.", sourceBinding: binding, resultBinding: binding, corrections, decisions },
       digest,
     )
   );
@@ -162,7 +162,7 @@ Deno.test("несъответстващ източник или застъпва
     buildProductPatch(
       {
         sourceText: SOURCE,
-        binding,
+        sourceBinding: binding,
         resultBinding: binding,
         corrections: overlapping,
         decisions: overlapDecisions,
