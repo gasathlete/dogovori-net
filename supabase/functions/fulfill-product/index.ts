@@ -591,10 +591,7 @@ Deno.serve(async (req) => {
         context: eligibility.context,
         cursor,
         bounds,
-        usage: {
-          calls: Number(usageRaw.calls), input_tokens: Number(usageRaw.input_tokens),
-          output_tokens: Number(usageRaw.output_tokens), cost_micro_usd: Number(usageRaw.cost_micro_usd),
-        },
+        usage,
         zeroRetentionVerified: dependencies.zeroRetentionVerified,
         generationTimestamp: durableState.generation_timestamp,
         artifacts: serialized.artifacts,
