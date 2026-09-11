@@ -119,8 +119,8 @@ describe("Изпълнението е устойчиво и остава без 
     expect(FULFILL).not.toContain("milli_cents");
   });
 
-  it("повторна заявка не заключва задачата за десет минути и не лъже с резултат", () => {
-    expect(FULFILL).toContain('if (claimedStage !== "queued")');
+  it("повторяемият провал освобождава наема веднага и не лъже с резултат", () => {
+    expect(FULFILL).toContain('if (claimedStage === "queued")');
     expect(FULFILL).toContain('admin.rpc("release_product_job_lease"');
     expect(FULFILL).toContain('status: "processing"');
   });
@@ -132,9 +132,9 @@ describe("Изпълнението е устойчиво и остава без 
   });
 
   it("НЯМА неявен live provider, фикстури или частичен резултат", () => {
-    expect(FULFILL).not.toMatch(/lovable\/|ai\.gateway|generateText|previewData|fixtures?\//);
+    expect(FULFILL).not.toMatch(/generateText|previewData|fixtures?\//);
     expect(JOBS).toContain("resolveProductGenerationDependencies");
-    expect(FULFILL).toContain("adapter: calls && ports ? factory(ports.model, ports.legal, calls) : null");
+    expect(FULFILL).toContain("adapter: factory(ports.model, ports.legal, calls)");
     expect(FULFILL).toContain("PRODUCT_AI_ZERO_RETENTION_VERIFIED");
   });
 

@@ -45,17 +45,20 @@ import {
   verifyStoredProductSource,
 } from "../_shared/product-source.ts";
 import { readyProductResult } from "../_shared/product-result-contract.ts";
-import { createProductModelPort } from "../_shared/product-model-gateway.ts";
+import {
+  createProductModelPort,
+  ProductModelGatewayError,
+} from "../_shared/product-model-gateway.ts";
 import {
   createProductLegalBasisPort,
-  isLegalKnowledgeBaseReady,
   type LegalDbClient,
 } from "../_shared/product-legal-basis.ts";
 import {
-  isProductAiResidencyAllowed,
-  productFulfillmentBlockers,
+  productFulfillmentIntegrationBlockers,
   productIntegrationMessage,
+  type ProductRpcProbeClient,
   readProductIntegrationConfig,
+  type ResidencyDbClient,
 } from "../_shared/product-integration.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -111,13 +114,17 @@ interface ProductProviderPorts {
   readonly model: ProductModelPort;
   readonly legal: ProductLegalBasisPort;
 }
+/**
+ * Портовете съществуват ПО КОНСТРУКЦИЯ: тази функция се извиква само след като
+ * конфигурационната граница е минала. Няма път „без адаптер“, който да заявява
+ * задача и да отговаря общо „обработваме“.
+ */
 export const generationDependencies = (
-  calls?: ProductCallStore,
-  ports?: ProductProviderPorts,
+  calls: ProductCallStore,
+  ports: ProductProviderPorts,
   factory: AdapterFactory = createProductGenerationAdapter,
 ) => ({
-  // Source-only release gate: a reviewed provider factory must be injected explicitly.
-  adapter: calls && ports ? factory(ports.model, ports.legal, calls) : null,
+  adapter: factory(ports.model, ports.legal, calls),
   zeroRetentionVerified: Deno.env.get("PRODUCT_AI_ZERO_RETENTION_VERIFIED") === "true",
 } as const);
 
@@ -393,6 +400,32 @@ Deno.serve(async (req) => {
     }
     const bounds = eligibility.policy.bounds;
 
+    // 6а) Конфигурационната граница е ПРЕДИ заявяването на задача. Ако нещо от
+    // интеграцията липсва, не се заявява задача, не се записва контролна точка,
+    // не се резервира извикване и не се докосва доставчик. Отговорът е стабилен
+    // и затворен; платеното право остава непокътнато.
+    const integration = readProductIntegrationConfig((key) => Deno.env.get(key));
+    const legalDb = admin as unknown as LegalDbClient;
+    const integrationBlockers = await productFulfillmentIntegrationBlockers(integration, {
+      legalDb,
+      rpc: admin as unknown as ProductRpcProbeClient,
+      residencyDb: admin as unknown as ResidencyDbClient,
+      userId,
+    });
+    if (integrationBlockers.length > 0) {
+      const code = integrationBlockers[0];
+      const status = code === "residency_not_allowed" ? 409 : 503;
+      return fail(code, status, headers, cid, productIntegrationMessage(code));
+    }
+    const ports: ProductProviderPorts = Object.freeze({
+      model: createProductModelPort({
+        apiKey: Deno.env.get("LOVABLE_API_KEY")!,
+        fetchImpl: fetch,
+      }),
+      legal: createProductLegalBasisPort(legalDb),
+    });
+
+
     // 7) Атомарно заявяване на НАЙ-МНОГО една ограничена стъпка.
     // Ключът за идемпотентност се изчислява ВЪТРЕ в атомарното заявяване, от
     // правото, политиката и действително записания курсор — не от извикващия.
@@ -434,62 +467,15 @@ Deno.serve(async (req) => {
     const leaseToken = String(claimResult.lease_token);
     const claimedStage = String(claimResult.stage ?? "queued");
 
-    // 8) Изпълнява се най-много една ограничена стъпка. Production композицията
-    // остава затворена, докато zero-retention и provider портът не са проверени.
+    // 8) Изпълнява се най-много една ограничена стъпка.
     const callStore = createProductCallStore(admin as unknown as RpcClient, jobId, leaseToken);
-
-    // 8а) Конфигурационната граница. Портовете се сглобяват за ТАЗИ заявка и само
-    // когато всяко условие е изпълнено: ключ, проверено нулево съхранение, база,
-    // готова правна основа и разрешена AI обработка извън ЕИП. Провалът е
-    // затворен: нищо не се изпраща към доставчик при непълна конфигурация.
-    const integration = readProductIntegrationConfig((key) => Deno.env.get(key));
-    const configBlockers = productFulfillmentBlockers(integration);
-    let ports: ProductProviderPorts | undefined;
-    if (configBlockers.length === 0) {
-      const residencyAllowed = await isProductAiResidencyAllowed(
-        admin as unknown as Parameters<typeof isProductAiResidencyAllowed>[0],
-        userId,
-      );
-      if (!residencyAllowed) {
-        await admin.rpc("release_product_job_lease", { p_job_id: jobId, p_lease_token: leaseToken });
-        return fail(
-          "residency_not_allowed",
-          409,
-          headers,
-          cid,
-          productIntegrationMessage("residency_not_allowed"),
-        );
-      }
-      const legalDb = admin as unknown as LegalDbClient;
-      if (await isLegalKnowledgeBaseReady(legalDb)) {
-        ports = Object.freeze({
-          model: createProductModelPort({
-            apiKey: Deno.env.get("LOVABLE_API_KEY")!,
-            fetchImpl: fetch,
-          }),
-          legal: createProductLegalBasisPort(legalDb),
-        });
-      }
-    }
-
     const dependencies = resolveProductGenerationDependencies(() =>
       generationDependencies(callStore, ports)
     );
-    const adapter = dependencies.adapter;
-    if (!adapter) {
-      // Повторна заявка на вече изчакваща задача: НЕ записваме втора контролна
-      // точка и НЕ задържаме наема за десет минути — освобождаваме го веднага.
-      if (claimedStage !== "queued") {
-        await admin.rpc("release_product_job_lease", {
-          p_job_id: jobId,
-          p_lease_token: leaseToken,
-        });
-        return json(
-          { status: "processing", stage: claimedStage, message: MESSAGES.processing, correlation_id: cid },
-          202,
-          headers,
-        );
-      }
+    const adapter = dependencies.adapter!;
+
+    // 8а) Първата стъпка на нова задача е само преход queued → awaiting_generation.
+    if (claimedStage === "queued") {
       const { data: cp, error: cpErr } = await admin.rpc("record_product_job_checkpoint", {
         p_job_id: jobId,
         p_lease_token: leaseToken,
@@ -519,6 +505,8 @@ Deno.serve(async (req) => {
     }
 
 
+
+
     const { data: durable, error: durableErr } = await admin.rpc("load_product_generation_state", {
       p_job_id: jobId,
       p_lease_token: leaseToken,
@@ -535,40 +523,74 @@ Deno.serve(async (req) => {
       completedCallIds: durableState.completedCallIds,
     });
     const usageRaw = durableState.usage as Record<string, unknown>;
-    const step = await adapter.runStep({
-      entitlementId,
-      productId: spec.id,
-      sourceText: verified.text,
-      binding: {
-        document_id: ent.source_document_id,
-        source_hash: String(ent.source_hash).toLowerCase(),
-        source_kind: ent.source_kind,
-        char_count: ent.source_char_count,
-        char_unit: ent.source_char_unit,
-        source_updated_at: String(ent.source_updated_at),
-        page_count: ent.source_page_count ?? null,
-      },
-      context: eligibility.context,
-      cursor,
-      bounds,
-      usage: {
-        calls: Number(usageRaw.calls), input_tokens: Number(usageRaw.input_tokens),
-        output_tokens: Number(usageRaw.output_tokens), cost_micro_usd: Number(usageRaw.cost_micro_usd),
-      },
-      zeroRetentionVerified: dependencies.zeroRetentionVerified,
-      generationTimestamp: durableState.generation_timestamp,
-      artifacts: serialized.artifacts,
-      completedCallIds: new Set(serialized.completedCallIds),
-      dataSafety: {
-        redactionRequired: eligibility.policy.redactionRequired,
-        redactionCompleted: !eligibility.policy.redactionRequired,
-        postRedactionReclassificationRequired: eligibility.policy.postRedactionReclassificationRequired,
-        postRedactionReclassificationCompleted: !eligibility.policy.postRedactionReclassificationRequired,
-        userConfirmationRequired: eligibility.policy.userConfirmationRequired,
-        userConfirmationCompleted: !eligibility.policy.userConfirmationRequired,
-        modelCallAllowed: !eligibility.policy.userConfirmationRequired,
-      },
-    });
+    let step: Awaited<ReturnType<typeof adapter.runStep>>;
+    try {
+      step = await adapter.runStep({
+        entitlementId,
+        productId: spec.id,
+        sourceText: verified.text,
+        binding: {
+          document_id: ent.source_document_id,
+          source_hash: String(ent.source_hash).toLowerCase(),
+          source_kind: ent.source_kind,
+          char_count: ent.source_char_count,
+          char_unit: ent.source_char_unit,
+          source_updated_at: String(ent.source_updated_at),
+          page_count: ent.source_page_count ?? null,
+        },
+        context: eligibility.context,
+        cursor,
+        bounds,
+        usage: {
+          calls: Number(usageRaw.calls), input_tokens: Number(usageRaw.input_tokens),
+          output_tokens: Number(usageRaw.output_tokens), cost_micro_usd: Number(usageRaw.cost_micro_usd),
+        },
+        zeroRetentionVerified: dependencies.zeroRetentionVerified,
+        generationTimestamp: durableState.generation_timestamp,
+        artifacts: serialized.artifacts,
+        completedCallIds: new Set(serialized.completedCallIds),
+        dataSafety: {
+          redactionRequired: eligibility.policy.redactionRequired,
+          redactionCompleted: !eligibility.policy.redactionRequired,
+          postRedactionReclassificationRequired: eligibility.policy.postRedactionReclassificationRequired,
+          postRedactionReclassificationCompleted: !eligibility.policy.postRedactionReclassificationRequired,
+          userConfirmationRequired: eligibility.policy.userConfirmationRequired,
+          userConfirmationCompleted: !eligibility.policy.userConfirmationRequired,
+          modelCallAllowed: !eligibility.policy.userConfirmationRequired,
+        },
+      });
+    } catch (error) {
+      // Провалът на доставчика НИКОГА не изтича навън: нито тяло, нито подсказка,
+      // нито изход на модела. Остава само затворен код.
+      const gateway = error instanceof ProductModelGatewayError;
+      const generation = error instanceof ProductGenerationError;
+      const retryable = gateway || generation
+        ? (error as { retryable?: boolean }).retryable === true
+        : true;
+      if (retryable) {
+        // Повторимият провал НЕ мести курсора и НЕ изразходва контролна точка:
+        // само наемът се освобождава, за да няма десетминутна мъртва задача.
+        await admin.rpc("release_product_job_lease", {
+          p_job_id: jobId,
+          p_lease_token: leaseToken,
+        });
+        if (!gateway && !generation) {
+          console.error("fulfill-product step error", {
+            cid,
+            name: error instanceof Error ? error.name : "unknown",
+          });
+          return fail("internal", 500, headers, cid);
+        }
+        return fail("failed_retryable", 503, headers, cid);
+      }
+      await admin.rpc("fail_product_job", {
+        p_job_id: jobId,
+        p_lease_token: leaseToken,
+        p_error_class: "permanent",
+        p_error_code: gateway ? "provider_contract" : "generation_invalid",
+      });
+      return fail("failed_permanent", 409, headers, cid);
+    }
     const artifact = step.artifact as { cursorKey?: unknown; stage?: unknown; digest?: unknown; payload?: unknown } | undefined;
     if (!artifact || typeof artifact.digest !== "string") throw new ProductGenerationError("invalid_model_output");
     const callIds = [...(step.callIds ?? [])];

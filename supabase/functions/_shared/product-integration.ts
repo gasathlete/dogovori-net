@@ -39,6 +39,7 @@ export type ProductIntegrationCode =
   | "stripe_not_configured"
   | "legal_kb_not_ready"
   | "residency_not_allowed"
+  | "migration_not_verified"
   | "policy_version_mismatch";
 
 /** Кратки, човешки съобщения. Без доставчик, без тайни, без технически детайли. */
@@ -51,6 +52,7 @@ export const PRODUCT_INTEGRATION_MESSAGES: Readonly<Record<ProductIntegrationCod
     database_not_bound: "Услугата е временно недостъпна. Опитайте по-късно.",
     stripe_not_configured: "Плащането е временно недостъпно.",
     legal_kb_not_ready: "Обработката още не е включена. Плащане не се извършва.",
+    migration_not_verified: "Обработката още не е включена. Плащане не се извършва.",
     residency_not_allowed:
       "По Ваша настройка обработката с изкуствен интелект е ограничена до ЕИП. Променете настройката, за да продължите.",
     policy_version_mismatch:
@@ -124,7 +126,14 @@ export function readProductIntegrationConfig(env: EnvReader): ProductIntegration
   });
 }
 
-/** Готовност за ПЛАЩАНЕ на продукт в точно едно окръжение. */
+/**
+ * Готовност за ПЛАЩАНЕ на продукт в точно едно окръжение.
+ *
+ * Плащането е ПРЕСИЧАНЕ: продава се само това, което може да бъде изпълнено.
+ * Затова тук влизат и условията на обработката. Изключването на обработката
+ * спира НОВИ покупки веднага. Вече платените права остават непокътнати —
+ * недостъпната обработка НИКОГА не променя истината за плащане.
+ */
 export function productCheckoutBlockers(
   config: ProductIntegrationConfig,
   environment: "sandbox" | "live",
@@ -133,10 +142,13 @@ export function productCheckoutBlockers(
   if (!config.checkoutEnabled) codes.push("checkout_disabled");
   if (!config.databaseBound) codes.push("database_not_bound");
   if (!config.stripe[environment].configured) codes.push("stripe_not_configured");
+  for (const code of productFulfillmentBlockers(config)) {
+    if (!codes.includes(code)) codes.push(code);
+  }
   return Object.freeze(codes);
 }
 
-/** Готовност за ОБРАБОТКА (без правната база и residency — те са асинхронни). */
+/** Готовност за ОБРАБОТКА (без правната база, миграцията и residency). */
 export function productFulfillmentBlockers(
   config: ProductIntegrationConfig,
 ): readonly ProductIntegrationCode[] {
@@ -148,6 +160,90 @@ export function productFulfillmentBlockers(
   return Object.freeze(codes);
 }
 
+export interface ProductRpcProbeClient {
+  rpc(name: string, args: Record<string, unknown>): Promise<{ data: unknown; error: unknown }>;
+}
+
+/**
+ * Схемната способност, която ДОКАЗВА, че миграцията 0024 е приложена.
+ *
+ * Функцията е IMMUTABLE и не чете редове: пробата не пише, не заявява задача и
+ * не докосва плащане. Константа в кода НЕ е доказателство — доказателство е
+ * само отговорът на сървъра. Липсваща функция → затворено.
+ */
+export const PRODUCT_MIGRATION_CAPABILITY_RPC = "product_job_cursor_advances" as const;
+
+export async function isProductMigrationApplied(db: ProductRpcProbeClient): Promise<boolean> {
+  try {
+    const { data, error } = await db.rpc(PRODUCT_MIGRATION_CAPABILITY_RPC, {
+      p_product_id: "contract_check",
+      p_current: { stage: "awaiting_generation", batch_index: 0, chunk_index: 0 },
+      p_next: { stage: "review", batch_index: 0, chunk_index: 0 },
+    });
+    return !error && data === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Асинхронните врати: правна база, доказана схема и разрешена обработка извън
+ * ЕИП. Липсващ клиент означава ЗАТВОРЕНО, не „приемаме, че е наред“.
+ */
+export interface ProductServiceGates {
+  readonly legalDb: LegalDbClient | null;
+  readonly rpc: ProductRpcProbeClient | null;
+  readonly residencyDb: ResidencyDbClient | null;
+  readonly userId: string | null;
+}
+
+async function asyncBlockers(
+  gates: ProductServiceGates,
+): Promise<ProductIntegrationCode[]> {
+  const codes: ProductIntegrationCode[] = [];
+  if (!gates.rpc || !(await isProductMigrationApplied(gates.rpc))) {
+    codes.push("migration_not_verified");
+  }
+  if (!gates.legalDb || !(await isLegalKnowledgeBaseReady(gates.legalDb))) {
+    codes.push("legal_kb_not_ready");
+  }
+  if (
+    !gates.residencyDb || !gates.userId ||
+    !(await isProductAiResidencyAllowed(gates.residencyDb, gates.userId))
+  ) {
+    codes.push("residency_not_allowed");
+  }
+  return codes;
+}
+
+/**
+ * Пълната проверка ПРЕДИ плащане: нито едно Stripe извикване и нито един запис
+ * не се прави, докато всяко условие не е изпълнено.
+ */
+export async function productPrepaymentBlockers(
+  config: ProductIntegrationConfig,
+  environment: "sandbox" | "live",
+  gates: ProductServiceGates,
+): Promise<readonly ProductIntegrationCode[]> {
+  const codes = [...productCheckoutBlockers(config, environment)];
+  for (const code of await asyncBlockers(gates)) {
+    if (!codes.includes(code)) codes.push(code);
+  }
+  return Object.freeze(codes);
+}
+
+/** Пълната проверка ПРЕДИ заявяване на задача и преди всяко извикване. */
+export async function productFulfillmentIntegrationBlockers(
+  config: ProductIntegrationConfig,
+  gates: ProductServiceGates,
+): Promise<readonly ProductIntegrationCode[]> {
+  const codes = [...productFulfillmentBlockers(config)];
+  for (const code of await asyncBlockers(gates)) {
+    if (!codes.includes(code)) codes.push(code);
+  }
+  return Object.freeze(codes);
+}
+
 export interface ProductIntegrationReadiness {
   readonly checkout_ready: Readonly<Record<"sandbox" | "live", boolean>>;
   readonly fulfillment_ready: boolean;
@@ -155,6 +251,7 @@ export interface ProductIntegrationReadiness {
   readonly gateway_key_present: boolean;
   readonly zero_retention_verified: boolean;
   readonly legal_kb_ready: boolean;
+  readonly migration_ready: boolean;
   readonly stripe_configured: Readonly<Record<"sandbox" | "live", boolean>>;
   readonly policy_version: string;
   readonly expected_migration: string;
@@ -168,20 +265,26 @@ export interface ProductIntegrationReadiness {
 export async function productIntegrationReadiness(
   config: ProductIntegrationConfig,
   db: LegalDbClient | null,
+  rpc: ProductRpcProbeClient | null = null,
 ): Promise<ProductIntegrationReadiness> {
   const legalReady = db ? await isLegalKnowledgeBaseReady(db) : false;
+  const migrationReady = rpc ? await isProductMigrationApplied(rpc) : false;
   const fulfillmentBlockers = [...productFulfillmentBlockers(config)];
+  if (!migrationReady) fulfillmentBlockers.push("migration_not_verified");
   if (!legalReady) fulfillmentBlockers.push("legal_kb_not_ready");
+  const checkoutFor = (environment: "sandbox" | "live") =>
+    productCheckoutBlockers(config, environment).length === 0 && legalReady && migrationReady;
   return Object.freeze({
     checkout_ready: Object.freeze({
-      sandbox: productCheckoutBlockers(config, "sandbox").length === 0,
-      live: productCheckoutBlockers(config, "live").length === 0,
+      sandbox: checkoutFor("sandbox"),
+      live: checkoutFor("live"),
     }),
     fulfillment_ready: fulfillmentBlockers.length === 0,
     supabase_bound: config.databaseBound,
     gateway_key_present: config.gatewayKeyPresent,
     zero_retention_verified: config.zeroRetentionVerified,
     legal_kb_ready: legalReady,
+    migration_ready: migrationReady,
     stripe_configured: Object.freeze({
       sandbox: config.stripe.sandbox.configured,
       live: config.stripe.live.configured,

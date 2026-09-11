@@ -34,10 +34,13 @@ import {
 import { evaluateProductEligibility } from "../_shared/product-eligibility.ts";
 import { PRODUCT_GENERATION_POLICY_VERSION } from "../_shared/product-generation-policy.ts";
 import {
-  productCheckoutBlockers,
   productIntegrationMessage,
+  productPrepaymentBlockers,
+  type ProductRpcProbeClient,
   readProductIntegrationConfig,
+  type ResidencyDbClient,
 } from "../_shared/product-integration.ts";
+import type { LegalDbClient } from "../_shared/product-legal-basis.ts";
 import {
   ConsentMissingError,
   LEGAL_VERSIONS,
@@ -128,19 +131,7 @@ Deno.serve(async (req) => {
     if (environment !== "sandbox" && environment !== "live") {
       return fail("invalid_environment", 400, corsHeaders);
     }
-    // Сървърен кран: продуктовото плащане е ЗАТВОРЕНО по подразбиране и се
-    // включва изрично с конфигурация. Не се разчита на скриване в интерфейса.
-    const checkoutBlockers = productCheckoutBlockers(
-      readProductIntegrationConfig((key) => Deno.env.get(key)),
-      environment,
-    );
-    if (checkoutBlockers.length > 0) {
-      const code = checkoutBlockers[0];
-      return new Response(
-        JSON.stringify({ error: code, message: productIntegrationMessage(code) }),
-        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+    const integrationConfig = readProductIntegrationConfig((key) => Deno.env.get(key));
     if (!UUID_RE.test(String(uploadedContractId))) return fail("invalid_document", 400, corsHeaders);
     if (!UUID_RE.test(String(requestId))) return fail("invalid_request_id", 400, corsHeaders);
 
@@ -160,6 +151,29 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    // Сървърен кран ПРЕДИ всяко Stripe извикване и преди всеки запис: продава се
+    // само това, което може да бъде изпълнено. Затова тук влизат и условията на
+    // обработката — ключ, нулево съхранение, доказана схема, правна база и
+    // разрешена обработка извън ЕИП. Спре ли обработката, спират и НОВИ покупки.
+    const prepaymentBlockers = await productPrepaymentBlockers(integrationConfig, environment, {
+      legalDb: admin as unknown as LegalDbClient,
+      rpc: admin as unknown as ProductRpcProbeClient,
+      residencyDb: admin as unknown as ResidencyDbClient,
+      userId,
+    });
+    if (prepaymentBlockers.length > 0) {
+      const code = prepaymentBlockers[0];
+      return new Response(
+        JSON.stringify({ error: code, message: productIntegrationMessage(code) }),
+        {
+          status: code === "residency_not_allowed" ? 409 : 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+
 
     // Документът трябва да е на този потребител, текстът да е ЦЯЛ и хешът да
     // съвпада с преизчисления тук. Твърденията на браузъра не са доказателство.

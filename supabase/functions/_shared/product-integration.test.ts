@@ -15,6 +15,8 @@ import {
   PRODUCT_GATEWAY_SYSTEM_CONTRACT,
   PRODUCT_GATEWAY_TEMPERATURE,
   PRODUCT_GATEWAY_URL,
+  productGatewayEnvelopeContract,
+  productGatewayEnvelopeKey,
   ProductModelGatewayError,
 } from "./product-model-gateway.ts";
 import {
@@ -25,10 +27,14 @@ import {
 } from "./product-legal-basis.ts";
 import {
   isProductAiResidencyAllowed,
+  isProductMigrationApplied,
   PRODUCT_EXPECTED_MIGRATION,
+  PRODUCT_MIGRATION_CAPABILITY_RPC,
   productCheckoutBlockers,
   productFulfillmentBlockers,
+  productFulfillmentIntegrationBlockers,
   productIntegrationReadiness,
+  productPrepaymentBlockers,
   readProductIntegrationConfig,
 } from "./product-integration.ts";
 
@@ -65,7 +71,7 @@ Deno.test("gateway sends only the redacted payload with the fixed server contrac
   let seenHeaders: Record<string, string> = {};
   const port = createProductModelPort({
     apiKey: "key",
-    fetchImpl: okFetch(envelope({ findings: [] }), (url, init) => {
+    fetchImpl: okFetch(envelope({ items: [{ id: "f1" }] }), (url, init) => {
       seenUrl = url;
       seenBody = JSON.parse(String(init.body));
       seenHeaders = init.headers as Record<string, string>;
@@ -79,17 +85,62 @@ Deno.test("gateway sends only the redacted payload with the fixed server contrac
   assertEquals(seenBody.response_format, { type: "json_object" });
   assertEquals(seenBody.user, "call-1");
   const messages = seenBody.messages as Array<Record<string, string>>;
-  assertEquals(messages.length, 2);
+  assertEquals(messages.length, 3);
   assertEquals(messages[0].content, PRODUCT_GATEWAY_SYSTEM_CONTRACT);
-  assertEquals(messages[1].content, JSON.stringify(REQUEST.payload));
+  assertEquals(messages[1].content, productGatewayEnvelopeContract("review"));
+  assertEquals(messages[2].content, JSON.stringify(REQUEST.payload));
   assertEquals(seenHeaders["Idempotency-Key"], "call-1");
   assertEquals(result.inputTokens, 10);
   assertEquals(result.outputTokens, 20);
-  assertEquals(result.output, { findings: [] });
+  // Масивните етапи пристигат в обвивка и се разгъват до чист масив.
+  assertEquals(result.output, [{ id: "f1" }]);
+});
+
+Deno.test("gateway enforces exactly one server-owned envelope per route class", async () => {
+  const arrayRoutes = ["review", "review_repair", "corrections", "corrections_repair"] as const;
+  const objectRoutes = ["passport", "negotiation", "messages", "synthesis", "refinement"] as const;
+  for (const routeKey of arrayRoutes) {
+    assertEquals(productGatewayEnvelopeKey(routeKey), "items");
+    const port = createProductModelPort({
+      apiKey: "key",
+      fetchImpl: okFetch(envelope({ items: [] })),
+    });
+    // Празният масив е честен отговор: липсата на находки е факт, не грешка.
+    assertEquals(await (await port.invoke({ ...REQUEST, routeKey })).output, []);
+  }
+  for (const routeKey of objectRoutes) {
+    assertEquals(productGatewayEnvelopeKey(routeKey), "result");
+    const port = createProductModelPort({
+      apiKey: "key",
+      fetchImpl: okFetch(envelope({ result: { a: 1 } })),
+    });
+    assertEquals((await port.invoke({ ...REQUEST, routeKey })).output, { a: 1 });
+  }
+});
+
+Deno.test("gateway rejects wrong wrapper, extra keys and wrong wrapped types", async () => {
+  const cases: Array<[ProductModelRequest["routeKey"], unknown]> = [
+    ["review", { result: [] }],
+    ["review", { items: {} }],
+    ["review", { items: [], extra: 1 }],
+    ["review", []],
+    ["passport", { items: {} }],
+    ["passport", { result: [] }],
+    ["passport", { result: {}, extra: 1 }],
+    ["passport", { result: "низ" }],
+  ];
+  for (const [routeKey, content] of cases) {
+    const port = createProductModelPort({ apiKey: "key", fetchImpl: okFetch(envelope(content)) });
+    const error = await assertRejects(
+      () => port.invoke({ ...REQUEST, routeKey }),
+      ProductModelGatewayError,
+    );
+    assertEquals(error.reason, "invalid_envelope");
+  }
 });
 
 Deno.test("gateway refuses a model outside the immutable policy bound", async () => {
-  const port = createProductModelPort({ apiKey: "key", fetchImpl: okFetch(envelope({})) });
+  const port = createProductModelPort({ apiKey: "key", fetchImpl: okFetch(envelope({ items: [] })) });
   assert(PRODUCT_ALLOWED_MODELS.includes("google/gemini-3.1-flash-lite"));
   const error = await assertRejects(
     () => port.invoke({ ...REQUEST, model: "google/gemini-2.5-flash" }),
@@ -103,27 +154,27 @@ Deno.test("gateway rejects mismatched model, truncation, multiple and invalid ch
     [envelope({}, { model: "google/gemini-3.1-flash-lite" }), "model_mismatch"],
     [
       {
-        ...envelope({}),
+        ...envelope({ items: [] }),
         choices: [{ finish_reason: "length", message: { content: "{}" } }],
       },
       "response_truncated",
     ],
     [
-      { ...envelope({}), choices: [envelope({}).choices[0], envelope({}).choices[0]] },
+      { ...envelope({ items: [] }), choices: [envelope({ items: [] }).choices[0], envelope({ items: [] }).choices[0]] },
       "invalid_envelope",
     ],
-    [{ ...envelope({}), choices: [] }, "invalid_envelope"],
+    [{ ...envelope({ items: [] }), choices: [] }, "invalid_envelope"],
     [
-      { ...envelope({}), choices: [{ finish_reason: "stop", message: { content: "не е json" } }] },
+      { ...envelope({ items: [] }), choices: [{ finish_reason: "stop", message: { content: "не е json" } }] },
       "invalid_json",
     ],
     [
-      { ...envelope({}), choices: [{ finish_reason: "stop", message: { content: "\"низ\"" } }] },
-      "invalid_json",
+      { ...envelope({ items: [] }), choices: [{ finish_reason: "stop", message: { content: "\"низ\"" } }] },
+      "invalid_envelope",
     ],
-    [{ ...envelope({}), usage: undefined }, "usage_unsafe"],
-    [{ ...envelope({}), usage: { prompt_tokens: -1, completion_tokens: 1 } }, "usage_unsafe"],
-    [{ ...envelope({}), usage: { prompt_tokens: 1, completion_tokens: 501 } }, "usage_over_bound"],
+    [{ ...envelope({ items: [] }), usage: undefined }, "usage_unsafe"],
+    [{ ...envelope({ items: [] }), usage: { prompt_tokens: -1, completion_tokens: 1 } }, "usage_unsafe"],
+    [{ ...envelope({ items: [] }), usage: { prompt_tokens: 1, completion_tokens: 501 } }, "usage_over_bound"],
   ];
   for (const [body, reason] of cases) {
     const port = createProductModelPort({ apiKey: "key", fetchImpl: okFetch(body) });
@@ -165,7 +216,7 @@ Deno.test("gateway network failure is retryable and never fabricates output", as
 Deno.test("gateway requires an api key", () => {
   let thrown: unknown = null;
   try {
-    createProductModelPort({ apiKey: "  ", fetchImpl: okFetch(envelope({})) });
+    createProductModelPort({ apiKey: "  ", fetchImpl: okFetch(envelope({ items: [] })) });
   } catch (e) {
     thrown = e;
   }
@@ -354,16 +405,93 @@ Deno.test("checkout and fulfillment blockers name the exact missing configuratio
     ),
     ["gateway_key_missing"],
   );
+  // Плащането е пресичане: изключената обработка спира НОВИ покупки веднага.
+  assertEquals(
+    productCheckoutBlockers(
+      readProductIntegrationConfig(reader({ PRODUCT_AI_FULFILLMENT_ENABLED: undefined })),
+      "live",
+    ),
+    ["fulfillment_disabled"],
+  );
+  assert(
+    productCheckoutBlockers(
+      readProductIntegrationConfig(reader({ PRODUCT_AI_ZERO_RETENTION_VERIFIED: undefined })),
+      "live",
+    ).includes("zero_retention_unverified"),
+  );
+});
+
+function rpcProbe(data: unknown, error: unknown = null) {
+  return {
+    calls: 0,
+    rpc(_name: string, _args: Record<string, unknown>) {
+      this.calls++;
+      return Promise.resolve({ data, error });
+    },
+  };
+}
+
+Deno.test("migration is proven only by the server, never by a constant", async () => {
+  assertEquals(PRODUCT_MIGRATION_CAPABILITY_RPC, "product_job_cursor_advances");
+  assert(await isProductMigrationApplied(rpcProbe(true)));
+  assertFalse(await isProductMigrationApplied(rpcProbe(false)));
+  assertFalse(await isProductMigrationApplied(rpcProbe(null)));
+  assertFalse(await isProductMigrationApplied(rpcProbe(true, { message: "missing function" })));
+  assertFalse(
+    await isProductMigrationApplied({
+      rpc: () => Promise.reject(new Error("down")),
+    }),
+  );
+});
+
+Deno.test("prepayment gate fails closed on legal, migration and residency", async () => {
+  const config = readProductIntegrationConfig(reader());
+  const open = {
+    legalDb: legalDb(ACTIVE),
+    rpc: rpcProbe(true),
+    residencyDb: profileDb({ allow_third_country_ai: true }),
+    userId: "u1",
+  };
+  assertEquals(await productPrepaymentBlockers(config, "live", open), []);
+  assertEquals(await productFulfillmentIntegrationBlockers(config, open), []);
+  assert(
+    (await productPrepaymentBlockers(config, "live", { ...open, rpc: rpcProbe(false) })).includes(
+      "migration_not_verified",
+    ),
+  );
+  assert(
+    (await productPrepaymentBlockers(config, "live", { ...open, legalDb: legalDb({}) })).includes(
+      "legal_kb_not_ready",
+    ),
+  );
+  assert(
+    (await productPrepaymentBlockers(config, "live", {
+      ...open,
+      residencyDb: profileDb({ allow_third_country_ai: false }),
+    })).includes("residency_not_allowed"),
+  );
+  // Липсващ клиент означава ЗАТВОРЕНО, не „приемаме, че е наред“.
+  const none = await productPrepaymentBlockers(config, "live", {
+    legalDb: null,
+    rpc: null,
+    residencyDb: null,
+    userId: null,
+  });
+  assert(none.includes("migration_not_verified"));
+  assert(none.includes("legal_kb_not_ready"));
+  assert(none.includes("residency_not_allowed"));
 });
 
 Deno.test("readiness exposes only safe booleans and codes", async () => {
   const readiness = await productIntegrationReadiness(
     readProductIntegrationConfig(reader()),
     legalDb(ACTIVE),
+    rpcProbe(true),
   );
   assert(readiness.fulfillment_ready);
   assert(readiness.checkout_ready.live);
   assert(readiness.legal_kb_ready);
+  assert(readiness.migration_ready);
   assertEquals(readiness.blockers, []);
   const serialized = JSON.stringify(readiness);
   assertFalse(serialized.includes("sk_live"));
@@ -376,7 +504,17 @@ Deno.test("readiness exposes only safe booleans and codes", async () => {
   );
   assertFalse(closed.fulfillment_ready);
   assertFalse(closed.legal_kb_ready);
+  assertFalse(closed.migration_ready);
   assert(closed.blockers.includes("legal_kb_not_ready"));
+  assert(closed.blockers.includes("migration_not_verified"));
+  // Непроверена схема държи плащането затворено.
+  const unproven = await productIntegrationReadiness(
+    readProductIntegrationConfig(reader()),
+    legalDb(ACTIVE),
+    rpcProbe(false),
+  );
+  assertFalse(unproven.checkout_ready.live);
+  assertFalse(unproven.migration_ready);
 });
 
 function profileDb(data: unknown, error: unknown = null) {

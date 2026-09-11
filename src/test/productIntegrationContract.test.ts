@@ -72,18 +72,27 @@ describe("конфигурацията е затворена по подразб
 });
 
 describe("сглобяването е за една заявка и след всички условия", () => {
-  it("fulfill-product композира портовете само при пълна конфигурация", () => {
-    expect(FULFILL).toContain("productFulfillmentBlockers(integration)");
-    expect(FULFILL).toContain("isProductAiResidencyAllowed");
-    expect(FULFILL).toContain("isLegalKnowledgeBaseReady(legalDb)");
+  it("fulfill-product проверява интеграцията ПРЕДИ да заяви задача", () => {
+    const gate = FULFILL.indexOf("productFulfillmentIntegrationBlockers(integration");
+    const claim = FULFILL.indexOf('admin.rpc("claim_product_job"');
+    expect(gate).toBeGreaterThan(0);
+    expect(claim).toBeGreaterThan(gate);
     expect(FULFILL).toContain("createProductModelPort({");
     expect(FULFILL).toContain("createProductLegalBasisPort(legalDb)");
-    expect(FULFILL).toContain("adapter: calls && ports ? factory(ports.model, ports.legal, calls) : null");
+    // Няма път „без адаптер“, който да заявява задача.
+    expect(FULFILL).not.toContain("? factory(ports.model, ports.legal, calls) : null");
+    expect(FULFILL).toContain("adapter: factory(ports.model, ports.legal, calls)");
   });
 
-  it("при забранена AI обработка извън ЕИП наемът се освобождава и се отказва", () => {
-    expect(FULFILL).toContain("release_product_job_lease");
+  it("при забранена AI обработка извън ЕИП не се заявява задача и се отказва", () => {
     expect(FULFILL).toContain('"residency_not_allowed"');
+    expect(FULFILL).toContain('code === "residency_not_allowed" ? 409 : 503');
+  });
+
+  it("провалът на доставчика не оставя мъртъв наем и не изнася подробности", () => {
+    expect(FULFILL).toContain("ProductModelGatewayError");
+    expect(FULFILL).toContain("release_product_job_lease");
+    expect(FULFILL).toContain('p_error_code: gateway ? "provider_contract" : "generation_invalid"');
   });
 
   it("платеният път не харчи общи операции", () => {
@@ -92,9 +101,12 @@ describe("сглобяването е за една заявка и след в�
     expect(CHECKOUT).not.toContain("consume_quota");
   });
 
-  it("продуктовото плащане има сървърен кран за всяко окръжение", () => {
-    expect(CHECKOUT).toContain("productCheckoutBlockers(");
+  it("плащането се проверява напълно преди Stripe и преди всеки запис", () => {
+    const gate = CHECKOUT.indexOf("productPrepaymentBlockers(integrationConfig");
+    expect(gate).toBeGreaterThan(0);
+    expect(CHECKOUT.indexOf("createStripeClient(environment)")).toBeGreaterThan(gate);
     expect(CHECKOUT).toContain("readProductIntegrationConfig((key) => Deno.env.get(key))");
+    expect(CHECKOUT).not.toContain("productCheckoutBlockers(");
   });
 });
 
