@@ -1,4 +1,4 @@
-# Stage 2A/2B1B1 — задължителен ред на прилагане (нищо не е приложено)
+# Stage 2A/2B1B2 — задължителен ред на прилагане (нищо не е приложено)
 
 Всички SQL файлове по-долу са само източник. **Нито един от тях не е изпълнен.**
 
@@ -18,6 +18,9 @@
 5. `drizzle/migrations/0021_product_policy_binding_patch.sql`
    — обвързва неизменно платеното право с точната версия на политиката от
    заявката и отказва празна/несъвпадаща връзка. **Веднага след 0020.**
+6. `drizzle/migrations/0022_product_generation_artifacts.sql`
+   — трайни, service-only артефакти, точни call ID разписки, стабилен timestamp,
+   безопасно възстановяване и атомарно завършване. **Веднага след 0021.**
 
 Защо редът е задължителен: базовата миграция създава таблиците, ограничението
 `product_entitlements_ready_ck` и функциите, които записват резултат, но сверява
@@ -44,6 +47,7 @@ content-free разход) и колоната `generation_policy_version`, ко
 - `docs/migrations/stage2a_product_fulfillment_jobs.sql`
 - `docs/migrations/stage2b1b1_product_fulfillment_jobs_correction.sql`
 - `docs/migrations/stage2b1b1_product_policy_binding_patch.sql`
+- `docs/migrations/stage2b1b2_product_generation_artifacts.sql`
 
 Контролни суми (SHA-256) на изпълнимите файлове:
 
@@ -51,14 +55,16 @@ content-free разход) и колоната `generation_policy_version`, ко
 - 0019: `77e4cf1f3bc1dafe5d8d2b2a483203d0ac8f13438f2f5bac5d2ef1a6ebf8e9a7`
 - 0020: `328c108abb489063309eaad6cafc31e679a4454355445677fb009a8e2b859629`
 - 0021: `8e9150f9154e55baf413703847aade5e12f84ae4331eeebaef093219e87af821`
+- 0022: `65797186dc7635d27be8b1fc258a5ef02cc54dd280ef3a486b0360231f68ba3c`
 
 Нито един от файловете не е записан в `drizzle/migrations/meta/_journal.json`:
 в това хранилище няма доказана конвенция за журнал на ръчни SQL кръпки, а този
 документ е авторитетният ред.
 
-Номер `0022` е **запазен** за състоянието на избора/уточнението (selection и
-refinement) в следващ етап. Той не се използва за нищо друго.
+Номер `0023` е **запазен** за състоянието на избора/уточнението (selection и
+refinement) в следващ етап. Обратимата карта за редакция не се записва: няма
+одобрен шифроващ примитив. Live provider остава затворен до доказан zero-retention gate.
 
-Stage 2B остава **блокиран за продукция**, докато и петте миграции не са
+Stage 2B остава **блокиран за продукция**, докато и шестте миграции не са
 приложени и проверени. Дотогава не се създава платено изпълнение на резултат:
-`fulfill-product` умишлено няма адаптер за генерация (Stage 2B1B2).
+`fulfill-product` умишлено няма live provider, докато zero-retention не е проверен.

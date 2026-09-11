@@ -30,8 +30,9 @@ import { chunkProductSource, verifyChunkCoverage, type SourceChunk } from "./pro
 import { buildSourceMap, locateOffset } from "./product-source-map.ts";
 import { foldToString } from "./product-text-fold.ts";
 import {
+  placeholdersForAnchor,
   placeholdersIn,
-  redactProductSource,
+  redactProductBundle,
   rehydrateProductOutput,
   type ProductRedactionMap,
 } from "./product-secure-redaction.ts";
@@ -91,6 +92,14 @@ export interface ProductModelPort {
   invoke(request: ProductModelRequest): Promise<ProductModelResponse>;
 }
 
+export interface ProductCallStore {
+  reserve(request: ProductModelRequest & { readonly requestDigest: string; readonly cursorKey: string }): Promise<{
+    readonly status: "reserved" | "complete";
+    readonly response?: ProductModelResponse;
+  }>;
+  complete(request: ProductModelRequest & { readonly requestDigest: string; readonly cursorKey: string }, response: ProductModelResponse): Promise<void>;
+}
+
 export interface ActiveLegalProvision {
   readonly provision_id: string;
   readonly version_id: string;
@@ -130,6 +139,7 @@ export interface ProductGenerationState {
   readonly completedCallIds: ReadonlySet<string>;
   readonly artifacts: readonly ProductGenerationArtifact[];
   readonly zeroRetentionVerified: boolean;
+  readonly generationTimestamp: string;
 }
 
 export interface ProductRuntimeStepResult {
@@ -137,6 +147,7 @@ export interface ProductRuntimeStepResult {
   readonly usage: ProductJobUsage;
   readonly artifact: ProductGenerationArtifact;
   readonly telemetry?: ProductCallTelemetry;
+  readonly callIds: readonly string[];
   readonly result?: ProductResult;
 }
 
@@ -219,7 +230,7 @@ function dedupe(items: readonly Candidate[]): Candidate[] {
   const seen = new Set<string>();
   return items.filter((item) => {
     const span = item.span as SourceSpan | undefined;
-    const key = `${String(item.title ?? item.summary ?? item.concept ?? "")}|${span?.start ?? ""}|${span?.end ?? ""}`;
+    const key = `${String(item.kind ?? "")}|${String(item.title ?? item.summary ?? item.concept ?? "")}|${span?.start ?? ""}|${span?.end ?? ""}`;
     const normalized = normalizeVariant(key);
     if (seen.has(normalized)) return false;
     seen.add(normalized);
@@ -245,6 +256,61 @@ function sourceBatches(sourceText: string): readonly (readonly SourceChunk[])[] 
 
 function artifactPayloads(state: ProductGenerationState, stage: ProductJobCursor["stage"]): unknown[] {
   return state.artifacts.filter((item) => item.stage === stage).map((item) => item.payload);
+}
+
+const STAGE_KEYS: Readonly<Record<ProductStageId, readonly string[]>> = Object.freeze({
+  passport: ["passport"],
+  review: ["kind", "id", "title", "summary", "concept", "severity", "span", "spans", "quote", "consequence", "next_step", "legal_basis", "party", "amount", "currency", "deadline", "terms", "searched_terms", "found"],
+  review_repair: ["kind", "id", "title", "summary", "concept", "severity", "span", "spans", "quote", "consequence", "next_step", "legal_basis", "party", "amount", "currency", "deadline", "terms", "searched_terms", "found"],
+  corrections: ["id", "title", "span", "mode", "original_text", "rationale", "options", "legal_basis", "consequence", "next_step"],
+  corrections_repair: ["id", "title", "span", "mode", "original_text", "rationale", "options", "legal_basis", "consequence", "next_step"],
+  negotiation: ["objectives", "red_lines", "concessions", "fallbacks", "questions", "actions"],
+  messages: ["drafts"],
+  synthesis: ["executive_summary", "priority_summary", "termination", "disputes", "absence_checks", "missing_protections", "questions"],
+  refinement: [],
+});
+
+function assertBoundedValue(value: unknown, depth = 0): void {
+  if (depth > 8) throw new ProductGenerationError("invalid_model_output");
+  if (typeof value === "string" && Array.from(value).length > 12_000) throw new ProductGenerationError("invalid_model_output");
+  if (Array.isArray(value)) {
+    if (value.length > 250) throw new ProductGenerationError("invalid_model_output");
+    value.forEach((item) => assertBoundedValue(item, depth + 1));
+  } else if (value && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>);
+    if (entries.length > 80) throw new ProductGenerationError("invalid_model_output");
+    entries.forEach(([, item]) => assertBoundedValue(item, depth + 1));
+  } else if (value !== null && !["string", "number", "boolean", "undefined"].includes(typeof value)) {
+    throw new ProductGenerationError("invalid_model_output");
+  }
+}
+
+function assertStageShape(stage: ProductStageId, value: unknown): void {
+  assertBoundedValue(value);
+  const rows = Array.isArray(value) ? value : [value];
+  if ((stage === "review" || stage === "corrections" || stage.endsWith("_repair")) && !Array.isArray(value)) {
+    throw new ProductGenerationError("invalid_model_output");
+  }
+  if (rows.some((row) => !row || typeof row !== "object" || Array.isArray(row))) {
+    throw new ProductGenerationError("invalid_model_output");
+  }
+  const allowed = new Set(STAGE_KEYS[stage]);
+  for (const row of rows as Record<string, unknown>[]) {
+    if (Object.keys(row).some((key) => !allowed.has(key))) throw new ProductGenerationError("invalid_model_output");
+  }
+}
+
+function redactValidatedArtifact(value: unknown, map: ProductRedactionMap): unknown {
+  let serialized = JSON.stringify(value);
+  for (const token of map.orderedTokens) {
+    const original = map.entries[token];
+    if (original) serialized = serialized.split(original).join(token);
+  }
+  return JSON.parse(serialized);
+}
+
+function hydrateArtifact(value: unknown, map: ProductRedactionMap): unknown {
+  return JSON.parse(rehydrateProductOutput(JSON.stringify(value), map, []));
 }
 
 async function digest(value: unknown): Promise<string> {
@@ -300,8 +366,8 @@ function assemble(state: ProductGenerationState, synthesis: Candidate): ProductR
     priority_summary: synthesis.priority_summary ?? [],
     findings: byKind("finding"), obligations: byKind("obligation"),
     economic_terms: byKind("economic_term"),
-    termination: synthesis.termination ?? { summary: "Не е установена отделна клауза.", spans: [] },
-    disputes: synthesis.disputes ?? { summary: "Не е установена отделна клауза.", spans: [] },
+    termination: synthesis.termination,
+    disputes: synthesis.disputes,
     contradictions: byKind("contradiction"), absence_checks: absenceChecks,
     missing_protections: missing, questions: synthesis.questions ?? [],
   };
@@ -326,7 +392,7 @@ function assemble(state: ProductGenerationState, synthesis: Candidate): ProductR
     schema_version: PRODUCT_RESULT_SCHEMA_VERSION,
     product_id: state.productId,
     source: state.binding,
-    generated_at: new Date().toISOString(),
+    generated_at: state.generationTimestamp,
     payload: base,
   } as unknown as ProductResult;
 }
@@ -335,6 +401,7 @@ export class ProductGenerationRuntime {
   constructor(
     private readonly model: ProductModelPort,
     private readonly legal: ProductLegalBasisPort,
+    private readonly calls?: ProductCallStore,
   ) {}
 
   async runStep(state: ProductGenerationState): Promise<ProductRuntimeStepResult> {
@@ -342,7 +409,8 @@ export class ProductGenerationRuntime {
     if (state.bounds.policyVersion !== PRODUCT_GENERATION_POLICY_VERSION) throw new ProductGenerationError("safety_gate_closed");
     const originalClassification = classifyDocumentBeforeAI(state.sourceText);
     if (originalClassification.contains_special_category_data) throw new ProductGenerationError("safety_gate_closed");
-    const redaction = redactProductSource(state.sourceText);
+    if (!Number.isFinite(Date.parse(state.generationTimestamp))) throw new ProductGenerationError("invalid_cursor");
+    const redaction = redactProductBundle(state.sourceText, state.context as unknown as Readonly<Record<string, unknown>>);
     if (redaction.classification.redaction_required || redaction.classification.contains_special_category_data) {
       throw new ProductGenerationError("safety_gate_closed");
     }
@@ -360,6 +428,7 @@ export class ProductGenerationRuntime {
           payload,
           digest: await digest(payload),
         },
+        callIds: [],
       };
     }
     let route: ProductStageId;
@@ -372,7 +441,7 @@ export class ProductGenerationRuntime {
     } else if (state.cursor.stage === "review" || state.cursor.stage === "corrections") {
       route = state.cursor.stage;
       selected = batches[state.cursor.batch_index] ?? [];
-      ordinal = state.cursor.batch_index * 2;
+      ordinal = state.cursor.batch_index;
       next = state.cursor.batch_index + 1 < batches.length
         ? { stage: state.cursor.stage, batch_index: state.cursor.batch_index + 1, chunk_index: selected.at(-1)?.index ?? 0 }
         : { stage: nextStage(state.productId, state.cursor.stage), batch_index: 0, chunk_index: 0 };
@@ -387,41 +456,95 @@ export class ProductGenerationRuntime {
     assertUsage(state, bound);
     const callId = `${jobIdempotencyKey(state.entitlementId, state.cursor)}:${route}:${ordinal}`;
     if (state.completedCallIds.has(callId)) throw new ProductGenerationError("invalid_cursor");
-    const payload = safePayloadForStage(route, redaction.text, selected, state.context, state.artifacts);
-    const response = await this.model.invoke({ callId, routeKey: route, model: bound.model, maxInputTokens: bound.maxInputTokens, maxOutputTokens: bound.maxOutputTokens, payload });
-    if (!Number.isSafeInteger(response.inputTokens) || !Number.isSafeInteger(response.outputTokens) || response.inputTokens < 0 || response.outputTokens < 0 || response.inputTokens > bound.maxInputTokens || response.outputTokens > bound.maxOutputTokens) {
-      throw new ProductGenerationError("budget_exceeded");
+    const redactedArtifacts = state.artifacts;
+    const payload = safePayloadForStage(
+      route,
+      redaction.text,
+      selected,
+      redaction.context as unknown as ProductContext,
+      redactedArtifacts,
+    );
+    const invoke = async (requestRoute: ProductStageId, requestBound: ProductStageCallBound, requestCallId: string, requestPayload: Readonly<Record<string, unknown>>) => {
+      assertUsage(state, requestBound);
+      const request = { callId: requestCallId, routeKey: requestRoute, model: requestBound.model, maxInputTokens: requestBound.maxInputTokens, maxOutputTokens: requestBound.maxOutputTokens, payload: requestPayload };
+      const requestDigest = await digest(requestPayload);
+      const persistedRequest = { ...request, requestDigest, cursorKey: `${state.cursor.stage}:${state.cursor.batch_index}:${state.cursor.chunk_index}` };
+      const reserved = this.calls ? await this.calls.reserve(persistedRequest) : { status: "reserved" as const };
+      let response = reserved.response;
+      if (reserved.status === "complete" && !response) throw new ProductGenerationError("invalid_cursor");
+      if (!response) {
+        response = await this.model.invoke(request);
+        if (this.calls) await this.calls.complete(persistedRequest, response);
+      }
+      if (!Number.isSafeInteger(response.inputTokens) || !Number.isSafeInteger(response.outputTokens) || response.inputTokens < 0 || response.outputTokens < 0 || response.inputTokens > requestBound.maxInputTokens || response.outputTokens > requestBound.maxOutputTokens) throw new ProductGenerationError("budget_exceeded");
+      return response;
+    };
+    const anchorTokens = (value: unknown): string[] => {
+      if (!value || typeof value !== "object") return [];
+      if (Array.isArray(value)) return value.flatMap(anchorTokens);
+      const row = value as Record<string, unknown>;
+      const span = row.span as Record<string, unknown> | undefined;
+      const own = span && Number.isSafeInteger(span.start) && Number.isSafeInteger(span.end)
+        ? placeholdersForAnchor(redaction.map, span.start as number, span.end as number) : [];
+      return [...own, ...Object.values(row).flatMap(anchorTokens)];
+    };
+    const validateResponse = async (output: unknown, schemaStage: ProductStageId): Promise<unknown> => {
+      const rawJson = JSON.stringify(output);
+      const expected = [...new Set(anchorTokens(output))];
+      let hydrated: unknown;
+      try { hydrated = JSON.parse(rehydrateProductOutput(rawJson, redaction.map, expected)); }
+      catch { throw new ProductGenerationError("invalid_placeholder"); }
+      assertStageShape(schemaStage, hydrated);
+      if (Array.isArray(hydrated)) {
+        return await Promise.all(hydrated.map((item) => validateCandidate(item as Candidate, state.sourceText, this.legal)));
+      }
+      if (hydrated && typeof hydrated === "object") return await validateCandidate(hydrated as Candidate, state.sourceText, this.legal);
+      throw new ProductGenerationError("invalid_model_output");
+    };
+    const response = await invoke(route, bound, callId, payload);
+    let validated: unknown;
+    let repairCount = 0;
+    let repairCallId: string | undefined;
+    let repairBound: ProductStageCallBound | undefined;
+    let repairResponse: ProductModelResponse | undefined;
+    try {
+      validated = await validateResponse(response.output, route);
+    } catch (error) {
+      if ((route !== "review" && route !== "corrections") || !(error instanceof ProductGenerationError)) throw error;
+      const repairRoute = `${route}_repair` as ProductStageId;
+      repairBound = callBound(state, repairRoute, ordinal);
+      repairCallId = `${jobIdempotencyKey(state.entitlementId, state.cursor)}:${repairRoute}:${ordinal}`;
+      const repairPayload = { ...payload, rejected_output: response.output, validation_error: error.code };
+      repairResponse = await invoke(repairRoute, repairBound, repairCallId, repairPayload);
+      validated = await validateResponse(repairResponse.output, repairRoute);
+      repairCount = 1;
     }
-    const rawJson = JSON.stringify(response.output);
-    const outputTokens = placeholdersIn(rawJson, redaction.map);
-    const expected = [...new Set(outputTokens)];
-    let hydrated: unknown;
-    try { hydrated = JSON.parse(rehydrateProductOutput(rawJson, redaction.map, expected)); }
-    catch { throw new ProductGenerationError("invalid_placeholder"); }
-    let validated: unknown = hydrated;
-    if (Array.isArray(hydrated)) {
-      validated = await Promise.all(hydrated.map((item) => validateCandidate(item as Candidate, state.sourceText, this.legal)));
-    } else if (hydrated && typeof hydrated === "object") {
-      validated = await validateCandidate(hydrated as Candidate, state.sourceText, this.legal);
-    } else throw new ProductGenerationError("invalid_model_output");
     let result: ProductResult | undefined;
     if (route === "synthesis") {
-      result = assemble(state, validated as Candidate);
+      const hydratedState = {
+        ...state,
+        artifacts: state.artifacts.map((artifact) => ({ ...artifact, payload: hydrateArtifact(artifact.payload, redaction.map) })),
+      };
+      result = assemble(hydratedState, validated as Candidate);
       const ready = readyProductResult(result, state.binding, state.productId);
       if (!ready.ok) throw new ProductGenerationError("invalid_result");
     }
+    const persistedPayload = result ?? redactValidatedArtifact(validated, redaction.map);
     const artifact: ProductGenerationArtifact = {
       version: PRODUCT_GENERATION_ARTIFACT_VERSION,
       cursorKey: `${next.stage}:${next.batch_index}:${next.chunk_index}`,
       stage: route,
-      payload: validated,
-      digest: await digest(validated),
+      payload: persistedPayload,
+      digest: await digest(persistedPayload),
     };
-    const cost = callCost(bound, response.inputTokens, response.outputTokens);
+    const cost = callCost(bound, response.inputTokens, response.outputTokens) +
+      (repairBound && repairResponse ? callCost(repairBound, repairResponse.inputTokens, repairResponse.outputTokens) : 0);
+    const totalInput = response.inputTokens + (repairResponse?.inputTokens ?? 0);
+    const totalOutput = response.outputTokens + (repairResponse?.outputTokens ?? 0);
     return {
-      nextCursor: next, artifact, result,
-      usage: { calls: 1, input_tokens: response.inputTokens, output_tokens: response.outputTokens, cost_micro_usd: cost },
-      telemetry: { callId, routeKey: route, model: bound.model, elapsedMs: Math.max(0, Math.trunc(response.elapsedMs)), retryCount: 0, repairCount: 0, inputTokens: response.inputTokens, outputTokens: response.outputTokens, costMicroUsd: cost },
+      nextCursor: next, artifact, result, callIds: repairCallId ? [callId, repairCallId] : [callId],
+      usage: { calls: 1 + repairCount, input_tokens: totalInput, output_tokens: totalOutput, cost_micro_usd: cost },
+      telemetry: { callId, routeKey: route, model: bound.model, elapsedMs: Math.max(0, Math.trunc(response.elapsedMs) + Math.trunc(repairResponse?.elapsedMs ?? 0)), retryCount: 0, repairCount, inputTokens: totalInput, outputTokens: totalOutput, costMicroUsd: cost },
     };
   }
 }
@@ -430,11 +553,18 @@ export class ProductGenerationRuntime {
 export function createProductGenerationAdapter(
   model: ProductModelPort,
   legal: ProductLegalBasisPort,
+  calls?: ProductCallStore,
 ): ProductGenerationAdapter {
-  const runtime = new ProductGenerationRuntime(model, legal);
+  const runtime = new ProductGenerationRuntime(model, legal, calls);
   return Object.freeze({
     policyVersion: PRODUCT_GENERATION_POLICY_VERSION,
     async runStep(step: ProductGenerationStep) {
+      if (!step.dataSafety.modelCallAllowed ||
+        (step.dataSafety.redactionRequired && !step.dataSafety.redactionCompleted) ||
+        (step.dataSafety.postRedactionReclassificationRequired && !step.dataSafety.postRedactionReclassificationCompleted) ||
+        (step.dataSafety.userConfirmationRequired && !step.dataSafety.userConfirmationCompleted)) {
+        throw new ProductGenerationError("safety_gate_closed");
+      }
       const result = await runtime.runStep({
         entitlementId: step.entitlementId,
         productId: step.productId,
@@ -445,6 +575,7 @@ export function createProductGenerationAdapter(
         bounds: step.bounds,
         usage: step.usage,
         zeroRetentionVerified: step.zeroRetentionVerified,
+        generationTimestamp: step.generationTimestamp,
         artifacts: step.artifacts as readonly ProductGenerationArtifact[],
         completedCallIds: step.completedCallIds,
       });
@@ -453,13 +584,14 @@ export function createProductGenerationAdapter(
         usage: result.usage,
         result: result.result,
         artifact: result.artifact,
+        callIds: result.callIds,
       };
     },
   });
 }
 
 /** Restores server-owned resumable artifacts; malformed state is never repaired silently. */
-export function parseGenerationArtifacts(raw: unknown): SerializedProductGenerationState {
+export async function parseGenerationArtifacts(raw: unknown): Promise<SerializedProductGenerationState> {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     return { version: PRODUCT_GENERATION_ARTIFACT_VERSION, artifacts: [], completedCallIds: [] };
   }
@@ -474,6 +606,16 @@ export function parseGenerationArtifacts(raw: unknown): SerializedProductGenerat
       typeof row.stage === "string" && typeof row.digest === "string" && /^[0-9a-f]{64}$/.test(row.digest);
   });
   if (artifacts.length !== value.artifacts.length || !value.completedCallIds.every((item) => typeof item === "string")) {
+    throw new ProductGenerationError("invalid_cursor");
+  }
+  const cursors = new Set<string>();
+  for (const artifact of artifacts) {
+    if (cursors.has(artifact.cursorKey) || artifact.digest !== await digest(artifact.payload)) {
+      throw new ProductGenerationError("invalid_cursor");
+    }
+    cursors.add(artifact.cursorKey);
+  }
+  if (new Set(value.completedCallIds as string[]).size !== value.completedCallIds.length) {
     throw new ProductGenerationError("invalid_cursor");
   }
   return {
