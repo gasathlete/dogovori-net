@@ -1,5 +1,10 @@
 # Roadmap — Conversion reliability
 
+## P0 — Stage 2B1B2 (source only)
+- [ ] Implement resumable full-document paid generation with mocked external adapters
+- [ ] Validate evidence, redaction, absence checks, corrections, legal bases, and complete v2 assembly
+- [ ] Verify all suites and commit atomically without deployment or external side effects
+
 Ограничения: без production deployment, без промяна на цени/планове/лимити/дизайн/маркетинг текст.
 
 ## Готово (етап 1)
