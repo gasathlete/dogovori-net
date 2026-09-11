@@ -34,6 +34,11 @@ import {
 import { evaluateProductEligibility } from "../_shared/product-eligibility.ts";
 import { PRODUCT_GENERATION_POLICY_VERSION } from "../_shared/product-generation-policy.ts";
 import {
+  productCheckoutBlockers,
+  productIntegrationMessage,
+  readProductIntegrationConfig,
+} from "../_shared/product-integration.ts";
+import {
   ConsentMissingError,
   LEGAL_VERSIONS,
   ReturnUrlError,
