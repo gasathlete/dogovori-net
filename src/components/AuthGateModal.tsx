@@ -19,6 +19,7 @@ import {
 import { TrustGuaranteeBar } from "@/components/funnel/TrustGuaranteeBar";
 import { cheapestPerOpLabel, FREE_OFFER_RULE } from "@/lib/pricing";
 import { openInlineAuth } from "@/lib/inlineAuth";
+import { CATALOG_DOCUMENT_COUNT } from "@/lib/catalogStats";
 
 /**
  * Global auth gate modal.
@@ -65,13 +66,13 @@ export function AuthGateModal() {
   const skip = () => setOpen(false);
 
   const stats: Array<{ icon: any; value: string; label: string; tone: "gold" | "emerald" }> = [
-    { icon: Clock, value: "~3 ч.", label: "спестено време / документ", tone: "emerald" },
-    { icon: Euro, value: "~290 €", label: "вместо адвокат", tone: "gold" },
-    { icon: ShieldAlert, value: ">95%", label: "уловени клопки", tone: "emerald" },
+    { icon: Clock, value: "минути", label: "за готов документ", tone: "emerald" },
+    { icon: Euro, value: "0 €", label: "за първия документ", tone: "gold" },
+    { icon: ShieldAlert, value: "PDF и DOCX", label: "изтегляне", tone: "emerald" },
   ];
 
   const features: Array<{ icon: any; label: string }> = [
-    { icon: FileText, label: "600+ шаблона" },
+    { icon: FileText, label: `${CATALOG_DOCUMENT_COUNT} шаблона` },
     { icon: BrainCircuit, label: "AI асистент" },
     { icon: ShieldAlert, label: "Анализ на риска" },
     { icon: FileSignature, label: "Е-Подпис" },
@@ -170,7 +171,7 @@ export function AuthGateModal() {
           {/* Features grid */}
           <div className="mt-4">
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Какво получаваш
+              Какво получавате
             </p>
             <div className="grid grid-cols-2 gap-1.5">
               {features.map((f) => {

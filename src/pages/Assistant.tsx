@@ -5,11 +5,12 @@ import { AssistantChat } from "@/components/AssistantChat";
 import { PaidOnlyOverlay } from "@/components/paywall/PaidOnlyOverlay";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsPro } from "@/hooks/useIsPro";
+import { CATALOG_DOCUMENT_COUNT } from "@/lib/catalogStats";
 
 const QUICK_LINKS = [
   { to: "/build", icon: FileText, title: "Създаване на документ", desc: "Wizard за индивидуален договор." },
   { to: "/analyze", icon: Upload, title: "Анализ на документ", desc: "Качете PDF/DOCX за AI преглед." },
-  { to: "/catalog", icon: Layers, title: "Каталог шаблони", desc: "600+ готови шаблона." },
+  { to: "/catalog", icon: Layers, title: "Каталог шаблони", desc: `${CATALOG_DOCUMENT_COUNT} готови шаблона.` },
   { to: "/komplekti", icon: Scale, title: "Комплекти", desc: "Пакети за често срещани казуси." },
 ];
 

@@ -27,7 +27,28 @@ import {
 } from "../src/lib/resolveTemplatePresentation";
 import { getSeoTemplateMeta } from "../src/lib/seoTemplateMeta";
 
-import { FREE_OFFER_RULE } from "../src/lib/pricing";
+import { FREE_OFFER_RULE, fmtEur } from "../src/lib/pricing";
+import { ONE_TIME_PRODUCTS, ONE_TIME_TERMS } from "../src/lib/products";
+import {
+  CHECK_CONCLUSION,
+  CHECK_FINDINGS,
+  CHECK_LEDGER,
+  IMPROVE_CLAUSE,
+  IMPROVE_DELIVERABLES,
+  IMPROVE_STRATEGIES,
+  PACKAGE_ACTIONS,
+  PACKAGE_FINAL,
+  PACKAGE_LETTERS,
+  PACKAGE_PLAN,
+  PREVIEW_NOTE,
+  PREVIEW_TITLE,
+  SAMPLE_DOC,
+} from "../src/components/products/previewData";
+
+/** Цената идва само от каноничната конфигурация — без литерали в текста. */
+function priceText(eur: number): string {
+  return `${fmtEur(eur)} еднократно`;
+}
 
 
 const DIST = resolve(process.cwd(), "dist");
@@ -159,23 +180,27 @@ function bodyForTemplate(
 
 const pages: PageMeta[] = [];
 
+// Броят идва от каталога, не от твърдение в текст — така не остарява.
+const totalDocs = CATALOG.reduce((s, c) => s + c.documents.length, 0);
+
 // Index
 pages.push({
   path: "/",
-  title: "Договори онлайн на български — Dogovori.net",
-  description: "Над 290 професионални договора и правни бланки на български с AI асистент. Електронен подпис, PDF и DOCX експорт. Безплатно за първия документ.",
+  title: "Договори и документи на български — Dogovori.net",
+  description: `Изготвяте документ по образец от ${totalDocs} шаблона, проверявате чужд документ преди подпис и го сваляте в PDF или DOCX. Първият документ е безплатен.`,
   bodyHtml: `<main style="font-family:Georgia,serif;max-width:800px;margin:2rem auto;padding:1rem">
-      <h1>Dogovori.net — Договори онлайн на български</h1>
-      <p>Над 290 професионални договора и правни бланки на български с AI асистент. Готови шаблони по ЗЗД, ТЗ, КТ. Електронен подпис, PDF и DOCX експорт.</p>
+      <h1>Dogovori.net — договори и документи на български</h1>
+      <p>Изготвяте документ по образец от ${totalDocs} шаблона по ЗЗД, ТЗ и КТ, проверявате чужд документ преди подпис и го сваляте в PDF или DOCX. Първият документ е безплатен.</p>
       <h2>Категории</h2>
       <ul>${CATALOG.map((c) => `<li><a href="/kategoria/${c.id}">${escapeHtml(c.title)}</a> — ${c.documents.length} шаблона</li>`).join("")}</ul>
-      <p><a href="/catalog">Виж пълния каталог</a> · <a href="/karta">Карта на сайта</a> · <a href="/blog">Блог</a></p>
+      <h2>Еднократни продукти за един документ</h2>
+      <ul>${ONE_TIME_PRODUCTS.map((p) => `<li><a href="/produkti/${p.slug}">${escapeHtml(p.name)}</a> — ${escapeHtml(p.shortOutcome)} ${priceText(p.priceEur)}</li>`).join("")}</ul>
+      <p><a href="/produkti">Продукти</a> · <a href="/plans">Планове</a> · <a href="/catalog">Пълен каталог</a> · <a href="/karta">Карта на сайта</a> · <a href="/blog">Блог</a></p>
     </main>`,
   jsonLd: [],
 });
 
 // Catalog
-const totalDocs = CATALOG.reduce((s, c) => s + c.documents.length, 0);
 pages.push({
   path: "/catalog",
   title: `Каталог: ${totalDocs}+ договора и бланки на български | Dogovori.net`,
@@ -240,17 +265,16 @@ pages.push({
   pages.push({
     path: "/ai",
     title: "AI правен анализ на договори — как работи | Dogovori.net",
-    description:
-      "Как AI системата на Dogovori.net анализира български договори: извличане на клаузи, проверка по ЗЗД/ТЗ/КТ, конкретни корекции и експорт в PDF/DOCX. Над 600 шаблона.",
+    description: `Как Dogovori.net проверява български договори: клаузите, позоваването на ЗЗД, ТЗ и КТ, конкретните поправки и експорт в PDF или DOCX. ${totalDocs} шаблона.`,
     bodyHtml: `<main style="font-family:Georgia,serif;max-width:900px;margin:2rem auto;padding:1rem;color:#0f1a30">
         <nav><a href="/">Начало</a> › AI правен анализ</nav>
         <h1>Как AI системата на Dogovori.net анализира договори</h1>
-        <p>Платформата комбинира структурирана библиотека от български документни шаблони с AI/prompt пайплайн, конфигуриран за анализ на договори на български език и препращане към приложимото българско законодателство (ЗЗД, ТЗ, КТ).</p>
-        <h2>Пайплайн на анализа — 5 стъпки</h2>
+        <p>Платформата събира ${totalDocs} български шаблона и автоматична проверка на текста, която се позовава на приложимото българско законодателство (ЗЗД, ТЗ, КТ). Резултатът е автоматично изготвена информация, а не индивидуален правен съвет.</p>
+        <h2>Проверката в 5 стъпки</h2>
         <ol>${AI_ANALYSIS_STEPS.map((s) => `<li><strong>${escapeHtml(s.title)}</strong> — ${escapeHtml(s.body)}</li>`).join("")}</ol>
         <h2>Често задавани въпроси</h2>
         ${AI_FAQS.map((f) => `<section><h3>${escapeHtml(f.q)}</h3><p>${escapeHtml(f.a)}</p></section>`).join("")}
-        <p><a href="/build">Изготви договор с AI</a> · <a href="/karta">Карта на сайта (всички 600+ шаблона)</a> · <a href="/catalog">Каталог</a></p>
+        <p><a href="/build">Изготвяне на документ</a> · <a href="/karta">Карта на сайта (всички ${totalDocs} шаблона)</a> · <a href="/catalog">Каталог</a></p>
       </main>`,
     jsonLd: aiLd,
   });
@@ -767,6 +791,158 @@ if (blogPosts.length) {
         ],
       });
     }
+  }
+}
+
+/* ------------------- Еднократни продукти (/produkti) -------------------
+   Статичният HTML съдържа имената, цените, резултата и примерния текст на
+   трите продукта, без зависимост от въртележка или JavaScript.            */
+{
+  const DISCLAIMER =
+    "Резултатът е автоматично изготвена информация по подадения текст. Не е индивидуален правен съвет и не заменя консултация с адвокат.";
+
+  const sampleFor = (id: string): string => {
+    if (id === "contract_check") {
+      return `<p>${escapeHtml(PREVIEW_TITLE)} — ${escapeHtml(PREVIEW_NOTE)} ${escapeHtml(SAMPLE_DOC.title)}, ${escapeHtml(SAMPLE_DOC.parties)}. ${escapeHtml(SAMPLE_DOC.role)}.</p>
+        <p>${escapeHtml(CHECK_CONCLUSION)}</p>
+        <ul>${CHECK_FINDINGS.map((f) => `<li><strong>${escapeHtml(f.severity)}: ${escapeHtml(f.title)}</strong> — ${escapeHtml(f.consequence)} (${escapeHtml(f.location)}) ${escapeHtml(f.excerpt)} ${escapeHtml(f.nextStep)}</li>`).join("")}</ul>
+        <ul>${CHECK_LEDGER.map((l) => `<li>${escapeHtml(l.label)}: ${escapeHtml(l.value)}</li>`).join("")}</ul>`;
+    }
+    if (id === "contract_improve") {
+      return `<p>${escapeHtml(PREVIEW_TITLE)} — ${escapeHtml(PREVIEW_NOTE)} ${escapeHtml(SAMPLE_DOC.title)}, ${escapeHtml(IMPROVE_CLAUSE.location)}.</p>
+        <p><strong>Преди:</strong> ${escapeHtml(IMPROVE_CLAUSE.before)}</p>
+        <ul>${IMPROVE_STRATEGIES.map((s) => `<li><strong>${escapeHtml(s.label)}</strong> — ${escapeHtml(s.proposed)} <em>${escapeHtml(s.tradeoff)}</em></li>`).join("")}</ul>
+        <ul>${IMPROVE_DELIVERABLES.map((d) => `<li>${escapeHtml(d)}</li>`).join("")}</ul>`;
+    }
+    return `<p>${escapeHtml(PREVIEW_TITLE)} — ${escapeHtml(PREVIEW_NOTE)} ${escapeHtml(SAMPLE_DOC.title)}, ${escapeHtml(SAMPLE_DOC.role)}.</p>
+      ${PACKAGE_PLAN.map((b) => `<p><strong>${escapeHtml(b.heading)}</strong></p><ul>${b.items.map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>`).join("")}
+      <ul>${PACKAGE_ACTIONS.map((a) => `<li>${escapeHtml(a.action)} — ${escapeHtml(a.owner)}, ${escapeHtml(a.deadline)} (${escapeHtml(a.status)})</li>`).join("")}</ul>
+      <ul>${PACKAGE_LETTERS.map((l) => `<li><strong>${escapeHtml(l.tone)}:</strong> ${escapeHtml(l.text)}</li>`).join("")}</ul>
+      <ul>${PACKAGE_FINAL.map((f) => `<li>${escapeHtml(f)}</li>`).join("")}</ul>`;
+  };
+
+  // /produkti — витрината
+  pages.push({
+    path: "/produkti",
+    title: "Продукти за един документ — проверка, поправка, преговори",
+    description:
+      "Три еднократни продукта за един документ: подробна проверка преди подпис, поправка на текста с три варианта и пълен пакет за преговори. Плащате веднъж, без абонамент.",
+    bodyHtml: `<main style="font-family:Georgia,serif;max-width:900px;margin:2rem auto;padding:1rem;color:#0f1a30">
+        <nav><a href="/">Начало</a> › Продукти</nav>
+        <h1>Продукти за един документ</h1>
+        <p>Проверка преди подпис, поправка на текста или пълен пакет за преговори. Плащате веднъж за конкретния документ. ${escapeHtml(ONE_TIME_TERMS)}.</p>
+        ${ONE_TIME_PRODUCTS.map(
+          (p) => `<section>
+          <h2><a href="/produkti/${p.slug}">${escapeHtml(p.name)}</a></h2>
+          <p>${escapeHtml(p.promise)}</p>
+          <p><strong>${escapeHtml(priceText(p.priceEur))}</strong> · ${escapeHtml(p.shortOutcome)}</p>
+          <ul>${p.outcomes.map((o) => `<li>${escapeHtml(o)}</li>`).join("")}</ul>
+          <p><a href="/produkti/${p.slug}">Вижте продукта</a></p>
+        </section>`,
+        ).join("")}
+        <h2>Примерни резултати</h2>
+        ${ONE_TIME_PRODUCTS.map((p) => `<section><h3>${escapeHtml(p.name)} — ${escapeHtml(PREVIEW_TITLE)}</h3>${sampleFor(p.id)}</section>`).join("")}
+        <p>${escapeHtml(DISCLAIMER)}</p>
+        <p><a href="/plans">Планове за редовна работа с документи</a> · <a href="/catalog">Каталог на шаблоните</a> · <a href="/">Начало</a></p>
+      </main>`,
+    jsonLd: [
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Начало", item: `${SITE}/` },
+          { "@type": "ListItem", position: 2, name: "Продукти", item: `${SITE}/produkti` },
+        ],
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        name: "Продукти на Договори.нет",
+        itemListElement: ONE_TIME_PRODUCTS.map((p, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          name: p.name,
+          url: `${SITE}/produkti/${p.slug}`,
+        })),
+      },
+    ],
+  });
+
+  // Трите продуктови страници
+  for (const p of ONE_TIME_PRODUCTS) {
+    const url = `${SITE}/produkti/${p.slug}`;
+    const others = ONE_TIME_PRODUCTS.filter((o) => o.id !== p.id);
+    pages.push({
+      path: `/produkti/${p.slug}`,
+      title: p.page.title,
+      description: p.page.metaDescription,
+      bodyHtml: `<main style="font-family:Georgia,serif;max-width:900px;margin:2rem auto;padding:1rem;color:#0f1a30">
+          <nav><a href="/">Начало</a> › <a href="/produkti">Продукти</a> › ${escapeHtml(p.name)}</nav>
+          <h1>${escapeHtml(p.page.h1)}</h1>
+          <p>${escapeHtml(p.page.intro)}</p>
+          <p><strong>${escapeHtml(priceText(p.priceEur))}</strong> · ${escapeHtml(p.shortOutcome)}</p>
+          <p><a href="/produkti/${p.slug}/start">${escapeHtml(p.ctaLabel)}</a> · <a href="/start">Започнете безплатно</a></p>
+          <h2>Какво давате Вие</h2>
+          <ul>${p.page.youProvide.map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>
+          <h2>Какво получавате</h2>
+          <ul>${p.page.youReceive.map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>
+          <h2>Какво точно съдържа резултатът</h2>
+          ${p.page.resultSections.map((s) => `<section><h3>${escapeHtml(s.heading)}</h3><ul>${s.items.map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul></section>`).join("")}
+          <h2>Три стъпки</h2>
+          <ol>${p.page.steps.map((s) => `<li>${escapeHtml(s)}</li>`).join("")}</ol>
+          <h2>${escapeHtml(PREVIEW_TITLE)}</h2>
+          ${sampleFor(p.id)}
+          <h2>Често задавани въпроси</h2>
+          ${p.page.faq.map((f) => `<section><h3>${escapeHtml(f.q)}</h3><p>${escapeHtml(f.a)}</p></section>`).join("")}
+          <p>${escapeHtml(ONE_TIME_TERMS)}. ${escapeHtml(DISCLAIMER)}</p>
+          <h2>Другите продукти</h2>
+          <ul>${others.map((o) => `<li><a href="/produkti/${o.slug}">${escapeHtml(o.name)}</a> — ${escapeHtml(priceText(o.priceEur))}</li>`).join("")}</ul>
+          <p><a href="/produkti">Всички продукти</a> · <a href="/plans">Планове</a> · <a href="/catalog">Каталог</a></p>
+        </main>`,
+      jsonLd: [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Начало", item: `${SITE}/` },
+            { "@type": "ListItem", position: 2, name: "Продукти", item: `${SITE}/produkti` },
+            { "@type": "ListItem", position: 3, name: p.name, item: url },
+          ],
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: p.page.title,
+          description: p.page.metaDescription,
+          url,
+          inLanguage: "bg-BG",
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "Service",
+          name: p.name,
+          description: p.page.metaDescription,
+          url,
+          areaServed: "BG",
+          provider: { "@type": "Organization", name: "Договори.нет", url: SITE },
+          offers: {
+            "@type": "Offer",
+            price: p.priceEur.toFixed(2),
+            priceCurrency: "EUR",
+            url,
+          },
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: p.page.faq.map((f) => ({
+            "@type": "Question",
+            name: f.q,
+            acceptedAnswer: { "@type": "Answer", text: f.a },
+          })),
+        },
+      ],
+    });
   }
 }
 

@@ -11,6 +11,8 @@ Disallow: /contact/
 Disallow: /document/
 Disallow: /downloads/
 Disallow: /komplekti/moi/
+Disallow: /produkti/rezultat
+Disallow: /produkti/*/start
 Disallow: /reset-password
 Disallow: /share/
 Disallow: /sign/

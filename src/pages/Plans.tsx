@@ -52,6 +52,7 @@ import { FAQ } from "@/lib/plansData";
 import { usePlans, type Billing, type PlanId } from "@/hooks/usePlans";
 import { trackEvent } from "@/lib/analytics";
 import { trackPlansView } from "@/lib/metrics";
+import { CATALOG_DOCUMENT_COUNT } from "@/lib/catalogStats";
 
 
 const PLAN_ICON: Record<PlanId, React.ComponentType<{ className?: string }>> = {
@@ -611,7 +612,7 @@ export default function Plans() {
               {
                 n: "Избор на образец",
                 ops: "0 действия",
-                d: "Каталог от 600+ образеца по ЗЗД, ТЗ, КТ и ЗУТ. Разглеждането и отварянето на образец е безплатно във всеки план.",
+                d: `Каталог от ${CATALOG_DOCUMENT_COUNT} образеца по ЗЗД, ТЗ, КТ и ЗУТ. Разглеждането и отварянето на образец е безплатно във всеки план.`,
               },
               {
                 n: "Попълване в съветника",

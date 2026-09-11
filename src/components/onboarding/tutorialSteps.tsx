@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { CATALOG_DOCUMENT_COUNT } from "@/lib/catalogStats";
 import {
   Search, FileText, ShieldCheck, PenLine, Package, Upload, FolderTree, MessageSquare, Sparkles,
 } from "@/icons";
@@ -171,7 +172,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     id: "find",
     kicker: "Стъпка 1",
     title: "Намерете или създайте документ",
-    body: "Над 600 готови шаблона по ЗЗД, ТЗ, КТ и ЗУТ — намерете го за секунди или започнете нов.",
+    body: `${CATALOG_DOCUMENT_COUNT} готови шаблона по ЗЗД, ТЗ, КТ и ЗУТ — намерете го за секунди или започнете нов.`,
     icon: <Search className="h-5 w-5" />,
     preview: <SearchPreview />,
     cta: { label: "Към каталога", href: "/catalog" },

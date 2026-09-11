@@ -7,6 +7,7 @@ import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { FilePen, Search, ShieldCheck, ArrowRight } from "@/icons";
 import { trackMetric } from "@/lib/metrics";
 import { ChoiceFlow, type FlowId } from "@/components/home/ChoiceFlow";
+import { CATALOG_DOCUMENT_COUNT } from "@/lib/catalogStats";
 
 const CHOICES = [
   {
@@ -22,7 +23,7 @@ const CHOICES = [
     to: "/catalog",
     icon: Search,
     label: "Шаблони",
-    hint: "Над 600 образца по ЗЗД, ТЗ, КТ и ЗУТ.",
+    hint: `${CATALOG_DOCUMENT_COUNT} образца по ЗЗД, ТЗ, КТ и ЗУТ.`,
     badge: "625 шаблона",
     id: "catalog",
     primary: false,

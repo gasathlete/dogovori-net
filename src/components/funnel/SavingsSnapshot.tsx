@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Clock, Euro, TrendingUp, Share2, Sparkles } from "@/icons";
 import { trackFunnelEvent } from "@/lib/funnel";
 import { toast } from "sonner";
+import { CATALOG_DOCUMENT_COUNT } from "@/lib/catalogStats";
 
 /**
  * SavingsSnapshot — engagement loop card for the account dashboard.
@@ -39,7 +40,7 @@ export function SavingsSnapshot({ totalOps, monthlyOps }: Props) {
     const text =
       totalOps > 0
         ? `Спестих ${moneySaved.toLocaleString("bg-BG")} € и ~${hoursSaved} ч. правни консултации с DogovaryAI. Опитай и ти:`
-        : "Изготвям договорите си с DogovaryAI — над 600 шаблона + AI анализ на риска:";
+        : `Изготвям договорите си с DogovaryAI — ${CATALOG_DOCUMENT_COUNT} шаблона + AI анализ на риска:`;
     const url = "https://dogovori.net?ref=savings";
     trackFunnelEvent("savings_share_click", { totalOps, moneySaved });
     try {

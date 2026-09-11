@@ -29,11 +29,12 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useIsPro } from "@/hooks/useIsPro";
 import { trackEvent } from "@/lib/analytics";
+import { CATALOG_DOCUMENT_COUNT } from "@/lib/catalogStats";
 
 const STORAGE_KEY_PREFIX = "dgv:free-welcome:v1:";
 
 const PILLARS = [
-  { icon: MessageSquare, title: "AI Асистент", desc: "Правен чат с достъп до 600+ шаблона." },
+  { icon: MessageSquare, title: "AI Асистент", desc: `Правен чат с достъп до ${CATALOG_DOCUMENT_COUNT} шаблона.` },
   { icon: ShieldCheck, title: "Пълен Risk Analysis", desc: "Детайли, цитати и препоръки за всяка клауза." },
   { icon: Languages, title: "Двуезични договори", desc: "Паралелен EN превод с правна терминология." },
   { icon: PenTool, title: "e-Подпис", desc: "Изпрати за подпис с проследяване." },

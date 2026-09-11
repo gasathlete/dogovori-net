@@ -11,6 +11,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Seo } from "@/components/Seo";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
+import { CATALOG_DOCUMENT_COUNT } from "@/lib/catalogStats";
 import {
   AI_ANALYSIS_STEPS,
   AI_FAQS,
@@ -36,7 +37,7 @@ const ANALYSIS_STEPS = AI_ANALYSIS_STEPS;
 const FAQS = AI_FAQS;
 
 const CAPABILITIES = [
-  { icon: FileSearch, title: "Над 600 шаблона", body: "Български договори по ЗЗД, ТЗ, КТ и специални закони." },
+  { icon: FileSearch, title: `${CATALOG_DOCUMENT_COUNT} шаблона`, body: "Български договори по ЗЗД, ТЗ, КТ и специални закони." },
   { icon: ShieldCheck, title: "Риск-скор 1–10", body: "Числов индикатор за вероятност от спор или нищожност." },
   { icon: Scale, title: "Препратки към закон", body: "Всяка препоръка е обвързана с конкретен член/алинея." },
   { icon: GitCompareArrows, title: "Сравнение версии", body: "Show diff между оригинала и AI-редактирания вариант." },
@@ -48,7 +49,7 @@ export default function AIFeaturesPage() {
   const canonical = "/ai";
   const title = "AI правен анализ на договори — как работи | Dogovori.net";
   const description =
-    "Как AI системата на Dogovori.net анализира български договори: извличане на клаузи, проверка по ЗЗД/ТЗ/КТ, конкретни корекции и експорт в PDF/DOCX. Над 600 шаблона.";
+    `Как AI системата на Dogovori.net анализира български договори: извличане на клаузи, проверка по ЗЗД/ТЗ/КТ, конкретни корекции и експорт в PDF/DOCX. ${CATALOG_DOCUMENT_COUNT} шаблона.`;
 
   const jsonLd = buildAiFeaturesSchemas();
 
@@ -73,9 +74,9 @@ export default function AIFeaturesPage() {
             Как AI системата на Dogovori.net анализира договори
           </h1>
           <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground md:text-lg">
-            Платформата комбинира над 600 правно курирани шаблона с AI пайплайн, обучен за
-            българското договорно право. Тази страница описва точно какво прави модулът, на
-            какви закони се позовава и какво може и какво не може да замести.
+            Платформата събира {CATALOG_DOCUMENT_COUNT} правно курирани шаблона и автоматична проверка на текста
+            по българското договорно право. Тук описваме какво точно получавате, на кои
+            закони се позовава проверката и какво тя не заменя.
           </p>
         </header>
 
@@ -164,7 +165,7 @@ export default function AIFeaturesPage() {
             Изпробвайте AI анализа сега
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Качете съществуващ договор за проверка или изгответе нов от 600+ шаблона.
+            Качете съществуващ договор за проверка или изгответе нов от {CATALOG_DOCUMENT_COUNT} шаблона.
           </p>
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
             <Link to="/build" className="btn-gold">
@@ -172,7 +173,7 @@ export default function AIFeaturesPage() {
             </Link>
             <Link to="/catalog" className="btn-ghost-gold">Разгледай каталога</Link>
             <Link to="/karta" className="btn-ghost-gold inline-flex items-center gap-1.5">
-              <MapIcon className="h-4 w-4" /> Карта на сайта (всички 600+ шаблона)
+              <MapIcon className="h-4 w-4" /> Карта на сайта (всички {CATALOG_DOCUMENT_COUNT} шаблона)
             </Link>
           </div>
         </section>
