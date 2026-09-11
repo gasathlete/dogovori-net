@@ -112,7 +112,7 @@ describe("сглобяването е за една заявка и след в�
 
 describe("операторският списък е пълен и без тайни стойности", () => {
   it("описва миграции, флагове, ред на включване и връщане назад", () => {
-    expect(CHECKLIST).toContain("0024_product_generation_runtime_safety_correction");
+    expect(CHECKLIST).toContain("0025_product_result_selections");
     expect(CHECKLIST).toContain("PRODUCT_CHECKOUT_ENABLED");
     expect(CHECKLIST).toContain("PRODUCT_AI_FULFILLMENT_ENABLED");
     expect(CHECKLIST).toContain("checkout.session.completed");
