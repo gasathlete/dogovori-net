@@ -117,7 +117,7 @@ export const MAX_CHUNKS = 30;
 export const CHUNKS_PER_BATCH = 3;
 export const MAX_BATCHES = 10;
 export const MAX_MODEL_CALLS = 60;
-export const MAX_TOTAL_TOKENS = 3_000_000;
+export const MAX_TOTAL_TOKENS = 6_000_000;
 
 export type ProductStageId =
   | "passport"

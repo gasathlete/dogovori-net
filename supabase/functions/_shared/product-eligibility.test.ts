@@ -112,7 +112,7 @@ Deno.test("забранено съдържание се отказва дете�
 });
 
 Deno.test("особено чувствителни данни се отказват преди плащане", () => {
-  for (const marker of ["диагноза", "синдикално членство", "биометрични данни", "непълнолетно дете"]) {
+  for (const marker of ["диагноза", "синдикално членство", "биометрични данни", "непълнолетен"]) {
     const text = makeText(4_000) + ` ${marker} `;
     const decision = evaluateProductEligibility(input({
       source: {
