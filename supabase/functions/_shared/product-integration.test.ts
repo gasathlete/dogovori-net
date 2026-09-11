@@ -183,6 +183,29 @@ Deno.test("gateway rejects mismatched model, truncation, multiple and invalid ch
   }
 });
 
+Deno.test("gateway proves the exact provider model and fails closed otherwise", async () => {
+  // Точното съвпадение е единственият приет случай.
+  const exact = createProductModelPort({
+    apiKey: "key",
+    fetchImpl: okFetch(envelope({ items: [] }, { model: "google/gemini-3.8-flash" })),
+  });
+  assertEquals((await exact.invoke(REQUEST)).output, []);
+
+  const bad: unknown[] = [
+    { ...envelope({ items: [] }), model: undefined },
+    { ...envelope({ items: [] }), model: null },
+    { ...envelope({ items: [] }), model: 42 },
+    { ...envelope({ items: [] }), model: { id: "google/gemini-3.8-flash" } },
+    { ...envelope({ items: [] }), model: "google/gemini-3.1-flash-lite" },
+  ];
+  for (const body of bad) {
+    const port = createProductModelPort({ apiKey: "key", fetchImpl: okFetch(body) });
+    const error = await assertRejects(() => port.invoke(REQUEST), ProductModelGatewayError);
+    assertEquals(error.reason, "model_mismatch");
+    assertEquals(error.retryable, false);
+  }
+});
+
 Deno.test("gateway marks 429/5xx retryable and 4xx terminal without a hidden retry", async () => {
   let calls = 0;
   const status = (code: number) =>
