@@ -40,7 +40,7 @@ describe("network-silent product rollout preflight", () => {
 
   it("requires webhook and entitlement idempotency evidence", () => {
     const source = override("supabase/functions/payments-webhook/handlers.ts", (s) =>
-      s.replaceAll("stripe_event_id", "event_proof").replaceAll("stripe_session_id", "session_proof"));
+      s.replace(/stripe_event_id/g, "event_proof").replace(/stripe_session_id/g, "session_proof"));
     expect(validateProductRollout(source).join("\n")).toContain("webhook entitlement idempotency");
   });
 });

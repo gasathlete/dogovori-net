@@ -110,4 +110,6 @@ export function runProductRolloutPreflight(root = process.cwd()): number {
   console.log("[product-rollout-preflight] PASS: 8 migrations, 3 products, fail-closed gates; no network used.");
   return 0;
 }
-if (import.meta.main) process.exitCode = runProductRolloutPreflight();
+if (process.argv[1]?.endsWith("product-rollout-preflight.ts")) {
+  process.exitCode = runProductRolloutPreflight();
+}
