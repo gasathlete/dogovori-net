@@ -806,6 +806,8 @@ describe("Stage 2B1B1 корекция 0021 — неизменна версия 
       "IF NEW.generation_policy_version IS DISTINCT FROM OLD.generation_policy_version THEN",
     );
     expect(sql).toContain("product_entitlement_policy_immutable");
+    expect(sql).toContain("IF NEW.intake_id IS DISTINCT FROM OLD.intake_id THEN");
+    expect(sql.indexOf("SELECT * INTO v_intake")).toBeGreaterThan(sql.indexOf("IF TG_OP = 'UPDATE' THEN"));
     expect(sql).toContain("RETURN NEW;");
   });
 
