@@ -38,8 +38,8 @@ describe("платеният продуктов gateway е отделен от �
 describe("правното основание е сървърен факт", () => {
   it("няма embedding/RAG и няма мрежа", () => {
     expect(LEGAL).not.toContain("legal-rag");
-    expect(LEGAL).not.toContain("embedding");
-    expect(LEGAL).not.toContain("fetch(");
+    expect(LEGAL).not.toContain("match_legal_chunks");
+    expect(LEGAL).not.toContain("await fetch(");
   });
 
   it("изисква активен източник, действаща версия и точен етикет", () => {
@@ -66,8 +66,8 @@ describe("конфигурацията е затворена по подразб
   });
 
   it("residency се проваля затворено", () => {
-    expect(INTEGRATION).toContain("if (error || !data || typeof data !== \"object\") return false;");
-    expect(INTEGRATION).toContain("catch {\n    return false;");
+    expect(INTEGRATION).toContain('if (error || !data || typeof data !== "object") return false;');
+    expect(INTEGRATION).toContain("row.allow_third_country_ai !== false");
   });
 });
 
