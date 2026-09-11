@@ -447,7 +447,7 @@ export default function CatalogPage() {
               <a
                 key={s.id}
                 href={`#sector-${s.id}`}
-                className="group shrink-0 snap-start whitespace-nowrap rounded-full border border-border/60 bg-card/40 px-3.5 py-1.5 font-medium text-muted-foreground transition-colors duration-200 hover:border-gold/50 hover:bg-gold/5 hover:text-gold"
+                className="group inline-flex min-h-11 shrink-0 snap-start items-center whitespace-nowrap rounded-full border border-border/60 bg-card/40 px-4 font-medium text-muted-foreground transition-colors duration-200 hover:border-gold/50 hover:bg-gold/5 hover:text-gold"
               >
                 {s.title}
               </a>

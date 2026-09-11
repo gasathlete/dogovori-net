@@ -250,16 +250,16 @@ export function LiveDraft({
               style={{ fontFamily, fontSize: `${fontSize + 4}px` }}
             />
           ) : generated.bilingual ? (
-            <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
+            <h2 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
               <span className="block">{generated.title}</span>
               <span className={`legal-paper-strong mt-1 block${enLockClass}`} aria-hidden={enLocked || undefined}>
                 {generated.title_en || generated.title}
               </span>
-            </h1>
+            </h2>
           ) : (
-            <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
+            <h2 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
               {generated.title}
-            </h1>
+            </h2>
           )}
           <div className="my-4 gold-divider" />
           {editing && isPro ? (
@@ -477,12 +477,12 @@ function TemplateDraftOrSkeleton({
       return (
         <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
-            <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
+            <h2 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
               {headerParagraph || documentTitle}
-            </h1>
-            <h1 className="legal-paper-strong text-center font-serif text-lg font-bold uppercase tracking-wide md:border-l md:pl-6 md:text-xl">
+            </h2>
+            <h2 className="legal-paper-strong text-center font-serif text-lg font-bold uppercase tracking-wide md:border-l md:pl-6 md:text-xl">
               {titleEn}
-            </h1>
+            </h2>
           </div>
           <div className="my-4 gold-divider" />
           {rest.map((p, i) => (
@@ -500,9 +500,9 @@ function TemplateDraftOrSkeleton({
 
     return (
       <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
-        <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
+        <h2 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
           {headerParagraph || documentTitle}
-        </h1>
+        </h2>
         <div className="my-4 gold-divider" />
         {rest.map((p, i) => (
           <p key={i} className="mt-3 whitespace-pre-line text-sm leading-relaxed">
@@ -538,12 +538,12 @@ function TemplateDraftOrSkeleton({
       return (
         <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
-            <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
+            <h2 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
               {documentTitle}
-            </h1>
-            <h1 className="legal-paper-strong text-center font-serif text-lg font-bold uppercase tracking-wide md:border-l md:pl-6 md:text-xl">
+            </h2>
+            <h2 className="legal-paper-strong text-center font-serif text-lg font-bold uppercase tracking-wide md:border-l md:pl-6 md:text-xl">
               {titleEn}
-            </h1>
+            </h2>
           </div>
           <div className="my-4 gold-divider" />
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
@@ -579,9 +579,9 @@ function TemplateDraftOrSkeleton({
     }
     return (
       <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
-        <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
+        <h2 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
           {documentTitle}
-        </h1>
+        </h2>
         <div className="my-4 gold-divider" />
         <div className="space-y-3 text-sm leading-relaxed">
           {preambleLines.map((line, i) => (
@@ -616,12 +616,12 @@ function TemplateDraftOrSkeleton({
     return (
       <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
-          <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
+          <h2 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
             {documentTitle}
-          </h1>
-          <h1 className="legal-paper-strong text-center font-serif text-lg font-bold uppercase tracking-wide md:border-l md:pl-6 md:text-xl">
+          </h2>
+          <h2 className="legal-paper-strong text-center font-serif text-lg font-bold uppercase tracking-wide md:border-l md:pl-6 md:text-xl">
             {titleEn}
-          </h1>
+          </h2>
         </div>
         <div className="my-4 gold-divider" />
 
@@ -696,9 +696,9 @@ function TemplateDraftOrSkeleton({
   return (
 
       <article className="legal-paper rounded-md p-6 shadow-elegant md:p-8">
-        <h1 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
+        <h2 className="text-center font-serif text-lg font-bold uppercase tracking-wide md:text-xl">
           {documentTitle}
-        </h1>
+        </h2>
         <div className="my-4 gold-divider" />
 
         <p className="text-sm leading-relaxed">
