@@ -71,7 +71,7 @@ content-free разход) и колоната `generation_policy_version`, ко
 - 0022: `65797186dc7635d27be8b1fc258a5ef02cc54dd280ef3a486b0360231f68ba3c`
 - 0023: `484199ee7ed7b683e7c428ae007f5607001010872bfdb91dc73b0e3af0092ab8`
 - 0024: `eb732f25a24d57a9ecec9f0f83ba7e0ff6dc66bde2ad45fdf2e1d52818f01645`
-- 0025: `43eb5a8099fd58048a1f22be1278e16f199aa332dcd55c722fd8d0b0811d460d`
+- 0025: `619f01a86cb43fa474cbfc088b386812842491ab99e518fd7213f14855d66af1`
 
 Нито един от файловете не е записан в `drizzle/migrations/meta/_journal.json`:
 в това хранилище няма доказана конвенция за журнал на ръчни SQL кръпки, а този
