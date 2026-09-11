@@ -1,8 +1,9 @@
 /**
  * Купуване на един еднократен продукт за един документ.
  *
- * Пътят е кратък: качвате файл → казвате коя страна сте → потвърждавате
- * четирите условия → плащате. Няма абонамент и няма операции/кредити.
+ * Пътят е кратък и стъпка по стъпка: качвате файл → казвате коя страна сте →
+ * потвърждавате четирите условия и плащате. Готовите стъпки се свиват до кратко
+ * резюме и се отварят отново, докато плащането не е отворено.
  *
  * След като плащането се отвори, документът, контекстът и съгласията са
  * заключени: така плащате точно това, което сте видели. „Започнете отначало“
@@ -25,6 +26,10 @@ import { getStripeEnvironment } from "@/lib/stripe";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { ProductPrice } from "@/components/products/ProductPrice";
 import {
+  CheckoutStepper,
+  type CheckoutStep,
+} from "@/components/products/CheckoutStepper";
+import {
   ONE_TIME_TERMS,
   getProductBySlug,
   legacyProductRedirect,
@@ -39,11 +44,18 @@ import {
 import { PRODUCT_ACCEPTED_INPUT } from "@/lib/productSource";
 
 type Position = "conservative" | "balanced" | "assertive";
+type StepId = "document" | "context" | "payment";
 
 const POSITIONS: readonly { value: Position; label: string }[] = [
   { value: "conservative", label: "Предпазлива" },
   { value: "balanced", label: "Балансирана" },
   { value: "assertive", label: "Настъпателна" },
+];
+
+const STEPS: readonly CheckoutStep[] = [
+  { id: "document", label: "Документ" },
+  { id: "context", label: "Вашата страна" },
+  { id: "payment", label: "Плащане" },
 ];
 
 export default function ProductCheckout() {
@@ -73,6 +85,8 @@ export default function ProductCheckout() {
   const [withdrawal, setWithdrawal] = useState(false);
 
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  /** Отворена стъпка по избор на човека; иначе следва естествения ред. */
+  const [openStep, setOpenStep] = useState<StepId | null>(null);
 
   useEffect(() => {
     const legacy = legacyProductRedirect(slug);
@@ -89,6 +103,17 @@ export default function ProductCheckout() {
     (!needsCounterparty || counterparty.trim().length > 1);
   const locked = clientSecret !== null;
   const canPay = Boolean(prepared) && contextReady && allConsents && !busy && !locked;
+
+  const naturalStep: StepId = !prepared
+    ? "document"
+    : !contextReady
+      ? "context"
+      : "payment";
+  const activeStep: StepId = locked ? "payment" : (openStep ?? naturalStep);
+  const doneSteps: StepId[] = [
+    ...(prepared ? (["document"] as StepId[]) : []),
+    ...(prepared && contextReady ? (["context"] as StepId[]) : []),
+  ];
 
   const priceLabel = useMemo(
     () => (product ? productPriceLabel(product.id) : ""),
@@ -117,6 +142,7 @@ export default function ProductCheckout() {
         onPhase: setPhase,
       });
       setPrepared(result);
+      setOpenStep(null);
       toast.success("Документът е прочетен целият.");
     } catch (e) {
       toast.error(
@@ -134,6 +160,7 @@ export default function ProductCheckout() {
     setPrepared(null);
     setFile(null);
     setTitle("");
+    setOpenStep(null);
   };
 
   /** Изрично започване отначало: нова заявка, нова сесия, нищо заварено. */
@@ -145,6 +172,7 @@ export default function ProductCheckout() {
     setAiAck(false);
     setImmediate(false);
     setWithdrawal(false);
+    setOpenStep(null);
   };
 
   const handlePay = async () => {
@@ -178,6 +206,28 @@ export default function ProductCheckout() {
     }
   };
 
+  /** Кратко, вярно резюме на свитата стъпка „Вашата страна“. */
+  const contextSummary = [
+    role.trim() && `Страна: ${role.trim()}`,
+    needsObjective && objective.trim() && `Цел: ${objective.trim()}`,
+    needsObjective &&
+      `Позиция: ${POSITIONS.find((p) => p.value === position)?.label ?? ""}`,
+    needsCounterparty && counterparty.trim() && `Друга страна: ${counterparty.trim()}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const reopen = (step: StepId) => (
+    <Button
+      type="button"
+      variant="outline"
+      className="mt-3 min-h-11"
+      onClick={() => setOpenStep(step)}
+    >
+      Промени
+    </Button>
+  );
+
   return (
     <>
       <Seo
@@ -195,8 +245,15 @@ export default function ProductCheckout() {
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">{ONE_TIME_TERMS}</p>
 
+        <CheckoutStepper
+          className="mt-4"
+          steps={STEPS}
+          activeId={activeStep}
+          doneIds={doneSteps}
+        />
+
         {/* 1) Документът */}
-        <Card className="mt-6 p-4 md:p-6">
+        <Card className="mt-5 p-4 md:p-6">
           <h2 className="text-lg font-semibold">1. Вашият документ</h2>
           {prepared ? (
             <div className="mt-3 space-y-2 text-sm">
@@ -205,7 +262,7 @@ export default function ProductCheckout() {
                 {prepared.originalFilename}
                 {prepared.pageCount ? ` · ${prepared.pageCount} стр.` : ""} · прочетен целият
               </p>
-              {prepared.preview && (
+              {activeStep === "document" && prepared.preview && (
                 <p className="rounded-md bg-muted/50 p-3 text-muted-foreground">
                   „{prepared.preview}…“
                 </p>
@@ -256,70 +313,91 @@ export default function ProductCheckout() {
           )}
         </Card>
 
-        {/* 2) Контекст */}
+        {/* 2) Контекст — отваря се само след като документът е прочетен */}
         <Card className="mt-4 p-4 md:p-6">
           <h2 className="text-lg font-semibold">2. Вашата страна</h2>
-          <div className="mt-3 space-y-3">
-            <div>
-              <Label htmlFor="product-role">Коя страна сте по документа?</Label>
-              <Input
-                id="product-role"
-                value={role}
-                disabled={locked}
-                onChange={(e) => setRole(e.target.value)}
-                placeholder="Например: наемател, изпълнител, купувач"
-                className="min-h-11"
-              />
+          {!prepared ? (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Първо качете документа.
+            </p>
+          ) : activeStep !== "context" ? (
+            <div className="mt-2 text-sm">
+              <p className="text-muted-foreground">
+                {contextSummary || "Още не сте попълнили тази стъпка."}
+              </p>
+              {!locked && reopen("context")}
             </div>
-            {needsObjective && (
-              <>
-                <div>
-                  <Label htmlFor="product-objective">Какво искате да постигнете?</Label>
-                  <Textarea
-                    id="product-objective"
-                    value={objective}
-                    disabled={locked}
-                    onChange={(e) => setObjective(e.target.value)}
-                    rows={3}
-                    placeholder="Например: по-кратък срок за плащане и таван на отговорността"
-                  />
-                </div>
-                <fieldset>
-                  <legend className="text-sm font-medium">Каква позиция предпочитате?</legend>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {POSITIONS.map((p) => (
-                      <Button
-                        key={p.value}
-                        type="button"
-                        variant={position === p.value ? "default" : "outline"}
-                        aria-pressed={position === p.value}
-                        disabled={locked}
-                        className="min-h-11"
-                        onClick={() => setPosition(p.value)}
-                      >
-                        {p.label}
-                      </Button>
-                    ))}
-                  </div>
-                </fieldset>
-              </>
-            )}
-            {needsCounterparty && (
+          ) : (
+            <div className="mt-3 space-y-3">
               <div>
-                <Label htmlFor="product-counterparty">
-                  Коя е другата страна и какви са отношенията?
-                </Label>
-                <Textarea
-                  id="product-counterparty"
-                  value={counterparty}
+                <Label htmlFor="product-role">Коя страна сте по документа?</Label>
+                <Input
+                  id="product-role"
+                  value={role}
                   disabled={locked}
-                  onChange={(e) => setCounterparty(e.target.value)}
-                  rows={3}
-                  placeholder="Например: дългогодишен доставчик, искаме да запазим отношенията"
+                  onChange={(e) => setRole(e.target.value)}
+                  placeholder="Например: наемател, изпълнител, купувач"
+                  className="min-h-11"
                 />
               </div>
-            )}
-          </div>
+              {needsObjective && (
+                <>
+                  <div>
+                    <Label htmlFor="product-objective">Какво искате да постигнете?</Label>
+                    <Textarea
+                      id="product-objective"
+                      value={objective}
+                      disabled={locked}
+                      onChange={(e) => setObjective(e.target.value)}
+                      rows={3}
+                      placeholder="Например: по-кратък срок за плащане и таван на отговорността"
+                    />
+                  </div>
+                  <fieldset>
+                    <legend className="text-sm font-medium">Каква позиция предпочитате?</legend>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {POSITIONS.map((p) => (
+                        <Button
+                          key={p.value}
+                          type="button"
+                          variant={position === p.value ? "default" : "outline"}
+                          aria-pressed={position === p.value}
+                          disabled={locked}
+                          className="min-h-11"
+                          onClick={() => setPosition(p.value)}
+                        >
+                          {p.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </fieldset>
+                </>
+              )}
+              {needsCounterparty && (
+                <div>
+                  <Label htmlFor="product-counterparty">
+                    Коя е другата страна и какви са отношенията?
+                  </Label>
+                  <Textarea
+                    id="product-counterparty"
+                    value={counterparty}
+                    disabled={locked}
+                    onChange={(e) => setCounterparty(e.target.value)}
+                    rows={3}
+                    placeholder="Например: дългогодишен доставчик, искаме да запазим отношенията"
+                  />
+                </div>
+              )}
+              <Button
+                type="button"
+                className="min-h-11"
+                disabled={!contextReady}
+                onClick={() => setOpenStep("payment")}
+              >
+                Продължете
+              </Button>
+            </div>
+          )}
         </Card>
 
         {/* 3) Цена и условия */}
@@ -330,80 +408,89 @@ export default function ProductCheckout() {
             без абонамент.
           </p>
           <ProductPrice id={product.id} size="md" showLabel className="mt-2" />
-          <div className="mt-4 space-y-3 text-sm">
-            <label className="flex min-h-11 items-start gap-3">
-              <Checkbox
-                checked={terms}
-                disabled={locked}
-                onCheckedChange={(v) => setTerms(v === true)}
-              />
-              <span>
-                Приемам{" "}
-                <Link to="/terms" target="_blank" rel="noopener noreferrer" className="underline">
-                  Общите условия
-                </Link>{" "}
-                и{" "}
-                <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="underline">
-                  Политиката за поверителност
-                </Link>
-                .
-              </span>
-            </label>
-            <label className="flex min-h-11 items-start gap-3">
-              <Checkbox
-                checked={aiAck}
-                disabled={locked}
-                onCheckedChange={(v) => setAiAck(v === true)}
-              />
-              <span>
-                Разбирам, че резултатът е автоматичен и не е юридически съвет.
-              </span>
-            </label>
-            <label className="flex min-h-11 items-start gap-3">
-              <Checkbox
-                checked={immediate}
-                disabled={locked}
-                onCheckedChange={(v) => setImmediate(v === true)}
-              />
-              <span>Искам обработката да започне веднага след плащането.</span>
-            </label>
-            <label className="flex min-h-11 items-start gap-3">
-              <Checkbox
-                checked={withdrawal}
-                disabled={locked}
-                onCheckedChange={(v) => setWithdrawal(v === true)}
-              />
-              <span>
-                Разбирам, че след започване на обработката губя правото на отказ за вече
-                доставеното съдържание.
-              </span>
-            </label>
-          </div>
-
-          {!locked ? (
-            <Button
-              type="button"
-              className="mt-5 min-h-12 w-full"
-              disabled={!canPay}
-              onClick={handlePay}
-            >
-              Към плащане · {priceLabel}
-            </Button>
+          {activeStep !== "payment" ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Условията и плащането се отварят, след като документът е прочетен и
+              сте посочили коя страна сте.
+            </p>
           ) : (
-            <div className="mt-5 space-y-3">
-              <StripeEmbeddedCheckout
-                clientSecret={clientSecret}
-                analyticsSource="product_checkout"
-                analyticsPlan={product.id}
-                analyticsBilling="one_time"
-              />
-              <p className="text-sm text-muted-foreground">
-                Плащате точно за документа и условията по-горе. Ако искате друг документ:
-              </p>
-              <Button type="button" variant="outline" className="min-h-11" onClick={restart}>
-                Започнете отначало
-              </Button>
-            </div>
+            <>
+              <div className="mt-4 space-y-3 text-sm">
+                <label className="flex min-h-11 items-start gap-3">
+                  <Checkbox
+                    checked={terms}
+                    disabled={locked}
+                    onCheckedChange={(v) => setTerms(v === true)}
+                  />
+                  <span>
+                    Приемам{" "}
+                    <Link to="/terms" target="_blank" rel="noopener noreferrer" className="underline">
+                      Общите условия
+                    </Link>{" "}
+                    и{" "}
+                    <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="underline">
+                      Политиката за поверителност
+                    </Link>
+                    .
+                  </span>
+                </label>
+                <label className="flex min-h-11 items-start gap-3">
+                  <Checkbox
+                    checked={aiAck}
+                    disabled={locked}
+                    onCheckedChange={(v) => setAiAck(v === true)}
+                  />
+                  <span>
+                    Разбирам, че резултатът е автоматичен и не е юридически съвет.
+                  </span>
+                </label>
+                <label className="flex min-h-11 items-start gap-3">
+                  <Checkbox
+                    checked={immediate}
+                    disabled={locked}
+                    onCheckedChange={(v) => setImmediate(v === true)}
+                  />
+                  <span>Искам обработката да започне веднага след плащането.</span>
+                </label>
+                <label className="flex min-h-11 items-start gap-3">
+                  <Checkbox
+                    checked={withdrawal}
+                    disabled={locked}
+                    onCheckedChange={(v) => setWithdrawal(v === true)}
+                  />
+                  <span>
+                    Разбирам, че след започване на обработката губя правото на отказ за вече
+                    доставеното съдържание.
+                  </span>
+                </label>
+              </div>
+
+              {!locked ? (
+                <Button
+                  type="button"
+                  className="mt-5 min-h-12 w-full"
+                  disabled={!canPay}
+                  onClick={handlePay}
+                >
+                  Към плащане · {priceLabel}
+                </Button>
+              ) : (
+                <div className="mt-5 space-y-3">
+                  <StripeEmbeddedCheckout
+                    clientSecret={clientSecret}
+                    analyticsSource="product_checkout"
+                    analyticsPlan={product.id}
+                    analyticsBilling="one_time"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Плащате точно за документа и условията по-горе. Ако искате друг документ:
+                  </p>
+                  <Button type="button" variant="outline" className="min-h-11" onClick={restart}>
+                    Започнете отначало
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </Card>
       </main>
