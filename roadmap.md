@@ -1,5 +1,11 @@
 # Roadmap — Conversion reliability
 
+## P0 — Stage 2B1B2 (source only)
+- [x] Add pure resumable generation runtime with explicit mocked model/legal ports and no live-provider default
+- [x] Add deterministic redaction/rehydration, complete-source chunk coverage, evidence, absence, correction, legal-basis, budget and v2-ready gates
+- [x] Verify focused/full Deno and frontend suites, typecheck, touched lint and production build without external side effects
+- [ ] Wire durable artifact persistence and fulfillment completion — blocked because the reserved 0022 migration path is protected from source writes in this run
+
 Ограничения: без production deployment, без промяна на цени/планове/лимити/дизайн/маркетинг текст.
 
 ## Готово (етап 1)
