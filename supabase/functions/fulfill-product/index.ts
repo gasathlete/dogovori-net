@@ -23,8 +23,13 @@ import { PRODUCT_GENERATION_POLICY_VERSION } from "../_shared/product-generation
 import {
   AWAITING_GENERATION_CURSOR,
   PRODUCT_JOB_LEASE_SECONDS,
-  resolveProductGenerationAdapter,
+  parseJobCursor,
+  resolveProductGenerationDependencies,
 } from "../_shared/product-jobs.ts";
+import {
+  parseGenerationArtifacts,
+  ProductGenerationError,
+} from "../_shared/product-generation-runtime.ts";
 import { requireProductSpec } from "../_shared/product-purchase.ts";
 import {
   PRODUCT_SOURCE_CHAR_UNIT,
@@ -35,6 +40,16 @@ import { readyProductResult } from "../_shared/product-result-contract.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ALLOWED_BODY_KEYS = Object.freeze(["entitlement_id"]);
+
+/**
+ * Immutable production composition. Source builds deliberately have no live
+ * provider; deployment must inject a reviewed adapter and verified retention.
+ */
+export const generationDependencies = () => ({
+  adapter: null,
+  zeroRetentionVerified: Deno.env.get("PRODUCT_AI_ZERO_RETENTION_VERIFIED") === "true",
+} as const);
+
 
 /** Кратки, безопасни съобщения на български. Без технически подробности. */
 const MESSAGES: Readonly<Record<string, string>> = Object.freeze({
@@ -348,10 +363,10 @@ Deno.serve(async (req) => {
     const leaseToken = String(claimResult.lease_token);
     const claimedStage = String(claimResult.stage ?? "queued");
 
-    // 8) В този етап адаптерът НАРОЧНО липсва: задачата стига до
-    //    `awaiting_generation` ТОЧНО веднъж и връща „обработва се“. Никакъв
-    //    фалшив резултат.
-    const adapter = resolveProductGenerationAdapter();
+    // 8) Изпълнява се най-много една ограничена стъпка. Production композицията
+    // остава затворена, докато zero-retention и provider портът не са проверени.
+    const dependencies = resolveProductGenerationDependencies(generationDependencies);
+    const adapter = dependencies.adapter;
     if (!adapter) {
       // Повторна заявка на вече изчакваща задача: НЕ записваме втора контролна
       // точка и НЕ задържаме наема за десет минути — освобождаваме го веднага.
@@ -395,14 +410,77 @@ Deno.serve(async (req) => {
     }
 
 
-    // Недостижимо в този етап: адаптерът се появява в Stage 2B1B2.
-    await admin.rpc("fail_product_job", {
+    const { data: durable, error: durableErr } = await admin.rpc("load_product_generation_state", {
       p_job_id: jobId,
       p_lease_token: leaseToken,
-      p_error_class: "retryable",
-      p_error_code: "adapter_unavailable",
     });
-    return fail("failed_retryable", 503, headers, cid);
+    const durableState = (durable ?? {}) as Record<string, unknown>;
+    const cursor = parseJobCursor(durableState.cursor);
+    if (durableErr || durableState.ok !== true || !cursor || typeof durableState.generation_timestamp !== "string") {
+      await admin.rpc("fail_product_job", { p_job_id: jobId, p_lease_token: leaseToken, p_error_class: "retryable", p_error_code: "resume_state_invalid" });
+      return fail("failed_retryable", 503, headers, cid);
+    }
+    const serialized = await parseGenerationArtifacts({
+      version: 1,
+      artifacts: durableState.artifacts,
+      completedCallIds: durableState.completedCallIds,
+    });
+    const usageRaw = durableState.usage as Record<string, unknown>;
+    const step = await adapter.runStep({
+      entitlementId,
+      productId: spec.id,
+      sourceText: verified.text,
+      binding: {
+        document_id: ent.source_document_id,
+        source_hash: String(ent.source_hash).toLowerCase(),
+        source_kind: ent.source_kind,
+        char_count: ent.source_char_count,
+        char_unit: ent.source_char_unit,
+        source_updated_at: String(ent.source_updated_at),
+        page_count: ent.source_page_count ?? null,
+      },
+      context: eligibility.context,
+      cursor,
+      bounds,
+      usage: {
+        calls: Number(usageRaw.calls), input_tokens: Number(usageRaw.input_tokens),
+        output_tokens: Number(usageRaw.output_tokens), cost_micro_usd: Number(usageRaw.cost_micro_usd),
+      },
+      zeroRetentionVerified: dependencies.zeroRetentionVerified,
+      generationTimestamp: durableState.generation_timestamp,
+      artifacts: serialized.artifacts,
+      completedCallIds: new Set(serialized.completedCallIds),
+      dataSafety: {
+        redactionRequired: eligibility.policy.redactionRequired,
+        redactionCompleted: !eligibility.policy.redactionRequired,
+        postRedactionReclassificationRequired: eligibility.policy.postRedactionReclassificationRequired,
+        postRedactionReclassificationCompleted: !eligibility.policy.postRedactionReclassificationRequired,
+        userConfirmationRequired: eligibility.policy.userConfirmationRequired,
+        userConfirmationCompleted: !eligibility.policy.userConfirmationRequired,
+        modelCallAllowed: !eligibility.policy.userConfirmationRequired,
+      },
+    });
+    const artifact = step.artifact as { digest?: unknown; payload?: unknown } | undefined;
+    if (!artifact || typeof artifact.digest !== "string") throw new ProductGenerationError("invalid_model_output");
+    const callIds = [...(step.callIds ?? [])];
+    const { data: stored, error: storedErr } = await admin.rpc("record_product_generation_artifact", {
+      p_job_id: jobId, p_lease_token: leaseToken, p_next_cursor: step.nextCursor,
+      p_call_ids: callIds, p_payload: artifact.payload, p_payload_canonical: JSON.stringify(artifact.payload),
+      p_payload_digest: artifact.digest,
+      p_coverage: null, p_release_lease: step.result === undefined,
+    });
+    if (storedErr || (stored as Record<string, unknown> | null)?.ok !== true) {
+      return fail("failed_retryable", 503, headers, cid);
+    }
+    if (step.result) {
+      const { data: finished, error: finishErr } = await admin.rpc("finish_product_generation", {
+        p_job_id: jobId, p_lease_token: leaseToken, p_result: step.result,
+        p_result_canonical: JSON.stringify(step.result), p_result_digest: artifact.digest,
+      });
+      if (finishErr || (finished as Record<string, unknown> | null)?.ok !== true) return fail("failed_retryable", 503, headers, cid);
+      return json({ status: "ready", result: step.result, correlation_id: cid }, 200, headers);
+    }
+    return json({ status: "processing", stage: step.nextCursor.stage, message: MESSAGES.processing, correlation_id: cid }, 202, headers);
   } catch (e) {
     if (e instanceof ProductSourceError) return fail("source_changed", 409, headers, cid);
     // Никога не логваме текст, откъс, име на файл, контекст или лични данни.

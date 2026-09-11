@@ -200,6 +200,8 @@ export interface ProductGenerationStep {
   readonly bounds: ProductCostBounds;
   readonly usage: ProductJobUsage;
   readonly zeroRetentionVerified: boolean;
+  /** Stable server-persisted timestamp for deterministic result identity. */
+  readonly generationTimestamp: string;
   readonly artifacts: readonly unknown[];
   readonly completedCallIds: ReadonlySet<string>;
   readonly dataSafety: {
@@ -219,27 +221,28 @@ export interface ProductGenerationStepResult {
   /** Пълен резултат само когато етапът е приключил целия продукт. */
   readonly result?: ProductResult;
   readonly artifact?: unknown;
+  readonly callIds?: readonly string[];
 }
 
-/**
- * Типизираната граница, която Stage 2B1B2 ще реализира. Тук НЯМА реализация:
- * задачата записва контролна точка `awaiting_generation` и връща „обработва се“.
- */
+/** Typed boundary implemented by the resumable 2B1B2 runtime. */
 export interface ProductGenerationAdapter {
   readonly policyVersion: string;
   runStep(step: ProductGenerationStep): Promise<ProductGenerationStepResult>;
 }
 
-/** В този етап адаптер НЯМА. Никога не връща подставен/частичен резултат. */
-let registeredAdapter: ProductGenerationAdapter | null = null;
-
-/** Explicit composition root: no provider or model is silently substituted. */
-export function registerProductGenerationAdapter(adapter: ProductGenerationAdapter | null): void {
-  registeredAdapter = adapter;
+/** Immutable per-request composition root. No cross-request mutable provider state. */
+export interface ProductGenerationDependencies {
+  readonly adapter: ProductGenerationAdapter | null;
+  readonly zeroRetentionVerified: boolean;
 }
 
-export function resolveProductGenerationAdapter(): ProductGenerationAdapter | null {
-  return registeredAdapter;
+export type ProductGenerationDependencyFactory = () => ProductGenerationDependencies;
+
+export function resolveProductGenerationDependencies(
+  factory: ProductGenerationDependencyFactory,
+): ProductGenerationDependencies {
+  const dependencies = factory();
+  return Object.freeze({ ...dependencies });
 }
 
 export const AWAITING_GENERATION_CURSOR: ProductJobCursor = Object.freeze({

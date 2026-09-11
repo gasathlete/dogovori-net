@@ -13,8 +13,7 @@ import {
   isTerminalFailure,
   jobIdempotencyKey,
   parseJobCursor,
-  resolveProductGenerationAdapter,
-  registerProductGenerationAdapter,
+  resolveProductGenerationDependencies,
   usageWithinBounds,
 } from "./product-jobs.ts";
 import { computeProductCostBounds } from "./product-generation-policy.ts";
@@ -121,11 +120,11 @@ Deno.test("разходът не може да надхвърли ОТДЕЛНИ
   assertEquals(Object.keys(ZERO_USAGE).includes("cost_milli_cents"), false);
 });
 
-Deno.test("адаптерът няма неявен provider и се регистрира само изрично", () => {
-  assertEquals(resolveProductGenerationAdapter(), null);
+Deno.test("адаптерът идва от неизменна композиция за конкретната заявка", () => {
   const adapter = { policyVersion: "test", runStep: async () => ({ nextCursor: AWAITING_GENERATION_CURSOR, usage: ZERO_USAGE }) };
-  registerProductGenerationAdapter(adapter);
-  assertEquals(resolveProductGenerationAdapter(), adapter);
-  registerProductGenerationAdapter(null);
+  const dependencies = resolveProductGenerationDependencies(() => ({ adapter, zeroRetentionVerified: false }));
+  assertEquals(dependencies.adapter, adapter);
+  assertEquals(dependencies.zeroRetentionVerified, false);
+  assert(Object.isFrozen(dependencies));
   assertEquals(PRODUCT_JOB_MAX_ATTEMPTS, 20);
 });

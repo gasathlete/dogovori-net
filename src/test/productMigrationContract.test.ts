@@ -7,6 +7,8 @@ const REVIEW_ARTIFACT = join(
   process.cwd(),
   "docs/migrations/stage2a_product_checkout_entitlements.sql",
 );
+const GENERATION_ARTIFACT_FILE = join(process.cwd(), "drizzle/migrations/0022_product_generation_artifacts.sql");
+const GENERATION_ARTIFACT_REVIEW = join(process.cwd(), "docs/migrations/stage2b1b2_product_generation_artifacts.sql");
 
 function migrationFile(): string {
   const name = readdirSync(MIGRATIONS_DIR).find((f) =>
@@ -731,19 +733,21 @@ describe("Stage 2B1B1 корекция 0020 — micro-USD, строг курсо
     for (const d of definers) expect(d).toBe("SECURITY DEFINER SET search_path = ''");
   });
 
-  it("редът е база -> 0018 -> 0019 -> 0020 -> 0021, а 0022 е запазен", () => {
+  it("редът е база -> 0018 -> 0019 -> 0020 -> 0021 -> 0022, а 0023 е запазен", () => {
     const note = readFileSync(ROLLOUT_NOTE, "utf8");
     const base = note.indexOf("20260910090000_product_checkout_entitlements.sql");
     const fix = note.indexOf("0018_product_result_v2_binding_patch.sql");
     const jobs = note.indexOf("0019_product_fulfillment_jobs.sql");
     const corr = note.indexOf("0020_product_fulfillment_jobs_correction.sql");
     const binding = note.indexOf("0021_product_policy_binding_patch.sql");
+    const generation = note.indexOf("0022_product_generation_artifacts.sql");
     expect(base).toBeGreaterThan(-1);
     expect(base).toBeLessThan(fix);
     expect(fix).toBeLessThan(jobs);
     expect(jobs).toBeLessThan(corr);
     expect(corr).toBeLessThan(binding);
-    expect(note).toContain("`0022`");
+    expect(binding).toBeLessThan(generation);
+    expect(note).toContain("`0023`");
   });
 
   it("корекцията не влиза в дневника на миграциите", () => {
@@ -823,14 +827,58 @@ describe("Stage 2B1B1 корекция 0021 — неизменна версия 
     );
   });
 
-  it("не е записана в Drizzle journal и 0022 остава запазена", () => {
+  it("не е записана в Drizzle journal и 0023 остава запазена", () => {
     const journal = readFileSync(
       join(process.cwd(), "drizzle/migrations/meta/_journal.json"),
       "utf8",
     );
     expect(journal).not.toContain("0021_product_policy_binding_patch");
     const note = readFileSync(ROLLOUT_NOTE, "utf8");
-    expect(note).toContain("`0022`");
+    expect(note).toContain("`0023`");
+  });
+});
+
+describe("Stage 2B1B2 миграция 0022 — трайно и точно възстановяване", () => {
+  const sql = readFileSync(GENERATION_ARTIFACT_FILE, "utf8");
+
+  it("има байтова идентичност с review копието и не редактира 0018–0021", () => {
+    expect(sql).toBe(readFileSync(GENERATION_ARTIFACT_REVIEW, "utf8"));
+    expect(sql).toContain("product_generation_artifacts_preapply_zero_row_gate_failed");
+    expect(sql.trimEnd().endsWith("COMMIT;")).toBe(true);
+  });
+
+  it("добавя service-only артефакти и точни call-ID разписки", () => {
+    for (const table of ["product_generation_calls", "product_generation_artifacts"]) {
+      expect(sql).toContain(`CREATE TABLE public.${table}`);
+      expect(sql).toContain(`GRANT ALL ON public.${table} TO service_role;`);
+      expect(sql).toContain(`ALTER TABLE public.${table} ENABLE ROW LEVEL SECURITY;`);
+      expect(sql).toContain(`ALTER TABLE public.${table} FORCE ROW LEVEL SECURITY;`);
+    }
+    expect(sql).not.toMatch(/GRANT .* ON public\.product_generation_(calls|artifacts) TO (anon|authenticated)/);
+    expect(sql).toContain("UNIQUE (job_id, call_id)");
+    expect(sql).toContain("UNIQUE (job_id,cursor_key)");
+  });
+
+  it("проверява действителния digest и точната source/policy връзка", () => {
+    expect(sql).toContain("extensions.digest(convert_to(redacted_artifact_canonical,'UTF8'),'sha256')");
+    expect(sql).toContain("redacted_artifact_canonical::jsonb = redacted_artifact");
+    expect(sql).toContain("extensions.digest(convert_to(payload_canonical,'UTF8'),'sha256')");
+    expect(sql).toContain("payload_canonical::jsonb = payload");
+    for (const field of ["source_document_id", "source_hash", "source_kind", "source_char_count", "source_char_unit", "source_updated_at", "generation_policy_version"]) {
+      expect(sql).toContain(field);
+    }
+  });
+
+  it("RPC договорът е lease/budget/replay безопасен и само за service_role", () => {
+    for (const fn of ["reserve_product_generation_call", "complete_product_generation_call", "record_product_generation_artifact", "load_product_generation_state", "finish_product_generation"]) {
+      expect(sql).toContain(`FUNCTION public.${fn}`);
+    }
+    expect(sql).toContain("FOR UPDATE");
+    expect(sql).toContain("'lease_invalid'");
+    expect(sql).toContain("'budget_exceeded'");
+    expect(sql).toContain("'replay_mismatch'");
+    expect(sql).toContain("REVOKE ALL ON FUNCTION %s FROM authenticated");
+    expect(sql).toContain("GRANT EXECUTE ON FUNCTION %s TO service_role");
   });
 });
 

@@ -50,7 +50,7 @@ describe("Заявката се отказва ПРЕДИ плащане, ако
   });
 });
 
-describe("Изпълнението е обвивка без модел (Stage 2B1B1)", () => {
+describe("Изпълнението е устойчиво и остава без активен live provider", () => {
   it("приема САМО entitlement_id и изисква влязъл потребител", () => {
     expect(FULFILL).toContain('ALLOWED_BODY_KEYS = Object.freeze(["entitlement_id"])');
     expect(FULFILL).toContain('if (!authHeader?.startsWith("Bearer "))');
@@ -109,7 +109,7 @@ describe("Изпълнението е обвивка без модел (Stage 2B
 
   it("заявява най-много една стъпка с изведен ключ и граници в micro-USD", () => {
     expect(FULFILL).toContain('admin.rpc("claim_product_job"');
-    expect(FULFILL).toContain('admin.rpc("record_product_job_checkpoint"');
+    expect(FULFILL).toContain('admin.rpc("record_product_generation_artifact"');
     expect(FULFILL).toContain("p_budget_max_input_tokens: bounds.maxInputTokens");
     expect(FULFILL).toContain("p_budget_max_output_tokens: bounds.maxOutputTokens");
     expect(FULFILL).toContain("p_budget_hard_cost_micro_usd: bounds.hardCostMicroUsd");
@@ -131,10 +131,11 @@ describe("Изпълнението е обвивка без модел (Stage 2B
     expect(FULFILL).toContain('return fail("failed_permanent", 409, headers, cid)');
   });
 
-  it("НЯМА извикване на модел, фикстури или частичен резултат", () => {
+  it("НЯМА неявен live provider, фикстури или частичен резултат", () => {
     expect(FULFILL).not.toMatch(/lovable\/|ai\.gateway|generateText|previewData|fixtures?\//);
-    expect(JOBS).toContain("resolveProductGenerationAdapter");
-    expect(JOBS).toMatch(/return null/);
+    expect(JOBS).toContain("resolveProductGenerationDependencies");
+    expect(FULFILL).toContain("adapter: null");
+    expect(FULFILL).toContain("PRODUCT_AI_ZERO_RETENTION_VERIFIED");
   });
 
   it("границите идват от една сървърна политика, която браузърът не избира", () => {

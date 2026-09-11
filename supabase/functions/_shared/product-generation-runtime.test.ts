@@ -5,6 +5,7 @@ import {
   ProductGenerationError,
   ProductGenerationRuntime,
   type ProductGenerationState,
+  type ProductCallStore,
   type ProductLegalBasisPort,
   type ProductModelPort,
 } from "./product-generation-runtime.ts";
@@ -34,6 +35,7 @@ function state(overrides: Partial<ProductGenerationState> = {}): ProductGenerati
     bounds: computeProductCostBounds("contract_check", binding.char_count, classification),
     usage: { calls: 0, input_tokens: 0, output_tokens: 0, cost_micro_usd: 0 },
     completedCallIds: new Set(), artifacts: [], zeroRetentionVerified: true,
+    generationTimestamp: "2026-09-11T10:30:00.000Z",
     ...overrides,
   };
 }
@@ -84,6 +86,7 @@ Deno.test("one bounded passport call uses the server-owned current route and con
   assertEquals(result.telemetry?.callId, sent.callId);
   assertEquals(JSON.stringify(result.telemetry).includes("ДОГОВОР"), false);
   assertEquals(result.usage.calls, 1);
+  assertEquals(result.callIds.length, 1);
   assertEquals(result.artifact.version, 1);
   assertEquals(PRODUCT_GENERATION_POLICY_VERSION, state().bounds.policyVersion);
 });
@@ -91,4 +94,69 @@ Deno.test("one bounded passport call uses the server-owned current route and con
 Deno.test("reported model usage above the per-call bound fails before checkpoint", async () => {
   const model: ProductModelPort = { invoke: async () => ({ output: {}, inputTokens: 9_999_999, outputTokens: 1, elapsedMs: 1 }) };
   await assertRejects(() => new ProductGenerationRuntime(model, legal).runStep(state()), ProductGenerationError, "budget_exceeded");
+});
+
+Deno.test("60 000 code points expose all ten review batches without ordinal gaps", async () => {
+  const longSource = "Договорна клауза за цена и срок. ".repeat(1_875).slice(0, 60_000);
+  const longBinding = { ...binding, char_count: Array.from(longSource).length };
+  const longBounds = computeProductCostBounds("contract_check", longBinding.char_count, classifyDocumentBeforeAI(longSource));
+  const seen: string[] = [];
+  const model: ProductModelPort = { invoke: async (request) => {
+    seen.push(request.callId);
+    return { output: [], inputTokens: 1, outputTokens: 1, elapsedMs: 1 };
+  } };
+  const runtime = new ProductGenerationRuntime(model, legal);
+  for (let batch = 0; batch < 10; batch += 1) {
+    const result = await runtime.runStep(state({
+      sourceText: longSource, binding: longBinding, bounds: longBounds,
+      cursor: { stage: "review", batch_index: batch, chunk_index: batch * 3 },
+    }));
+    assertEquals(result.callIds.length, 1);
+  }
+  assertEquals(seen.length, 10);
+  assertEquals(new Set(seen).size, 10);
+});
+
+Deno.test("invalid batch gets exactly one bounded repair attempt", async () => {
+  const routes: string[] = [];
+  const model: ProductModelPort = { invoke: async (request) => {
+    routes.push(request.routeKey);
+    return { output: request.routeKey === "review" ? { invalid: true } : [], inputTokens: 1, outputTokens: 1, elapsedMs: 1 };
+  } };
+  const result = await new ProductGenerationRuntime(model, legal).runStep(state({
+    cursor: { stage: "review", batch_index: 0, chunk_index: 0 },
+  }));
+  assertEquals(routes, ["review", "review_repair"]);
+  assertEquals(result.telemetry?.repairCount, 1);
+  assertEquals(result.callIds.length, 2);
+});
+
+Deno.test("completed external call replays without a second priced invocation", async () => {
+  let calls = 0;
+  const response = { output: { passport: { title: "Договор", document_type: "Договор за услуги", parties: [], governing_law: null, signature_state: null } }, inputTokens: 1, outputTokens: 1, elapsedMs: 1 };
+  const store: ProductCallStore = {
+    reserve: async () => ({ status: "complete", response }),
+    complete: async () => { throw new Error("must not complete replay"); },
+  };
+  const model: ProductModelPort = { invoke: async () => { calls += 1; return response; } };
+  await new ProductGenerationRuntime(model, legal, store).runStep(state());
+  assertEquals(calls, 0);
+});
+
+Deno.test("context identifiers are absent from every outbound request", async () => {
+  const raw = "test@example.com";
+  const withIdentifier = `${source}\nИмейл ${raw}`;
+  let outbound = "";
+  const model: ProductModelPort = { invoke: async (request) => {
+    outbound = JSON.stringify(request.payload);
+    return { output: { passport: { title: "Договор", document_type: "Договор", parties: [], governing_law: null, signature_state: null } }, inputTokens: 1, outputTokens: 1, elapsedMs: 1 };
+  } };
+  await new ProductGenerationRuntime(model, legal).runStep(state({
+    sourceText: withIdentifier,
+    binding: { ...binding, char_count: Array.from(withIdentifier).length },
+    context: { role: `Възложител ${raw}` },
+    bounds: computeProductCostBounds("contract_check", Array.from(withIdentifier).length, classifyDocumentBeforeAI(withIdentifier)),
+  }));
+  assertEquals(outbound.includes(raw), false);
+  assert(outbound.includes("⟦PD_EMAIL_"));
 });
