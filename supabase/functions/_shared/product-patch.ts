@@ -27,6 +27,7 @@ export type PatchProblem =
   | "source_length_mismatch"
   | "unknown_correction"
   | "duplicate_correction"
+  | "duplicate_result_correction"
   | "missing_option"
   | "span_out_of_bounds"
   | "original_text_mismatch"
@@ -51,6 +52,8 @@ const MESSAGES: Readonly<Record<PatchProblem, string>> = Object.freeze({
     "Документът е променен след плащането. Поправката работи само върху точния платен документ.",
   unknown_correction: "Една от поправките не е част от този резултат.",
   duplicate_correction: "Една поправка е избрана два пъти.",
+  duplicate_result_correction:
+    "Резултатът съдържа две поправки с един и същ номер. Поправката не може да се приложи.",
   missing_option: "Избраният вариант липсва в поправката.",
   span_out_of_bounds: "Поправката не съвпада с текста на документа.",
   original_text_mismatch: "Поправката не съвпада с текста на документа.",
@@ -134,8 +137,13 @@ export async function buildProductPatch(
     throw new ProductPatchError("source_length_mismatch");
   }
 
+  // Двусмислен набор поправки НЕ се пренаписва тихо: два еднакви номера са отказ.
   const byId = new Map<string, Correction>();
-  for (const correction of input.corrections) byId.set(correction.id, correction);
+  for (const correction of input.corrections) {
+    if (byId.has(correction.id)) throw new ProductPatchError("duplicate_result_correction");
+    byId.set(correction.id, correction);
+  }
+
 
   const seen = new Set<string>();
   const rejected: string[] = [];
@@ -202,14 +210,25 @@ export async function buildProductPatch(
         ? -1
         : 1
   );
-  for (let i = 1; i < edits.length; i++) {
-    const prev = edits[i - 1];
-    const current = edits[i];
-    // Празните обхвати (вмъкване) не се застъпват; замените не могат да делят текст.
-    if (prev.end > current.start && prev.end !== prev.start && current.end !== current.start) {
-      throw new ProductPatchError("overlapping_corrections");
+  // Всяко двусмислено споделено място е отказ на ЦЯЛАТА поправка: вмъкване в или
+  // по границата на заменен обхват, две вмъквания на едно място и замени, които
+  // делят текст. Съседни, незастъпващи се промени остават позволени.
+  const replacements = edits.filter((edit) => edit.end > edit.start);
+  const anchors = new Set<number>();
+  for (const edit of edits) {
+    if (edit.end > edit.start) continue;
+    if (anchors.has(edit.insertAt)) throw new ProductPatchError("overlapping_corrections");
+    anchors.add(edit.insertAt);
+    for (const span of replacements) {
+      if (edit.insertAt >= span.start && edit.insertAt <= span.end) {
+        throw new ProductPatchError("overlapping_corrections");
+      }
     }
-    if (prev.start === current.start && prev.end === current.end && prev.end !== prev.start) {
+  }
+  for (let i = 1; i < replacements.length; i++) {
+    const prev = replacements[i - 1];
+    const current = replacements[i];
+    if (prev.end > current.start || prev.start === current.start) {
       throw new ProductPatchError("overlapping_corrections");
     }
   }

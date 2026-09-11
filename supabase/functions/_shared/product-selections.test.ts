@@ -194,3 +194,129 @@ Deno.test("указанието за уточнение е ограничено 
   assertEquals(refinementRemaining(0), 1);
   assertEquals(refinementRemaining(1), 0);
 });
+
+const sha256 = async (value: string) => {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+};
+
+Deno.test("две поправки с един номер спират поправката", async () => {
+  const duplicated = [corrections[0], correction("c1", 19, 33, "replace", "Срокът е 10 дни")];
+  const decisions = [
+    { correction_id: "c1", decision: "accept" as const, strategy: "balanced" as const },
+  ];
+  await assertRejectsPatch(() =>
+    buildProductPatch(
+      {
+        sourceText: SOURCE,
+        sourceBinding: binding,
+        resultBinding: binding,
+        corrections: duplicated,
+        decisions,
+      },
+      sha256,
+    )
+  );
+});
+
+Deno.test("вмъкване в заменен обхват и две вмъквания на едно място са застъпване", async () => {
+  const inside = [corrections[0], correction("c9", 5, 5, "insert_before", "(нова клауза) ")];
+  const insideDecisions = [
+    { correction_id: "c1", decision: "accept" as const, strategy: "balanced" as const },
+    { correction_id: "c9", decision: "accept" as const, strategy: "balanced" as const },
+  ];
+  await assertRejectsPatch(() =>
+    buildProductPatch(
+      {
+        sourceText: SOURCE,
+        sourceBinding: binding,
+        resultBinding: binding,
+        corrections: inside,
+        decisions: insideDecisions,
+      },
+      sha256,
+    )
+  );
+
+  const sameAnchor = [
+    correction("a1", 19, 19, "insert_before", "Първо. "),
+    correction("a2", 19, 19, "insert_before", "Второ. "),
+  ];
+  const anchorDecisions = [
+    { correction_id: "a1", decision: "accept" as const, strategy: "balanced" as const },
+    { correction_id: "a2", decision: "accept" as const, strategy: "balanced" as const },
+  ];
+  await assertRejectsPatch(() =>
+    buildProductPatch(
+      {
+        sourceText: SOURCE,
+        sourceBinding: binding,
+        resultBinding: binding,
+        corrections: sameAnchor,
+        decisions: anchorDecisions,
+      },
+      sha256,
+    )
+  );
+});
+
+Deno.test("съседни, незастъпващи се поправки остават позволени", async () => {
+  const decisions = validateSelectionDecisions(corrections, [
+    { correction_id: "c1", decision: "accept", strategy: "balanced" },
+    { correction_id: "c2", decision: "accept", strategy: "balanced" },
+  ]);
+  const manifest = await buildProductPatch(
+    { sourceText: SOURCE, sourceBinding: binding, resultBinding: binding, corrections, decisions },
+    sha256,
+  );
+  assertEquals(manifest.applied_count, 2);
+  assertEquals(manifest.corrected_text.includes("Срокът е 10 дни"), true);
+});
+
+Deno.test("кирилица и знаци извън BMP се местят по кодови точки", async () => {
+  const source = "Договорът 🧾 е валиден. Неустойката е 0,5% на ден 🔒.";
+  const cps = Array.from(source);
+  const start = cps.indexOf("Н");
+  const end = start + Array.from("Неустойката е 0,5% на ден").length;
+  const target: Correction = {
+    id: "u1",
+    title: "Неустойка",
+    mode: "replace",
+    span: { start, end, excerpt: cps.slice(start, end).join("") },
+    original_text: cps.slice(start, end).join(""),
+    rationale: "Причина.",
+    options: [
+      { stance: "conservative", replacement_text: "Неустойката е 0,3% на ден", trade_off: "Компромис." },
+      { stance: "balanced", replacement_text: "Неустойката е 0,5% на ден, но не повече от 10%", trade_off: "Компромис." },
+      { stance: "assertive", replacement_text: "Неустойката е 1% на ден", trade_off: "Компромис." },
+    ],
+  } as Correction;
+  const unicodeBinding = { ...binding, char_count: cps.length };
+  const decisions = validateSelectionDecisions([target], [
+    { correction_id: "u1", decision: "accept", strategy: "balanced" },
+  ]);
+  const first = await buildProductPatch(
+    {
+      sourceText: source,
+      sourceBinding: unicodeBinding,
+      resultBinding: unicodeBinding,
+      corrections: [target],
+      decisions,
+    },
+    sha256,
+  );
+  const second = await buildProductPatch(
+    {
+      sourceText: source,
+      sourceBinding: unicodeBinding,
+      resultBinding: unicodeBinding,
+      corrections: [target],
+      decisions,
+    },
+    sha256,
+  );
+  assertEquals(first.output_hash, second.output_hash);
+  assertEquals(first.corrected_text.startsWith("Договорът 🧾 е валиден."), true);
+  assertEquals(first.corrected_text.includes("но не повече от 10%"), true);
+  assertEquals(first.corrected_text.endsWith(" 🔒."), true);
+});
