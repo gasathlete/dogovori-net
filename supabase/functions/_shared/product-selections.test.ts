@@ -51,19 +51,20 @@ const binding = Object.freeze({
   source_hash: "a".repeat(64),
   source_kind: "docx" as const,
   char_count: Array.from(SOURCE).length,
-  char_unit: "unicode_code_point" as const,
+  char_unit: "unicode_code_points" as const,
   source_updated_at: "2026-01-01T00:00:00.000Z",
   page_count: null,
 });
 
 Deno.test("всяка поправка иска изрично решение — без подразбиране", () => {
   assertThrows(
-    () => validateSelectionDecisions([{ correction_id: "c1", decision: "accept", strategy: "balanced" }], corrections),
+    () => validateSelectionDecisions(corrections, [{ correction_id: "c1", decision: "accept", strategy: "balanced" }]),
     ProductSelectionError,
   );
   assertThrows(
     () =>
       validateSelectionDecisions(
+        CORRS,
         [
           { correction_id: "c1", decision: "accept", strategy: "balanced" },
           { correction_id: "c1", decision: "reject", strategy: null },
@@ -76,6 +77,7 @@ Deno.test("всяка поправка иска изрично решение �
   assertThrows(
     () =>
       validateSelectionDecisions(
+        CORRS,
         [
           { correction_id: "c1", decision: "accept", strategy: null },
           { correction_id: "c2", decision: "reject", strategy: null },
@@ -87,6 +89,7 @@ Deno.test("всяка поправка иска изрично решение �
   assertThrows(
     () =>
       validateSelectionDecisions(
+        CORRS,
         [
           { correction_id: "c1", decision: "reject", strategy: "balanced" },
           { correction_id: "c2", decision: "reject", strategy: null },
@@ -96,6 +99,7 @@ Deno.test("всяка поправка иска изрично решение �
     ProductSelectionError,
   );
   const ok = validateSelectionDecisions(
+    CORRS,
     [
       { correction_id: "c2", decision: "reject", strategy: null },
       { correction_id: "c1", decision: "accept", strategy: "conservative" },
@@ -117,6 +121,7 @@ Deno.test("версия и ключ за повторение се провер�
 
 Deno.test("поправеният текст се получава детерминистично по кодови точки", async () => {
   const decisions = validateSelectionDecisions(
+    CORRS,
     [
       { correction_id: "c1", decision: "accept", strategy: "balanced" },
       { correction_id: "c2", decision: "reject", strategy: null },
@@ -145,6 +150,7 @@ Deno.test("поправеният текст се получава детерм�
 Deno.test("несъответстващ източник или застъпване спира поправката", async () => {
   const digest = async () => "0".repeat(64);
   const decisions = validateSelectionDecisions(
+    CORRS,
     [
       { correction_id: "c1", decision: "accept", strategy: "balanced" },
       { correction_id: "c2", decision: "accept", strategy: "balanced" },
@@ -159,6 +165,7 @@ Deno.test("несъответстващ източник или застъпва
   );
   const overlapping = [corrections[0], correction("c3", 5, 25, "replace", "нещо друго")];
   const overlapDecisions = validateSelectionDecisions(
+    CORRS,
     [
       { correction_id: "c1", decision: "accept", strategy: "balanced" },
       { correction_id: "c3", decision: "accept", strategy: "balanced" },
