@@ -1,19 +1,16 @@
 /**
  * ОТДЕЛЕН порт към Lovable AI Gateway САМО за платените еднократни продукти.
  *
- * Защо отделен: общият `model-router.ts` носи стари Gemini 2.5 маршрути и
- * политика за резервен модел. Тук няма резервен модел, няма скрит повторен опит
- * и няма подмяна: изпълнява се ТОЧНО моделът от неизменната граница на
- * извикването (`ProductStageCallBound`), одобрен от политика `2b1b1.3`.
+ * Защо отделен: общият рутер на моделите носи наследени маршрути и политика за
+ * резервен модел. Тук няма резервен модел, няма скрит повторен опит и няма
+ * подмяна: изпълнява се ТОЧНО моделът от неизменната граница на извикването,
+ * одобрен от текущата продуктова политика.
  *
  * Модулът не чете Deno env сам и не създава мрежа в тест: `fetchImpl` се подава.
  * Никога не влизат в заглавия, логове или грешки: суров документ, контекст,
  * карта на заличаването или предишни хидратирани артефакти.
  */
-import {
-  PRODUCT_ALLOWED_MODELS,
-  type ProductStageId,
-} from "./product-generation-policy.ts";
+import { PRODUCT_ALLOWED_MODELS } from "./product-generation-policy.ts";
 import type {
   ProductModelPort,
   ProductModelRequest,
@@ -218,9 +215,4 @@ export function createProductModelPort(options: ProductGatewayOptions): ProductM
       };
     },
   });
-}
-
-/** Само за проверка на маршрута: етапът никога не избира модел в браузъра. */
-export function isProductStageId(raw: unknown): raw is ProductStageId {
-  return typeof raw === "string";
 }
