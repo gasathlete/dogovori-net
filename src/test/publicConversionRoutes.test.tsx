@@ -216,7 +216,7 @@ describe("сравнение по честота", () => {
     const src = read("src/components/products/FrequencyCompare.tsx");
     expect(src).not.toMatch(/спест/i);
     expect(src).not.toMatch(/\d+\s*%/);
-    expect(src).not.toMatch(/само днес|последен шанс|брояч/i);
+    expect(src).not.toMatch(/само днес|последен шанс|изтича след/i);
   });
 
   it("/plans показва сравнението и запазва връзката към продуктите", () => {
