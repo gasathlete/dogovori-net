@@ -11,7 +11,7 @@ import {
   type ProductModelResponse,
 } from "./product-generation-runtime.ts";
 import { PRODUCT_SOURCE_CHAR_UNIT } from "./product-source.ts";
-import { redactProductSource, rehydrateProductOutput, ProductRedactionError } from "./product-secure-redaction.ts";
+import { redactProductSource, redactedSourceRange, rehydrateProductOutput, ProductRedactionError } from "./product-secure-redaction.ts";
 
 const source = "ДОГОВОР ЗА УСЛУГИ\n\nВъзложителят възлага изработка на уебсайт. Цената е 24000 EUR. Срокът е 20 дни.";
 const binding = {
@@ -68,6 +68,18 @@ Deno.test("deterministic redaction rehydrates exact values and rejects placehold
   assertRejects(async () => rehydrateProductOutput("⟦PD_EMAIL_9999⟧", redacted.map, []), ProductRedactionError, "unknown_placeholder");
 });
 
+Deno.test("a chunk boundary through an identifier emits only its server-owned placeholder", () => {
+  const raw = "test@example.com";
+  const input = `Преди ${raw} след`;
+  const redacted = redactProductSource(input);
+  const startInsideIdentifier = Array.from("Преди test@").length;
+  const endInsideIdentifier = Array.from("Преди test@example").length;
+  const safe = redactedSourceRange(input, redacted.map, startInsideIdentifier, endInsideIdentifier);
+  assertEquals(safe, redacted.map.orderedTokens[0]);
+  assertEquals(safe.includes("test@"), false);
+  assertEquals(safe.includes("example"), false);
+});
+
 Deno.test("one bounded passport call uses the server-owned current route and content-free telemetry", async () => {
   let request: unknown;
   const model: ProductModelPort = {
@@ -83,7 +95,8 @@ Deno.test("one bounded passport call uses the server-owned current route and con
   const sent = request as { model: string; callId: string; routeKey: string };
   assert(["google/gemini-3.1-flash-lite", "google/gemini-3.8-flash"].includes(sent.model));
   assertEquals(sent.routeKey, "passport");
-  assertEquals(result.nextCursor.stage, "passport");
+  assertEquals(result.nextCursor.stage, "review");
+  assertEquals((result.artifact.payload as { passport: { title: string } }).passport.title, "Договор");
   assertEquals(result.telemetry?.callId, sent.callId);
   assertEquals(JSON.stringify(result.telemetry).includes("ДОГОВОР"), false);
   assertEquals(result.usage.calls, 1);
@@ -212,14 +225,15 @@ Deno.test("deep schemas reject malformed correction options and invented fields"
   await assertRejects(() => new ProductGenerationRuntime(model, legal).runStep(state({ productId: "contract_improve", cursor: { stage: "corrections", batch_index: 0, chunk_index: 0 }, bounds: computeProductCostBounds("contract_improve", binding.char_count, classifyDocumentBeforeAI(source)) })), ProductGenerationError, "invalid_model_output");
 });
 
-Deno.test("placeholder inventory comes from outbound material, not model-declared spans", async () => {
+Deno.test("unrelated summary may omit source placeholders", async () => {
   const raw = "test@example.com";
   const withIdentifier = `${source}\nИмейл ${raw}`;
   const model: ProductModelPort = { invoke: async () => ({ output: { passport: { title: "Договор", document_type: "Договор", parties: [], governing_law: null, signature_state: null } }, inputTokens: 1, outputTokens: 1, elapsedMs: 1 }) };
-  await assertRejects(() => new ProductGenerationRuntime(model, legal).runStep(state({
+  const result = await new ProductGenerationRuntime(model, legal).runStep(state({
     sourceText: withIdentifier, binding: { ...binding, char_count: Array.from(withIdentifier).length },
     bounds: computeProductCostBounds("contract_check", Array.from(withIdentifier).length, classifyDocumentBeforeAI(withIdentifier)),
-  })), ProductGenerationError, "invalid_placeholder");
+  }));
+  assertEquals(result.nextCursor.stage, "review");
 });
 
 Deno.test("context identifiers are absent from every outbound request", async () => {
@@ -239,4 +253,37 @@ Deno.test("context identifiers are absent from every outbound request", async ()
   }));
   assertEquals(outbound.includes(raw), false);
   assert(outbound.includes("⟦PD_EMAIL_"));
+});
+
+Deno.test("late-chunk PII never appears in primary or repair payloads", async () => {
+  const values = ["late@example.com", "BG80BNBG96611020345678", "9001010008", "+359 888 123 456", "ул. Витоша 12"];
+  const suffix = `\n${values.join(" | ")}`;
+  const longSource = `${"Договорна клауза за цена и срок. ".repeat(1_875).slice(0, 60_000 - Array.from(suffix).length)}${suffix}`;
+  const outbound: string[] = [];
+  const model: ProductModelPort = { invoke: async (request) => {
+    outbound.push(JSON.stringify(request.payload));
+    return { output: request.routeKey === "review" ? { invalid: true } : [], inputTokens: 1, outputTokens: 1, elapsedMs: 1 };
+  } };
+  const longBinding = { ...binding, char_count: Array.from(longSource).length };
+  const bounds = computeProductCostBounds("contract_check", longBinding.char_count, classifyDocumentBeforeAI(longSource));
+  const result = await new ProductGenerationRuntime(model, legal).runStep(state({ sourceText: longSource, binding: longBinding, bounds, cursor: { stage: "review", batch_index: 9, chunk_index: 27 } }));
+  assertEquals(result.telemetry?.repairCount, 1);
+  for (const payload of outbound) for (const value of values) assertEquals(payload.includes(value), false);
+});
+
+Deno.test("an exact quote must preserve its anchored placeholder", async () => {
+  const raw = "test@example.com";
+  const withIdentifier = `Имейл ${raw} е адресът за уведомяване.`;
+  const start = 0;
+  const end = Array.from(`Имейл ${raw}`).length;
+  const model: ProductModelPort = { invoke: async () => ({
+    output: [{ kind: "obligation", id: "o1", party: "you", summary: "Уведомяване", deadline: null, span: { start, end, excerpt: "Имейл адрес" } }],
+    inputTokens: 1, outputTokens: 1, elapsedMs: 1,
+  }) };
+  const localBinding = { ...binding, char_count: Array.from(withIdentifier).length };
+  await assertRejects(() => new ProductGenerationRuntime(model, legal).runStep(state({
+    sourceText: withIdentifier, binding: localBinding,
+    bounds: computeProductCostBounds("contract_check", localBinding.char_count, classifyDocumentBeforeAI(withIdentifier)),
+    cursor: { stage: "review", batch_index: 0, chunk_index: 0 },
+  })), ProductGenerationError, "invalid_placeholder");
 });

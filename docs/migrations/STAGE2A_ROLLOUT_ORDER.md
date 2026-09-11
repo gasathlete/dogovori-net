@@ -24,6 +24,9 @@
 7. `drizzle/migrations/0023_product_generation_artifacts_correction.sql`
    — коригира текущия курсор/етап, строгото повторение, безопасната резервация
    на моделно извикване и атомарното записване на финалния резултат. **Веднага след 0022.**
+8. `drizzle/migrations/0024_product_generation_runtime_safety_correction.sql`
+   — инициализира неизменния generation timestamp под валиден наем, премахва
+   фантомния passport артефакт и добавя липсващата проверка на курсора. **Веднага след 0023.**
 
 Защо редът е задължителен: базовата миграция създава таблиците, ограничението
 `product_entitlements_ready_ck` и функциите, които записват резултат, но сверява
@@ -52,6 +55,7 @@ content-free разход) и колоната `generation_policy_version`, ко
 - `docs/migrations/stage2b1b1_product_policy_binding_patch.sql`
 - `docs/migrations/stage2b1b2_product_generation_artifacts.sql`
 - `docs/migrations/stage2b1b2_product_generation_artifacts_correction.sql`
+- `docs/migrations/stage2b1b2_product_generation_runtime_safety_correction.sql`
 
 Контролни суми (SHA-256) на изпълнимите файлове:
 
@@ -61,15 +65,16 @@ content-free разход) и колоната `generation_policy_version`, ко
 - 0021: `8e9150f9154e55baf413703847aade5e12f84ae4331eeebaef093219e87af821`
 - 0022: `65797186dc7635d27be8b1fc258a5ef02cc54dd280ef3a486b0360231f68ba3c`
 - 0023: `484199ee7ed7b683e7c428ae007f5607001010872bfdb91dc73b0e3af0092ab8`
+- 0024: `eb732f25a24d57a9ecec9f0f83ba7e0ff6dc66bde2ad45fdf2e1d52818f01645`
 
 Нито един от файловете не е записан в `drizzle/migrations/meta/_journal.json`:
 в това хранилище няма доказана конвенция за журнал на ръчни SQL кръпки, а този
 документ е авторитетният ред.
 
-Номер `0024` е **запазен** за състоянието на избора/уточнението (selection и
+Номер `0025` е **запазен** за състоянието на избора/уточнението (selection и
 refinement) в следващ етап. Обратимата карта за редакция не се записва: няма
 одобрен шифроващ примитив. Live provider остава затворен до доказан zero-retention gate.
 
-Stage 2B остава **блокиран за продукция**, докато и шестте миграции не са
+Stage 2B остава **блокиран за продукция**, докато и седемте миграции не са
 приложени и проверени. Дотогава не се създава платено изпълнение на резултат:
 `fulfill-product` умишлено няма live provider, докато zero-retention не е проверен.
