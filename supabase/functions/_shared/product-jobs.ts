@@ -194,6 +194,15 @@ export interface ProductGenerationStep {
   readonly binding: ProductSourceBinding;
   readonly cursor: ProductJobCursor;
   readonly bounds: ProductCostBounds;
+  readonly dataSafety: {
+    readonly redactionRequired: boolean;
+    readonly redactionCompleted: boolean;
+    readonly postRedactionReclassificationRequired: boolean;
+    readonly postRedactionReclassificationCompleted: boolean;
+    readonly userConfirmationRequired: boolean;
+    readonly userConfirmationCompleted: boolean;
+    readonly modelCallAllowed: boolean;
+  };
 }
 
 export interface ProductGenerationStepResult {

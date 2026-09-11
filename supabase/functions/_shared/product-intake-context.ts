@@ -45,11 +45,15 @@ export interface ProductContext {
   readonly preferred_position?: ProductPosition;
 }
 
-const MAX_LENGTHS: Readonly<Record<string, number>> = Object.freeze({
+export const PRODUCT_CONTEXT_MAX_LENGTHS = Object.freeze({
   role: 120,
   objective: 400,
   counterparty_context: 400,
 });
+
+export const PRODUCT_CONTEXT_MAX_POSITION_CHARS = Math.max(
+  ...PRODUCT_POSITIONS.map((position) => Array.from(position).length),
+);
 
 /**
  * Проверява и нормализира контекста според изискванията на продукта:
@@ -73,7 +77,9 @@ export function validateProductContext(raw: unknown, productId: ProductPurchaseI
     if (typeof value !== "string") continue;
     const trimmed = value.trim();
     if (!trimmed) continue;
-    if (trimmed.length > MAX_LENGTHS[key]) throw new ProductContextError("context_too_long");
+    if (Array.from(trimmed).length > PRODUCT_CONTEXT_MAX_LENGTHS[key]) {
+      throw new ProductContextError("context_too_long");
+    }
     if (trimmed.length < 2) throw new ProductContextError("context_too_short");
     out[key] = trimmed;
   }

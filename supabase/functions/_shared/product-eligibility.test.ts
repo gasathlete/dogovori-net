@@ -111,6 +111,42 @@ Deno.test("забранено съдържание се отказва дете�
   if (!decision.ok) assertEquals(decision.code, "content_not_allowed");
 });
 
+Deno.test("особено чувствителни данни се отказват преди плащане", () => {
+  for (const marker of ["диагноза", "синдикално членство", "биометрични данни", "непълнолетен"]) {
+    const text = makeText(4_000) + ` ${marker} `;
+    const decision = evaluateProductEligibility(input({
+      source: {
+        text,
+        charCount: countProductSourceChars(text),
+        charUnit: "unicode_code_points",
+        sourceKind: "pdf",
+        extractionStatus: "full",
+      },
+    }));
+    assertEquals(decision.ok, false, marker);
+    if (!decision.ok) assertEquals(decision.code, "processing_not_allowed", marker);
+  }
+});
+
+Deno.test("обикновени контактни данни не се бъркат с особено чувствителни", () => {
+  const text = makeText(4_000) + " contact@example.com +359 88 123 4567 ";
+  const decision = evaluateProductEligibility(input({
+    source: {
+      text,
+      charCount: countProductSourceChars(text),
+      charUnit: "unicode_code_points",
+      sourceKind: "docx",
+      extractionStatus: "full",
+    },
+  }));
+  assert(decision.ok);
+  if (decision.ok) {
+    assertEquals(decision.policy.redactionRequired, true);
+    assertEquals(decision.policy.postRedactionReclassificationRequired, true);
+    assertEquals(decision.policy.modelCallAllowed, false);
+  }
+});
+
 Deno.test("сменена политика спира повторната обработка", () => {
   const decision = evaluateProductEligibility(input({ expectedPolicyVersion: "стара.версия" }));
   assertEquals(decision.ok, false);

@@ -3,6 +3,8 @@ import {
   COST_UNIT,
   INPUT_TOKENS_PER_CODE_POINT,
   MAX_MODEL_CALLS,
+  MAX_CONTEXT_CODE_POINTS,
+  MAX_CONTEXT_TOKENS,
   MAX_TOTAL_TOKENS,
   PRICE_TABLE_DATE,
   PRICE_TABLE_VERSION,
@@ -14,6 +16,7 @@ import {
   MODEL_PRICES,
   ProductBudgetError,
   computeProductCostBounds,
+  modelPrice,
 } from "./product-generation-policy.ts";
 import type { Classification } from "./classify.ts";
 import { classifyDocumentBeforeAI } from "./classify.ts";
@@ -27,10 +30,10 @@ function lowRiskClassification(): Classification {
 }
 
 Deno.test("политиката има точна версия, единица и датирана таблица с цени", () => {
-  assertEquals(PRODUCT_GENERATION_POLICY_VERSION, "2b1b1.2");
+  assertEquals(PRODUCT_GENERATION_POLICY_VERSION, "2b1b1.3");
   assertEquals(COST_UNIT, "micro_usd");
-  assertEquals(PRICE_TABLE_VERSION, "2026-03-provider-standard");
-  assertEquals(PRICE_TABLE_DATE, "2026-03-01");
+  assertEquals(PRICE_TABLE_VERSION, "2026-09-11-provider-standard");
+  assertEquals(PRICE_TABLE_DATE, "2026-09-11");
 });
 
 Deno.test("платеният маршрут ползва САМО текущите поддържани модели", () => {
@@ -67,6 +70,12 @@ Deno.test("горната граница за входа е UTF-8 безопас
   assert(passport!.maxInputTokens >= 1_000 * 4);
 });
 
+Deno.test("контекстът се извежда от максималните полета и включва JSON overhead", () => {
+  assertEquals(MAX_CONTEXT_CODE_POINTS, 120 + 400 + 400 + 12);
+  assert(MAX_CONTEXT_TOKENS > MAX_CONTEXT_CODE_POINTS * INPUT_TOKENS_PER_CODE_POINT);
+  assert(MAX_CONTEXT_TOKENS >= 4_240);
+});
+
 Deno.test("границите се изчисляват за всеки продукт до точния лимит от 60 000", () => {
   const cls = lowRiskClassification();
   for (const product of PRODUCTS) {
@@ -95,21 +104,24 @@ Deno.test("точната таблица при 60 000 кодови точки �
   const expected = {
     contract_check: {
       maxChunks: 30, maxBatches: 10, baseModelCalls: 12, repairModelCalls: 10,
-      reservedRefinementCalls: 0, maxModelCalls: 22, maxInputTokens: 1_050_600,
-      maxOutputTokens: 88_000, maxTotalTokens: 1_138_600, maxCostMicroUsd: 1_889_275,
+      reservedRefinementCalls: 0, maxModelCalls: 22, maxInputTokens: 1_606_480,
+      maxOutputTokens: 88_000, maxTotalTokens: 1_694_480, maxCostMicroUsd: 680_545,
+      reservedRefinementInputTokens: 0, reservedRefinementOutputTokens: 0,
       reservedRefinementCostMicroUsd: 0, targetCostMicroUsd: 1_500_000, hardCostMicroUsd: 3_000_000,
     },
     contract_improve: {
       maxChunks: 30, maxBatches: 10, baseModelCalls: 22, repairModelCalls: 20,
-      reservedRefinementCalls: 0, maxModelCalls: 42, maxInputTokens: 1_987_000,
-      maxOutputTokens: 168_000, maxTotalTokens: 2_155_000, maxCostMicroUsd: 3_893_875,
+      reservedRefinementCalls: 0, maxModelCalls: 42, maxInputTokens: 3_094_280,
+      maxOutputTokens: 168_000, maxTotalTokens: 3_262_280, maxCostMicroUsd: 1_272_495,
+      reservedRefinementInputTokens: 0, reservedRefinementOutputTokens: 0,
       reservedRefinementCostMicroUsd: 0, targetCostMicroUsd: 2_500_000, hardCostMicroUsd: 5_000_000,
     },
     negotiation_package: {
       maxChunks: 30, maxBatches: 10, baseModelCalls: 24, repairModelCalls: 20,
-      reservedRefinementCalls: 1, maxModelCalls: 45, maxInputTokens: 2_512_500,
-      maxOutputTokens: 180_000, maxTotalTokens: 2_692_500, maxCostMicroUsd: 4_772_125,
-      reservedRefinementCostMicroUsd: 300_750, targetCostMicroUsd: 3_200_000,
+      reservedRefinementCalls: 1, maxModelCalls: 45, maxInputTokens: 3_626_500,
+      maxOutputTokens: 180_000, maxTotalTokens: 3_806_500, maxCostMicroUsd: 2_160_825,
+      reservedRefinementInputTokens: 182_740, reservedRefinementOutputTokens: 4_000,
+      reservedRefinementCostMicroUsd: 304_110, targetCostMicroUsd: 3_200_000,
       hardCostMicroUsd: 6_500_000,
     },
   } as const;
@@ -192,13 +204,48 @@ Deno.test("само премиумът заделя истинско извик�
   assert(premium.maxCostMicroUsd >= premium.reservedRefinementCostMicroUsd);
 });
 
-Deno.test("непознат модел в маршрута се отказва, а не се приема на нулева цена", () => {
+Deno.test("ценовата справка директно отказва непознат модел", () => {
+  const err = assertThrows(() => modelPrice("vendor/unknown-model"), ProductBudgetError);
+  assertEquals((err as ProductBudgetError).reason, "unknown_model_price");
+});
+
+Deno.test("класификацията не може да вкара непознат модел в продуктовия маршрут", () => {
   const cls = lowRiskClassification();
   const blocked: Classification = { ...cls, allowed_models: ["vendor/unknown-model"] };
   // Маршрутът е СЪРВЪРЕН: класификацията не може да наложи чужд модел, но
   // непозната цена винаги се проваля затворено.
   const bounds = computeProductCostBounds("contract_check", 10_000, blocked);
   for (const call of bounds.calls) assert(PRODUCT_ALLOWED_MODELS.includes(call.model));
+});
+
+Deno.test("обемните партиди и поправките са Flash Lite, качествените финали са Flash", () => {
+  const bounds = computeProductCostBounds("negotiation_package", 60_000, lowRiskClassification());
+  for (const call of bounds.calls) {
+    if (["passport", "review", "review_repair", "corrections", "corrections_repair"].includes(call.stage)) {
+      assertEquals(call.model, PRODUCT_MODEL_FLASH_LITE, call.stage);
+    } else {
+      assertEquals(call.model, PRODUCT_MODEL_FLASH, call.stage);
+    }
+  }
+});
+
+Deno.test("договорът за данни забранява модел преди редакция и повторна класификация", () => {
+  const classified = lowRiskClassification();
+  const sensitive: Classification = {
+    ...classified,
+    risk_level: "medium",
+    contains_personal_data: true,
+    redaction_required: true,
+  };
+  const bounds = computeProductCostBounds("contract_check", 10_000, sensitive);
+  assertEquals(bounds.redactionRequired, true);
+  assertEquals(bounds.postRedactionReclassificationRequired, true);
+  assertEquals(bounds.modelCallAllowed, false);
+  for (const call of bounds.calls) {
+    assertEquals(call.redactionRequired, true);
+    assertEquals(call.postRedactionReclassificationRequired, true);
+    assertEquals(call.modelCallAllowed, false);
+  }
 });
 
 Deno.test("блокирана класификация не получава бюджет", () => {

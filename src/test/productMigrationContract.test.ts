@@ -609,6 +609,14 @@ const FIX_REVIEW = join(
   process.cwd(),
   "docs/migrations/stage2b1b1_product_fulfillment_jobs_correction.sql",
 );
+const POLICY_BINDING_FILE = join(
+  process.cwd(),
+  "drizzle/migrations/0021_product_policy_binding_patch.sql",
+);
+const POLICY_BINDING_REVIEW = join(
+  process.cwd(),
+  "docs/migrations/stage2b1b1_product_policy_binding_patch.sql",
+);
 
 describe("Stage 2B1B1 корекция 0020 — micro-USD, строг курсор и наем", () => {
   const sql = readFileSync(FIX_FILE, "utf8");
@@ -723,17 +731,19 @@ describe("Stage 2B1B1 корекция 0020 — micro-USD, строг курсо
     for (const d of definers) expect(d).toBe("SECURITY DEFINER SET search_path = ''");
   });
 
-  it("редът е база -> 0018 -> 0019 -> 0020, а 0021 е запазен", () => {
+  it("редът е база -> 0018 -> 0019 -> 0020 -> 0021, а 0022 е запазен", () => {
     const note = readFileSync(ROLLOUT_NOTE, "utf8");
     const base = note.indexOf("20260910090000_product_checkout_entitlements.sql");
     const fix = note.indexOf("0018_product_result_v2_binding_patch.sql");
     const jobs = note.indexOf("0019_product_fulfillment_jobs.sql");
     const corr = note.indexOf("0020_product_fulfillment_jobs_correction.sql");
+    const binding = note.indexOf("0021_product_policy_binding_patch.sql");
     expect(base).toBeGreaterThan(-1);
     expect(base).toBeLessThan(fix);
     expect(fix).toBeLessThan(jobs);
     expect(jobs).toBeLessThan(corr);
-    expect(note).toContain("`0021`");
+    expect(corr).toBeLessThan(binding);
+    expect(note).toContain("`0022`");
   });
 
   it("корекцията не влиза в дневника на миграциите", () => {
@@ -742,6 +752,85 @@ describe("Stage 2B1B1 корекция 0020 — micro-USD, строг курсо
       "utf8",
     );
     expect(journal).not.toContain("0020_product_fulfillment_jobs_correction");
+  });
+});
+
+describe("Stage 2B1B1 корекция 0021 — неизменна версия на платената политика", () => {
+  const sql = readFileSync(POLICY_BINDING_FILE, "utf8");
+
+  it("е идентична с файла за преглед и пази защитените 0019/0020", () => {
+    expect(sql).toBe(readFileSync(POLICY_BINDING_REVIEW, "utf8"));
+    expect(readFileSync(JOBS_FILE, "utf8")).toBe(readFileSync(JOBS_REVIEW, "utf8"));
+    expect(readFileSync(FIX_FILE, "utf8")).toBe(readFileSync(FIX_REVIEW, "utf8"));
+  });
+
+  it("е атомарна, добавяща и няма backfill или изтриване", () => {
+    expect(sql).toContain("BEGIN;");
+    expect(sql.trimEnd().endsWith("COMMIT;")).toBe(true);
+    expect(sql).not.toMatch(/UPDATE public\.|INSERT INTO|DELETE FROM|DROP TABLE|DROP COLUMN|TRUNCATE/i);
+    expect(sql).toContain("product_intake_policy_preapply_gate_failed");
+    expect(sql).toContain("NOT VALID");
+    expect(sql).toContain("VALIDATE CONSTRAINT product_checkout_intakes_generation_policy_ck");
+  });
+
+  it("INSERT взема точната intake версия и отказва липса, празнота и разминаване", () => {
+    expect(sql).toContain("BEFORE INSERT OR UPDATE ON public.product_entitlements");
+    expect(sql).toContain("SELECT * INTO v_intake");
+    expect(sql).toContain("WHERE id = NEW.intake_id");
+    expect(sql).toContain("FOR UPDATE");
+    expect(sql).toContain("product_entitlement_intake_missing");
+    expect(sql).toContain("product_intake_policy_missing");
+    expect(sql).toContain("product_entitlement_intake_binding_conflict");
+    expect(sql).toContain("product_entitlement_policy_conflict");
+    expect(sql).toContain("NEW.generation_policy_version := v_intake.generation_policy_version");
+  });
+
+  it("сверява потребител, продукт и цялото source binding", () => {
+    for (const token of [
+      "v_intake.user_id IS DISTINCT FROM NEW.user_id",
+      "v_intake.product_id IS DISTINCT FROM NEW.product_id",
+      "v_intake.uploaded_contract_id IS DISTINCT FROM NEW.source_document_id",
+      "lower(v_intake.source_hash) IS DISTINCT FROM lower(NEW.source_hash)",
+      "v_intake.source_updated_at IS DISTINCT FROM NEW.source_updated_at",
+      "v_intake.source_char_count IS DISTINCT FROM NEW.source_char_count",
+      "v_intake.source_char_unit IS DISTINCT FROM NEW.source_char_unit",
+      "v_intake.source_kind IS DISTINCT FROM NEW.source_kind",
+      "v_intake.source_page_count IS DISTINCT FROM NEW.source_page_count",
+      "v_intake.source_extraction_status IS DISTINCT FROM NEW.source_extraction_status",
+    ]) expect(sql).toContain(token);
+  });
+
+  it("UPDATE е неизменен, а легитимният replay със същата версия остава допустим", () => {
+    expect(sql).toContain("IF TG_OP = 'UPDATE' THEN");
+    expect(sql).toContain(
+      "IF NEW.generation_policy_version IS DISTINCT FROM OLD.generation_policy_version THEN",
+    );
+    expect(sql).toContain("product_entitlement_policy_immutable");
+    expect(sql).toContain("IF NEW.intake_id IS DISTINCT FROM OLD.intake_id THEN");
+    expect(sql.indexOf("SELECT * INTO v_intake")).toBeGreaterThan(sql.indexOf("IF TG_OP = 'UPDATE' THEN"));
+    expect(sql).toContain("RETURN NEW;");
+  });
+
+  it("функцията е с празен search_path и изпълнима само от service_role", () => {
+    expect(sql).toContain("SECURITY DEFINER\nSET search_path = ''");
+    for (const role of ["PUBLIC", "anon", "authenticated"]) {
+      expect(sql).toContain(
+        `REVOKE ALL ON FUNCTION public.bind_product_entitlement_policy() FROM ${role};`,
+      );
+    }
+    expect(sql).toContain(
+      "GRANT EXECUTE ON FUNCTION public.bind_product_entitlement_policy() TO service_role;",
+    );
+  });
+
+  it("не е записана в Drizzle journal и 0022 остава запазена", () => {
+    const journal = readFileSync(
+      join(process.cwd(), "drizzle/migrations/meta/_journal.json"),
+      "utf8",
+    );
+    expect(journal).not.toContain("0021_product_policy_binding_patch");
+    const note = readFileSync(ROLLOUT_NOTE, "utf8");
+    expect(note).toContain("`0022`");
   });
 });
 

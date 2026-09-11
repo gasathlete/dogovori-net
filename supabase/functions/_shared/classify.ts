@@ -74,7 +74,7 @@ const SPECIAL_CATEGORY_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
   { pattern: makeCyrPattern("(етнос|етническа\\s*принадлежност|раса|расова)"), label: "racial_ethnic" },
   { pattern: makeCyrPattern("(сексуална\\s*ориентация|сексуален\\s*живот|LGBT|ЛГБТ)"), label: "sexual_orientation" },
   { pattern: makeCyrPattern("(биометрични?\\s*данни|пръстов\\s*отпечатък|лицево\\s*разпознаване|ДНК|генетичн)"), label: "biometric_genetic" },
-  { pattern: makeCyrPattern("(непълнолетн|малолетн|дете\\s*на\\s*възраст|родителски\\s*права|акт\\s*за\\s*раждане)"), label: "minor" },
+  { pattern: makeCyrPattern("(непълнолет(?:ен|на|но|ни|ния|ната|ните)|малолет(?:ен|на|но|ни|ния|ната|ните)|дете\\s*на\\s*възраст|родителски\\s*права|акт\\s*за\\s*раждане)"), label: "minor" },
 ];
 
 export function classifyDocumentBeforeAI(input: string): Classification {

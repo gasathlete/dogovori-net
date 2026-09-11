@@ -78,6 +78,9 @@ export interface EligibilityPolicy {
   readonly containsPersonalData: boolean;
   readonly containsSpecialCategoryData: boolean;
   readonly redactionRequired: boolean;
+  readonly postRedactionReclassificationRequired: boolean;
+  readonly userConfirmationRequired: boolean;
+  readonly modelCallAllowed: boolean;
   readonly bounds: ProductCostBounds;
 }
 
@@ -133,6 +136,7 @@ export function evaluateProductEligibility(input: EligibilityInput): Eligibility
 
   // 4) Класификация и маршрут по установената политика.
   const classification = classifyDocumentBeforeAI(source.text);
+  if (classification.contains_special_category_data) return reject("processing_not_allowed");
   if (classification.risk_level === "blocked") return reject("processing_not_allowed");
   if (classification.allowed_models.length === 0) return reject("processing_not_allowed");
 
@@ -156,6 +160,11 @@ export function evaluateProductEligibility(input: EligibilityInput): Eligibility
       containsPersonalData: classification.contains_personal_data,
       containsSpecialCategoryData: classification.contains_special_category_data,
       redactionRequired: classification.redaction_required,
+      postRedactionReclassificationRequired:
+        classification.redaction_required,
+      userConfirmationRequired: classification.user_confirmation_required,
+      modelCallAllowed:
+        !classification.redaction_required && !classification.user_confirmation_required,
       bounds,
     },
   };

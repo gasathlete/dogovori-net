@@ -15,6 +15,10 @@
  */
 import type { Classification } from "./classify.ts";
 import {
+  PRODUCT_CONTEXT_MAX_LENGTHS,
+  PRODUCT_CONTEXT_MAX_POSITION_CHARS,
+} from "./product-intake-context.ts";
+import {
   PRODUCT_CHUNK_MAX_CHARS,
   PRODUCT_CHUNK_OVERLAP_CHARS,
 } from "./product-source-chunks.ts";
@@ -25,7 +29,7 @@ import type { ProductPurchaseId } from "./product-purchase.ts";
  * Версия на политиката за изпълнение. Влиза И в заявката, И в правото: повторен
  * опит не може ТИХО да смени маршрута, единицата или границите.
  */
-export const PRODUCT_GENERATION_POLICY_VERSION = "2b1b1.2" as const;
+export const PRODUCT_GENERATION_POLICY_VERSION = "2b1b1.3" as const;
 export type ProductGenerationPolicyVersion = typeof PRODUCT_GENERATION_POLICY_VERSION;
 
 /** Мерна единица за вътрешния разход: micro-USD (1 000 000 = 1 USD). */
@@ -54,8 +58,8 @@ export const PRODUCT_ALLOWED_MODELS: readonly string[] = Object.freeze([
  *   това USD 1,50 / USD 7,50. Бюджетът се смята по ПО-ВИСОКИТЕ цени след
  *   промоцията, за да остане границата консервативна и след 31.12.2026.
  */
-export const PRICE_TABLE_VERSION = "2026-03-provider-standard" as const;
-export const PRICE_TABLE_DATE = "2026-03-01" as const;
+export const PRICE_TABLE_VERSION = "2026-09-11-provider-standard" as const;
+export const PRICE_TABLE_DATE = "2026-09-11" as const;
 
 export interface ModelPrice {
   readonly inputMicroUsdPer1MTokens: number;
@@ -81,10 +85,22 @@ export const MODEL_PRICES: Readonly<Record<string, ModelPrice>> = Object.freeze(
  * най-много 1 токен на байт. Това е граница за БЕЗОПАСНОСТ, а не прогноза.
  */
 export const INPUT_TOKENS_PER_CODE_POINT = 4;
-/** Максимум за полетата на контекста от заявката (роля, цел, отсрещна страна). */
-export const MAX_CONTEXT_TOKENS = 2_000;
+/** JSON ключове, кавички, запетаи и разделители около максималния контекст. */
+export const CONTEXT_SERIALIZATION_OVERHEAD_TOKENS = 512;
+/**
+ * Изведен, а не ръчно предположен максимум: всички разрешени полета по техните
+ * експортирани граници, максимумът на позицията и явен JSON overhead.
+ */
+export const MAX_CONTEXT_CODE_POINTS =
+  Object.values(PRODUCT_CONTEXT_MAX_LENGTHS).reduce((sum, value) => sum + value, 0) +
+  PRODUCT_CONTEXT_MAX_POSITION_CHARS;
+export const MAX_CONTEXT_TOKENS =
+  MAX_CONTEXT_CODE_POINTS * INPUT_TOKENS_PER_CODE_POINT +
+  CONTEXT_SERIALIZATION_OVERHEAD_TOKENS;
 /** Инструкции, схема и разделители на ВСЯКО извикване. */
 export const PROMPT_SCHEMA_OVERHEAD_TOKENS = 2_500;
+/** Допълнителни инструкции/схема при поправка на невалиден моделeн отговор. */
+export const REPAIR_PROMPT_SCHEMA_OVERHEAD_TOKENS = 2_500;
 
 /** Твърди изходни предели по вид извикване. */
 export const OUTPUT_TOKENS_PASSPORT = 2_000;
@@ -101,7 +117,7 @@ export const MAX_CHUNKS = 30;
 export const CHUNKS_PER_BATCH = 3;
 export const MAX_BATCHES = 10;
 export const MAX_MODEL_CALLS = 60;
-export const MAX_TOTAL_TOKENS = 3_000_000;
+export const MAX_TOTAL_TOKENS = 6_000_000;
 
 export type ProductStageId =
   | "passport"
@@ -168,14 +184,15 @@ const PLANS: Readonly<Record<ProductPurchaseId, ProductPlanDef>> = Object.freeze
 
 /**
  * Модел по етап. Сървърно решение — браузърът НИКОГА не избира модел.
- * Паспортът е кратък и структурен → lite. Всичко останало → flash.
+ * Обемните структурни етапи и поправките им са Flash Lite. Flash е запазен за
+ * ограничените финални/преговорни/съобщителни стъпки и уточнението.
  */
 const STAGE_MODEL: Readonly<Record<ProductStageId, string>> = Object.freeze({
   passport: PRODUCT_MODEL_FLASH_LITE,
-  review: PRODUCT_MODEL_FLASH,
-  review_repair: PRODUCT_MODEL_FLASH,
-  corrections: PRODUCT_MODEL_FLASH,
-  corrections_repair: PRODUCT_MODEL_FLASH,
+  review: PRODUCT_MODEL_FLASH_LITE,
+  review_repair: PRODUCT_MODEL_FLASH_LITE,
+  corrections: PRODUCT_MODEL_FLASH_LITE,
+  corrections_repair: PRODUCT_MODEL_FLASH_LITE,
   negotiation: PRODUCT_MODEL_FLASH,
   messages: PRODUCT_MODEL_FLASH,
   synthesis: PRODUCT_MODEL_FLASH,
@@ -219,6 +236,11 @@ export interface ProductStageCallBound {
   readonly maxOutputTokens: number;
   readonly maxCostMicroUsd: number;
   readonly reserved: boolean;
+  /** Адаптерът няма право на модел, докато тези условия не са изпълнени. */
+  readonly redactionRequired: boolean;
+  readonly postRedactionReclassificationRequired: boolean;
+  readonly userConfirmationRequired: boolean;
+  readonly modelCallAllowed: boolean;
 }
 
 export interface ProductCostBounds {
@@ -245,6 +267,10 @@ export interface ProductCostBounds {
   readonly withinTarget: boolean;
   /** Най-скъпият модел, който планът реално ползва. */
   readonly worstModel: string;
+  readonly redactionRequired: boolean;
+  readonly postRedactionReclassificationRequired: boolean;
+  readonly userConfirmationRequired: boolean;
+  readonly modelCallAllowed: boolean;
   /** Точните тавани по извикване, които изпълнението трябва да спазва. */
   readonly calls: readonly ProductStageCallBound[];
 }
@@ -309,8 +335,21 @@ export function computeProductCostBounds(
   // Целият източник плюс ТОЧНОТО застъпване на частите.
   const overlapChars = PRODUCT_CHUNK_OVERLAP_CHARS * Math.max(0, maxChunks - 1);
   const sourceTokens = safe((charCount + overlapChars) * INPUT_TOKENS_PER_CODE_POINT);
-  const batchSourceTokens = ceilDiv(sourceTokens, maxBatches);
+  // Една партида може да съдържа максималния брой максимално дълги части.
+  // Не осредняваме целия документ между партидите: това би подценило отделно
+  // извикване при неравномерни реални части.
+  const maxChunkContextChars = PRODUCT_CHUNK_MAX_CHARS + PRODUCT_CHUNK_OVERLAP_CHARS;
+  const maxChunksInBatch = Math.min(CHUNKS_PER_BATCH, maxChunks);
+  const batchSourceTokens = safe(
+    maxChunksInBatch * maxChunkContextChars * INPUT_TOKENS_PER_CODE_POINT,
+  );
   const perCallFixed = MAX_CONTEXT_TOKENS + PROMPT_SCHEMA_OVERHEAD_TOKENS;
+  const redactionRequired = classification.redaction_required;
+  const postRedactionReclassificationRequired = redactionRequired;
+  const userConfirmationRequired = classification.user_confirmation_required;
+  // 2B1B1 не реализира редакция. Бъдещият адаптер трябва първо да докаже
+  // редакция и повторна класификация; типизираният договор започва затворен.
+  const modelCallAllowed = !redactionRequired && !userConfirmationRequired;
 
   const calls: ProductStageCallBound[] = [];
   const push = (stage: ProductStageId, inputTokens: number, outputTokens: number, reserved = false) => {
@@ -322,6 +361,10 @@ export function computeProductCostBounds(
       maxOutputTokens: safe(outputTokens),
       maxCostMicroUsd: callCost(model, inputTokens, outputTokens),
       reserved,
+      redactionRequired,
+      postRedactionReclassificationRequired,
+      userConfirmationRequired,
+      modelCallAllowed,
     });
   };
 
@@ -336,7 +379,11 @@ export function computeProductCostBounds(
       const batchInput = batchSourceTokens + perCallFixed + stageDef.carryTokensPerBatch;
       push(stageDef.stage, batchInput, OUTPUT_TOKENS_BATCH);
       // Поправката вижда същата партида ПЛЮС отговора, който е бил отхвърлен.
-      push(stageDef.repairStage, batchInput + OUTPUT_TOKENS_BATCH, OUTPUT_TOKENS_REPAIR);
+      push(
+        stageDef.repairStage,
+        batchInput + OUTPUT_TOKENS_BATCH + REPAIR_PROMPT_SCHEMA_OVERHEAD_TOKENS,
+        OUTPUT_TOKENS_REPAIR,
+      );
       accumulatedOutputs = safe(accumulatedOutputs + OUTPUT_TOKENS_BATCH + OUTPUT_TOKENS_REPAIR);
     }
   }
@@ -405,6 +452,10 @@ export function computeProductCostBounds(
     hardCostMicroUsd: ceilings.hard,
     withinTarget: maxCostMicroUsd <= ceilings.target,
     worstModel,
+    redactionRequired,
+    postRedactionReclassificationRequired,
+    userConfirmationRequired,
+    modelCallAllowed,
     calls: Object.freeze(calls),
   };
 }
