@@ -171,7 +171,7 @@ export function AuthGateModal() {
           {/* Features grid */}
           <div className="mt-4">
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Какво получаваш
+              Какво получавате
             </p>
             <div className="grid grid-cols-2 gap-1.5">
               {features.map((f) => {
