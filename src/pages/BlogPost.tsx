@@ -201,7 +201,7 @@ export default function BlogPost() {
             </h3>
             <p className="mx-auto mt-3 max-w-xl text-balance text-sm leading-relaxed text-muted-foreground">
               {post.cta?.body ??
-                "Професионални документи и бланки на български — попълвате данните и свалятe готовия документ."}
+                "Професионални документи и бланки на български — попълвате данните и сваляте готовия документ."}
             </p>
             <Link to={post.cta?.href ?? "/catalog"} className="btn-gold mt-6">
               {post.cta?.label ?? "Виж шаблоните"}
