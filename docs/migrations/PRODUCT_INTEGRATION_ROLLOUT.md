@@ -118,6 +118,10 @@ timestamp-а на webhook-а, event/session idempotency и атомарния
 `record_product_purchase`. После публикувайте frontend само с checkout,
 fulfillment и zero-retention flags OFF.
 
+Webhook endpoint-ът приема подписаните `checkout.session.completed` и
+`checkout.session.async_payment_succeeded`; всяко друго или непроверено събитие
+не създава продуктово право.
+
 Checkout не трябва да достига Stripe преди всички gates: database binding,
 точен Stripe mapping и webhook, fulfillment, gateway, доказано zero retention,
 готови правни източници, privacy/residency и schema capability. Public demo или
@@ -147,7 +151,7 @@ blocker codes, webhook signature/retry/duplicate errors, intake-entitlement
 parity, job leases/permanent failures, budget gates и резултати със source или
 policy mismatch. Не логвайте документ, резултат или secret.
 
-## 9. STOP, rollback и forward-fix
+## 9. STOP, връщане назад и forward-fix
 
 При mismatch, partial schema, необясним duplicate, webhook failure, provider
 retention uncertainty или source/policy binding failure:
