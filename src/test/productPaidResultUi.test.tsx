@@ -17,6 +17,7 @@ import {
 import { ReviewResult } from "@/components/product-result/ReviewResult";
 import { CorrectionWorkspace } from "@/components/product-result/CorrectionWorkspace";
 import { NegotiationWorkspace } from "@/components/product-result/NegotiationWorkspace";
+import type { ReadyProductResult } from "../../supabase/functions/_shared/product-result-contract";
 import {
   CONTRACT_CHECK_FIXTURE,
   CONTRACT_IMPROVE_FIXTURE,
@@ -233,7 +234,9 @@ describe("файловете", () => {
   });
 
   it("проверката за продукт пази от грешен файл", () => {
-    expect(isProductResult(CONTRACT_CHECK_FIXTURE, "negotiation_package")).toBe(false);
-    expect(isProductResult(NEGOTIATION_PACKAGE_FIXTURE, "negotiation_package")).toBe(true);
+    const check = CONTRACT_CHECK_FIXTURE as unknown as ReadyProductResult;
+    const pack = NEGOTIATION_PACKAGE_FIXTURE as unknown as ReadyProductResult;
+    expect(isProductResult(check, "negotiation_package")).toBe(false);
+    expect(isProductResult(pack, "negotiation_package")).toBe(true);
   });
 });
