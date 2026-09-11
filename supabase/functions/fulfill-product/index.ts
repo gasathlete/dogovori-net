@@ -95,9 +95,17 @@ export function createProductCallStore(admin: RpcClient, jobId: string, leaseTok
 }
 
 type AdapterFactory = (model: ProductModelPort, legal: ProductLegalBasisPort, calls: ProductCallStore) => ReturnType<typeof createProductGenerationAdapter>;
-export const generationDependencies = (_calls?: ProductCallStore, _factory?: AdapterFactory) => ({
+interface ProductProviderPorts {
+  readonly model: ProductModelPort;
+  readonly legal: ProductLegalBasisPort;
+}
+export const generationDependencies = (
+  calls?: ProductCallStore,
+  ports?: ProductProviderPorts,
+  factory: AdapterFactory = createProductGenerationAdapter,
+) => ({
   // Source-only release gate: a reviewed provider factory must be injected explicitly.
-  adapter: null,
+  adapter: calls && ports ? factory(ports.model, ports.legal, calls) : null,
   zeroRetentionVerified: Deno.env.get("PRODUCT_AI_ZERO_RETENTION_VERIFIED") === "true",
 } as const);
 

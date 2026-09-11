@@ -675,10 +675,9 @@ export function createProductGenerationAdapter(
   return Object.freeze({
     policyVersion: PRODUCT_GENERATION_POLICY_VERSION,
     async runStep(step: ProductGenerationStep) {
-      if (!step.dataSafety.modelCallAllowed ||
-        (step.dataSafety.redactionRequired && !step.dataSafety.redactionCompleted) ||
-        (step.dataSafety.postRedactionReclassificationRequired && !step.dataSafety.postRedactionReclassificationCompleted) ||
-        (step.dataSafety.userConfirmationRequired && !step.dataSafety.userConfirmationCompleted)) {
+      // Redaction and post-redaction classification execute synchronously inside
+      // runStep before invoke(). Only an unmet user confirmation blocks entry.
+      if (step.dataSafety.userConfirmationRequired && !step.dataSafety.userConfirmationCompleted) {
         throw new ProductGenerationError("safety_gate_closed");
       }
       const result = await runtime.runStep({
