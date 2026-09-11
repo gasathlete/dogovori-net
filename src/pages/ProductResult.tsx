@@ -138,11 +138,11 @@ export default function ProductResult() {
       }
       const row = purchase.entitlement;
       const outcome = readPaidResult(row);
-      if (outcome.ok) {
+      if (outcome.ok === true) {
         setPhase({ kind: "ready", purchase, result: outcome.result });
         return;
       }
-      if (row.status === "ready" && outcome.reason !== "not_ready") {
+      if (row.status === "ready" && outcome.ok === false && outcome.reason !== "not_ready") {
         // Плащането е налице, но резултатът не съвпада с документа — спираме.
         setPhase({ kind: "conflict" });
         return;
@@ -211,9 +211,9 @@ export default function ProductResult() {
       decisions: readonly CorrectionDecision[],
     ): Promise<ProductPatchManifest> => {
       const outcome = readPaidResult(purchase.entitlement);
-      if (!outcome.ok) throw new Error("Документът се е променил. Презаредете страницата.");
+      if (outcome.ok === false) throw new Error("Документът се е променил. Презаредете страницата.");
       const source = await loadBoundSourceText(outcome.binding);
-      if (!source.ok) {
+      if (source.ok === false) {
         throw new Error(
           source.reason === "not_found"
             ? "Не намираме текста на документа за тази покупка."
@@ -257,7 +257,7 @@ export default function ProductResult() {
           idempotencyKey: crypto.randomUUID(),
         },
       );
-      if (!outcome.ok) {
+      if (outcome.ok === false) {
         const stale = outcome.failure.error === "selection_version_conflict";
         if (stale) {
           setState((prev) =>
@@ -316,7 +316,7 @@ export default function ProductResult() {
         expectedRefinementVersion: state.refinement?.current?.version ?? state.refinement?.used ?? 0,
         idempotencyKey: crypto.randomUUID(),
       });
-      if (!outcome.ok) {
+      if (outcome.ok === false) {
         trackRefinementFailed(outcome.failure.error);
         return { ok: false, message: outcome.failure.message };
       }
@@ -421,7 +421,10 @@ export default function ProductResult() {
   const { purchase, result } = phase;
   const row = purchase.entitlement;
   const title = result.payload.passport.title;
-  const wholeDocumentCovered = result.payload.coverage?.whole_document === true;
+  // Успокоение „нищо не е намерено“ само при доказана проверка върху целия текст.
+  const wholeDocumentCovered =
+    result.payload.absence_checks.length > 0 &&
+    result.payload.absence_checks.every((check) => check.coverage === "whole_document");
 
   const review = (
     <ReviewResult
