@@ -45,6 +45,18 @@ import {
   verifyStoredProductSource,
 } from "../_shared/product-source.ts";
 import { readyProductResult } from "../_shared/product-result-contract.ts";
+import { createProductModelPort } from "../_shared/product-model-gateway.ts";
+import {
+  createProductLegalBasisPort,
+  isLegalKnowledgeBaseReady,
+  type LegalDbClient,
+} from "../_shared/product-legal-basis.ts";
+import {
+  isProductAiResidencyAllowed,
+  productFulfillmentBlockers,
+  productIntegrationMessage,
+  readProductIntegrationConfig,
+} from "../_shared/product-integration.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ALLOWED_BODY_KEYS = Object.freeze(["entitlement_id"]);
