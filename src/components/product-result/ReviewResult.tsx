@@ -15,7 +15,11 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { SEVERITY_LABELS_BG } from "@/lib/productResults";
-import { ECONOMIC_KIND_LABELS_BG, PARTY_LABELS_BG } from "@/lib/productResultLabels";
+import {
+  ECONOMIC_KIND_LABELS_BG,
+  PARTY_LABELS_BG,
+  spanPlaceBg,
+} from "@/lib/productResultLabels";
 import type {
   ContractCheckResult,
   ContractImproveResult,
@@ -35,13 +39,6 @@ const SEVERITY_TONE: Record<ResultSeverity, string> = {
   low: "bg-muted text-muted-foreground border-border",
   info: "bg-muted text-muted-foreground border-border",
 };
-
-export function spanPlaceBg(span: Pick<SourceSpan, "page" | "section">): string {
-  const parts: string[] = [];
-  if (span.section) parts.push(span.section);
-  if (typeof span.page === "number") parts.push(`стр. ${span.page}`);
-  return parts.length > 0 ? parts.join(", ") : "в текста на документа";
-}
 
 /** Извадка от документа — винаги видима до твърдението. */
 export function Excerpt({ span }: { span: SourceSpan }) {

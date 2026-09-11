@@ -5,6 +5,7 @@
 import type {
   EconomicTermKind,
   ResultParty,
+  SourceSpan,
 } from "../../supabase/functions/_shared/product-result-contract";
 
 export const PARTY_LABELS_BG: Record<ResultParty, string> = {
@@ -28,3 +29,11 @@ export const TONE_LABELS_BG: Record<"neutral" | "firm", string> = {
   neutral: "Неутрално писмо",
   firm: "Твърдо писмо",
 };
+
+/** Мястото в документа с човешки думи: „Раздел 4, стр. 2“. */
+export function spanPlaceBg(span: Pick<SourceSpan, "page" | "section">): string {
+  const parts: string[] = [];
+  if (span.section) parts.push(span.section);
+  if (typeof span.page === "number") parts.push(`стр. ${span.page}`);
+  return parts.length > 0 ? parts.join(", ") : "в текста на документа";
+}

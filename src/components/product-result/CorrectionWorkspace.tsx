@@ -13,7 +13,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "@/icons";
 import { STRATEGY_LABELS_BG } from "@/lib/productResults";
-import { Excerpt, spanPlaceBg } from "@/components/product-result/ReviewResult";
+import { Excerpt } from "@/components/product-result/ReviewResult";
+import { spanPlaceBg } from "@/lib/productResultLabels";
 import type {
   Correction,
   CorrectionStrategy,
