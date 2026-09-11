@@ -20,8 +20,16 @@ import {
   PRODUCT_ACCEPTED_INPUT,
   PRODUCT_MAX_SOURCE_CHARS,
 } from "@/lib/productSource";
+import { WorkStepStrip, type WorkStep } from "@/components/workspace/WorkStepStrip";
 
 const UPLOAD_ROUTE = "/account?tab=documents&action=upload";
+
+/** Реалната последователност на проверката — без стъпки, които не съществуват. */
+const ANALYZE_STEPS: WorkStep[] = [
+  { id: "document", label: "Документ" },
+  { id: "check", label: "Проверка" },
+  { id: "result", label: "Резултат" },
+];
 
 export default function Analyze() {
   const { user, loading } = useAuth();
@@ -126,83 +134,102 @@ export default function Analyze() {
         />
 
         <section className="container relative mx-auto max-w-2xl px-4">
-          <header className="text-center" data-product={product ?? "none"}>
+          <header data-product={product ?? "none"}>
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gold">
-              {productCopy ? productCopy.name : "Проверка на договор"}
+              {productCopy ? productCopy.name : "Проверка на документ"}
             </p>
-            <h1 className="mt-2 font-serif text-[32px] font-bold leading-tight sm:text-4xl md:text-5xl">
+            <h1 className="mt-2 font-serif text-[30px] font-bold leading-tight sm:text-4xl">
               {productCopy ? (
                 productCopy.name
               ) : (
                 <>
                   Какво поемате с{" "}
-                  <em className="not-italic text-gold">този договор</em>
+                  <em className="not-italic text-gold">този документ</em>
                 </>
               )}
             </h1>
-            <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
+            <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
               {productCopy
                 ? productCopy.promise
-                : "Качвате PDF или Word файл. Виждате какво поемате, кои клаузи носят риск за Вас и какво да промените — с точното място в текста. Резултатът е автоматичен и не е правен съвет."}
+                : "Качвате документа и виждате какво поемате, кои клаузи носят риск за Вас и какво да промените — с точното място в текста."}
             </p>
           </header>
 
-          <div className="mt-8 rounded-2xl border border-gold/30 bg-card/70 p-6 shadow-elegant sm:p-8">
-            <div className="flex items-center justify-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-gold">
+          {/* Последователността на екрана: документ → проверка → резултат. */}
+          <WorkStepStrip steps={ANALYZE_STEPS} current={0} className="mt-5" />
+
+          <div className="mt-4 rounded-2xl border border-gold/30 bg-card/70 p-5 shadow-elegant sm:p-6">
+            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-gold">
               <Lock className="h-3.5 w-3.5" /> Изисква акаунт
             </div>
-            <h2 className="mt-3 text-center font-serif text-2xl font-bold leading-tight sm:text-3xl">
-              Влезте или се регистрирайте, за да качите документа
+            <h2 className="mt-2 font-serif text-xl font-bold leading-tight sm:text-2xl">
+              Влезте, за да качите документа
             </h2>
-            <p className="mx-auto mt-3 max-w-lg text-center text-sm text-muted-foreground">
+            <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
               {productCopy ? (
                 <>Проверката работи с Вашия файл и е достъпна само в акаунта. {PRODUCT_ACCEPTED_INPUT}</>
               ) : (
                 <>
-                  Проверката работи с Вашия файл — затова е достъпна само в
-                  акаунта. Регистрацията е безплатна и включва{" "}
+                  Проверката работи с Вашия файл, затова е достъпна само в акаунта.
+                  Регистрацията е безплатна и включва{" "}
                   <strong>една пълна проверка</strong>.
                 </>
               )}
             </p>
 
-            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
               <button
                 type="button"
                 onClick={goSignup}
-                className="btn-gold btn-sheen btn-press inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-[15px] font-semibold"
+                className="btn-gold btn-sheen btn-press inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl px-5 text-[15px] font-semibold"
               >
                 <FileUp className="h-4 w-4" />{" "}
-                {productCopy ? productCopy.ctaLabel : "Регистрирайте се и качете документа"}
+                {productCopy ? productCopy.ctaLabel : "Качете документа"}
               </button>
               <button
                 type="button"
                 onClick={goLogin}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-border/60 px-6 py-3 text-[15px] font-semibold text-foreground transition-colors hover:border-gold/60"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-border/60 px-5 text-[15px] font-semibold text-foreground transition-colors hover:border-gold/60"
               >
                 Вече имам акаунт
               </button>
             </div>
           </div>
 
-          <ul className="mt-8 grid gap-3 sm:grid-cols-3">
-            {FEATURES.map(({ icon: Icon, title, body }) => (
-              <li
-                key={title}
-                className="rounded-xl border border-border/60 bg-card/40 p-4"
-              >
-                <Icon className="h-5 w-5 text-gold" />
-                <h3 className="mt-2 text-sm font-semibold text-foreground">
-                  {title}
-                </h3>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  {body}
-                </p>
-              </li>
-            ))}
-          </ul>
+          {/* Подробностите стоят на едно място и са свити по подразбиране. */}
+          <details
+            data-testid="analyze-details"
+            className="group mt-4 rounded-xl border border-border/60 bg-card/40 px-4 py-3"
+          >
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-[15px] font-semibold text-foreground">
+              Какво получавате и какви файлове приемаме
+              <span className="text-[13px] font-normal text-muted-foreground group-open:hidden">
+                Отворете
+              </span>
+            </summary>
+            <ul className="mt-2 grid gap-3" role="list">
+              {FEATURES.map(({ icon: Icon, title, body }) => (
+                <li key={title} className="flex items-start gap-2.5">
+                  <Icon className="mt-0.5 h-4 w-4 shrink-0 text-gold" aria-hidden="true" />
+                  <span className="min-w-0">
+                    <span className="block text-[14px] font-semibold text-foreground">
+                      {title}
+                    </span>
+                    <span className="mt-0.5 block text-[13.5px] leading-relaxed text-muted-foreground">
+                      {body}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </details>
+
+          <p className="mt-3 text-[13px] text-muted-foreground">
+            Резултатът е автоматичен и не е правен съвет.
+          </p>
         </section>
       </main>
     </>
   );
 }
+

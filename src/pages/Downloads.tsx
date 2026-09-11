@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Download, FileText, Info, Loader2 } from "@/icons";
+import { WorkStateShell } from "@/components/workspace/WorkStateShell";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -178,20 +179,30 @@ export default function Downloads({ kind }: { kind: "contract" | "template" }) {
               <Loader2 className="h-5 w-5 animate-spin text-gold" />
             </div>
           ) : events.length === 0 ? (
-            <div className="rounded-xl border border-border/60 bg-gradient-card p-10 text-center text-sm text-muted-foreground">
-              {quotaUsed && quotaUsed > 0 ? (
-                <>
-                  <Info className="mx-auto mb-2 h-5 w-5 text-gold" />
-                  Брояч в профила: <strong>{quotaUsed}</strong>{" "}
-                  {kind === "contract" ? "свалени договора" : "свалени бланки"}, но няма запазени детайли за всеки запис.
-                  <div className="mt-2 text-xs text-muted-foreground/80">
-                    Тези сваляния са направени преди да започнем да съхраняваме детайлна история на всеки документ. Новите сваляния ще се показват тук с опция за повторно сваляне.
-                  </div>
-                </>
-              ) : (
-                <>Все още няма записи за {kind === "contract" ? "сваляне на договори" : "сваляне на бланки"}.</>
-              )}
-            </div>
+            quotaUsed && quotaUsed > 0 ? (
+              <div className="rounded-xl border border-border/60 bg-gradient-card p-8 text-center text-sm text-muted-foreground">
+                <Info className="mx-auto mb-2 h-5 w-5 text-gold" />
+                Брояч в профила: <strong>{quotaUsed}</strong>{" "}
+                {kind === "contract" ? "свалени договора" : "свалени бланки"}, но няма запазени детайли за всеки запис.
+                <div className="mt-2 text-xs text-muted-foreground/80">
+                  Тези сваляния са направени преди да започнем да съхраняваме детайлна история на всеки документ. Новите сваляния ще се показват тук с опция за повторно сваляне.
+                </div>
+              </div>
+            ) : (
+              <WorkStateShell
+                testId="downloads-empty"
+                eyebrow={kind === "contract" ? "Договори" : "Бланки"}
+                title="Още няма свалени документи"
+                description={
+                  kind === "contract"
+                    ? "Тук ще виждате всеки свален договор и ще можете да го изтеглите отново."
+                    : "Тук ще виждате всяка свалена бланка и ще можете да я изтеглите отново."
+                }
+                icon={<FileText className="size-6" />}
+                actionLabel={kind === "contract" ? "Изгответе документ" : "Разгледайте каталога"}
+                actionTo={kind === "contract" ? "/build" : "/catalog"}
+              />
+            )
           ) : (
             <>
               {legacyDelta > 0 && (
@@ -252,7 +263,7 @@ export default function Downloads({ kind }: { kind: "contract" | "template" }) {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-9"
+                            className="min-h-11"
                             disabled={busy === ev.id + "pdf"}
                             onClick={() => redownload(ev, "pdf")}
                           >
@@ -266,7 +277,7 @@ export default function Downloads({ kind }: { kind: "contract" | "template" }) {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-9"
+                            className="min-h-11"
                             disabled={busy === ev.id + "docx"}
                             onClick={() => redownload(ev, "docx")}
                           >
