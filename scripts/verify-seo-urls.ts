@@ -16,11 +16,35 @@
 
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { resolve, join } from "node:path";
+import { ONE_TIME_PRODUCTS } from "../src/lib/products";
+import { fmtEur } from "../src/lib/pricing";
 
 const SITE = "https://dogovori.net";
 const DIST = resolve(process.cwd(), "dist");
 const PUBLIC = resolve(process.cwd(), "public");
 const STRICT = process.env.SEO_VERIFY_STRICT === "1";
+
+// Публичните продуктови адреси — цените идват само от каноничната конфигурация.
+const PRODUCT_SEO_TARGETS = [
+  {
+    path: "/produkti",
+    price: ONE_TIME_PRODUCTS[0].priceEur,
+    schemaTypes: ["BreadcrumbList", "ItemList"],
+    mustContain: ONE_TIME_PRODUCTS.map((p) => fmtEur(p.priceEur)),
+  },
+  ...ONE_TIME_PRODUCTS.map((p) => ({
+    path: `/produkti/${p.slug}`,
+    price: p.priceEur,
+    schemaTypes: ["BreadcrumbList", "WebPage", "Service", "FAQPage"],
+    mustContain: [fmtEur(p.priceEur), p.page.h1],
+  })),
+];
+
+/** Никога индексируеми: старт, плащане и резултат. */
+const PRIVATE_PRODUCT_PATHS = [
+  "/produkti/rezultat",
+  ...ONE_TIME_PRODUCTS.map((p) => `/produkti/${p.slug}/start`),
+];
 
 type Issue = { url: string; level: "error" | "warning"; rule: string; message: string };
 const issues: Issue[] = [];
@@ -123,6 +147,107 @@ function verifyHtml(url: string, html: string, isFallback: boolean) {
   if (h1Count > 1) add("warning", url, "h1-multiple", `${h1Count} <h1> elements`);
 }
 
+/* --------- Строга проверка на публичните продуктови страници ---------
+   Тук няма толериране на SPA fallback: липсващ файл, чуждо/общо заглавие,
+   липсващ H1, липсваща цена или липсваща схема са грешки, които спират
+   билда.                                                                */
+
+const GENERIC_TITLE_MARKERS = [
+  "Dogovori.net — документи и договори на български",
+  "Договори и документи на български — Dogovori.net",
+];
+
+function checkProductPages() {
+  const seenTitles = new Map<string, string>();
+  const seenDescriptions = new Map<string, string>();
+
+  for (const p of PRODUCT_SEO_TARGETS) {
+    const url = `${SITE}${p.path}`;
+    const file = join(DIST, p.path.replace(/^\//, ""), "index.html");
+    if (!existsSync(file)) {
+      add("error", url, "product-not-prerendered", "Няма собствен prerender файл (генеричният index.html не е достатъчен)");
+      continue;
+    }
+    const html = readFileSync(file, "utf8");
+
+    const title = attr(html, /<title[^>]*>([^<]*)<\/title>/i) ?? "";
+    const desc = attr(html, /<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["']/i) ?? "";
+    const canonical = attr(html, /<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);
+    const robots = attr(html, /<meta[^>]+name=["']robots["'][^>]+content=["']([^"']+)["']/i) ?? "";
+
+    if (!title || GENERIC_TITLE_MARKERS.includes(title)) {
+      add("error", url, "product-generic-title", `Общо/начално заглавие: "${title}"`);
+    }
+    if (!desc || desc.length < 40) {
+      add("error", url, "product-description", `Липсваща или твърде кратка description (${desc.length})`);
+    }
+    if (seenTitles.has(title)) {
+      add("error", url, "product-duplicate-title", `Същото заглавие като ${seenTitles.get(title)}`);
+    } else seenTitles.set(title, url);
+    if (seenDescriptions.has(desc)) {
+      add("error", url, "product-duplicate-description", `Същата description като ${seenDescriptions.get(desc)}`);
+    } else seenDescriptions.set(desc, url);
+
+    if (canonical !== url) {
+      add("error", url, "product-canonical", `Canonical "${canonical}" != "${url}"`);
+    }
+    if (!/index/i.test(robots) || /noindex/i.test(robots)) {
+      add("error", url, "product-robots", `Очаква се index/follow, намерено: "${robots}"`);
+    }
+
+    const h1s = html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/gi) ?? [];
+    if (h1s.length !== 1) {
+      add("error", url, "product-h1", `${h1s.length} <h1> — трябва точно един`);
+    }
+
+    const root = html.match(/<div id="root">([\s\S]*?)<\/body>/i)?.[1] ?? "";
+    const text = root.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    if (text.length < 600) {
+      add("error", url, "product-body", `Твърде малко видимо съдържание в #root (${text.length} знака)`);
+    }
+    if (!/Примерен резултат/.test(text)) {
+      add("error", url, "product-sample", "Липсва обозначен примерен резултат в статичния HTML");
+    }
+    for (const needle of p.mustContain) {
+      if (!text.includes(needle)) {
+        add("error", url, "product-price", `Липсва "${needle}" в статичния текст`);
+      }
+    }
+
+    const ldTypes = new Set<string>();
+    for (const m of html.matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi)) {
+      try {
+        const parsed = JSON.parse(m[1]);
+        for (const node of Array.isArray(parsed) ? parsed : [parsed]) {
+          if (node && typeof node["@type"] === "string") ldTypes.add(node["@type"]);
+          if (node?.["@type"] === "Service") {
+            const offer = node.offers;
+            if (!offer || offer.priceCurrency !== "EUR" || offer.price !== p.price.toFixed(2)) {
+              add("error", url, "product-offer", `Offer не съвпада с каноничната цена ${p.price.toFixed(2)} EUR`);
+            }
+            if (offer && offer.url !== url) {
+              add("error", url, "product-offer-url", `Offer.url "${offer?.url}" != "${url}"`);
+            }
+          }
+        }
+      } catch {
+        add("error", url, "product-jsonld-parse", "Невалиден JSON-LD блок");
+      }
+    }
+    for (const t of p.schemaTypes) {
+      if (!ldTypes.has(t)) add("error", url, "product-schema", `Липсва ${t} schema`);
+    }
+  }
+
+  // Частните продуктови адреси не влизат в sitemap и не са индексируеми.
+  const sitemapXml = readFileSync(join(PUBLIC, "sitemap-static.xml"), "utf8");
+  for (const priv of PRIVATE_PRODUCT_PATHS) {
+    if (sitemapXml.includes(`${SITE}${priv}`)) {
+      add("error", `${SITE}${priv}`, "private-in-sitemap", "Частен адрес присъства в sitemap-static.xml");
+    }
+  }
+}
+
 function main() {
   if (!existsSync(DIST)) {
     console.error("✗ dist/ not found — run vite build first");
@@ -131,6 +256,8 @@ function main() {
   const urls = loadSitemapUrls();
   console.log(`▶ verifying ${urls.length} URLs from sitemaps…`);
   for (const u of urls) checkUrl(u);
+  checkProductPages();
+
 
   const errors = issues.filter((i) => i.level === "error");
   const warnings = issues.filter((i) => i.level === "warning");
