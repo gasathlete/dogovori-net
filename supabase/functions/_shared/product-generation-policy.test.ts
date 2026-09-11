@@ -104,21 +104,24 @@ Deno.test("точната таблица при 60 000 кодови точки �
   const expected = {
     contract_check: {
       maxChunks: 30, maxBatches: 10, baseModelCalls: 12, repairModelCalls: 10,
-      reservedRefinementCalls: 0, maxModelCalls: 22, maxInputTokens: 1_050_600,
-      maxOutputTokens: 88_000, maxTotalTokens: 1_138_600, maxCostMicroUsd: 1_889_275,
+      reservedRefinementCalls: 0, maxModelCalls: 22, maxInputTokens: 1_606_480,
+      maxOutputTokens: 88_000, maxTotalTokens: 1_694_480, maxCostMicroUsd: 680_545,
+      reservedRefinementInputTokens: 0, reservedRefinementOutputTokens: 0,
       reservedRefinementCostMicroUsd: 0, targetCostMicroUsd: 1_500_000, hardCostMicroUsd: 3_000_000,
     },
     contract_improve: {
       maxChunks: 30, maxBatches: 10, baseModelCalls: 22, repairModelCalls: 20,
-      reservedRefinementCalls: 0, maxModelCalls: 42, maxInputTokens: 1_987_000,
-      maxOutputTokens: 168_000, maxTotalTokens: 2_155_000, maxCostMicroUsd: 3_893_875,
+      reservedRefinementCalls: 0, maxModelCalls: 42, maxInputTokens: 3_094_280,
+      maxOutputTokens: 168_000, maxTotalTokens: 3_262_280, maxCostMicroUsd: 1_272_495,
+      reservedRefinementInputTokens: 0, reservedRefinementOutputTokens: 0,
       reservedRefinementCostMicroUsd: 0, targetCostMicroUsd: 2_500_000, hardCostMicroUsd: 5_000_000,
     },
     negotiation_package: {
       maxChunks: 30, maxBatches: 10, baseModelCalls: 24, repairModelCalls: 20,
-      reservedRefinementCalls: 1, maxModelCalls: 45, maxInputTokens: 2_512_500,
-      maxOutputTokens: 180_000, maxTotalTokens: 2_692_500, maxCostMicroUsd: 4_772_125,
-      reservedRefinementCostMicroUsd: 300_750, targetCostMicroUsd: 3_200_000,
+      reservedRefinementCalls: 1, maxModelCalls: 45, maxInputTokens: 3_626_500,
+      maxOutputTokens: 180_000, maxTotalTokens: 3_806_500, maxCostMicroUsd: 2_160_825,
+      reservedRefinementInputTokens: 182_740, reservedRefinementOutputTokens: 4_000,
+      reservedRefinementCostMicroUsd: 304_110, targetCostMicroUsd: 3_200_000,
       hardCostMicroUsd: 6_500_000,
     },
   } as const;
