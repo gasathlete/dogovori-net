@@ -523,9 +523,48 @@ Deno.serve(async (req) => {
       completedCallIds: durableState.completedCallIds,
     });
     const usageRaw = durableState.usage as Record<string, unknown>;
-    let step: Awaited<ReturnType<typeof adapter.runStep>>;
+    // Всеки провал СЛЕД заявяването на задачата минава оттук: или наемът се
+    // освобождава веднага (повторим), или задачата се маркира като окончателно
+    // пропаднала. Никога не остава мъртъв наем.
+    const releaseRetryable = async (): Promise<Response> => {
+      await admin.rpc("release_product_job_lease", { p_job_id: jobId, p_lease_token: leaseToken });
+      return fail("failed_retryable", 503, headers, cid);
+    };
+    const handlePostClaimFailure = async (error: unknown): Promise<Response> => {
+      // Провалът на доставчика НИКОГА не изтича навън: нито тяло, нито подсказка,
+      // нито изход на модела. Остава само затворен код.
+      const gateway = error instanceof ProductModelGatewayError;
+      const generation = error instanceof ProductGenerationError;
+      const retryable = gateway || generation
+        ? (error as { retryable?: boolean }).retryable === true
+        : true;
+      if (retryable) {
+        // Повторимият провал НЕ мести курсора и НЕ изразходва контролна точка:
+        // само наемът се освобождава, за да няма десетминутна мъртва задача.
+        await admin.rpc("release_product_job_lease", {
+          p_job_id: jobId,
+          p_lease_token: leaseToken,
+        });
+        if (!gateway && !generation) {
+          console.error("fulfill-product step error", {
+            cid,
+            name: error instanceof Error ? error.name : "unknown",
+          });
+          return fail("internal", 500, headers, cid);
+        }
+        return fail("failed_retryable", 503, headers, cid);
+      }
+      await admin.rpc("fail_product_job", {
+        p_job_id: jobId,
+        p_lease_token: leaseToken,
+        p_error_class: "permanent",
+        p_error_code: gateway ? "provider_contract" : "generation_invalid",
+      });
+      return fail("failed_permanent", 409, headers, cid);
+    };
+
     try {
-      step = await adapter.runStep({
+      const step = await adapter.runStep({
         entitlementId,
         productId: spec.id,
         sourceText: verified.text,
