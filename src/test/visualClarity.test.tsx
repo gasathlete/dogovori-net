@@ -78,7 +78,7 @@ describe("продуктови факти без взаимодействие", 
   it("трите продукта и точните цени остават в изходния код на списъка", () => {
     const list = read("src/components/products/ProductComparisonList.tsx");
     expect(list).toContain("ONE_TIME_PRODUCTS");
-    const labels = ONE_TIME_PRODUCTS.map((p) => productPriceLabel(p));
+    const labels = ONE_TIME_PRODUCTS.map((p) => productPriceLabel(p.id));
     expect(labels).toEqual(["2,99 €", "3,99 €", "7,99 €"]);
   });
 
