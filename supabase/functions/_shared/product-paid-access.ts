@@ -62,13 +62,9 @@ export interface PaidAccessGranted {
 
 export type PaidAccess = PaidAccessGranted | PaidAccessFailure;
 
-interface DbClient {
-  from(table: string): {
-    select(columns: string): {
-      eq(column: string, value: unknown): any;
-    };
-  };
-}
+/** Минимална служебна граница: точният клиент се подава от функцията. */
+// deno-lint-ignore no-explicit-any
+export type PaidAccessDbClient = { from(table: string): any };
 
 const deny = (code: PaidAccessCode, status: number): PaidAccessFailure =>
   Object.freeze({ ok: false as const, code, status, message: MESSAGES[code] });
@@ -83,7 +79,7 @@ async function sha256Hex(value: string): Promise<string> {
  * и целият източник съвпадат точно. Всяко несъответствие е отказ, не поправка.
  */
 export async function loadReadyPaidProduct(
-  admin: DbClient,
+  admin: PaidAccessDbClient,
   userId: string,
   entitlementId: string,
   options: { readonly withSourceText?: boolean } = {},

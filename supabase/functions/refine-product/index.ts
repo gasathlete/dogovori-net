@@ -12,7 +12,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildCors } from "../_shared/cors.ts";
 import { correlationHeaders, getCorrelationId } from "../_shared/correlation.ts";
-import { loadReadyPaidProduct } from "../_shared/product-paid-access.ts";
+import {
+  loadReadyPaidProduct,
+  type PaidAccessDbClient,
+} from "../_shared/product-paid-access.ts";
 import {
   evaluateProductEligibility,
 } from "../_shared/product-eligibility.ts";
@@ -136,7 +139,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const access = await loadReadyPaidProduct(admin, userId, entitlementId, {
+    const access = await loadReadyPaidProduct(admin as unknown as PaidAccessDbClient, userId, entitlementId, {
       withSourceText: true,
     });
     if (!access.ok) return fail(access.code, access.status, headers, cid, access.message);
