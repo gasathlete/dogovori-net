@@ -8,6 +8,8 @@ import {
   PRODUCT_ALLOWED_MODELS,
   PRODUCT_GENERATION_POLICY_VERSION,
 } from "./product-generation-policy.ts";
+import type { ProductModelRequest } from "./product-generation-runtime.ts";
+import type { LegalBasis } from "./product-result-contract.ts";
 import {
   createProductModelPort,
   PRODUCT_GATEWAY_SYSTEM_CONTRACT,
@@ -32,14 +34,14 @@ import {
 
 // ---------------------------------------------------------------- gateway port
 
-const REQUEST = Object.freeze({
+const REQUEST: ProductModelRequest = Object.freeze({
   callId: "call-1",
   routeKey: "review",
   model: "google/gemini-3.8-flash",
   maxInputTokens: 1000,
   maxOutputTokens: 500,
   payload: { stage: "review", chunk: "⟦PD_1⟧ текст" },
-}) as never;
+});
 
 function envelope(content: unknown, extra: Record<string, unknown> = {}) {
   return {
@@ -90,7 +92,7 @@ Deno.test("gateway refuses a model outside the immutable policy bound", async ()
   const port = createProductModelPort({ apiKey: "key", fetchImpl: okFetch(envelope({})) });
   assert(PRODUCT_ALLOWED_MODELS.includes("google/gemini-3.1-flash-lite"));
   const error = await assertRejects(
-    () => port.invoke({ ...REQUEST, model: "google/gemini-2.5-flash" } as never),
+    () => port.invoke({ ...REQUEST, model: "google/gemini-2.5-flash" }),
     ProductModelGatewayError,
   );
   assertEquals(error.reason, "model_not_allowed");
@@ -229,13 +231,13 @@ const ACTIVE: Rows = {
   source: { id: SOURCE, active: true, official_url: URL_OK, short_code: "ЗЗД", title: "ЗЗД" },
 };
 
-const CANDIDATE = Object.freeze({
+const CANDIDATE: LegalBasis = Object.freeze({
   provision_id: PROVISION,
   version_id: VERSION,
   source_id: SOURCE,
   canonical_url: URL_OK,
   label: "чл. 79, ал. 1 ЗЗД",
-}) as never;
+});
 
 Deno.test("legal resolver returns exactly the active server-owned tuple", async () => {
   const port = createProductLegalBasisPort(legalDb(ACTIVE));
@@ -271,13 +273,13 @@ Deno.test("legal resolver fails closed on retired, superseded, missing, ambiguou
 
 Deno.test("a model-supplied label or url never creates authority", async () => {
   const port = createProductLegalBasisPort(legalDb(ACTIVE));
-  assertEquals(await port.resolve({ ...CANDIDATE, label: "чл. 999 ЗЗД" } as never), null);
+  assertEquals(await port.resolve({ ...CANDIDATE, label: "чл. 999 ЗЗД" }), null);
   assertEquals(
-    await port.resolve({ ...CANDIDATE, canonical_url: "https://example.com/x" } as never),
+    await port.resolve({ ...CANDIDATE, canonical_url: "https://example.com/x" }),
     null,
   );
-  assertEquals(await port.resolve({ ...CANDIDATE, canonical_url: "http://lex.bg" } as never), null);
-  assertEquals(await port.resolve({ ...CANDIDATE, provision_id: "not-a-uuid" } as never), null);
+  assertEquals(await port.resolve({ ...CANDIDATE, canonical_url: "http://lex.bg" }), null);
+  assertEquals(await port.resolve({ ...CANDIDATE, provision_id: "not-a-uuid" }), null);
 });
 
 Deno.test("legal knowledge base readiness is a boolean over active sources only", async () => {
