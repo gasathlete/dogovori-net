@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, FileDown, FileText, Sparkles, ShieldCheck, Loader2 } from "@/icons";
 import {
   FREE_OPS_PER_MONTH,
-  LAWYER_FEE_MIN_EUR,
   PRICING_PLANS,
   monthlyLabel,
   opsLabel,
@@ -26,8 +25,6 @@ interface Props {
   /** Няма профил — първо регистрация. */
   needsAuth?: boolean;
   onRegister?: () => void;
-  /** Спестена сума спрямо адвокатски хонорар (EUR). */
-  savedEur?: number;
   documentTitle?: string;
   /** Оставащи операции за текущия месец (за прозрачност преди разход). */
   opsLeft?: number | null;
@@ -49,7 +46,6 @@ export function DocumentValueCard({
   busyDocx,
   needsAuth,
   onRegister,
-  savedEur = LAWYER_FEE_MIN_EUR,
   documentTitle,
   opsLeft,
 }: Props) {
@@ -71,9 +67,7 @@ export function DocumentValueCard({
           )}
 
           <p className="mt-2 text-sm leading-relaxed text-foreground">
-            Спестихте над <span className="font-semibold text-gold">{savedEur} EUR</span> от
-            стандартен адвокатски хонорар за изготвяне на такъв документ, както и 2–3 работни дни
-            изчакване.
+            Текстът е попълнен с Вашите данни и е готов за преглед, сваляне в PDF или DOCX.
           </p>
 
           <ul className="mt-3 space-y-1 text-xs text-muted-foreground">

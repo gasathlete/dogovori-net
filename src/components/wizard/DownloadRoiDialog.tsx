@@ -13,7 +13,6 @@ import { ArrowRight, Crown, FileDown, PiggyBank, ShieldCheck } from "@/icons";
 import { openInlineAuth } from "@/lib/inlineAuth";
 import {
   FREE_OPS_ON_SIGNUP,
-  LAWYER_FEE_MIN_EUR,
   PRICING_PLANS,
   monthlyLabel,
   opsLabel,
@@ -76,9 +75,9 @@ export function DownloadRoiDialog({
             </span>
             <p className="text-[13px] leading-relaxed text-muted-foreground">
               <span className="font-semibold text-foreground">
-                Спестявате {LAWYER_FEE_MIN_EUR - 30}+ € от адвокатска консултация
+                Документът остава в профила Ви
               </span>{" "}
-              за същия документ — с проверка по ЗЗД и ТЗ и анализ на риска.
+              — с преглед по ЗЗД и ТЗ, анализ на риска и сваляне в PDF или DOCX.
             </p>
           </div>
         </div>

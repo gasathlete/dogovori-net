@@ -11,7 +11,6 @@ import { Header } from "@/components/Header";
 import { PiggyBank } from "@/icons";
 import {
   ENTRY_PACK_CONFIG,
-  LAWYER_FEE_MIN_EUR,
   PRICING_PLANS,
   TOPUP_PACK_CONFIG,
   perOpLabel,
@@ -519,7 +518,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
               </span>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-foreground">
-                  Спестете над {LAWYER_FEE_MIN_EUR} € от адвокатски хонорар за всеки договор
+                  Планът се плаща веднъж месечно и включва действия по документи
                 </p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                   План {PRICING_PLANS.professional.name} ви дава{" "}
