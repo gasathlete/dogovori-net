@@ -74,7 +74,7 @@ export default function AIFeaturesPage() {
             Как AI системата на Dogovori.net анализира договори
           </h1>
           <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground md:text-lg">
-            Платформата комбинира ${CATALOG_DOCUMENT_COUNT} правно курирани шаблона с AI пайплайн, обучен за
+            Платформата комбинира {CATALOG_DOCUMENT_COUNT} правно курирани шаблона с AI пайплайн, обучен за
             българското договорно право. Тази страница описва точно какво прави модулът, на
             какви закони се позовава и какво може и какво не може да замести.
           </p>
@@ -165,7 +165,7 @@ export default function AIFeaturesPage() {
             Изпробвайте AI анализа сега
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Качете съществуващ договор за проверка или изгответе нов от ${CATALOG_DOCUMENT_COUNT} шаблона.
+            Качете съществуващ договор за проверка или изгответе нов от {CATALOG_DOCUMENT_COUNT} шаблона.
           </p>
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
             <Link to="/build" className="btn-gold">
@@ -173,7 +173,7 @@ export default function AIFeaturesPage() {
             </Link>
             <Link to="/catalog" className="btn-ghost-gold">Разгледай каталога</Link>
             <Link to="/karta" className="btn-ghost-gold inline-flex items-center gap-1.5">
-              <MapIcon className="h-4 w-4" /> Карта на сайта (всички ${CATALOG_DOCUMENT_COUNT} шаблона)
+              <MapIcon className="h-4 w-4" /> Карта на сайта (всички {CATALOG_DOCUMENT_COUNT} шаблона)
             </Link>
           </div>
         </section>
