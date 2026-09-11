@@ -151,7 +151,7 @@ blocker codes, webhook signature/retry/duplicate errors, intake-entitlement
 parity, job leases/permanent failures, budget gates и резултати със source или
 policy mismatch. Не логвайте документ, резултат или secret.
 
-## 9. STOP, връщане назад и forward-fix
+## 9. STOP, Връщане назад и forward-fix
 
 При mismatch, partial schema, необясним duplicate, webhook failure, provider
 retention uncertainty или source/policy binding failure:
