@@ -319,6 +319,12 @@ export default function Plans() {
           </div>
         </section>
 
+        {/* Сравнение по честота на работа — само с числа от каноничните източници. */}
+        <section className="relative z-10 mx-auto max-w-6xl px-4 pb-8 sm:pb-10">
+          <FrequencyCompare />
+        </section>
+
+
         {/* 01 — Плановете (цените са първото нещо след избора на начин на плащане) */}
         <PlanStoryStage
           index="01"
