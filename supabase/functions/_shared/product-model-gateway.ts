@@ -123,7 +123,8 @@ function parseEnvelope(
     throw new ProductModelGatewayError("invalid_envelope");
   }
   const envelope = raw as GatewayEnvelope;
-  if (typeof envelope.model === "string" && envelope.model !== request.model) {
+  // Затворено доказателство за модел: липсващ, null, нетекстов или различен = отказ.
+  if (typeof envelope.model !== "string" || envelope.model !== request.model) {
     throw new ProductModelGatewayError("model_mismatch");
   }
   const choices = envelope.choices;
