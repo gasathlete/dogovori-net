@@ -128,3 +128,51 @@ describe("Stage 2B1C — платените входове остават зат
     expect(state).toContain("save_product_result_selection");
   });
 });
+
+describe("Stage 2B1C — корекция след преглед", () => {
+  const sql = read(MIGRATION);
+  const state = read("supabase/functions/product-result-state/index.ts");
+  const refine = read("supabase/functions/refine-product/index.ts");
+  const access = read("supabase/functions/_shared/product-paid-access.ts");
+  const patch = read("supabase/functions/_shared/product-patch.ts");
+
+  it("достъпът е точно един от два взаимно изключващи се режима", () => {
+    expect(state).toContain('"checkout_return"');
+    expect(state).toContain('"owner"');
+    expect(state).toContain("session_id");
+    expect(state).toContain("expectedSessionId");
+    expect(access).toContain("expectedSessionId");
+    expect(state).not.toMatch(/order\s*\(\s*['"]paid_at['"]/);
+    expect(state).not.toMatch(/limit\(1\)/);
+  });
+
+  it("уточнението иска очаквана версия и точен отпечатък на резултата", () => {
+    expect(refine).toContain("expected_result_digest");
+    expect(refine).toContain("expected_refinement_version");
+    expect(refine).toContain("version_conflict");
+    expect(refine).toContain("p_expected_refinement_version");
+    expect(sql).toContain("p_expected_refinement_version");
+    expect(sql).toContain("expected_refinement_version");
+  });
+
+  it("извикването към модела е трайно записано преди доставчика", () => {
+    expect(sql).toContain("product_result_refinement_calls");
+    expect(sql).toContain("reserve_product_result_refinement_call");
+    expect(sql).toContain("complete_product_result_refinement_call");
+    expect(refine).toContain("reserve_product_result_refinement_call");
+    expect(refine).toContain("complete_product_result_refinement_call");
+    const reserveAt = refine.indexOf("reserve_product_result_refinement_call");
+    const invokeAt = refine.indexOf("port.invoke(");
+    expect(reserveAt).toBeGreaterThan(0);
+    expect(invokeAt).toBeGreaterThan(reserveAt);
+    expect(refine).toContain('reservation.status === "complete"');
+    expect(refine).toContain('reservation.status === "pending"');
+  });
+
+  it("двусмислени поправки се отказват, а не се пренаписват тихо", () => {
+    expect(patch).toContain("duplicate_result_correction");
+    const guardAt = patch.indexOf('if (byId.has(correction.id)) throw new ProductPatchError("duplicate_result_correction")');
+    expect(guardAt).toBeGreaterThan(0);
+    expect(patch.indexOf("byId.set(correction.id, correction)")).toBeGreaterThan(guardAt);
+  });
+});

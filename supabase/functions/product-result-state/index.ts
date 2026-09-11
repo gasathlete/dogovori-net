@@ -34,13 +34,24 @@ import { MAX_REFINEMENTS } from "../_shared/product-result-contract.ts";
 import type { CorrectionPayload } from "../_shared/product-result-contract.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Точна Stripe сесия за връщане след плащане. Без „последната поръчка“. */
+const SESSION_RE = /^cs_(test|live)_[A-Za-z0-9]{10,240}$/;
 const ALLOWED_BODY_KEYS = Object.freeze([
+  "access",
+  "session_id",
   "entitlement_id",
   "action",
   "decisions",
   "expected_version",
   "idempotency_key",
 ]);
+/**
+ * Двата начина за достъп са взаимно изключващи се:
+ *  - `checkout_return` — точното право И точната Stripe сесия от връщането;
+ *  - `owner`           — точното право на влезлия собственик.
+ * Тяло с двата режима наведнъж или без режим е отказ.
+ */
+const ACCESS_MODES = Object.freeze(["checkout_return", "owner"] as const);
 
 const MESSAGES: Readonly<Record<string, string>> = Object.freeze({
   unauthorized: "Влезте в профила си, за да видите резултата.",
@@ -111,11 +122,24 @@ Deno.serve(async (req) => {
     }
     const entitlementId = body.entitlement_id;
     const action = body.action;
+    const mode = body.access;
     if (
       typeof entitlementId !== "string" ||
       !UUID_RE.test(entitlementId) ||
-      (action !== "status" && action !== "save")
+      (action !== "status" && action !== "save") ||
+      typeof mode !== "string" ||
+      !(ACCESS_MODES as readonly string[]).includes(mode)
     ) {
+      return fail("invalid_body", 400, headers, cid);
+    }
+    // Режимите са взаимно изключващи се: `session_id` съществува САМО при
+    // връщане от плащането и е задължителен точно там.
+    const sessionId = body.session_id;
+    if (mode === "checkout_return") {
+      if (typeof sessionId !== "string" || !SESSION_RE.test(sessionId)) {
+        return fail("invalid_body", 400, headers, cid);
+      }
+    } else if (sessionId !== undefined) {
       return fail("invalid_body", 400, headers, cid);
     }
 
@@ -126,6 +150,7 @@ Deno.serve(async (req) => {
 
     const access = await loadReadyPaidProduct(admin as unknown as PaidAccessDbClient, userId, entitlementId, {
       withSourceText: action === "save",
+      ...(mode === "checkout_return" ? { expectedSessionId: sessionId as string } : {}),
     });
     if (!access.ok) return fail(access.code, access.status, headers, cid, access.message);
     if (!isSelectionProduct(access.spec.id)) {

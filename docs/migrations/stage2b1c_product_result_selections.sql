@@ -89,6 +89,9 @@ CREATE TABLE public.product_result_refinements (
   user_id uuid NOT NULL,
   product_id text NOT NULL,
   refinement_version integer NOT NULL,
+  -- Очакваната версия идва от таба на потребителя: стар таб не може да уточни
+  -- състояние, което не е видял.
+  expected_refinement_version integer NOT NULL DEFAULT 0,
   base_result_digest text NOT NULL,
   instruction_digest text NOT NULL,
   idempotency_key text NOT NULL,
@@ -106,6 +109,7 @@ CREATE TABLE public.product_result_refinements (
   UNIQUE (entitlement_id, idempotency_key),
   CHECK (product_id = 'negotiation_package'),
   CHECK (refinement_version = 1),
+  CHECK (expected_refinement_version = 0),
   CHECK (base_result_digest ~ '^[0-9a-f]{64}$'),
   CHECK (instruction_digest ~ '^[0-9a-f]{64}$'),
   CHECK (length(btrim(idempotency_key)) BETWEEN 1 AND 200),
@@ -141,7 +145,9 @@ BEGIN
      OR NEW.user_id IS DISTINCT FROM OLD.user_id
      OR NEW.product_id IS DISTINCT FROM OLD.product_id
      OR NEW.refinement_version IS DISTINCT FROM OLD.refinement_version
+     OR NEW.expected_refinement_version IS DISTINCT FROM OLD.expected_refinement_version
      OR NEW.base_result_digest IS DISTINCT FROM OLD.base_result_digest
+     OR NEW.instruction_digest IS DISTINCT FROM OLD.instruction_digest
      OR NEW.idempotency_key IS DISTINCT FROM OLD.idempotency_key THEN
     RAISE EXCEPTION 'product_result_refinement_identity_immutable';
   END IF;
@@ -150,6 +156,69 @@ END $$;
 CREATE TRIGGER product_result_refinement_immutable
   BEFORE UPDATE ON public.product_result_refinements
   FOR EACH ROW EXECUTE FUNCTION public.enforce_product_refinement_immutable();
+
+-- ----------------------------------- Трайно извикване за уточнението
+-- Уточнението е ЕДНА ограничена стъпка, но е трайна и идемпотентна: заявката се
+-- записва ПРЕДИ границата на доставчика и се приключва след нея. Прекъсване по
+-- време на изчакване не води до второ платено извикване, а към отказ.
+CREATE TABLE public.product_result_refinement_calls (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  refinement_id uuid NOT NULL REFERENCES public.product_result_refinements(id) ON DELETE CASCADE,
+  entitlement_id uuid NOT NULL REFERENCES public.product_entitlements(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL,
+  call_id text NOT NULL,
+  model text NOT NULL,
+  status text NOT NULL DEFAULT 'reserved',
+  request_digest text NOT NULL,
+  response jsonb,
+  response_canonical text,
+  response_digest text,
+  usage_input_tokens bigint,
+  usage_output_tokens bigint,
+  usage_cost_micro_usd bigint,
+  reservation_token uuid,
+  reservation_expires_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  completed_at timestamptz,
+  -- Точно ЕДНО извикване на един опит за уточнение.
+  UNIQUE (refinement_id),
+  UNIQUE (refinement_id, call_id),
+  CHECK (length(btrim(call_id)) BETWEEN 1 AND 240),
+  CHECK (model IN ('google/gemini-3.1-flash-lite','google/gemini-3.8-flash')),
+  CHECK (status IN ('reserved','complete')),
+  CHECK (request_digest ~ '^[0-9a-f]{64}$'),
+  CHECK (response_digest IS NULL OR response_digest ~ '^[0-9a-f]{64}$'),
+  CHECK (response_canonical IS NULL OR response_canonical::jsonb = response),
+  CHECK (response_digest IS NULL OR response_digest = encode(extensions.digest(convert_to(response_canonical,'UTF8'),'sha256'),'hex')),
+  CHECK ((status = 'reserved' AND response IS NULL AND response_digest IS NULL AND completed_at IS NULL
+          AND reservation_token IS NOT NULL AND reservation_expires_at IS NOT NULL)
+      OR (status = 'complete' AND jsonb_typeof(response) = 'object' AND response_digest IS NOT NULL
+          AND response_canonical IS NOT NULL AND completed_at IS NOT NULL
+          AND usage_input_tokens >= 0 AND usage_output_tokens >= 0 AND usage_cost_micro_usd >= 0))
+);
+-- Записът съдържа изход от модел: чете се САМО от служебната роля.
+GRANT ALL ON public.product_result_refinement_calls TO service_role;
+ALTER TABLE public.product_result_refinement_calls ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.product_result_refinement_calls FORCE ROW LEVEL SECURITY;
+
+CREATE OR REPLACE FUNCTION public.enforce_product_refinement_call_immutable()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+BEGIN
+  IF TG_OP = 'DELETE' THEN RAISE EXCEPTION 'product_result_refinement_call_immutable'; END IF;
+  IF OLD.status = 'complete'
+     OR NEW.refinement_id IS DISTINCT FROM OLD.refinement_id
+     OR NEW.entitlement_id IS DISTINCT FROM OLD.entitlement_id
+     OR NEW.user_id IS DISTINCT FROM OLD.user_id
+     OR NEW.call_id IS DISTINCT FROM OLD.call_id
+     OR NEW.model IS DISTINCT FROM OLD.model
+     OR NEW.request_digest IS DISTINCT FROM OLD.request_digest THEN
+    RAISE EXCEPTION 'product_result_refinement_call_immutable';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER product_result_refinement_call_immutable
+  BEFORE UPDATE OR DELETE ON public.product_result_refinement_calls
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_product_refinement_call_immutable();
 
 -- ------------------------------------------------------- Сървърни функции
 -- Изборът се записва САМО оттук: точен собственик, точен готов резултат, точен
@@ -248,11 +317,14 @@ GRANT EXECUTE ON FUNCTION public.load_product_result_state(uuid,uuid,text) TO se
 -- уточнение: само успешен запис заема единствения успешен ред.
 CREATE OR REPLACE FUNCTION public.begin_product_result_refinement(
   p_user_id uuid, p_entitlement_id uuid, p_base_result_digest text,
-  p_instruction_digest text, p_idempotency_key text, p_lease_seconds integer
+  p_expected_refinement_version integer, p_instruction_digest text,
+  p_idempotency_key text, p_lease_seconds integer
 ) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
 DECLARE e public.product_entitlements; x public.product_result_refinements; token uuid;
+        used integer; known integer; current_digest text;
 BEGIN
   IF p_base_result_digest !~ '^[0-9a-f]{64}$' OR p_instruction_digest !~ '^[0-9a-f]{64}$'
+     OR p_expected_refinement_version IS NULL OR p_expected_refinement_version <> 0
      OR length(btrim(COALESCE(p_idempotency_key,''))) = 0
      OR p_lease_seconds IS NULL OR p_lease_seconds NOT BETWEEN 30 AND 900 THEN
     RETURN jsonb_build_object('ok', false, 'reason', 'invalid_request');
@@ -265,60 +337,80 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'reason', 'not_refinable');
   END IF;
 
-  SELECT * INTO x FROM public.product_result_refinements
+  SELECT count(*) INTO used FROM public.product_result_refinements
     WHERE entitlement_id = p_entitlement_id AND status = 'succeeded';
+  SELECT count(*) INTO known FROM public.product_result_selections
+    WHERE entitlement_id = p_entitlement_id;
+  SELECT s.result_digest INTO current_digest FROM public.product_result_selections s
+    WHERE s.entitlement_id = p_entitlement_id ORDER BY s.updated_at DESC LIMIT 1;
+
+  -- Един и същ ключ + един и същ пълен вход е повторение; същият ключ с друг
+  -- очакван резултат, версия или указание е конфликт.
+  SELECT * INTO x FROM public.product_result_refinements
+    WHERE entitlement_id = p_entitlement_id AND idempotency_key = p_idempotency_key FOR UPDATE;
   IF x.id IS NOT NULL THEN
-    IF x.idempotency_key = p_idempotency_key THEN
+    IF x.base_result_digest <> p_base_result_digest
+       OR x.expected_refinement_version <> p_expected_refinement_version
+       OR x.instruction_digest <> p_instruction_digest THEN
+      RETURN jsonb_build_object('ok', false, 'reason', 'idempotency_conflict',
+        'current_refinement_version', used, 'current_result_digest', current_digest);
+    END IF;
+    IF x.status = 'succeeded' THEN
       RETURN jsonb_build_object('ok', true, 'replay', true, 'refinement_id', x.id,
         'refinement_version', x.refinement_version, 'result', x.result, 'result_digest', x.result_digest);
     END IF;
-    RETURN jsonb_build_object('ok', false, 'reason', 'refinement_used');
-  END IF;
-
-  SELECT * INTO x FROM public.product_result_refinements
-    WHERE entitlement_id = p_entitlement_id AND idempotency_key = p_idempotency_key FOR UPDATE;
-  IF x.id IS NULL THEN
-    IF EXISTS (SELECT 1 FROM public.product_result_refinements
-               WHERE entitlement_id = p_entitlement_id AND status = 'pending'
-                 AND lease_expires_at > now()) THEN
+    IF x.status = 'pending' AND x.lease_expires_at > now() THEN
       RETURN jsonb_build_object('ok', false, 'reason', 'lease_active');
     END IF;
-    -- Изтекъл наем се затваря като провал, а не се изтрива: историята остава.
-    UPDATE public.product_result_refinements
-      SET status = 'failed', lease_token = NULL, lease_expires_at = NULL,
-          error_code = COALESCE(error_code, 'lease_expired'), updated_at = now()
-      WHERE entitlement_id = p_entitlement_id AND status = 'pending' AND lease_expires_at <= now();
+    IF x.attempts >= 20 THEN
+      RETURN jsonb_build_object('ok', false, 'reason', 'too_many_attempts');
+    END IF;
     token := gen_random_uuid();
-    INSERT INTO public.product_result_refinements (
-      entitlement_id, user_id, product_id, refinement_version, base_result_digest,
-      instruction_digest, idempotency_key, status, lease_token, lease_expires_at
-    ) VALUES (
-      e.id, e.user_id, e.product_id, 1, p_base_result_digest, p_instruction_digest,
-      p_idempotency_key, 'pending', token, now() + make_interval(secs => p_lease_seconds)
-    ) RETURNING * INTO x;
+    UPDATE public.product_result_refinements
+      SET status = 'pending', lease_token = token, lease_expires_at = now() + make_interval(secs => p_lease_seconds),
+          attempts = x.attempts + 1, error_code = NULL, updated_at = now()
+      WHERE id = x.id RETURNING * INTO x;
     RETURN jsonb_build_object('ok', true, 'replay', false, 'refinement_id', x.id,
       'lease_token', x.lease_token, 'attempts', x.attempts);
   END IF;
 
-  IF x.base_result_digest <> p_base_result_digest OR x.instruction_digest <> p_instruction_digest THEN
-    RETURN jsonb_build_object('ok', false, 'reason', 'idempotency_conflict');
+  IF used > 0 THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'refinement_used',
+      'current_refinement_version', used, 'current_result_digest', current_digest);
   END IF;
-  IF x.status = 'pending' AND x.lease_expires_at > now() THEN
+  -- Оптимистична съгласуваност: точната очаквана версия и точният известен
+  -- резултат. Стар таб получава конфликт, а не тихо уточнение.
+  IF used <> p_expected_refinement_version
+     OR (known > 0 AND NOT EXISTS (SELECT 1 FROM public.product_result_selections
+           WHERE entitlement_id = p_entitlement_id AND result_digest = p_base_result_digest)) THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'version_conflict',
+      'current_refinement_version', used, 'current_result_digest', current_digest);
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM public.product_result_refinements
+             WHERE entitlement_id = p_entitlement_id AND status = 'pending'
+               AND lease_expires_at > now()) THEN
     RETURN jsonb_build_object('ok', false, 'reason', 'lease_active');
   END IF;
-  IF x.attempts >= 20 THEN
-    RETURN jsonb_build_object('ok', false, 'reason', 'too_many_attempts');
-  END IF;
-  token := gen_random_uuid();
+  -- Изтекъл наем се затваря като провал, а не се изтрива: историята остава.
   UPDATE public.product_result_refinements
-    SET status = 'pending', lease_token = token, lease_expires_at = now() + make_interval(secs => p_lease_seconds),
-        attempts = x.attempts + 1, error_code = NULL, updated_at = now()
-    WHERE id = x.id RETURNING * INTO x;
+    SET status = 'failed', lease_token = NULL, lease_expires_at = NULL,
+        error_code = COALESCE(error_code, 'lease_expired'), updated_at = now()
+    WHERE entitlement_id = p_entitlement_id AND status = 'pending' AND lease_expires_at <= now();
+  token := gen_random_uuid();
+  INSERT INTO public.product_result_refinements (
+    entitlement_id, user_id, product_id, refinement_version, expected_refinement_version,
+    base_result_digest, instruction_digest, idempotency_key, status, lease_token, lease_expires_at
+  ) VALUES (
+    e.id, e.user_id, e.product_id, 1, p_expected_refinement_version, p_base_result_digest,
+    p_instruction_digest, p_idempotency_key, 'pending', token,
+    now() + make_interval(secs => p_lease_seconds)
+  ) RETURNING * INTO x;
   RETURN jsonb_build_object('ok', true, 'replay', false, 'refinement_id', x.id,
     'lease_token', x.lease_token, 'attempts', x.attempts);
 END $$;
-REVOKE ALL ON FUNCTION public.begin_product_result_refinement(uuid,uuid,text,text,text,integer) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.begin_product_result_refinement(uuid,uuid,text,text,text,integer) TO service_role;
+REVOKE ALL ON FUNCTION public.begin_product_result_refinement(uuid,uuid,text,integer,text,text,integer) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.begin_product_result_refinement(uuid,uuid,text,integer,text,text,integer) TO service_role;
 
 CREATE OR REPLACE FUNCTION public.complete_product_result_refinement(
   p_refinement_id uuid, p_lease_token uuid, p_result jsonb, p_result_canonical text, p_result_digest text
@@ -374,5 +466,110 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.fail_product_result_refinement(uuid,uuid,text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.fail_product_result_refinement(uuid,uuid,text) TO service_role;
+
+-- Заявяване на извикването ПРЕДИ доставчика. Повторното заявяване със същия
+-- вход връща записания отговор; заявено, но неприключено извикване НИКОГА не се
+-- изпълнява втори път.
+CREATE OR REPLACE FUNCTION public.reserve_product_result_refinement_call(
+  p_refinement_id uuid, p_lease_token uuid, p_call_id text, p_model text, p_request_digest text
+) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+DECLARE x public.product_result_refinements; c public.product_result_refinement_calls; token uuid;
+BEGIN
+  IF length(btrim(COALESCE(p_call_id,''))) = 0 OR p_request_digest !~ '^[0-9a-f]{64}$'
+     OR p_model NOT IN ('google/gemini-3.1-flash-lite','google/gemini-3.8-flash') THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'call_invalid');
+  END IF;
+  SELECT * INTO x FROM public.product_result_refinements WHERE id = p_refinement_id FOR UPDATE;
+  IF x.id IS NULL THEN RETURN jsonb_build_object('ok', false, 'reason', 'not_found'); END IF;
+  IF x.status <> 'pending' OR x.lease_token IS DISTINCT FROM p_lease_token
+     OR x.lease_expires_at <= now() THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'lease_invalid');
+  END IF;
+  SELECT * INTO c FROM public.product_result_refinement_calls
+    WHERE refinement_id = p_refinement_id FOR UPDATE;
+  IF c.id IS NOT NULL THEN
+    IF c.call_id <> p_call_id OR c.model <> p_model OR c.request_digest <> p_request_digest THEN
+      RETURN jsonb_build_object('ok', false, 'reason', 'call_conflict');
+    END IF;
+    IF c.status = 'complete' THEN
+      IF c.response_canonical::jsonb <> c.response
+         OR c.response_digest <> encode(extensions.digest(convert_to(c.response_canonical,'UTF8'),'sha256'),'hex') THEN
+        RETURN jsonb_build_object('ok', false, 'reason', 'stored_call_invalid');
+      END IF;
+      RETURN jsonb_build_object('ok', true, 'status', 'complete',
+        'response', jsonb_build_object('output', c.response, 'inputTokens', c.usage_input_tokens,
+          'outputTokens', c.usage_output_tokens, 'elapsedMs', 0));
+    END IF;
+    RETURN jsonb_build_object('ok', true, 'status', 'pending', 'reason', 'call_completion_unknown');
+  END IF;
+  token := gen_random_uuid();
+  INSERT INTO public.product_result_refinement_calls (
+    refinement_id, entitlement_id, user_id, call_id, model, request_digest,
+    reservation_token, reservation_expires_at
+  ) VALUES (
+    x.id, x.entitlement_id, x.user_id, p_call_id, p_model, p_request_digest,
+    token, LEAST(x.lease_expires_at, now() + interval '10 minutes')
+  );
+  RETURN jsonb_build_object('ok', true, 'status', 'acquired', 'reservation_token', token);
+END $$;
+REVOKE ALL ON FUNCTION public.reserve_product_result_refinement_call(uuid,uuid,text,text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.reserve_product_result_refinement_call(uuid,uuid,text,text,text) TO service_role;
+
+-- Приключване на извикването с изрични тавани по вход, изход, общо и цена.
+CREATE OR REPLACE FUNCTION public.complete_product_result_refinement_call(
+  p_refinement_id uuid, p_lease_token uuid, p_call_id text, p_reservation_token uuid,
+  p_request_digest text, p_response jsonb, p_response_canonical text, p_response_digest text,
+  p_usage_input_tokens bigint, p_usage_output_tokens bigint, p_usage_cost_micro_usd bigint,
+  p_max_input_tokens bigint, p_max_output_tokens bigint, p_max_total_tokens bigint,
+  p_max_cost_micro_usd bigint
+) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+DECLARE x public.product_result_refinements; c public.product_result_refinement_calls;
+BEGIN
+  SELECT * INTO x FROM public.product_result_refinements WHERE id = p_refinement_id FOR UPDATE;
+  IF x.id IS NULL THEN RETURN jsonb_build_object('ok', false, 'reason', 'not_found'); END IF;
+  IF x.status <> 'pending' OR x.lease_token IS DISTINCT FROM p_lease_token
+     OR x.lease_expires_at <= now() THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'lease_invalid');
+  END IF;
+  SELECT * INTO c FROM public.product_result_refinement_calls
+    WHERE refinement_id = p_refinement_id AND call_id = p_call_id FOR UPDATE;
+  IF c.id IS NULL OR c.request_digest <> p_request_digest
+     OR c.reservation_token IS DISTINCT FROM p_reservation_token THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'call_conflict');
+  END IF;
+  IF c.status = 'complete' THEN
+    IF c.response_digest <> p_response_digest OR c.response <> p_response
+       OR c.response_canonical <> p_response_canonical
+       OR c.usage_input_tokens <> p_usage_input_tokens
+       OR c.usage_output_tokens <> p_usage_output_tokens
+       OR c.usage_cost_micro_usd <> p_usage_cost_micro_usd THEN
+      RETURN jsonb_build_object('ok', false, 'reason', 'replay_mismatch');
+    END IF;
+    RETURN jsonb_build_object('ok', true, 'already_recorded', true);
+  END IF;
+  IF jsonb_typeof(p_response) <> 'object' OR p_response_digest !~ '^[0-9a-f]{64}$'
+     OR p_response_canonical IS NULL OR p_response_canonical::jsonb <> p_response
+     OR p_response_digest <> encode(extensions.digest(convert_to(p_response_canonical,'UTF8'),'sha256'),'hex')
+     OR p_usage_input_tokens < 0 OR p_usage_output_tokens < 0 OR p_usage_cost_micro_usd < 0 THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'call_invalid');
+  END IF;
+  IF p_max_input_tokens IS NULL OR p_max_output_tokens IS NULL OR p_max_total_tokens IS NULL
+     OR p_max_cost_micro_usd IS NULL
+     OR p_usage_input_tokens > p_max_input_tokens
+     OR p_usage_output_tokens > p_max_output_tokens
+     OR p_usage_input_tokens + p_usage_output_tokens > p_max_total_tokens
+     OR p_usage_cost_micro_usd > p_max_cost_micro_usd THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'budget_exceeded');
+  END IF;
+  UPDATE public.product_result_refinement_calls
+    SET status = 'complete', response = p_response, response_canonical = p_response_canonical,
+        response_digest = p_response_digest, usage_input_tokens = p_usage_input_tokens,
+        usage_output_tokens = p_usage_output_tokens, usage_cost_micro_usd = p_usage_cost_micro_usd,
+        reservation_token = NULL, reservation_expires_at = NULL, completed_at = now()
+    WHERE id = c.id AND status = 'reserved';
+  RETURN jsonb_build_object('ok', true, 'already_recorded', false);
+END $$;
+REVOKE ALL ON FUNCTION public.complete_product_result_refinement_call(uuid,uuid,text,uuid,text,jsonb,text,text,bigint,bigint,bigint,bigint,bigint,bigint,bigint) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.complete_product_result_refinement_call(uuid,uuid,text,uuid,text,jsonb,text,text,bigint,bigint,bigint,bigint,bigint,bigint,bigint) TO service_role;
 
 COMMIT;

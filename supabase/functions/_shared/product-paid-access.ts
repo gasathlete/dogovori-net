@@ -82,7 +82,15 @@ export async function loadReadyPaidProduct(
   admin: PaidAccessDbClient,
   userId: string,
   entitlementId: string,
-  options: { readonly withSourceText?: boolean } = {},
+  options: {
+    readonly withSourceText?: boolean;
+    /**
+     * Пътят след връщане от плащането подава ТОЧНАТА Stripe сесия. Тя трябва да
+     * съвпада със сесията на правото — иначе достъпът е отказан. Никога не се
+     * търси „последната поръчка“.
+     */
+    readonly expectedSessionId?: string;
+  } = {},
 ): Promise<PaidAccess> {
   const { data: ent } = await admin
     .from("product_entitlements")
@@ -92,6 +100,12 @@ export async function loadReadyPaidProduct(
     .eq("id", entitlementId)
     .maybeSingle();
   if (!ent || ent.user_id !== userId) return deny("not_found", 404);
+  if (
+    typeof options.expectedSessionId === "string" &&
+    options.expectedSessionId !== ent.stripe_session_id
+  ) {
+    return deny("not_found", 404);
+  }
 
   const spec = requireProductSpec(ent.product_id);
   if (

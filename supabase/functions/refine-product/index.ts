@@ -45,14 +45,38 @@ import {
   validateRefinementInstruction,
 } from "../_shared/product-refinement.ts";
 import type { NegotiationPackageResult } from "../_shared/product-result-contract.ts";
+import { modelPrice } from "../_shared/product-generation-policy.ts";
+
+/** Точна цена в цели micro-USD по датираната таблица на политиката. */
+function refinementCallCostMicroUsd(
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+): number {
+  const price = modelPrice(model);
+  const ceilDiv = (a: number, b: number) => Math.ceil(a / b);
+  return (
+    ceilDiv(inputTokens * price.inputMicroUsdPer1MTokens, 1_000_000) +
+    ceilDiv(outputTokens * price.outputMicroUsdPer1MTokens, 1_000_000)
+  );
+}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const ALLOWED_BODY_KEYS = Object.freeze(["entitlement_id", "instruction", "idempotency_key"]);
+const ALLOWED_BODY_KEYS = Object.freeze([
+  "entitlement_id",
+  "instruction",
+  "idempotency_key",
+  "expected_result_digest",
+  "expected_refinement_version",
+]);
+const DIGEST_RE = /^[0-9a-f]{64}$/;
 
 const MESSAGES: Readonly<Record<string, string>> = Object.freeze({
   unauthorized: "Влезте в профила си, за да видите резултата.",
   invalid_body: "Заявката е непълна.",
   safety_gate: "Уточнението не може да се изготви за този документ.",
+  version_conflict:
+    "Резултатът е променен в друг раздел. Презаредете страницата и опитайте отново.",
   refinement_failed:
     "Уточнението не беше изготвено. Включеното уточнение остава налично, а оригиналният резултат е непокътнат.",
   internal: "Възникна неочакван проблем.",
@@ -119,6 +143,20 @@ Deno.serve(async (req) => {
     }
     const entitlementId = body.entitlement_id;
     if (typeof entitlementId !== "string" || !UUID_RE.test(entitlementId)) {
+      return fail("invalid_body", 400, headers, cid);
+    }
+
+    // Оптимистична съгласуваност: табът заявява ТОЧНО кой резултат и коя версия
+    // на уточнението вижда. Стар таб не уточнява по-ново състояние.
+    const expectedDigest = body.expected_result_digest;
+    const expectedVersion = body.expected_refinement_version;
+    if (
+      typeof expectedDigest !== "string" ||
+      !DIGEST_RE.test(expectedDigest) ||
+      typeof expectedVersion !== "number" ||
+      !Number.isSafeInteger(expectedVersion) ||
+      expectedVersion < 0
+    ) {
       return fail("invalid_body", 400, headers, cid);
     }
 
@@ -190,10 +228,38 @@ Deno.serve(async (req) => {
     const baseDigest = await sha256Hex(canonical(access.resultRaw));
     const instructionDigest = await sha256Hex(instruction);
 
+    // Точната текуща версия се чете преди наема; RPC я проверява отново
+    // атомарно. Отговорът при конфликт съдържа само безопасни метаданни.
+    const { data: stateRow, error: stateErr } = await admin.rpc("load_product_result_state", {
+      p_user_id: userId,
+      p_entitlement_id: entitlementId,
+      p_result_digest: baseDigest,
+    });
+    const state = (stateRow ?? {}) as Record<string, unknown>;
+    if (stateErr || state.ok !== true) return fail("internal", 500, headers, cid);
+    const history = Array.isArray(state.refinement_history) ? state.refinement_history : [];
+    const currentVersion = history.filter(
+      (item) => (item as Record<string, unknown>)?.status === "succeeded",
+    ).length;
+    const conflict = () =>
+      json(
+        {
+          error: "version_conflict",
+          message: MESSAGES.version_conflict,
+          current_result_digest: baseDigest,
+          current_refinement_version: currentVersion,
+          correlation_id: cid,
+        },
+        409,
+        headers,
+      );
+    if (expectedDigest !== baseDigest || expectedVersion !== currentVersion) return conflict();
+
     const { data: begun, error: beginErr } = await admin.rpc("begin_product_result_refinement", {
       p_user_id: userId,
       p_entitlement_id: entitlementId,
       p_base_result_digest: baseDigest,
+      p_expected_refinement_version: expectedVersion,
       p_instruction_digest: instructionDigest,
       p_idempotency_key: idempotencyKey,
       p_lease_seconds: REFINEMENT_LEASE_SECONDS,
@@ -202,6 +268,7 @@ Deno.serve(async (req) => {
     if (beginErr || claim.ok === undefined) return fail("internal", 500, headers, cid);
     if (claim.ok !== true) {
       const reason = String(claim.reason);
+      if (reason === "version_conflict" || reason === "idempotency_conflict") return conflict();
       const message = reason === "refinement_used" || reason === "lease_active" || reason === "not_refinable"
         ? refinementMessage(reason as "refinement_used")
         : MESSAGES.internal;
@@ -234,11 +301,10 @@ Deno.serve(async (req) => {
         instruction,
         base_result: JSON.parse(canonical(access.resultRaw)),
       });
-      const apiKey = Deno.env.get("LOVABLE_API_KEY") ?? "";
-      const port = createProductModelPort({ apiKey, fetchImpl: fetch });
-      const response = await port.invoke({
-        callId: `${refinementId}:refinement`,
-        routeKey: "refinement",
+      const callId = `${refinementId}:refinement`;
+      const request = Object.freeze({
+        callId,
+        routeKey: "refinement" as const,
         model: bound.model,
         maxInputTokens: bound.maxInputTokens,
         maxOutputTokens: bound.maxOutputTokens,
@@ -249,6 +315,83 @@ Deno.serve(async (req) => {
           context: redacted.context,
         }),
       });
+      // Самоличността на извикването е обвързана с правото, уточнението,
+      // очакваната версия, указанието, политиката и точния източник.
+      const requestDigest = await sha256Hex(
+        canonical({
+          entitlement_id: entitlementId,
+          refinement_id: refinementId,
+          expected_refinement_version: expectedVersion,
+          base_result_digest: baseDigest,
+          instruction_digest: instructionDigest,
+          policy_version: access.policyVersion,
+          model: bound.model,
+          source_hash: access.binding.source_hash,
+          source_updated_at: access.binding.source_updated_at,
+          max_input_tokens: bound.maxInputTokens,
+          max_output_tokens: bound.maxOutputTokens,
+        }),
+      );
+
+      // Заявката се записва ПРЕДИ доставчика: прекъсване не води до второ
+      // платено извикване, а повторното изпълнение връща записания отговор.
+      const { data: reservedRow, error: reserveErr } = await admin.rpc(
+        "reserve_product_result_refinement_call",
+        {
+          p_refinement_id: refinementId,
+          p_lease_token: leaseToken,
+          p_call_id: callId,
+          p_model: bound.model,
+          p_request_digest: requestDigest,
+        },
+      );
+      const reservation = (reservedRow ?? {}) as Record<string, unknown>;
+      if (reserveErr || reservation.ok !== true) {
+        await failRefinement(String(reservation.reason ?? "call_reserve_failed"));
+        return fail("refinement_failed", 409, headers, cid, MESSAGES.refinement_failed);
+      }
+      let response: { output: unknown; inputTokens: number; outputTokens: number; elapsedMs: number };
+      if (reservation.status === "complete") {
+        response = reservation.response as typeof response;
+      } else if (reservation.status === "pending") {
+        // Заявено, но неприключено извикване: не се прави второ.
+        await failRefinement("call_completion_unknown");
+        return fail("refinement_failed", 409, headers, cid, MESSAGES.refinement_failed);
+      } else {
+        const apiKey = Deno.env.get("LOVABLE_API_KEY") ?? "";
+        const port = createProductModelPort({ apiKey, fetchImpl: fetch });
+        response = await port.invoke(request);
+        const responseCanonical = canonical({ output: response.output });
+        const { data: recordedRow, error: recordErr } = await admin.rpc(
+          "complete_product_result_refinement_call",
+          {
+            p_refinement_id: refinementId,
+            p_lease_token: leaseToken,
+            p_call_id: callId,
+            p_reservation_token: reservation.reservation_token,
+            p_request_digest: requestDigest,
+            p_response: JSON.parse(responseCanonical),
+            p_response_canonical: responseCanonical,
+            p_response_digest: await sha256Hex(responseCanonical),
+            p_usage_input_tokens: response.inputTokens,
+            p_usage_output_tokens: response.outputTokens,
+            p_usage_cost_micro_usd: refinementCallCostMicroUsd(
+              bound.model,
+              response.inputTokens,
+              response.outputTokens,
+            ),
+            p_max_input_tokens: bound.maxInputTokens,
+            p_max_output_tokens: bound.maxOutputTokens,
+            p_max_total_tokens: bound.maxInputTokens + bound.maxOutputTokens,
+            p_max_cost_micro_usd: bound.maxCostMicroUsd,
+          },
+        );
+        const recorded = (recordedRow ?? {}) as Record<string, unknown>;
+        if (recordErr || recorded.ok !== true) {
+          await failRefinement(String(recorded.reason ?? "call_record_failed"));
+          return fail("refinement_failed", 409, headers, cid, MESSAGES.refinement_failed);
+        }
+      }
 
       const hydrated = JSON.parse(
         rehydrateProductOutput(JSON.stringify(response.output), redacted.map, []),
