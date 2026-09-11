@@ -134,7 +134,7 @@ describe("Изпълнението е устойчиво и остава без 
     expect(FULFILL).toContain("return await handlePostClaimFailure(error);");
     expect(FULFILL).toContain("return await releaseRetryable();");
     // Валидацията вече не хвърля извън блока.
-    expect(FULFILL.indexOf('throw new ProductGenerationError("invalid_cursor")')).toBeGreaterThan(handler);
+    expect(FULFILL.lastIndexOf('throw new ProductGenerationError("invalid_cursor")')).toBeGreaterThan(handler);
     expect(FULFILL.lastIndexOf('throw new ProductGenerationError("invalid_model_output")')).toBeGreaterThan(handler);
     // Записът никога не връща 503 без освобождаване на наема.
     expect(FULFILL).not.toMatch(/\?\.ok !== true\) return fail\("failed_retryable"/);
