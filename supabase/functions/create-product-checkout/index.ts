@@ -123,6 +123,19 @@ Deno.serve(async (req) => {
     if (environment !== "sandbox" && environment !== "live") {
       return fail("invalid_environment", 400, corsHeaders);
     }
+    // Сървърен кран: продуктовото плащане е ЗАТВОРЕНО по подразбиране и се
+    // включва изрично с конфигурация. Не се разчита на скриване в интерфейса.
+    const checkoutBlockers = productCheckoutBlockers(
+      readProductIntegrationConfig((key) => Deno.env.get(key)),
+      environment,
+    );
+    if (checkoutBlockers.length > 0) {
+      const code = checkoutBlockers[0];
+      return new Response(
+        JSON.stringify({ error: code, message: productIntegrationMessage(code) }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
     if (!UUID_RE.test(String(uploadedContractId))) return fail("invalid_document", 400, corsHeaders);
     if (!UUID_RE.test(String(requestId))) return fail("invalid_request_id", 400, corsHeaders);
 
