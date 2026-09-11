@@ -31,7 +31,9 @@ import { buildSourceMap, locateOffset } from "./product-source-map.ts";
 import { foldToString } from "./product-text-fold.ts";
 import {
   placeholdersIn,
+  placeholdersForAnchor,
   redactProductBundle,
+  redactedSourceRange,
   rehydrateProductOutput,
   type ProductRedactionMap,
 } from "./product-secure-redaction.ts";
@@ -427,6 +429,7 @@ export async function productCanonicalDigest(value: unknown): Promise<string> {
 
 function safePayloadForStage(
   stage: ProductStageId,
+  sourceText: string,
   redactedSource: string,
   chunks: readonly SourceChunk[],
   context: ProductContext,
@@ -435,14 +438,7 @@ function safePayloadForStage(
 ): Readonly<Record<string, unknown>> {
   const redactChunk = (chunk: SourceChunk) => {
     if (!redactionMap) return chunk.text;
-    const points = Array.from(chunk.text);
-    const replacements = redactionMap.orderedTokens.flatMap((token) => {
-      const span = redactionMap.spans[token];
-      if (!span || span.start < chunk.context_start || span.end > chunk.end) return [];
-      return [{ token, start: span.start - chunk.context_start, end: span.end - chunk.context_start }];
-    }).sort((a, b) => b.start - a.start);
-    for (const replacement of replacements) points.splice(replacement.start, replacement.end - replacement.start, replacement.token);
-    return points.join("");
+    return redactedSourceRange(sourceText, redactionMap, chunk.context_start, chunk.end);
   };
   return Object.freeze({
     data_is_untrusted: true,
@@ -450,8 +446,32 @@ function safePayloadForStage(
     stage,
     source: chunks.length > 0 ? chunks.map((chunk) => ({ id: chunk.id, start: chunk.context_start, end: chunk.end, text: redactChunk(chunk) })) : redactedSource,
     context,
-    prior: prior.map((item) => item.payload),
+    prior: prior.map((item) => redactionMap ? redactValidatedArtifact(item.payload, redactionMap) : item.payload),
   });
+}
+
+const EXACT_SOURCE_FIELDS = new Set(["quote", "excerpt", "original_text", "exact_text"]);
+
+/** Placeholder requirements are scoped to declared exact-source fields and their server-checked anchors. */
+function requiredPlaceholders(value: unknown, map: ProductRedactionMap): readonly string[] {
+  const required = new Set<string>();
+  const visit = (node: unknown): void => {
+    if (Array.isArray(node)) { node.forEach(visit); return; }
+    if (!node || typeof node !== "object") return;
+    const row = node as Record<string, unknown>;
+    const anchors = [row.span, ...(Array.isArray(row.spans) ? row.spans : [])];
+    for (const anchor of anchors) {
+      if (!anchor || typeof anchor !== "object" || Array.isArray(anchor)) continue;
+      const { start, end } = anchor as Record<string, unknown>;
+      if (!Number.isInteger(start) || !Number.isInteger(end)) continue;
+      const hasExactField = [...EXACT_SOURCE_FIELDS].some((key) => typeof row[key] === "string") ||
+        typeof (anchor as Record<string, unknown>).excerpt === "string";
+      if (hasExactField) placeholdersForAnchor(map, start as number, end as number).forEach((token) => required.add(token));
+    }
+    Object.values(row).forEach(visit);
+  };
+  visit(value);
+  return Object.freeze([...required]);
 }
 
 function validateAbsence(source: string, raw: unknown): Candidate[] {
@@ -534,29 +554,13 @@ export class ProductGenerationRuntime {
       throw new ProductGenerationError("safety_gate_closed");
     }
     const batches = sourceBatches(state.sourceText);
-    if (state.cursor.stage === "passport") {
-      const nextCursor = { stage: "review", batch_index: 0, chunk_index: 0 } as const;
-      const payload = { transition: "review" };
-      return {
-        nextCursor,
-        usage: { calls: 0, input_tokens: 0, output_tokens: 0, cost_micro_usd: 0 },
-        artifact: {
-          version: PRODUCT_GENERATION_ARTIFACT_VERSION,
-          cursorKey: `${state.cursor.stage}:${state.cursor.batch_index}:${state.cursor.chunk_index}`,
-          stage: "passport",
-          payload,
-          digest: await productCanonicalDigest(payload),
-        },
-        callIds: [],
-      };
-    }
     let route: ProductStageId;
     let ordinal = 0;
     let selected: readonly SourceChunk[] = [];
     let next: ProductJobCursor;
     if (state.cursor.stage === "awaiting_generation") {
       route = "passport";
-      next = { stage: "passport", batch_index: 0, chunk_index: 0 };
+      next = { stage: "review", batch_index: 0, chunk_index: 0 };
     } else if (state.cursor.stage === "review" || state.cursor.stage === "corrections") {
       route = state.cursor.stage;
       selected = batches[state.cursor.batch_index] ?? [];
@@ -570,7 +574,8 @@ export class ProductGenerationRuntime {
     } else {
       throw new ProductGenerationError("invalid_cursor");
     }
-    if (!cursorAdvances(state.productId, state.cursor, next)) throw new ProductGenerationError("invalid_cursor");
+    const passportAdvance = state.cursor.stage === "awaiting_generation" && route === "passport" && next.stage === "review";
+    if (!passportAdvance && !cursorAdvances(state.productId, state.cursor, next)) throw new ProductGenerationError("invalid_cursor");
     const bound = callBound(state, route, ordinal);
     assertUsage(state, bound);
     const callId = `${jobIdempotencyKey(state.entitlementId, state.cursor)}:${route}:${ordinal}`;
@@ -578,6 +583,7 @@ export class ProductGenerationRuntime {
     const redactedArtifacts = state.artifacts;
     const payload = safePayloadForStage(
       route,
+      state.sourceText,
       redaction.text,
       selected,
       redaction.context as unknown as ProductContext,
@@ -601,15 +607,18 @@ export class ProductGenerationRuntime {
       if (!Number.isSafeInteger(response.inputTokens) || !Number.isSafeInteger(response.outputTokens) || response.inputTokens < 0 || response.outputTokens < 0 || response.inputTokens > requestBound.maxInputTokens || response.outputTokens > requestBound.maxOutputTokens) throw new ProductGenerationError("budget_exceeded");
       return response;
     };
-    const outboundInventory = new Set(placeholdersIn(canonicalProductJson(payload), redaction.map));
     const validateResponse = async (output: unknown, schemaStage: ProductStageId): Promise<unknown> => {
       const rawJson = canonicalProductJson(output);
       const observed = placeholdersIn(rawJson, redaction.map);
+      const outboundInventory = new Set(placeholdersIn(canonicalProductJson(payload), redaction.map));
       if (observed.some((token) => !outboundInventory.has(token))) throw new ProductGenerationError("invalid_placeholder");
-      const expected = [...outboundInventory];
+      const expected = requiredPlaceholders(output, redaction.map);
       let hydrated: unknown;
       try { hydrated = JSON.parse(rehydrateProductOutput(rawJson, redaction.map, expected)); }
-      catch { throw new ProductGenerationError("invalid_placeholder"); }
+      catch (error) {
+        if (error instanceof ProductGenerationError) throw error;
+        throw new ProductGenerationError("invalid_placeholder");
+      }
       assertStageShape(schemaStage, hydrated);
       if (Array.isArray(hydrated)) {
         return await Promise.all(hydrated.map((item) => validateCandidate(item as Candidate, state.sourceText, this.legal)));
@@ -630,7 +639,7 @@ export class ProductGenerationRuntime {
       const repairRoute = `${route}_repair` as ProductStageId;
       repairBound = callBound(state, repairRoute, ordinal);
       repairCallId = `${jobIdempotencyKey(state.entitlementId, state.cursor)}:${repairRoute}:${ordinal}`;
-      const repairPayload = { ...payload, rejected_output: response.output, validation_error: error.code };
+      const repairPayload = { ...payload, rejected_output: redactValidatedArtifact(response.output, redaction.map), validation_error: error.code };
       repairResponse = await invoke(repairRoute, repairBound, repairCallId, repairPayload);
       validated = await validateResponse(repairResponse.output, repairRoute);
       repairCount = 1;

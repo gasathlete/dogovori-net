@@ -11,6 +11,8 @@ const GENERATION_ARTIFACT_FILE = join(process.cwd(), "drizzle/migrations/0022_pr
 const GENERATION_ARTIFACT_REVIEW = join(process.cwd(), "docs/migrations/stage2b1b2_product_generation_artifacts.sql");
 const GENERATION_CORRECTION_FILE = join(process.cwd(), "drizzle/migrations/0023_product_generation_artifacts_correction.sql");
 const GENERATION_CORRECTION_REVIEW = join(process.cwd(), "docs/migrations/stage2b1b2_product_generation_artifacts_correction.sql");
+const RUNTIME_SAFETY_FILE = join(process.cwd(), "drizzle/migrations/0024_product_generation_runtime_safety_correction.sql");
+const RUNTIME_SAFETY_REVIEW = join(process.cwd(), "docs/migrations/stage2b1b2_product_generation_runtime_safety_correction.sql");
 
 function migrationFile(): string {
   const name = readdirSync(MIGRATIONS_DIR).find((f) =>
@@ -735,7 +737,7 @@ describe("Stage 2B1B1 корекция 0020 — micro-USD, строг курсо
     for (const d of definers) expect(d).toBe("SECURITY DEFINER SET search_path = ''");
   });
 
-  it("редът е база -> 0018 -> 0019 -> 0020 -> 0021 -> 0022 -> 0023, а 0024 е запазен", () => {
+  it("редът е база -> 0018 -> 0019 -> 0020 -> 0021 -> 0022 -> 0023 -> 0024", () => {
     const note = readFileSync(ROLLOUT_NOTE, "utf8");
     const base = note.indexOf("20260910090000_product_checkout_entitlements.sql");
     const fix = note.indexOf("0018_product_result_v2_binding_patch.sql");
@@ -751,7 +753,7 @@ describe("Stage 2B1B1 корекция 0020 — micro-USD, строг курсо
     expect(corr).toBeLessThan(binding);
     expect(binding).toBeLessThan(generation);
     expect(generation).toBeLessThan(generationCorrection);
-    expect(note).toContain("`0024`");
+    expect(note).toContain("0024_product_generation_runtime_safety_correction.sql");
   });
 
   it("корекцията не влиза в дневника на миграциите", () => {
@@ -831,14 +833,14 @@ describe("Stage 2B1B1 корекция 0021 — неизменна версия 
     );
   });
 
-  it("не е записана в Drizzle journal и 0024 остава запазена", () => {
+  it("не е записана в Drizzle journal и 0025 остава запазена", () => {
     const journal = readFileSync(
       join(process.cwd(), "drizzle/migrations/meta/_journal.json"),
       "utf8",
     );
     expect(journal).not.toContain("0021_product_policy_binding_patch");
     const note = readFileSync(ROLLOUT_NOTE, "utf8");
-    expect(note).toContain("`0024`");
+    expect(note).toContain("Номер `0025`");
   });
 });
 
@@ -918,11 +920,39 @@ describe("Stage 2B1B2 корекция 0023 — точен курсор и ат�
     expect(sql).toContain("pending_calls+1>j.budget_max_calls");
   });
 
-  it("остава service-only с FORCE RLS и 0024 reservation", () => {
+  it("остава service-only с FORCE RLS", () => {
     expect(sql).toContain("REVOKE ALL ON public.product_generation_calls FROM PUBLIC, anon, authenticated");
     expect(sql).toContain("REVOKE ALL ON public.product_generation_artifacts FROM PUBLIC, anon, authenticated");
     expect(sql).toContain("GRANT EXECUTE ON FUNCTION %s TO service_role");
-    expect(readFileSync(ROLLOUT_NOTE, "utf8")).toContain("Номер `0024`");
+  });
+});
+
+describe("Stage 2B1B2 корекция 0024 — runtime safety", () => {
+  const sql = readFileSync(RUNTIME_SAFETY_FILE, "utf8");
+
+  it("е byte-identical с review копието и запазва zero-row gate", () => {
+    expect(sql).toBe(readFileSync(RUNTIME_SAFETY_REVIEW, "utf8"));
+    expect(sql).toContain("product_generation_runtime_safety_preapply_zero_row_gate_failed");
+    expect(sql.trimEnd().endsWith("COMMIT;")).toBe(true);
+  });
+
+  it("инициализира timestamp под lease lock и го пази неизменен", () => {
+    expect(sql).toContain("WHERE id=p_job_id FOR UPDATE");
+    expect(sql).toContain("IF j.generation_timestamp IS NULL THEN UPDATE");
+    expect(sql).toContain("NEW.generation_timestamp IS DISTINCT FROM OLD.generation_timestamp");
+  });
+
+  it("записва истинския passport на текущия курсор и преминава към review", () => {
+    expect(sql).toContain("p_current_cursor_key text,p_artifact_stage text,p_next_cursor jsonb");
+    expect(sql).toContain("p_artifact_stage='passport' AND p_next_cursor->>'stage'='review'");
+    expect(sql).toContain("p_generation_timestamp IS DISTINCT FROM j.generation_timestamp");
+    expect(sql).toContain("public.product_job_cursor_advances");
+  });
+
+  it("е service-only и резервира 0025", () => {
+    expect(sql).toContain("REVOKE ALL ON FUNCTION %s FROM authenticated");
+    expect(sql).toContain("GRANT EXECUTE ON FUNCTION %s TO service_role");
+    expect(readFileSync(ROLLOUT_NOTE, "utf8")).toContain("Номер `0025`");
   });
 });
 

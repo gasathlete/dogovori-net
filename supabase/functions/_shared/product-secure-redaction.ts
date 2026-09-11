@@ -142,6 +142,38 @@ export function placeholdersForAnchor(
   }));
 }
 
+/**
+ * Returns a source interval without exposing partial identifiers at chunk
+ * boundaries. Any redaction span touching the interval is represented by its
+ * server-owned placeholder, even when the raw interval cuts through it.
+ */
+export function redactedSourceRange(
+  source: string,
+  map: ProductRedactionMap,
+  start: number,
+  end: number,
+): string {
+  const points = Array.from(source);
+  if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end < start || end > points.length) {
+    throw new ProductRedactionError("post_redaction_not_allowed");
+  }
+  const touching = map.orderedTokens
+    .map((item) => ({ item, span: map.spans[item] }))
+    .filter((entry): entry is { item: string; span: { start: number; end: number } } =>
+      Boolean(entry.span && entry.span.start < end && start < entry.span.end)
+    )
+    .sort((a, b) => a.span.start - b.span.start || a.span.end - b.span.end);
+  let cursor = start;
+  let safe = "";
+  for (const entry of touching) {
+    safe += points.slice(cursor, Math.max(cursor, Math.min(end, entry.span.start))).join("");
+    safe += entry.item;
+    cursor = Math.min(end, Math.max(cursor, entry.span.end));
+  }
+  safe += points.slice(cursor, end).join("");
+  return safe;
+}
+
 /** Redacts source and immutable product context with one deterministic inventory. */
 export function redactProductBundle(
   source: string,
