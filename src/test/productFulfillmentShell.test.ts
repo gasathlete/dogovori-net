@@ -134,7 +134,7 @@ describe("Изпълнението е устойчиво и остава без 
   it("НЯМА неявен live provider, фикстури или частичен резултат", () => {
     expect(FULFILL).not.toMatch(/lovable\/|ai\.gateway|generateText|previewData|fixtures?\//);
     expect(JOBS).toContain("resolveProductGenerationDependencies");
-    expect(FULFILL).toContain("adapter: null");
+    expect(FULFILL).toContain("adapter: calls && ports ? factory(ports.model, ports.legal, calls) : null");
     expect(FULFILL).toContain("PRODUCT_AI_ZERO_RETENTION_VERIFIED");
   });
 
