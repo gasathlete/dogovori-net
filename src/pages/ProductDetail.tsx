@@ -152,6 +152,21 @@ export default function ProductDetail() {
                 {ONE_TIME_TERMS}
               </p>
 
+              <ul
+                data-testid="product-limits"
+                className="mt-3 space-y-1 text-[12px] leading-snug text-muted-foreground"
+              >
+                <li>{PRODUCT_ACCEPTED_INPUT}</li>
+                <li>
+                  До {PRODUCT_MAX_SOURCE_CHARS.toLocaleString("bg-BG")} знака в
+                  документа. По-дълъг документ не се приема, вместо да го
+                  съкратим тихо.
+                </li>
+                <li>
+                  Плащате за този един документ. Резултатът не е правен съвет.
+                </li>
+              </ul>
+
               <PlanAlternativeNote className="mt-5 max-w-md" />
             </div>
 
