@@ -95,9 +95,6 @@ export const ENTRY_PACK_CONFIG: EntryPackConfig = Object.freeze({
 /** Стойност в стотинки, която живата Stripe цена трябва да има точно. */
 export const ENTRY_PACK_AMOUNT_CENTS = Math.round(ENTRY_PACK_CONFIG.eur * 100);
 
-/** Ориентировъчен адвокатски хонорар за изготвяне на един документ (EUR). */
-export const LAWYER_FEE_MIN_EUR = 150;
-export const LAWYER_FEE_MAX_EUR = 400;
 
 /** Форматира EUR по български стандарт, винаги до 2 знака: 12,90 € / 129,00 € */
 export function fmtEur(amount: number): string {
