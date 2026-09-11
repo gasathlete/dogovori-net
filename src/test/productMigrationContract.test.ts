@@ -833,14 +833,14 @@ describe("Stage 2B1B1 корекция 0021 — неизменна версия 
     );
   });
 
-  it("не е записана в Drizzle journal и 0025 остава запазена", () => {
+  it("не е записана в Drizzle journal и 0026 остава запазена", () => {
     const journal = readFileSync(
       join(process.cwd(), "drizzle/migrations/meta/_journal.json"),
       "utf8",
     );
     expect(journal).not.toContain("0021_product_policy_binding_patch");
     const note = readFileSync(ROLLOUT_NOTE, "utf8");
-    expect(note).toContain("Номер `0025`");
+    expect(note).toContain("Номер `0026`");
   });
 });
 
@@ -949,10 +949,10 @@ describe("Stage 2B1B2 корекция 0024 — runtime safety", () => {
     expect(sql).toContain("public.product_job_cursor_advances");
   });
 
-  it("е service-only и резервира 0025", () => {
+  it("е service-only и резервира 0026", () => {
     expect(sql).toContain("REVOKE ALL ON FUNCTION %s FROM authenticated");
     expect(sql).toContain("GRANT EXECUTE ON FUNCTION %s TO service_role");
-    expect(readFileSync(ROLLOUT_NOTE, "utf8")).toContain("Номер `0025`");
+    expect(readFileSync(ROLLOUT_NOTE, "utf8")).toContain("Номер `0026`");
   });
 });
 
