@@ -455,8 +455,9 @@ function rpcProbe(data: unknown, error: unknown = null) {
 }
 
 Deno.test("migration is proven only by the server, never by a constant", async () => {
-  assertEquals(PRODUCT_MIGRATION_CAPABILITY_RPC, "product_job_cursor_advances");
-  assert(await isProductMigrationApplied(rpcProbe(true)));
+  assertEquals(PRODUCT_MIGRATION_CAPABILITY_RPC, "load_product_result_state");
+  assert(await isProductMigrationApplied(rpcProbe({ ok: false, reason: "not_found" })));
+  assertFalse(await isProductMigrationApplied(rpcProbe(true)));
   assertFalse(await isProductMigrationApplied(rpcProbe(false)));
   assertFalse(await isProductMigrationApplied(rpcProbe(null)));
   assertFalse(await isProductMigrationApplied(rpcProbe(true, { message: "missing function" })));
