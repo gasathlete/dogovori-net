@@ -27,6 +27,10 @@
 8. `drizzle/migrations/0024_product_generation_runtime_safety_correction.sql`
    — инициализира неизменния generation timestamp под валиден наем, премахва
    фантомния passport артефакт и добавя липсващата проверка на курсора. **Веднага след 0023.**
+9. `drizzle/migrations/0025_product_result_selections.sql`
+   — състоянието на избора по поправка (монотонна версия, неизменни ревизии,
+   ключ за идемпотентност) и точно едно уточнение на пакета за преговори с
+   наем, неизменна история и запазен оригинален резултат. **Веднага след 0024.**
 
 Защо редът е задължителен: базовата миграция създава таблиците, ограничението
 `product_entitlements_ready_ck` и функциите, които записват резултат, но сверява
@@ -56,6 +60,7 @@ content-free разход) и колоната `generation_policy_version`, ко
 - `docs/migrations/stage2b1b2_product_generation_artifacts.sql`
 - `docs/migrations/stage2b1b2_product_generation_artifacts_correction.sql`
 - `docs/migrations/stage2b1b2_product_generation_runtime_safety_correction.sql`
+- `docs/migrations/stage2b1c_product_result_selections.sql`
 
 Контролни суми (SHA-256) на изпълнимите файлове:
 
@@ -66,15 +71,16 @@ content-free разход) и колоната `generation_policy_version`, ко
 - 0022: `65797186dc7635d27be8b1fc258a5ef02cc54dd280ef3a486b0360231f68ba3c`
 - 0023: `484199ee7ed7b683e7c428ae007f5607001010872bfdb91dc73b0e3af0092ab8`
 - 0024: `eb732f25a24d57a9ecec9f0f83ba7e0ff6dc66bde2ad45fdf2e1d52818f01645`
+- 0025: `43eb5a8099fd58048a1f22be1278e16f199aa332dcd55c722fd8d0b0811d460d`
 
 Нито един от файловете не е записан в `drizzle/migrations/meta/_journal.json`:
 в това хранилище няма доказана конвенция за журнал на ръчни SQL кръпки, а този
 документ е авторитетният ред.
 
-Номер `0025` е **запазен** за състоянието на избора/уточнението (selection и
-refinement) в следващ етап. Обратимата карта за редакция не се записва: няма
-одобрен шифроващ примитив. Live provider остава затворен до доказан zero-retention gate.
+Номер `0026` е **запазен** за следваща корекция на състоянието на избора и
+уточнението. Обратимата карта за редакция не се записва: няма одобрен шифроващ
+примитив. Live provider остава затворен до доказан zero-retention gate.
 
-Stage 2B остава **блокиран за продукция**, докато и седемте миграции не са
+Stage 2B остава **блокиран за продукция**, докато и осемте миграции не са
 приложени и проверени. Дотогава не се създава платено изпълнение на резултат:
 `fulfill-product` умишлено няма live provider, докато zero-retention не е проверен.
