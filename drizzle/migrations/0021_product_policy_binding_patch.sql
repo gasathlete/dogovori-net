@@ -42,7 +42,9 @@ BEGIN
     IF NEW.generation_policy_version IS DISTINCT FROM OLD.generation_policy_version THEN
       RAISE EXCEPTION 'product_entitlement_policy_immutable';
     END IF;
-    RETURN NEW;
+    IF NEW.intake_id IS DISTINCT FROM OLD.intake_id THEN
+      RAISE EXCEPTION 'product_entitlement_intake_binding_conflict';
+    END IF;
   END IF;
 
   IF NEW.intake_id IS NULL THEN
