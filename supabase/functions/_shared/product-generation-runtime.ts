@@ -106,7 +106,7 @@ export interface ProductLegalBasisPort {
 export interface ProductGenerationArtifact {
   readonly version: typeof PRODUCT_GENERATION_ARTIFACT_VERSION;
   readonly cursorKey: string;
-  readonly stage: ProductJobCursor["stage"];
+  readonly stage: ProductStageId;
   readonly payload: unknown;
   readonly digest: string;
 }
@@ -247,7 +247,7 @@ async function digest(value: unknown): Promise<string> {
 }
 
 function safePayloadForStage(
-  stage: ProductJobCursor["stage"],
+  stage: ProductStageId,
   redactedSource: string,
   chunks: readonly SourceChunk[],
   context: ProductContext,
@@ -321,7 +321,7 @@ function assemble(state: ProductGenerationState, synthesis: Candidate): ProductR
     source: state.binding,
     generated_at: new Date().toISOString(),
     payload: base,
-  } as ProductResult;
+  } as unknown as ProductResult;
 }
 
 export class ProductGenerationRuntime {
