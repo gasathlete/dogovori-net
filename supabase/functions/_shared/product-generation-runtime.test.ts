@@ -8,6 +8,7 @@ import {
   type ProductCallStore,
   type ProductLegalBasisPort,
   type ProductModelPort,
+  type ProductModelResponse,
 } from "./product-generation-runtime.ts";
 import { PRODUCT_SOURCE_CHAR_UNIT } from "./product-source.ts";
 import { redactProductSource, rehydrateProductOutput, ProductRedactionError } from "./product-secure-redaction.ts";
@@ -117,6 +118,38 @@ Deno.test("60 000 code points expose all ten review batches without ordinal gaps
   assertEquals(new Set(seen).size, 10);
 });
 
+Deno.test("60 000 code points traverse every product route exactly once per bounded step", async () => {
+  const longSource = "Договорна клауза за цена и срок. ".repeat(1_875).slice(0, 60_000);
+  const longBinding = { ...binding, char_count: Array.from(longSource).length };
+  for (const productId of ["contract_check", "contract_improve", "negotiation_package"] as const) {
+    const bounds = computeProductCostBounds(productId, longBinding.char_count, classifyDocumentBeforeAI(longSource));
+    const calls: string[] = [];
+    const model: ProductModelPort = { invoke: async (request) => {
+      calls.push(request.routeKey);
+      const output = request.routeKey === "passport"
+        ? { passport: { title: "Договор", document_type: "Договор", parties: [], governing_law: null, signature_state: null } }
+        : request.routeKey === "review" || request.routeKey === "corrections" ? []
+        : request.routeKey === "negotiation" ? { objectives: [], red_lines: [], acceptable_concessions: [], fallbacks: [], negotiation_questions: [], actions: [] }
+        : request.routeKey === "messages" ? { drafts: [{ tone: "neutral", subject: "Тема", body: "Текст" }, { tone: "firm", subject: "Тема", body: "Текст" }] }
+        : { executive_summary: "Обобщение", priority_summary: [], termination: { summary: "Няма извод.", spans: [] }, disputes: { summary: "Няма извод.", spans: [] }, absence_checks: [], missing_protections: [], questions: [] };
+      return { output, inputTokens: 1, outputTokens: 1, elapsedMs: 1 };
+    } };
+    const runtime = new ProductGenerationRuntime(model, legal);
+    await runtime.runStep(state({ productId, sourceText: longSource, binding: longBinding, bounds }));
+    for (const stage of productId === "contract_check" ? ["review"] : ["review", "corrections"]) {
+      for (let batch = 0; batch < 10; batch += 1) await runtime.runStep(state({ productId, sourceText: longSource, binding: longBinding, bounds, cursor: { stage: stage as "review" | "corrections", batch_index: batch, chunk_index: batch * 3 } }));
+    }
+    if (productId === "negotiation_package") {
+      await runtime.runStep(state({ productId, sourceText: longSource, binding: longBinding, bounds, cursor: { stage: "negotiation", batch_index: 0, chunk_index: 0 } }));
+      await runtime.runStep(state({ productId, sourceText: longSource, binding: longBinding, bounds, cursor: { stage: "messages", batch_index: 0, chunk_index: 0 } }));
+    }
+    const expected = productId === "contract_check" ? 11 : productId === "contract_improve" ? 21 : 23;
+    assertEquals(calls.length, expected);
+    assertEquals(calls.filter((route) => route === "review").length, 10);
+    assertEquals(calls.filter((route) => route === "corrections").length, productId === "contract_check" ? 0 : 10);
+  }
+});
+
 Deno.test("invalid batch gets exactly one bounded repair attempt", async () => {
   const routes: string[] = [];
   const model: ProductModelPort = { invoke: async (request) => {
@@ -143,13 +176,60 @@ Deno.test("completed external call replays without a second priced invocation", 
   assertEquals(calls, 0);
 });
 
+Deno.test("an incomplete durable reservation never causes a duplicate priced call", async () => {
+  let calls = 0;
+  const store: ProductCallStore = {
+    reserve: async () => ({ status: "pending" }),
+    complete: async () => { throw new Error("must not complete pending call"); },
+  };
+  const model: ProductModelPort = { invoke: async () => { calls += 1; return { output: {}, inputTokens: 1, outputTokens: 1, elapsedMs: 1 }; } };
+  await assertRejects(() => new ProductGenerationRuntime(model, legal, store).runStep(state()), ProductGenerationError, "invalid_cursor");
+  assertEquals(calls, 0);
+});
+
+Deno.test("array call responses are reserved, completed, and replayed by canonical bytes", async () => {
+  let calls = 0;
+  let completed: ProductModelResponse | undefined;
+  const store: ProductCallStore = {
+    reserve: async () => completed
+      ? { status: "complete", response: completed }
+      : { status: "acquired", reservationToken: "bbbbbbbb-cccc-dddd-eeee-ffffffffffff" },
+    complete: async (_request, response) => { completed = response; },
+  };
+  const model: ProductModelPort = { invoke: async () => { calls += 1; return { output: [], inputTokens: 1, outputTokens: 1, elapsedMs: 1 }; } };
+  const runtime = new ProductGenerationRuntime(model, legal, store);
+  const reviewState = state({ cursor: { stage: "review", batch_index: 0, chunk_index: 0 } });
+  await runtime.runStep(reviewState);
+  await runtime.runStep(reviewState);
+  assertEquals(calls, 1);
+});
+
+Deno.test("deep schemas reject malformed correction options and invented fields", async () => {
+  const model: ProductModelPort = { invoke: async () => ({
+    output: [{ id: "c1", title: "Клауза", mode: "replace", original_text: "ДОГОВОР", rationale: "Причина", span: { start: 0, end: 7, excerpt: "ДОГОВОР" }, options: [{ stance: "balanced", replacement_text: "A", trade_off: "A" }], invented: true }],
+    inputTokens: 1, outputTokens: 1, elapsedMs: 1,
+  }) };
+  await assertRejects(() => new ProductGenerationRuntime(model, legal).runStep(state({ productId: "contract_improve", cursor: { stage: "corrections", batch_index: 0, chunk_index: 0 }, bounds: computeProductCostBounds("contract_improve", binding.char_count, classifyDocumentBeforeAI(source)) })), ProductGenerationError, "invalid_model_output");
+});
+
+Deno.test("placeholder inventory comes from outbound material, not model-declared spans", async () => {
+  const raw = "test@example.com";
+  const withIdentifier = `${source}\nИмейл ${raw}`;
+  const model: ProductModelPort = { invoke: async () => ({ output: { passport: { title: "Договор", document_type: "Договор", parties: [], governing_law: null, signature_state: null } }, inputTokens: 1, outputTokens: 1, elapsedMs: 1 }) };
+  await assertRejects(() => new ProductGenerationRuntime(model, legal).runStep(state({
+    sourceText: withIdentifier, binding: { ...binding, char_count: Array.from(withIdentifier).length },
+    bounds: computeProductCostBounds("contract_check", Array.from(withIdentifier).length, classifyDocumentBeforeAI(withIdentifier)),
+  })), ProductGenerationError, "invalid_placeholder");
+});
+
 Deno.test("context identifiers are absent from every outbound request", async () => {
   const raw = "test@example.com";
   const withIdentifier = `${source}\nИмейл ${raw}`;
   let outbound = "";
   const model: ProductModelPort = { invoke: async (request) => {
     outbound = JSON.stringify(request.payload);
-    return { output: { passport: { title: "Договор", document_type: "Договор", parties: [], governing_law: null, signature_state: null } }, inputTokens: 1, outputTokens: 1, elapsedMs: 1 };
+    const tokens = [...outbound.matchAll(/⟦PD_[A-Z_]+_[0-9]{4}⟧/gu)].map((match) => match[0]);
+    return { output: { passport: { title: tokens[0] ?? "Договор", document_type: tokens[1] ?? "Договор", parties: [], governing_law: null, signature_state: null } }, inputTokens: 1, outputTokens: 1, elapsedMs: 1 };
   } };
   await new ProductGenerationRuntime(model, legal).runStep(state({
     sourceText: withIdentifier,

@@ -115,7 +115,7 @@ describe("Изпълнението е устойчиво и остава без 
     expect(FULFILL).toContain("p_budget_hard_cost_micro_usd: bounds.hardCostMicroUsd");
     expect(FULFILL).toContain("p_usage_cost_micro_usd: 0");
     // Ключът на стъпката НЕ идва от функцията, а се изчислява в базата.
-    expect(FULFILL).not.toContain("p_cursor_key");
+    expect(FULFILL).toContain("p_current_cursor_key: currentCursorKey");
     expect(FULFILL).not.toContain("milli_cents");
   });
 
@@ -134,8 +134,17 @@ describe("Изпълнението е устойчиво и остава без 
   it("НЯМА неявен live provider, фикстури или частичен резултат", () => {
     expect(FULFILL).not.toMatch(/lovable\/|ai\.gateway|generateText|previewData|fixtures?\//);
     expect(JOBS).toContain("resolveProductGenerationDependencies");
-    expect(FULFILL).toContain("adapter: null");
+    expect(FULFILL).toContain("adapter: calls && ports ? factory(ports.model, ports.legal, calls) : null");
     expect(FULFILL).toContain("PRODUCT_AI_ZERO_RETENTION_VERIFIED");
+  });
+
+  it("свързва трайния call store и атомарния финален commit", () => {
+    expect(FULFILL).toContain('admin.rpc("reserve_product_generation_call"');
+    expect(FULFILL).toContain('admin.rpc("complete_product_generation_call"');
+    expect(FULFILL).toContain('admin.rpc("commit_product_generation_result"');
+    expect(FULFILL).not.toContain('admin.rpc("finish_product_generation"');
+    expect(FULFILL).toContain("const callStore = createProductCallStore");
+    expect(FULFILL).toContain("p_generation_timestamp: durableState.generation_timestamp");
   });
 
   it("границите идват от една сървърна политика, която браузърът не избира", () => {

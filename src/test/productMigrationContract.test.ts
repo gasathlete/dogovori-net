@@ -9,6 +9,8 @@ const REVIEW_ARTIFACT = join(
 );
 const GENERATION_ARTIFACT_FILE = join(process.cwd(), "drizzle/migrations/0022_product_generation_artifacts.sql");
 const GENERATION_ARTIFACT_REVIEW = join(process.cwd(), "docs/migrations/stage2b1b2_product_generation_artifacts.sql");
+const GENERATION_CORRECTION_FILE = join(process.cwd(), "drizzle/migrations/0023_product_generation_artifacts_correction.sql");
+const GENERATION_CORRECTION_REVIEW = join(process.cwd(), "docs/migrations/stage2b1b2_product_generation_artifacts_correction.sql");
 
 function migrationFile(): string {
   const name = readdirSync(MIGRATIONS_DIR).find((f) =>
@@ -733,7 +735,7 @@ describe("Stage 2B1B1 корекция 0020 — micro-USD, строг курсо
     for (const d of definers) expect(d).toBe("SECURITY DEFINER SET search_path = ''");
   });
 
-  it("редът е база -> 0018 -> 0019 -> 0020 -> 0021 -> 0022, а 0023 е запазен", () => {
+  it("редът е база -> 0018 -> 0019 -> 0020 -> 0021 -> 0022 -> 0023, а 0024 е запазен", () => {
     const note = readFileSync(ROLLOUT_NOTE, "utf8");
     const base = note.indexOf("20260910090000_product_checkout_entitlements.sql");
     const fix = note.indexOf("0018_product_result_v2_binding_patch.sql");
@@ -741,13 +743,15 @@ describe("Stage 2B1B1 корекция 0020 — micro-USD, строг курсо
     const corr = note.indexOf("0020_product_fulfillment_jobs_correction.sql");
     const binding = note.indexOf("0021_product_policy_binding_patch.sql");
     const generation = note.indexOf("0022_product_generation_artifacts.sql");
+    const generationCorrection = note.indexOf("0023_product_generation_artifacts_correction.sql");
     expect(base).toBeGreaterThan(-1);
     expect(base).toBeLessThan(fix);
     expect(fix).toBeLessThan(jobs);
     expect(jobs).toBeLessThan(corr);
     expect(corr).toBeLessThan(binding);
     expect(binding).toBeLessThan(generation);
-    expect(note).toContain("`0023`");
+    expect(generation).toBeLessThan(generationCorrection);
+    expect(note).toContain("`0024`");
   });
 
   it("корекцията не влиза в дневника на миграциите", () => {
@@ -827,14 +831,14 @@ describe("Stage 2B1B1 корекция 0021 — неизменна версия 
     );
   });
 
-  it("не е записана в Drizzle journal и 0023 остава запазена", () => {
+  it("не е записана в Drizzle journal и 0024 остава запазена", () => {
     const journal = readFileSync(
       join(process.cwd(), "drizzle/migrations/meta/_journal.json"),
       "utf8",
     );
     expect(journal).not.toContain("0021_product_policy_binding_patch");
     const note = readFileSync(ROLLOUT_NOTE, "utf8");
-    expect(note).toContain("`0023`");
+    expect(note).toContain("`0024`");
   });
 });
 
@@ -879,6 +883,46 @@ describe("Stage 2B1B2 миграция 0022 — трайно и точно въ�
     expect(sql).toContain("'replay_mismatch'");
     expect(sql).toContain("REVOKE ALL ON FUNCTION %s FROM authenticated");
     expect(sql).toContain("GRANT EXECUTE ON FUNCTION %s TO service_role");
+  });
+});
+
+describe("Stage 2B1B2 корекция 0023 — точен курсор и атомарен финал", () => {
+  const sql = readFileSync(GENERATION_CORRECTION_FILE, "utf8");
+
+  it("е byte-identical с review копието и запазва zero-row gate", () => {
+    expect(sql).toBe(readFileSync(GENERATION_CORRECTION_REVIEW, "utf8"));
+    expect(sql).toContain("product_generation_artifacts_correction_preapply_zero_row_gate_failed");
+    expect(sql.trimEnd().endsWith("COMMIT;")).toBe(true);
+  });
+
+  it("разделя текущата идентичност от следващия курсор и сверява целия replay", () => {
+    expect(sql).toContain("p_current_cursor_key text,p_artifact_stage text,p_next_cursor jsonb");
+    expect(sql).toContain("public.product_job_cursor_key(j.cursor)<>p_current_cursor_key");
+    expect(sql).toContain("public.product_job_cursor_advances(j.product_id,j.cursor,p_next_cursor)");
+    for (const token of ["existing.stage", "existing.payload_digest", "existing.payload_canonical", "existing.call_ids", "existing.entitlement_id", "existing.source_hash", "existing.generation_policy_version", "existing.generation_timestamp", "'next_cursor',p_next_cursor"]) expect(sql).toContain(token);
+  });
+
+  it("завършва synthesis артефакта и ready резултата в една функция", () => {
+    const fn = sql.slice(sql.indexOf("FUNCTION public.commit_product_generation_result("));
+    expect(fn).toContain("INSERT INTO public.product_generation_artifacts");
+    expect(fn).toContain("UPDATE public.product_entitlements SET status='ready'");
+    expect(fn).toContain("UPDATE public.product_fulfillment_jobs SET usage_calls=");
+    expect(fn).toContain("stage='completed'");
+    expect(fn).toContain("(p_result->>'generated_at')::timestamptz IS DISTINCT FROM j.generation_timestamp");
+  });
+
+  it("не дублира резервирано извикване и поддържа object и array отговори", () => {
+    expect(sql).toContain("'status','pending','reason','call_completion_unknown'");
+    expect(sql).toContain("jsonb_typeof(p_redacted_artifact) NOT IN ('object','array')");
+    expect(sql).toContain("redacted_artifact_canonical::jsonb<>p_redacted_artifact");
+    expect(sql).toContain("pending_calls+1>j.budget_max_calls");
+  });
+
+  it("остава service-only с FORCE RLS и 0024 reservation", () => {
+    expect(sql).toContain("REVOKE ALL ON public.product_generation_calls FROM PUBLIC, anon, authenticated");
+    expect(sql).toContain("REVOKE ALL ON public.product_generation_artifacts FROM PUBLIC, anon, authenticated");
+    expect(sql).toContain("GRANT EXECUTE ON FUNCTION %s TO service_role");
+    expect(readFileSync(ROLLOUT_NOTE, "utf8")).toContain("Номер `0024`");
   });
 });
 
