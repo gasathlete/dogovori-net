@@ -16,6 +16,10 @@ import { ProductPrice } from "@/components/products/ProductPrice";
 import { PlanAlternativeNote } from "@/components/products/PlanAlternativeNote";
 import { trackFunnelEvent } from "@/lib/funnel";
 import {
+  PRODUCT_ACCEPTED_INPUT,
+  PRODUCT_MAX_SOURCE_CHARS,
+} from "@/lib/productSource";
+import {
   ONE_TIME_PRODUCTS,
   ONE_TIME_TERMS,
   PRODUCT_EVENTS,
@@ -151,6 +155,21 @@ export default function ProductDetail() {
               <p className="mt-3 text-[11.5px] font-medium text-muted-foreground">
                 {ONE_TIME_TERMS}
               </p>
+
+              <ul
+                data-testid="product-limits"
+                className="mt-3 space-y-1 text-[12px] leading-snug text-muted-foreground"
+              >
+                <li>{PRODUCT_ACCEPTED_INPUT}</li>
+                <li>
+                  До {PRODUCT_MAX_SOURCE_CHARS.toLocaleString("bg-BG")} знака в
+                  документа. По-дълъг документ не се приема, вместо да го
+                  съкратим тихо.
+                </li>
+                <li>
+                  Плащате за този един документ. Резултатът не е правен съвет.
+                </li>
+              </ul>
 
               <PlanAlternativeNote className="mt-5 max-w-md" />
             </div>

@@ -7,7 +7,7 @@ import { SeoFooter } from "@/components/SeoFooter";
 import { ProductShowcaseCarousel } from "@/components/products/ProductShowcaseCarousel";
 import { ProductComparisonList } from "@/components/products/ProductComparisonList";
 import { StepsStrip } from "@/components/products/StepsStrip";
-import { PlanAlternativeNote } from "@/components/products/PlanAlternativeNote";
+import { FrequencyCompare } from "@/components/products/FrequencyCompare";
 import {
   ONE_TIME_PRODUCTS,
   ONE_TIME_TERMS,
@@ -68,7 +68,7 @@ export default function Products() {
             </h1>
             <p className="mx-auto mt-3 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-base">
               Проверка преди подпис, поправка на текста или пълен пакет за
-              преговори — за един документ.
+              преговори — плащате веднъж, без абонамент.
             </p>
             <p className="mt-4 inline-flex items-baseline gap-2 rounded-lg border border-gold/25 bg-gold/[0.07] px-3 py-1.5">
               <span className="font-serif text-[22px] font-bold tabular-nums text-gold">
@@ -88,7 +88,7 @@ export default function Products() {
           </div>
         </section>
 
-        {/* Краткият списък остава четим и индексируем без взаимодействие. */}
+        {/* Трите записа са четими и индексируеми без взаимодействие. */}
         <section className="container mt-10" aria-labelledby="produkti-spisak">
           <h2
             id="produkti-spisak"
@@ -102,8 +102,12 @@ export default function Products() {
             <p className="mt-4 text-center text-[12px] font-medium text-muted-foreground">
               {ONE_TIME_TERMS}
             </p>
-            <PlanAlternativeNote className="mx-auto mt-5 max-w-md" />
           </div>
+        </section>
+
+        {/* Продукти и планове един до друг — тихо, само с факти. */}
+        <section className="container mt-10">
+          <FrequencyCompare />
         </section>
       </main>
       <SeoFooter />

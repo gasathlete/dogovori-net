@@ -35,6 +35,7 @@ import { useAudience } from "@/hooks/useAudience";
 import { markFunnelStep } from "@/lib/funnel";
 import { entryPackCtaHref } from "@/lib/entryPack";
 import { OneTaskAlternative } from "@/components/products/OneTaskAlternative";
+import { FrequencyCompare } from "@/components/products/FrequencyCompare";
 import { planVolumeSentence } from "@/components/products/PlanAlternativeNote";
 import { useEffect } from "react";
 
@@ -318,6 +319,12 @@ export default function Plans() {
 
           </div>
         </section>
+
+        {/* Сравнение по честота на работа — само с числа от каноничните източници. */}
+        <section className="relative z-10 mx-auto max-w-6xl px-4 pb-8 sm:pb-10">
+          <FrequencyCompare />
+        </section>
+
 
         {/* 01 — Плановете (цените са първото нещо след избора на начин на плащане) */}
         <PlanStoryStage
