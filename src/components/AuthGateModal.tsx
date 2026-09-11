@@ -19,6 +19,7 @@ import {
 import { TrustGuaranteeBar } from "@/components/funnel/TrustGuaranteeBar";
 import { cheapestPerOpLabel, FREE_OFFER_RULE } from "@/lib/pricing";
 import { openInlineAuth } from "@/lib/inlineAuth";
+import { CATALOG_DOCUMENT_COUNT } from "@/lib/catalogStats";
 
 /**
  * Global auth gate modal.
@@ -71,7 +72,7 @@ export function AuthGateModal() {
   ];
 
   const features: Array<{ icon: any; label: string }> = [
-    { icon: FileText, label: "600+ шаблона" },
+    { icon: FileText, label: `${CATALOG_DOCUMENT_COUNT} шаблона` },
     { icon: BrainCircuit, label: "AI асистент" },
     { icon: ShieldAlert, label: "Анализ на риска" },
     { icon: FileSignature, label: "Е-Подпис" },

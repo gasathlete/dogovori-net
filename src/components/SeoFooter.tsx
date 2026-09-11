@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Logo } from "./Logo";
 import { ONE_TIME_PRODUCTS, productPath } from "@/lib/products";
+import { CATALOG_DOCUMENT_COUNT } from "@/lib/catalogStats";
 
 
 // Top 8 categories inlined to avoid pulling the full CATALOG (166KB) into the
@@ -87,7 +88,7 @@ export function SeoFooter() {
           <div className="md:col-span-1">
             <Logo />
             <p className="mt-3 max-w-xs text-xs leading-relaxed text-muted-foreground">
-              Документи, договори, бланки и шаблони онлайн на български език. Над 600 готови шаблона по ЗЗД, ТЗ и КТ — попълнете с AI асистент.
+              Документи, договори, бланки и шаблони онлайн на български език. ${CATALOG_DOCUMENT_COUNT} готови шаблона по ЗЗД, ТЗ и КТ — попълнете с AI асистент.
             </p>
             <a
               href="https://im-development.imot.bg"

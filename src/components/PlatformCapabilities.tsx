@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Bot, FileText, ShieldAlert, Languages, FileSignature, Package, ChevronRight } from "@/icons";
 import { scrollToHash } from "@/lib/scrollToHash";
+import { CATALOG_DOCUMENT_COUNT } from "@/lib/catalogStats";
 
 type Item = {
   icon: typeof Bot;
@@ -12,7 +13,7 @@ type Item = {
 
 const ITEMS: Item[] = [
   { icon: Bot, action: "assistant", label: "Правен асистент с източници", desc: "Структурира казуса и посочва приложимите разпоредби." },
-  { icon: FileText, to: "/catalog", label: "Над 600 шаблона", desc: "Бизнес, имоти, труд, услуги." },
+  { icon: FileText, to: "/catalog", label: `${CATALOG_DOCUMENT_COUNT} шаблона`, desc: "Бизнес, имоти, труд, услуги." },
   { icon: ShieldAlert, to: "/demo/risk-analysis", label: "Проверка на риска", desc: "Показва неравноправни и липсващи клаузи." },
   { icon: Languages, to: "/demo/bilingual", label: "Двуезични договори", desc: "Български, английски, немски, френски." },
   { icon: FileSignature, to: "/demo/e-signature", label: "Електронен подпис", desc: "Директно от dogovori.net." },

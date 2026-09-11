@@ -7,6 +7,7 @@ import { Seo } from "@/components/Seo";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowRight, Bot, FileText, ShieldAlert, FileSignature, ShieldCheck, ChevronRight } from "@/icons";
 import { cn } from "@/lib/utils";
+import { CATALOG_DOCUMENT_COUNT } from "@/lib/catalogStats";
 
 type StepKey = "dogovaryay" | "sazday" | "pretsiziray" | "podpishi";
 
@@ -59,13 +60,13 @@ const STEPS: Record<StepKey, StepDef> = {
     slug: "sazday",
     order: 2,
     word: "Създай",
-    title: "Създай — над 600 шаблона и динамичен wizard",
+    title: `Създай — ${CATALOG_DOCUMENT_COUNT} шаблона и динамичен wizard`,
     tagline: "Втора стъпка: превърни договорената позиция в готов документ.",
     metaDesc:
-      "Създай трудов, наемен, граждански договор, NDA или пълномощно от 600+ адвокатски бланки на dogovori.net – с wizard, който попълва точните клаузи.",
+      `Създай трудов, наемен, граждански договор, NDA или пълномощно от ${CATALOG_DOCUMENT_COUNT} адвокатски бланки на dogovori.net – с wizard, който попълва точните клаузи.`,
     icon: FileText,
     intro:
-      "Каталогът обхваща над 600 шаблона – трудови, граждански, наемни, търговски, услуги, недвижими имоти, семейни, административни. Всеки шаблон върви с динамичен wizard, който задава само въпросите, релевантни за твоя казус, и активира правилните клаузи (напр. неустойка, ексклузивитет, GDPR анекс).",
+      `Каталогът обхваща ${CATALOG_DOCUMENT_COUNT} шаблона – трудови, граждански, наемни, търговски, услуги, недвижими имоти, семейни, административни. Всеки шаблон върви с динамичен wizard, който задава само въпросите, релевантни за твоя казус, и активира правилните клаузи (напр. неустойка, ексклузивитет, GDPR анекс).`,
     bullets: [
       { h: "Wizard, не празен Word", p: "Отговаряш на въпроси на български; клаузите се раждат автоматично, съобразени с ЗЗД и КТ." },
       { h: "Двуезични договори", p: "BG / EN / DE / FR в две колони – когато другата страна не чете български." },
