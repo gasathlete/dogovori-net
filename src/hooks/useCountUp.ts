@@ -1,10 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
- * Animates a number from 0 → target when the host element scrolls into view.
+ * Animates a number towards `target` when the host element scrolls into view.
  * Returns a ref to attach to the element and the current numeric value.
  *
- * Honors `prefers-reduced-motion` — jumps directly to the target value.
+ * - Handles targets that arrive asynchronously (restarts on a real change).
+ * - Continues from the previously visible value on refetch (no jump to 0).
+ * - Cancels the RAF loop and the IntersectionObserver on cleanup.
+ * - Honors `prefers-reduced-motion` — jumps directly to the target value.
  */
 export function useCountUp(
   target: number,
@@ -12,51 +15,69 @@ export function useCountUp(
 ) {
   const ref = useRef<HTMLElement | null>(null);
   const [value, setValue] = useState(0);
-  const startedRef = useRef(false);
+  const valueRef = useRef(0);
+  const [inView, setInView] = useState(false);
 
+  const commit = useCallback((v: number) => {
+    valueRef.current = v;
+    setValue(v);
+  }, []);
+
+  // Visibility gate — resolved once, then the observer is disconnected.
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
-
-    const reduced =
-      typeof window !== "undefined" &&
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-
-    if (reduced) {
-      setValue(target);
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setInView(true);
       return;
     }
-
-    if (typeof IntersectionObserver === "undefined") {
-      setValue(target);
-      return;
-    }
-
-    const factor = Math.pow(10, decimals);
-
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && !startedRef.current) {
-            startedRef.current = true;
-            const start = performance.now();
-            const tick = (now: number) => {
-              const t = Math.min(1, (now - start) / duration);
-              // ease-out cubic
-              const eased = 1 - Math.pow(1 - t, 3);
-              setValue(Math.round(target * eased * factor) / factor);
-              if (t < 1) requestAnimationFrame(tick);
-            };
-            requestAnimationFrame(tick);
-            observer.disconnect();
-          }
-        });
+        if (entries.some((e) => e.isIntersecting)) {
+          setInView(true);
+          observer.disconnect();
+        }
       },
       { threshold: 0.25 },
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [target, duration, decimals]);
+  }, []);
+
+  useEffect(() => {
+    if (!inView) return;
+    if (!Number.isFinite(target)) return;
+
+    const from = valueRef.current;
+    if (from === target) return;
+
+    const reduced =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduced || duration <= 0 || typeof requestAnimationFrame === "undefined") {
+      commit(target);
+      return;
+    }
+
+    const factor = Math.pow(10, decimals);
+    let raf = 0;
+    const start = performance.now();
+
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - t, 3);
+      if (t < 1) {
+        commit(Math.round((from + (target - from) * eased) * factor) / factor);
+        raf = requestAnimationFrame(tick);
+      } else {
+        commit(target);
+      }
+    };
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, inView, duration, decimals, commit]);
 
   return { ref, value };
 }
