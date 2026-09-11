@@ -47,7 +47,7 @@ export default function RiskAnalysisDemo() {
           <ShieldAlert className="h-3.5 w-3.5" /> Пример · Risk Analysis
         </div>
         <h1 className="font-serif text-3xl font-bold leading-tight sm:text-4xl">
-          Анализирайте вашия договор <span className="text-accent-gradient">за минути</span>
+          Анализирайте <span className="text-accent-gradient">своя документ</span>
         </h1>
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground sm:text-base">
           Качете PDF/DOCX. AI открива клопки, неравноправни клаузи, прекомерни неустойки и липсващи защити —

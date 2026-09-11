@@ -40,7 +40,7 @@ export function RefineDraftBox({
   onRefined,
   onNeedAuth,
   onQuotaExceeded,
-  heading = "Забелязахте пропуск? AI ще го коригира за секунди.",
+  heading = "Забелязахте пропуск? Опишете го и текстът се коригира.",
   subheading = "Опишете какво липсва или е грешно. AI ще редактира САМО нужното, без да разваля останалия текст.",
 }: RefineDraftBoxProps) {
   const [feedback, setFeedback] = useState("");

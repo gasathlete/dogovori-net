@@ -138,8 +138,8 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
   };
 
   const SCENARIOS = [
-    { icon: Zap, label: "Договор за 5 мин.", detail: "Wizard + auto-clauses" },
-    { icon: Sparkles, label: "Risk report ~40 мин. спестени", detail: "Пълен анализ + цитати" },
+    { icon: Zap, label: "Документ стъпка по стъпка", detail: "Въпроси и автоматични клаузи" },
+    { icon: Sparkles, label: "Анализ на риска", detail: "Находки с извадка от текста" },
     { icon: Crown, label: "e-Подпис в 1 клик", detail: "Проследяване + одит" },
     { icon: Check, label: "Двуезични с 1 команда", detail: "BG/EN паралелно" },
   ];
@@ -173,7 +173,7 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
             {audienceCopy.valueLine}
           </div>
           <div className="mt-0.5 text-[10px] text-muted-foreground">
-            Един такъв документ при адвокат = 150–290 €. Тук — {audienceCopy.priceFrame.toLowerCase()}.
+            {audienceCopy.priceFrame}
           </div>
         </div>
 

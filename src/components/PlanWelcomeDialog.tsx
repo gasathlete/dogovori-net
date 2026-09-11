@@ -58,7 +58,7 @@ const COPY: Record<PlanKey, PlanCopy> = {
     features: [
       { icon: Sparkles, title: "GPT-5 reasoning", desc: "Най-силният модел за сложни преговори и структури." },
       { icon: MessageSquare, title: "Преговорни тактики", desc: "Готови контра-аргументи за всяка проблемна клауза." },
-      { icon: BarChart3, title: "Разширена аналитика", desc: "Мери операции, спестено време и ROI на всяка сделка." },
+      { icon: BarChart3, title: "Разширена аналитика", desc: "Виждате изразходваните действия и историята по документи." },
     ],
   },
   team: {

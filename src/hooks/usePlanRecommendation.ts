@@ -7,9 +7,6 @@
 import { useMemo } from "react";
 import type { PlanId, PlanView, Billing } from "@/hooks/usePlans";
 
-/** Средна цена на юрист за изготвяне на един стандартен документ (EUR). */
-export const LAWYER_DOC_COST_EUR = 90;
-
 export interface PlanRecommendation {
   planId: PlanId;
   plan: PlanView | null;
@@ -17,8 +14,6 @@ export interface PlanRecommendation {
   monthlyEquivalent: number;
   /** Цена на един документ при този обем. */
   perDocEur: number;
-  /** Спестено спрямо юрист на месец. */
-  savedEur: number;
   /** Включени операции на месец (null = динамичен безплатен лимит). */
   opsCap: number | null;
   /** Дали обемът надхвърля включените операции. */
@@ -97,7 +92,6 @@ export function usePlanRecommendation(
 
     const docs = Math.max(1, docsPerMonth);
     const perDocEur = monthlyEquivalent / docs;
-    const savedEur = Math.max(0, docs * LAWYER_DOC_COST_EUR - monthlyEquivalent);
 
     const opsCap =
       planId === "free"
@@ -111,7 +105,6 @@ export function usePlanRecommendation(
       plan,
       monthlyEquivalent,
       perDocEur,
-      savedEur,
       opsCap,
       needsTopup: opsCap !== null && docs * OPS_PER_DOC > opsCap,
     };
