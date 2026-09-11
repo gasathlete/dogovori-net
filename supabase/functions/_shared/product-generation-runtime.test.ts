@@ -81,7 +81,7 @@ Deno.test("one bounded passport call uses the server-owned current route and con
   assert(["google/gemini-3.1-flash-lite", "google/gemini-3.8-flash"].includes(sent.model));
   assertEquals(sent.routeKey, "passport");
   assertEquals(result.nextCursor.stage, "passport");
-  assertEquals(result.telemetry.callId, sent.callId);
+  assertEquals(result.telemetry?.callId, sent.callId);
   assertEquals(JSON.stringify(result.telemetry).includes("ДОГОВОР"), false);
   assertEquals(result.usage.calls, 1);
   assertEquals(result.artifact.version, 1);

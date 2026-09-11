@@ -129,7 +129,7 @@ export interface ProductRuntimeStepResult {
   readonly nextCursor: ProductJobCursor;
   readonly usage: ProductJobUsage;
   readonly artifact: ProductGenerationArtifact;
-  readonly telemetry: ProductCallTelemetry;
+  readonly telemetry?: ProductCallTelemetry;
   readonly result?: ProductResult;
 }
 
@@ -340,6 +340,21 @@ export class ProductGenerationRuntime {
       throw new ProductGenerationError("safety_gate_closed");
     }
     const batches = sourceBatches(redaction.text);
+    if (state.cursor.stage === "passport") {
+      const nextCursor = { stage: "review", batch_index: 0, chunk_index: 0 } as const;
+      const payload = { transition: "review" };
+      return {
+        nextCursor,
+        usage: { calls: 0, input_tokens: 0, output_tokens: 0, cost_micro_usd: 0 },
+        artifact: {
+          version: PRODUCT_GENERATION_ARTIFACT_VERSION,
+          cursorKey: "review:0:0",
+          stage: "review",
+          payload,
+          digest: await digest(payload),
+        },
+      };
+    }
     let route: ProductStageId;
     let ordinal = 0;
     let selected: readonly SourceChunk[] = [];
@@ -347,13 +362,6 @@ export class ProductGenerationRuntime {
     if (state.cursor.stage === "awaiting_generation") {
       route = "passport";
       next = { stage: "passport", batch_index: 0, chunk_index: 0 };
-    } else if (state.cursor.stage === "passport") {
-      route = "review";
-      selected = batches[state.cursor.batch_index] ?? [];
-      ordinal = state.cursor.batch_index * 2;
-      next = state.cursor.batch_index + 1 < batches.length
-        ? { stage: "review", batch_index: state.cursor.batch_index + 1, chunk_index: selected.at(-1)?.index ?? 0 }
-        : { stage: nextStage(state.productId, "review"), batch_index: 0, chunk_index: 0 };
     } else if (state.cursor.stage === "review" || state.cursor.stage === "corrections") {
       route = state.cursor.stage;
       selected = batches[state.cursor.batch_index] ?? [];
