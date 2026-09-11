@@ -71,7 +71,7 @@
 - [x] Add canonical 0018–0025 manifest with hashes, mirrors, dependencies, objects, checks and rollback/forward-fix notes
 - [x] Add network-silent fail-closed preflight and focused negative migration/integration/payment tests
 - [x] Update operator runbook and readiness capability from 0024 to 0025
-- [ ] Run focused Vitest/Deno tests, typecheck, touched lint and network-silent production build
+- [x] Run focused Vitest/Deno tests, typecheck, touched lint and network-silent production build
 
 Ограничения: без SQL execution, deploy/publish, feature-flag activation, Stripe checkout/charge, live AI, email или customer-data mutation.
 
