@@ -7,7 +7,7 @@ import { SeoFooter } from "@/components/SeoFooter";
 import { ProductShowcaseCarousel } from "@/components/products/ProductShowcaseCarousel";
 import { ProductComparisonList } from "@/components/products/ProductComparisonList";
 import { StepsStrip } from "@/components/products/StepsStrip";
-import { PlanAlternativeNote } from "@/components/products/PlanAlternativeNote";
+import { FrequencyCompare } from "@/components/products/FrequencyCompare";
 import {
   ONE_TIME_PRODUCTS,
   ONE_TIME_TERMS,
