@@ -378,7 +378,8 @@ export class ProductGenerationRuntime {
       throw new ProductGenerationError("budget_exceeded");
     }
     const rawJson = JSON.stringify(response.output);
-    const expected = placeholdersIn(JSON.stringify(payload), redaction.map);
+    const outputTokens = placeholdersIn(rawJson, redaction.map);
+    const expected = [...new Set(outputTokens)];
     let hydrated: unknown;
     try { hydrated = JSON.parse(rehydrateProductOutput(rawJson, redaction.map, expected)); }
     catch { throw new ProductGenerationError("invalid_placeholder"); }
