@@ -64,48 +64,40 @@ Deno.test("всяка поправка иска изрично решение �
   assertThrows(
     () =>
       validateSelectionDecisions(
-        CORRS,
+        corrections,
         [
           { correction_id: "c1", decision: "accept", strategy: "balanced" },
           { correction_id: "c1", decision: "reject", strategy: null },
           { correction_id: "c2", decision: "reject", strategy: null },
-        ],
-        corrections,
-      ),
+        ],      ),
     ProductSelectionError,
   );
   assertThrows(
     () =>
       validateSelectionDecisions(
-        CORRS,
+        corrections,
         [
           { correction_id: "c1", decision: "accept", strategy: null },
           { correction_id: "c2", decision: "reject", strategy: null },
-        ],
-        corrections,
-      ),
+        ],      ),
     ProductSelectionError,
   );
   assertThrows(
     () =>
       validateSelectionDecisions(
-        CORRS,
+        corrections,
         [
           { correction_id: "c1", decision: "reject", strategy: "balanced" },
           { correction_id: "c2", decision: "reject", strategy: null },
-        ],
-        corrections,
-      ),
+        ],      ),
     ProductSelectionError,
   );
   const ok = validateSelectionDecisions(
-    CORRS,
+    corrections,
     [
       { correction_id: "c2", decision: "reject", strategy: null },
       { correction_id: "c1", decision: "accept", strategy: "conservative" },
-    ],
-    corrections,
-  );
+    ],  );
   assertEquals(ok.map((d) => d.correction_id), ["c1", "c2"]);
   assertEquals(acceptedDecisions(ok).length, 1);
 });
@@ -121,13 +113,11 @@ Deno.test("версия и ключ за повторение се провер�
 
 Deno.test("поправеният текст се получава детерминистично по кодови точки", async () => {
   const decisions = validateSelectionDecisions(
-    CORRS,
+    corrections,
     [
       { correction_id: "c1", decision: "accept", strategy: "balanced" },
       { correction_id: "c2", decision: "reject", strategy: null },
-    ],
-    corrections,
-  );
+    ],  );
   const digest = async (value: string) => {
     const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
     return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -150,13 +140,11 @@ Deno.test("поправеният текст се получава детерм�
 Deno.test("несъответстващ източник или застъпване спира поправката", async () => {
   const digest = async () => "0".repeat(64);
   const decisions = validateSelectionDecisions(
-    CORRS,
+    corrections,
     [
       { correction_id: "c1", decision: "accept", strategy: "balanced" },
       { correction_id: "c2", decision: "accept", strategy: "balanced" },
-    ],
-    corrections,
-  );
+    ],  );
   await assertRejectsPatch(() =>
     buildProductPatch(
       { sourceText: "Друг текст.", binding, resultBinding: binding, corrections, decisions },
@@ -165,13 +153,11 @@ Deno.test("несъответстващ източник или застъпва
   );
   const overlapping = [corrections[0], correction("c3", 5, 25, "replace", "нещо друго")];
   const overlapDecisions = validateSelectionDecisions(
-    CORRS,
+    overlapping,
     [
       { correction_id: "c1", decision: "accept", strategy: "balanced" },
       { correction_id: "c3", decision: "accept", strategy: "balanced" },
-    ],
-    overlapping,
-  );
+    ],  );
   await assertRejectsPatch(() =>
     buildProductPatch(
       {
