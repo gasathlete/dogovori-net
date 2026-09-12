@@ -127,7 +127,8 @@
       "objects": ["product ACL revokes and grants on all 10 tables", "function EXECUTE revokes over the canonical product allowlist", "product_job_status authenticated exception", "product_rollout_capability"],
       "preapply": ["base + 0018–0025 applied and verified", "no default-privilege change", "no data mutation"],
       "verify": ["anon has no table or function privileges", "authenticated has SELECT only on the five owner-read tables", "authenticated EXECUTE only on product_job_status(uuid)", "product_rollout_capability() returns {ok:true, migration:'0026_product_acl_hardening'} for service_role only"],
-      "recovery": "idempotent; re-apply is safe. forward-fix only; never drop product objects"
+      "recovery": "idempotent; re-apply is safe. forward-fix only; never drop product objects",
+      "applied": "2026-09-12 in its own second atomic transaction; verified with zero ACL violations and no Drizzle journal entry"
     }
   ]
 }
