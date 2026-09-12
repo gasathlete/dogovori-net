@@ -107,7 +107,7 @@ refinements; данните се пазят, а корекциите са expand
 - Проверете очакваните таблици, колони, constraints, индекси, функции,
   triggers, policies, grants и revokes от manifest-а.
 - Проверете FORCE RLS и owner-read/service-mutate границата.
-- Функционално приемане на 0025: извикайте read-only
+- Функционално приемане на `0025_product_result_selections`: извикайте read-only
   `load_product_result_state` с несъществуващи UUID и 64-символен нулев digest.
   Точният очакван резултат е `{ "ok": false, "reason": "not_found" }`.
 - Готовност на средата (след 0026): `public.product_rollout_capability()` без
