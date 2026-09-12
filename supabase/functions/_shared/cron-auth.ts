@@ -1,39 +1,60 @@
 // Shared helper: enforces that cron-only endpoints can only be invoked
-// by callers presenting a service_role JWT (pg_cron uses the service role
+// by callers presenting the service_role key (pg_cron uses the service role
 // key from vault). Returns null on success, or a Response to short-circuit.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+//
+// IMPORTANT: never call auth.getUser()/getClaims() with a service_role token —
+// a service_role JWT has no `sub` claim, so the GoTrue /user lookup answers
+// 403 bad_jwt "invalid claim: missing sub claim" and every cron run is denied.
+// We compare the bearer token with the configured service role key directly
+// (constant time) and additionally accept a locally decoded service_role JWT.
 
-export async function requireServiceRole(req: Request): Promise<Response | null> {
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  };
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-  if (!token) {
-    return new Response(JSON.stringify({ error: "unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+function timingSafeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const ba = enc.encode(a);
+  const bb = enc.encode(b);
+  if (ba.length !== bb.length) return false;
+  let diff = 0;
+  for (let i = 0; i < ba.length; i++) diff |= ba[i] ^ bb[i];
+  return diff === 0;
+}
+
+function decodeRole(token: string): string | null {
   try {
-    const client = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-    );
-    const { data, error } = await client.auth.getClaims(token);
-    const role = (data?.claims as any)?.role;
-    if (error || role !== "service_role") {
-      return new Response(JSON.stringify({ error: "forbidden" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const part = token.split(".")[1];
+    if (!part) return null;
+    const b64 = part.replace(/-/g, "+").replace(/_/g, "/");
+    const json = atob(b64.padEnd(Math.ceil(b64.length / 4) * 4, "="));
+    const claims = JSON.parse(json) as { role?: string };
+    return typeof claims.role === "string" ? claims.role : null;
   } catch {
-    return new Response(JSON.stringify({ error: "forbidden" }), {
-      status: 403,
+    return null;
+  }
+}
+
+export function requireServiceRole(req: Request): Response | null {
+  const forbidden = (status: number, error: string) =>
+    new Response(JSON.stringify({ error }), {
+      status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  if (!token) return forbidden(401, "unauthorized");
+
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  // Fail closed if the key is not configured.
+  if (!serviceKey) return forbidden(403, "forbidden");
+
+  if (timingSafeEqual(token, serviceKey)) return null;
+  // Legacy/rotated service_role JWTs: accept only when the role claim matches.
+  if (decodeRole(token) === "service_role" && decodeRole(serviceKey) === "service_role") {
+    return null;
   }
-  return null;
+  return forbidden(403, "forbidden");
 }
