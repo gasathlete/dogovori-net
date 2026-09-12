@@ -91,6 +91,8 @@ DECLARE
   v_old_count integer := 0;
   v_new_count integer := 0;
   v_total integer := 0;
+  v_old_hits integer := 0;
+  v_new_hits integer := 0;
   v_new_command text;
 BEGIN
   FOR r IN
