@@ -128,17 +128,59 @@ describe("0026 — затягане на правата върху продук�
   });
 });
 
-describe("manifest-ът описва истината след прилагането", () => {
-  it("записва атомарното прилагане, ACL затягането и че 0026 предстои", () => {
-    expect(MANIFEST.status).toContain("applied");
-    expect(MANIFEST.status).toContain("0026 source pending exact application");
+describe("manifest-ът и документите описват истината след прилагането", () => {
+  const CHECKLIST = disk.read("docs/migrations/PRODUCT_INTEGRATION_ROLLOUT.md");
+  const ORDER = disk.read("docs/migrations/STAGE2A_ROLLOUT_ORDER.md");
+
+  it("записва двете транзакции, ACL проверката и че 0026 е приложена", () => {
+    expect(MANIFEST.status).toContain("applied-and-verified-2026-09-12");
+    expect(MANIFEST.status).not.toMatch(/pending exact application|source-only/);
+    expect(MANIFEST.status).toContain("no migration is pending");
     const record = JSON.stringify(MANIFEST.appliedRecord);
     expect(record).toContain("2026-09-12");
     expect(record).toContain("0A000");
     expect(record).toContain("no Drizzle journal entries");
-    expect(record).toContain("uploaded_contracts=13");
+    expect(record).toContain("uploaded_contracts=13 preserved");
     expect(record).toContain("__codex_product_migration_stage_20260912");
     expect(record).toContain("product_job_status(uuid)");
     expect(MANIFEST.appliedRecord.notEnabled).toMatch(/flags/);
+  });
+
+  it("описва точната история от две транзакции, а не по една на файл", () => {
+    const t1 = MANIFEST.appliedRecord.transaction1;
+    const t2 = MANIFEST.appliedRecord.transaction2;
+    expect(t1).toContain("252");
+    expect(t1).toContain("ONE atomic transaction");
+    expect(t1).toContain("not one transaction per file");
+    expect(t1).toContain("forced-rollback dry run");
+    expect(t2).toContain("second atomic transaction");
+    expect(t2).toContain("PostgREST schema reload");
+    expect(MANIFEST.appliedRecord.mode).toContain("two atomic transactions");
+    expect(MANIFEST.appliedRecord.aclVerification).toContain("zero anon/authenticated/service violations");
+    expect(MANIFEST.appliedRecord.capability).toContain(
+      "product_rollout_capability() returns exactly {ok:true, migration:'0026_product_acl_hardening'}",
+    );
+  });
+
+  it("0026 е отбелязана като приложена в точния ред", () => {
+    const last = MANIFEST.migrations[MANIFEST.migrations.length - 1] as unknown as { applied?: string };
+    expect(last.applied).toContain("2026-09-12");
+    expect(last.applied).toContain("own second atomic transaction");
+    expect(last.applied).toContain("no Drizzle journal entry");
+  });
+
+  it("операторските документи не твърдят, че 0026 предстои", () => {
+    for (const doc of [CHECKLIST, ORDER]) {
+      expect(doc).toContain("0026_product_acl_hardening");
+      expect(doc).toContain("252");
+      expect(doc).not.toMatch(/0026[^\n]*само източник|Още не е приложена/);
+      expect(doc).toMatch(/приложена и проверена|приложено и проверено/);
+      expect(doc).not.toMatch(/Edge функции[^.]*включени(?! )/);
+    }
+    expect(CHECKLIST).toContain("PostgREST schema reload");
+    expect(CHECKLIST).toContain("Няма чакаща миграция");
+    expect(ORDER).toContain("Няма чакаща миграция");
+    // Flags/Edge/frontend/Stripe/AI остават невключени.
+    expect(ORDER).toContain("Не са включени flags, Edge функции, frontend publish");
   });
 });
