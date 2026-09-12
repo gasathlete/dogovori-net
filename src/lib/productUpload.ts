@@ -100,7 +100,7 @@ async function uploadOriginal(path: string, file: File, source: ExtractSource) {
     throw new ProductUploadError(
       rls
         ? "Сесията за качване изтече. Опреснете страницата и опитайте пак."
-        : `Грешка при качване: ${upload.error.message}`,
+        : "Не успяхме да качим файла. Опитайте отново.",
     );
   }
 }
