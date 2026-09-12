@@ -143,7 +143,8 @@ export default function ProductCheckout() {
         onPhase: setPhase,
       });
       setPrepared(result);
-      setOpenStep(null);
+      // Контекстът остава отворен, докато човекът сам не потвърди стъпката.
+      setOpenStep("context");
       toast.success("Документът е прочетен целият.");
     } catch (e) {
       // Само вече обезопасените съобщения стигат до човека. Всичко останало
