@@ -37,6 +37,7 @@ import {
   productPriceLabel,
 } from "@/lib/products";
 import {
+  PRODUCT_PERSIST_FAILED_MESSAGE,
   ProductUploadError,
   prepareProductDocument,
   type PreparedProductDocument,
@@ -145,10 +146,10 @@ export default function ProductCheckout() {
       setOpenStep(null);
       toast.success("Документът е прочетен целият.");
     } catch (e) {
+      // Само вече обезопасените съобщения стигат до човека. Всичко останало
+      // получава едно и също общо изречение — никакви технически детайли.
       toast.error(
-        e instanceof ProductUploadError || e instanceof Error
-          ? e.message
-          : "Неуспешно качване.",
+        e instanceof ProductUploadError ? e.message : PRODUCT_PERSIST_FAILED_MESSAGE,
       );
     } finally {
       setPhase("");
