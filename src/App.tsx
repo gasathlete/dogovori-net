@@ -50,6 +50,11 @@ const DogovAIBubble = reactLazy(() =>
 const MobileBottomNav = reactLazy(() =>
   import("@/components/MobileBottomNav").then((m) => ({ default: m.MobileBottomNav })),
 );
+const MobileAssistantOpenBridge = reactLazy(() =>
+  import("@/components/MobileAssistantOpenBridge").then((m) => ({
+    default: m.MobileAssistantOpenBridge,
+  })),
+);
 const ActionCelebrationHost = reactLazy(() =>
   import("@/components/ActionCelebration").then((m) => ({ default: m.ActionCelebrationHost })),
 );
@@ -271,6 +276,7 @@ function DeferredOverlays() {
         <PaymentTestModeBanner />
         <CookieBanner />
         <MobileBottomNav />
+        <MobileAssistantOpenBridge />
       </Suspense>
     );
   }
