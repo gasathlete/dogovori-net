@@ -205,14 +205,14 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Контекстът е обект с точно определени ключове и ограничени дължини.
+-- PostgreSQL съвместимост (корекция преди първото прилагане): подзаявка в CHECK
+-- е забранена (SQLSTATE 0A000), затова непознатите ключове се отхвърлят с
+-- immutable JSONB изваждане вместо NOT EXISTS (SELECT ... jsonb_object_keys).
 DO $$ BEGIN
   ALTER TABLE public.product_checkout_intakes
     ADD CONSTRAINT product_checkout_intakes_context_ck CHECK (
       jsonb_typeof(context) = 'object'
-      AND NOT EXISTS (
-        SELECT 1 FROM jsonb_object_keys(context) AS k
-        WHERE k NOT IN ('role', 'objective', 'counterparty_context', 'preferred_position')
-      )
+      AND (context - ARRAY['role', 'objective', 'counterparty_context', 'preferred_position']::text[]) = '{}'::jsonb
       AND jsonb_typeof(context -> 'role') = 'string'
       AND length(context ->> 'role') BETWEEN 2 AND 120
       AND (context ? 'objective' = false
