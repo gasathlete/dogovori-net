@@ -28,24 +28,32 @@ JSONB израз
 изискван контекст, grants, RLS, функции) е непроменена и базовият SHA-256 в
 manifest-а е преизчислен.
 
-**Втори опит (успешен, 12.09.2026).** Коригираната база и 0018→0025 бяха
-приложени ръчно, всяка в собствена транзакция, в точния ред. Проверено:
-всичките 10 таблици, финалните constraints, индекси, triggers, policies,
-функции и RLS съществуват; `uploaded_contracts` остава 13 реда;
-`order_snapshots` и всяка продуктова таблица остават 0 реда;
-`load_product_result_state` връща точно `{ "ok": false, "reason": "not_found" }`.
-Няма записи в Drizzle journal — това е декларираната ръчна patch chain.
-Помощната таблица `public.__codex_product_migration_stage_20260912` е DROP-ната.
+**Транзакция 1 (успешна, 12.09.2026).** След пълно пробно изпълнение с принудено
+връщане назад, всичките **252 statements** от коригираната база и 0018→0025 бяха
+приложени заедно в **ЕДНА атомарна транзакция** — не по една транзакция на файл,
+както беше записано по-рано в този документ. Проверено: всичките 10 таблици,
+финалните constraints, индекси, triggers, policies, функции и RLS съществуват;
+`uploaded_contracts` остава 13 реда; `order_snapshots` и всяка от десетте
+продуктови таблици остават 0 реда; `load_product_result_state` връща точно
+`{ "ok": false, "reason": "not_found" }`. Няма записи в Drizzle journal — това е
+декларираната ръчна patch chain. Помощната таблица
+`public.__codex_product_migration_stage_20260912` е DROP-ната и отсъства.
 
-**Затягане на правата.** Post-apply одитът намери наследени платформени ACL
-grants. Те бяха затегнати веднага: `anon` няма права върху таблици и функции;
-`authenticated` има SELECT само върху петте таблици за собственика и EXECUTE само
-върху `public.product_job_status(uuid)`; `service_role` запазва нужния достъп.
-Нямаше продуктови или клиентски данни и нямаше изтичане.
+**Незабавно затягане на правата.** Post-apply одитът намери наследени платформени
+ACL grants и те бяха затегнати веднага, преди 0026.
 
-**0026 е само източник.** `0026_product_acl_hardening` прави затягането трайно и
-възпроизводимо и добавя способността `public.product_rollout_capability()`. Тя
-**още не е приложена** и предстои в следваща контролирана стъпка.
+**Транзакция 2 (успешна, 12.09.2026).** `0026_product_acl_hardening`
+(SHA-256 `a21afdd9bacd642601f215040b973a7fc9c2e58db2826214ffaad4a5cd00bfcf`,
+byte-verified) е **приложена и проверена** в своя собствена, втора атомарна
+транзакция. PostgREST schema reload е нотифициран.
+`public.product_rollout_capability()` връща точно
+`{ "ok": true, "migration": "0026_product_acl_hardening" }`. ACL проверката е с
+**нула нарушения**: `anon` няма нито едно право върху продуктова таблица или
+функция; `authenticated` има SELECT само върху петте таблици за собственика и
+EXECUTE само върху `public.product_job_status(uuid)`; `service_role` има нужните
+DML и функционални права. Няма запис в Drizzle journal.
+
+**Няма чакаща миграция.** Схемата е на `0026_product_acl_hardening`.
 
 Не са включени: feature flags, deploy на Edge функции, frontend publish, Stripe,
 sandbox и live AI. Няма монетизация.
