@@ -85,8 +85,10 @@ Deno.test("no legacy getClaims/getUser service-role path remains in cron auth or
   ];
   for (const path of files) {
     const src = await Deno.readTextFile(path);
-    assert(!src.includes("getClaims"), `${path} must not use getClaims`);
-    assert(!src.includes("auth.getUser"), `${path} must not use auth.getUser`);
+    // Само реални извиквания; поясняващите коментари може да споменават имената.
+    const code = src.replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+    assert(!code.includes("getClaims("), `${path} must not call getClaims`);
+    assert(!code.includes("auth.getUser("), `${path} must not call auth.getUser`);
   }
   for (const path of files.slice(1)) {
     const src = await Deno.readTextFile(path);
