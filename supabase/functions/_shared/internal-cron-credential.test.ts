@@ -65,6 +65,20 @@ Deno.test("job rewiring is guarded, identifier-only and keeps the jobs paused", 
   }
   assert(sql.includes("must stay paused before rewiring"));
   assert(sql.includes("mixed cron credential state"));
+  // Точен брой срещания: both-in-one, none и multiple се отхвърлят преди Vault и мутация.
+  assert(sql.includes("v_old_hits = 1 AND v_new_hits = 0"));
+  assert(sql.includes("v_old_hits = 0 AND v_new_hits = 1"));
+  assert(sql.includes("unexpected credential identifier state"));
+  assert(
+    sql.indexOf("unexpected credential identifier state") < sql.indexOf("vault.create_secret("),
+    "occurrence guard must precede Vault creation",
+  );
+  assert(sql.includes("no longer has exactly one old identifier"));
+  // Постусловие: точно едно ново срещане, нула стари, задачите паузирани.
+  assert(sql.includes("replace(j.command, v_new_id, ''))) / length(v_new_id) = 1"));
+  assert(sql.includes("replace(j.command, v_old_id, ''))) / length(v_old_id) = 0"));
+  assert(sql.includes("AND j.active = false"));
+  assert(!/position\(v_(old|new)_id in/.test(sql), "presence checks must be exact-count checks");
   assert(sql.includes("expected exactly 4 operational cron jobs"));
   assert(sql.includes("replace(r.command, v_old_id, v_new_id)"));
   assert(sql.includes("cron.alter_job(job_id := r.jobid, command := v_new_command, active := false)"));
