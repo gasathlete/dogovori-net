@@ -393,11 +393,16 @@ export default function ProductCheckout() {
         {/* 3) Цена и условия */}
         <Card className="mt-4 p-4 md:p-6">
           <h2 className="text-lg font-semibold">3. Цена и условия</h2>
-          <p className="mt-2 text-sm">
-            <span className="font-medium">{product.name}</span> — за един документ, еднократно,
-            без абонамент.
-          </p>
-          <ProductPrice id={product.id} size="md" showLabel className="mt-2" />
+          <div
+            data-testid="product-price-summary"
+            className="mt-3 rounded-lg border border-gold/30 bg-gold/5 p-3"
+          >
+            <p className="text-sm font-semibold">{product.name}</p>
+            <ProductPrice id={product.id} size="md" showLabel className="mt-1" />
+            <p className="mt-1 text-xs text-muted-foreground">
+              За един документ, еднократно, без абонамент.
+            </p>
+          </div>
           {activeStep !== "payment" && (
             <p className="mt-3 text-sm text-muted-foreground">
               Условията и плащането се отварят, след като документът е прочетен и
