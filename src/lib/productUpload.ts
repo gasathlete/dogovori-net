@@ -32,6 +32,39 @@ export interface PreparedProductDocument {
 
 export class ProductUploadError extends Error {}
 
+/** Кратки, човешки съобщения. Никога не показваме技 технически детайли на клиента. */
+export const PRODUCT_SCHEMA_UNAVAILABLE_MESSAGE =
+  "Продуктът се включва в момента. Документът не е запазен и плащане не е извършено.";
+export const PRODUCT_PERSIST_FAILED_MESSAGE =
+  "Не успяхме да запазим документа. Опитайте отново.";
+
+/**
+ * Разпознава дали грешката при запис идва от липсваща/още неприложена схема.
+ * Класификацията гледа код и текст, но НИКОГА не пренася текста към UI.
+ */
+export function isSchemaUnavailableError(err: unknown): boolean {
+  const anyErr = err as { code?: unknown; message?: unknown } | null;
+  const code = typeof anyErr?.code === "string" ? anyErr.code.toUpperCase() : "";
+  if (["PGRST204", "PGRST205", "42703", "42P01", "42P10", "42883"].includes(code)) return true;
+  const raw = typeof anyErr?.message === "string" ? anyErr.message.toLowerCase() : "";
+  if (!raw) return false;
+  return (
+    raw.includes("schema cache") ||
+    raw.includes("could not find the") ||
+    (raw.includes("column") && (raw.includes("does not exist") || raw.includes("not find"))) ||
+    (raw.includes("relation") && raw.includes("does not exist")) ||
+    raw.includes("undefined column") ||
+    raw.includes("undefined table")
+  );
+}
+
+/** Превръща произволна persistence грешка в безопасно човешко съобщение. */
+export function productPersistErrorMessage(err: unknown): string {
+  return isSchemaUnavailableError(err)
+    ? PRODUCT_SCHEMA_UNAVAILABLE_MESSAGE
+    : PRODUCT_PERSIST_FAILED_MESSAGE;
+}
+
 /** Валидира файла точно както качването за анализ (magic bytes + MIME + размер). */
 export async function validateProductFile(file: File): Promise<ExtractSource> {
   const { validateUploadedFile, detectFileKind } = await import("@/lib/fileValidation");
