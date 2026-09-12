@@ -1,14 +1,13 @@
 /**
- * Броят документи в каталога — изчислен от самия каталог.
+ * Броят документи и категории в каталога.
  *
- * Публичното копие никога не твърди фиксирано число, което може да остарее;
- * винаги минава през тези константи.
+ * ВАЖНО (производителност): тук НЕ се импортва самият каталог. Числата идват от
+ * леките константи в `@/data/catalogCounts`, които се валидират срещу реалните
+ * данни от `src/test/catalogCounts.test.ts`. Така публичното копие показва
+ * точно число, без да тегли ~270 KB JSON в entry chunk-а.
  */
-import { CATALOG } from "@/data/catalog";
+import { TEMPLATES_COUNT, SECTORS_COUNT } from "@/data/catalogCounts";
 
-export const CATALOG_DOCUMENT_COUNT = CATALOG.reduce(
-  (sum, category) => sum + category.documents.length,
-  0,
-);
+export const CATALOG_DOCUMENT_COUNT = TEMPLATES_COUNT;
 
-export const CATALOG_CATEGORY_COUNT = CATALOG.length;
+export const CATALOG_CATEGORY_COUNT = SECTORS_COUNT;
