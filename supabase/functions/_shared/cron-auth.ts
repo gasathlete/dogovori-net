@@ -52,9 +52,5 @@ export function requireServiceRole(req: Request): Response | null {
   if (!serviceKey) return forbidden(403, "forbidden");
 
   if (timingSafeEqual(token, serviceKey)) return null;
-  // Legacy/rotated service_role JWTs: accept only when the role claim matches.
-  if (decodeRole(token) === "service_role" && decodeRole(serviceKey) === "service_role") {
-    return null;
-  }
   return forbidden(403, "forbidden");
 }
