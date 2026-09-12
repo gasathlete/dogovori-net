@@ -25,6 +25,30 @@ const EXPECTED_ENV = [
 ] as const;
 const includesAll = (text: string, values: readonly string[]) => values.every((value) => text.includes(value));
 
+/**
+ * Returns the names of CHECK constraints whose own parenthesised body contains a
+ * subquery. Only the balanced CHECK body is scanned, so unrelated SELECT
+ * statements elsewhere in the surrounding DO blocks are never flagged.
+ */
+export function checkConstraintsWithSubquery(sql: string): string[] {
+  const offenders: string[] = [];
+  const header = /ADD\s+CONSTRAINT\s+([A-Za-z0-9_."]+)\s+CHECK\s*\(/gi;
+  for (let match = header.exec(sql); match; match = header.exec(sql)) {
+    let depth = 1;
+    let index = match.index + match[0].length;
+    const start = index;
+    while (index < sql.length && depth > 0) {
+      const char = sql[index];
+      if (char === "(") depth += 1;
+      else if (char === ")") depth -= 1;
+      index += 1;
+    }
+    const body = sql.slice(start, Math.max(start, index - 1));
+    if (/\bSELECT\b/i.test(body)) offenders.push(match[1]);
+  }
+  return offenders;
+}
+
 export function validateProductRollout(source: RolloutSource): string[] {
   const failures: string[] = [];
   const fail = (message: string) => failures.push(message);
@@ -47,6 +71,11 @@ export function validateProductRollout(source: RolloutSource): string[] {
     const base = source.read(manifest.base.file);
     if (base !== source.read(manifest.base.review)) fail("base migration mirror drift");
     if (sha256(base) !== manifest.base.sha256) fail("base migration checksum drift");
+    for (const constraint of checkConstraintsWithSubquery(base)) {
+      fail(`CHECK constraint contains a forbidden subquery: ${constraint}`);
+    }
+    const allowedKeysExpression = "(context - ARRAY['role', 'objective', 'counterparty_context', 'preferred_position']::text[]) = '{}'::jsonb";
+    if (!base.includes(allowedKeysExpression)) fail("base context constraint must use the immutable JSONB subtraction expression");
   } catch {
     fail("base migration or review file missing");
   }

@@ -5,7 +5,12 @@
 Точен ред, в едно и също одобрено действие по поддръжка:
 
 1. `supabase/migrations/20260910090000_product_checkout_entitlements.sql`
-   — базовата миграция (защитен файл, не се променя).
+   — базовата миграция. Тя беше коригирана **преди първото прилагане**: атомарно
+   пробно изпълнение спря на statement 21 с SQLSTATE 0A000 („cannot use subquery
+   in check constraint“) и се върна изцяло назад — без частична схема и без
+   промяна на данни. Подзаявката в `product_checkout_intakes_context_ck` е
+   заменена с immutable JSONB изваждане, останалата семантика е непроменена, а
+   базовият SHA-256 в manifest-а е преизчислен. Базата не е приложена.
 2. `drizzle/migrations/0018_product_result_v2_binding_patch.sql`
    — коригиращата миграция за резултат v2, **веднага след** базовата.
 3. `drizzle/migrations/0019_product_fulfillment_jobs.sql`

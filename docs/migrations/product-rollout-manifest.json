@@ -5,7 +5,7 @@
   "base": {
     "file": "supabase/migrations/20260910090000_product_checkout_entitlements.sql",
     "review": "docs/migrations/stage2a_product_checkout_entitlements.sql",
-    "sha256": "001e7ac4da5c5cdd7f71e2b4b6cb2459ff9c797cc259b3efdc0c48e617f4b126"
+    "sha256": "9b27341a7dcd5a0988663a4b8479417235935bea1f0526f5e340a08a627f26b2"
   },
   "migrations": [
     {

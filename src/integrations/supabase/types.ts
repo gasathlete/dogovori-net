@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      __codex_product_migration_stage_20260912: {
+        Row: {
+          expected_sha256: string
+          file_id: string
+          file_order: number
+          sql_text: string
+          stmt_order: number
+        }
+        Insert: {
+          expected_sha256: string
+          file_id: string
+          file_order: number
+          sql_text: string
+          stmt_order: number
+        }
+        Update: {
+          expected_sha256?: string
+          file_id?: string
+          file_order?: number
+          sql_text?: string
+          stmt_order?: number
+        }
+        Relationships: []
+      }
       ai_audit_log: {
         Row: {
           contains_personal_data: boolean
