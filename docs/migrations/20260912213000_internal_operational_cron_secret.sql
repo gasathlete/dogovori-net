@@ -23,7 +23,7 @@ RETURNS boolean
 LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
-SET search_path = public, extensions, vault
+SET search_path = pg_catalog
 AS $fn$
 DECLARE
   v_expected text;
@@ -36,11 +36,19 @@ BEGIN
     RETURN false;
   END IF;
 
-  SELECT s.decrypted_secret
-    INTO v_expected
-    FROM vault.decrypted_secrets AS s
-   WHERE s.name = 'internal_operational_cron_secret_v1'
-   LIMIT 1;
+  -- Точно един Vault ред по фиксирания идентификатор; липса или повече от един ред
+  -- отказва достъп, без да изнася каквато и да е стойност.
+  BEGIN
+    SELECT s.decrypted_secret
+      INTO STRICT v_expected
+      FROM vault.decrypted_secrets AS s
+     WHERE s.name = 'internal_operational_cron_secret_v1';
+  EXCEPTION
+    WHEN no_data_found THEN
+      RETURN false;
+    WHEN too_many_rows THEN
+      RETURN false;
+  END;
 
   -- Fail-closed при липсваща или повредена стойност.
   IF v_expected IS NULL OR v_expected !~ '^[0-9a-f]{64}$' THEN
