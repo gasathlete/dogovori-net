@@ -1,13 +1,13 @@
 # Продуктов rollout — актуален статус и гейтван план
 
 ## Текущо състояние (истина към този момент)
-- HEAD е фиксиран на **8675471c1f83cce5115385aef70e1e5047e43521**; работното дърво е чисто.
+- Функционалният baseline за качване на Edge функциите е commit **8675471c1f83cce5115385aef70e1e5047e43521**. Следващите commits в хранилището са само документационни актуализации.
 - Базата е на миграция **0026_product_acl_hardening** (приложена и проверена).
 - Продуктовите feature flags са **ИЗКЛЮЧЕНИ**. Плащания не могат да стартират.
 - Седем засегнати Edge функции са качени от този HEAD около 19:29–19:30 UTC на 12 септември 2026:
   `payments-webhook`, `legal-source-monitor`, `ai-post-market-rollup`, `expire-pro-notify`, `notify-due-reminders`, `notify-unfinished-docs`, `retention-sweeper`.
 - Няма поръчки, плащания, права или изпълнени задачи в продуктовите таблици.
-- Post-deploy броячи не са се променили: `uploaded_contracts` 13; `order_snapshots` 0; всички десет продуктови таблици са 0; `legal_source_registry`, `legal_source_snapshots`, `legal_source_change_candidates`, `legal_source_ingestion_runs` са 0.
+- Post-deploy броячи не са се променили: `uploaded_contracts` 13; `order_snapshots` 0; всички десет продуктови таблици са 0; `legal_source_registry`, `legal_source_snapshots`, `legal_change_candidates`, `legal_ingestion_runs` са 0.
 
 ## Потвърден G1 оперативен статус
 - Изходните security поправки са завършени и качени.
@@ -27,7 +27,7 @@
 
 ## Гейтове
 - **G0 — заключване и доказателства:** фиксиран HEAD, byte-parity на миграциите, network-silent preflight, чисто работно дърво.
-- **G1 — интеграционни blockers:** затворени в източника, качени и потвърдени с negative smoke matrix. Остава единствено въпросът за положителното service-role удостоверяване на `legal-source-monitor`.
+- **G1 — интеграционни blockers:** изходните поправки са затворени, качени и потвърдени с negative smoke matrix. Остават две оперативни пречки: (1) положително доказателство за exact service-role удостоверяване на `legal-source-monitor`; (2) поправка на счупеното Vault reference/auth wiring за четирите активни HTTP cron задачи.
 - **G2 — пускане на фронтенда с флагове OFF:** видим продуктов интерфейс без възможност за плащане. **Все още е блокиран.**
 - **G3 — sandbox E2E:** пълен тестов поток без реални карти и без реални клиентски документи.
 - **G4 — правно приемане:** условия, съгласия, поверителност и граници на резултата потвърдени.
