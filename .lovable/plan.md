@@ -1,34 +1,29 @@
-# Product rollout preparation review
+# Продуктов rollout — актуален статус и гейтван план
 
-## Цел
-Да се превърне наличната продуктова верига 0018–0025 в доказуем, network-silent и fail-closed rollout пакет, без изпълнение на миграции, deploy, плащания, live AI, feature flags или промени по клиентски данни.
+## Текущо състояние (истина към този момент)
+- Базата е на миграция **0026_product_acl_hardening** (приложена и проверена).
+- Продуктовите feature flags са **ИЗКЛЮЧЕНИ**. Плащания не могат да стартират.
+- Продуктовите Edge функции са качени, но без включени флагове не обслужват реални поръчки.
+- Няма поръчки, плащания, права или изпълнени задачи в продуктовите таблици.
 
-## Какво ще се промени
-1. **Каноничен migration manifest и одит**
-   - Добавяне на машинно четим manifest за 0018–0025: точен ред, SHA-256, огледален docs файл, предназначение, зависимости, очаквани обекти, проверки и rollback/forward-fix бележка.
-   - Запазване на byte-identical SQL двойките. SQL се коригира само ако одитът докаже реален source дефект; защитените файлове не се преформатират.
-   - Документиране на transaction/lock/partial-application, existing-data, RLS/grants, `SECURITY DEFINER`/`search_path`, FK/unique/idempotency и необратими промени.
+## Активни G1 blockers
+1. `payments-webhook` при липсващ/невалиден `env` връщаше 2xx — коригирано в източника; изисква регресионно покритие и по-късно контролирано качване.
+2. `legal-source-monitor` разпознаваше служебната роля през JWT claims/потребителска проверка — коригирано на точно constant-time сравнение с ключа; изисква проверка и по-късно качване.
+3. Четирите cron функции (`expire-pro-notify`, `retention-sweeper`, `notify-unfinished-docs`, `ai-post-market-rollup`) вече ползват поправения `_shared/cron-auth.ts`; нужни са регресионни тестове и по-късно контролирано качване.
 
-2. **Един rollout contract**
-   - Добавяне на source-only декларация с allowlist само на имената на env/secrets, трите точни продукта, EUR/one-time/inclusive VAT, sandbox/live разделение, flags OFF-by-default и последна необходима migration capability 0025.
-   - Автоматични parity проверки срещу frontend конфигурацията, backend purchase allowlist, checkout/webhook/entitlement договорите и prerender/structured-data изхода.
-   - Потвърждение, че fulfilment-off блокира нов checkout, но не променя вече платено право.
+## Гейтове
+- **G0 — заключване и доказателства:** фиксиран HEAD, byte-parity на миграциите, network-silent preflight, чисто работно дърво.
+- **G1 — интеграционни blockers:** горните три точки затворени в източника с тестове.
+- **G2 — пускане на фронтенда с флагове OFF:** видим продуктов интерфейс без възможност за плащане.
+- **G3 — sandbox E2E:** пълен тестов поток без реални карти и без реални клиентски документи.
+- **G4 — правно приемане:** условия, съгласия, поверителност и граници на резултата потвърдени.
+- **G5 — поетапно монетизиране:** включване на флаговете по един, с наблюдение и стоп-критерии.
 
-3. **Network-silent executable preflight**
-   - Един package command, който не чете и не отпечатва secret values и завършва non-zero при migration drift/order/hash mismatch, липсваща декларация/зависимост/rollback note, unsafe flag default, грешен product/price/currency/environment/tax contract, непълна schema capability или demo/fixture fallback в paid path.
-   - Preflight-ът ще проверява само файлове и чисти функции; няма външни заявки или backend достъп.
-
-4. **Операторски runbook**
-   - Актуализиране на `PRODUCT_INTEGRATION_ROLLOUT.md` за пълната верига 0018–0025.
-   - Ясна последователност: backup/read-only checks → migrations → read-only verification → functions → frontend с flags OFF → sandbox no-charge smoke → отделни човешки approvals → контролирано включване → наблюдение → stop/forward-fix.
-   - Без измислен rollback за необратими данни; използване на expand/contract или forward-fix, когато е приложимо.
-
-5. **Фокусирани отрицателни тестове и проверки**
-   - Missing env/flag declaration, невалидна стойност на flag, wrong environment, product ID/price/currency/tax mismatch, partial schema/0025 capability, migration order/hash drift, duplicate webhook/entitlement, fulfilment disabled и fixture leakage.
-   - Изпълнение само на релевантните Vitest и Deno/shared тестове, preflight, typecheck, lint на докоснатото и network-silent production build.
-
-## Технически ограничения
-- Никакви SQL/миграции няма да се изпълняват; няма deploy, publish, Stripe checkout/charge, live AI, email или customer mutation.
-- Публични цени, копи, дизайн, CTA и поправеният user counter остават непроменени, освен ако parity тест докаже конкретен дефект.
-- Съществуващите payment/result/refinement/auth/quota договори остават защитени.
-- Финалният отчет ще посочи началния и крайния HEAD, поправени и оставащи blockers, всички файлове и точните изпълнени команди.
+## Забранено в тази source фаза
+- Включване на feature flags.
+- Публикуване на фронтенда.
+- SQL и миграции.
+- Реални плащания и Stripe извиквания.
+- Живи AI извиквания.
+- Достъп до клиентски документи и данни.
+- Изпращане на имейли и извикване на разрушителни cron задачи.
