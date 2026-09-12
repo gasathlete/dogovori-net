@@ -1,6 +1,18 @@
 {
-  "version": 1,
-  "status": "source-only-not-applied",
+  "version": 2,
+  "status": "base-and-0018-0025-applied-2026-09-12; 0026 source pending exact application",
+  "appliedRecord": {
+    "date": "2026-09-12",
+    "scope": "corrected base + 0018→0025",
+    "mode": "manual patch chain, one atomic apply per file, no Drizzle journal entries",
+    "firstAttempt": "rolled back completely at base statement 21, SQLSTATE 0A000 (subquery in CHECK constraint); no partial schema, no data change",
+    "secondAttempt": "corrected base dry-run and apply succeeded; all 10 tables, constraints, indexes, triggers, policies, functions and RLS verified",
+    "rowCounts": "uploaded_contracts=13 preserved; order_snapshots=0; every product table=0",
+    "capability": "load_product_result_state returns exactly {ok:false, reason:'not_found'}",
+    "postApply": "inherited platform ACL grants were hardened live: anon has no table/function privileges; authenticated has SELECT only on the five owner-read tables and EXECUTE only on product_job_status(uuid); service_role retains required access",
+    "staging": "public.__codex_product_migration_stage_20260912 was dropped and must not exist in generated types",
+    "notEnabled": "feature flags, Edge function deploys, frontend publish, Stripe, sandbox, live AI and monetization all remain OFF/not enabled"
+  },
   "journalPolicy": "manual-patch-chain-not-recorded-in-drizzle-journal",
   "base": {
     "file": "supabase/migrations/20260910090000_product_checkout_entitlements.sql",
@@ -103,6 +115,18 @@
       "preapply": ["0024 verified", "zero ready entitlements", "maintenance write freeze", "run once as an atomic transaction; partial retry requires operator inspection"],
       "verify": ["load_product_result_state returns not_found for absent UUID", "RLS owner reads only", "service-only mutation", "one successful refinement per entitlement"],
       "recovery": "forward-fix; do not invent a down migration for immutable selection or refinement history"
+    },
+    {
+      "id": "0026_product_acl_hardening",
+      "file": "drizzle/migrations/0026_product_acl_hardening.sql",
+      "review": "docs/migrations/stage2b1d_product_acl_hardening.sql",
+      "sha256": "a21afdd9bacd642601f215040b973a7fc9c2e58db2826214ffaad4a5cd00bfcf",
+      "dependsOn": "0025_product_result_selections",
+      "purpose": "Make the post-apply ACL hardening durable and reproducible, and prove readiness with a dedicated capability function.",
+      "objects": ["product ACL revokes and grants on all 10 tables", "function EXECUTE revokes over the canonical product allowlist", "product_job_status authenticated exception", "product_rollout_capability"],
+      "preapply": ["base + 0018–0025 applied and verified", "no default-privilege change", "no data mutation"],
+      "verify": ["anon has no table or function privileges", "authenticated has SELECT only on the five owner-read tables", "authenticated EXECUTE only on product_job_status(uuid)", "product_rollout_capability() returns {ok:true, migration:'0026_product_acl_hardening'} for service_role only"],
+      "recovery": "idempotent; re-apply is safe. forward-fix only; never drop product objects"
     }
   ]
 }

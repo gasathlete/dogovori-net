@@ -14,20 +14,41 @@ bun run product-rollout:preflight
 Командата е network-silent и трябва да завърши с exit code 0. Тя доказва само
 source parity; не доказва състоянието на среда, база, Stripe или доставчик.
 
-## 0. Корекция на базовата миграция преди първото прилагане
+## 0. Състояние: какво е приложено и какво не е
 
-Атомарно пробно изпълнение на базовата миграция беше прекъснато от PostgreSQL на
-statement 21 с SQLSTATE 0A000 („cannot use subquery in check constraint“) в
-`product_checkout_intakes_context_ck` и се върна изцяло назад. Нямаше частична
-схема и нямаше промяна на данни. Базата **не е приложена.**
-
-Затова базовият файл беше коригиран преди първото прилагане: забранената
-подзаявка `NOT EXISTS (SELECT ... jsonb_object_keys(context) ...)` е заменена с
-immutable JSONB израз
+**Първи опит (върнат назад).** Атомарно пробно изпълнение на базовата миграция
+беше прекъснато от PostgreSQL на statement 21 с SQLSTATE 0A000 („cannot use
+subquery in check constraint“) в `product_checkout_intakes_context_ck` и се върна
+изцяло назад — без частична схема и без промяна на данни. Базовият файл беше
+коригиран **преди първото прилагане**: забранената подзаявка
+`NOT EXISTS (SELECT ... jsonb_object_keys(context) ...)` е заменена с immutable
+JSONB израз
 `(context - ARRAY['role','objective','counterparty_context','preferred_position']::text[]) = '{}'::jsonb`.
 Всяка друга семантика (тип обект, дължини, опционални полета, продуктово
-изискван контекст, grants, RLS, функции) е непроменена. Базовият SHA-256 в
-manifest-а е преизчислен; 0018–0025 и техният ред остават непроменени.
+изискван контекст, grants, RLS, функции) е непроменена и базовият SHA-256 в
+manifest-а е преизчислен.
+
+**Втори опит (успешен, 12.09.2026).** Коригираната база и 0018→0025 бяха
+приложени ръчно, всяка в собствена транзакция, в точния ред. Проверено:
+всичките 10 таблици, финалните constraints, индекси, triggers, policies,
+функции и RLS съществуват; `uploaded_contracts` остава 13 реда;
+`order_snapshots` и всяка продуктова таблица остават 0 реда;
+`load_product_result_state` връща точно `{ "ok": false, "reason": "not_found" }`.
+Няма записи в Drizzle journal — това е декларираната ръчна patch chain.
+Помощната таблица `public.__codex_product_migration_stage_20260912` е DROP-ната.
+
+**Затягане на правата.** Post-apply одитът намери наследени платформени ACL
+grants. Те бяха затегнати веднага: `anon` няма права върху таблици и функции;
+`authenticated` има SELECT само върху петте таблици за собственика и EXECUTE само
+върху `public.product_job_status(uuid)`; `service_role` запазва нужния достъп.
+Нямаше продуктови или клиентски данни и нямаше изтичане.
+
+**0026 е само източник.** `0026_product_acl_hardening` прави затягането трайно и
+възпроизводимо и добавя способността `public.product_rollout_capability()`. Тя
+**още не е приложена** и предстои в следваща контролирана стъпка.
+
+Не са включени: feature flags, deploy на Edge функции, frontend publish, Stripe,
+sandbox и live AI. Няма монетизация.
 
 ## 1. Отделни човешки одобрения
 
@@ -66,17 +87,18 @@ manifest-а е преизчислен; 0018–0025 и техният ред ос
 
 ```text
 20260910090000_product_checkout_entitlements
-→ 0018 → 0019 → 0020 → 0021 → 0022 → 0023 → 0024 → 0025
+→ 0018 → 0019 → 0020 → 0021 → 0022 → 0023 → 0024 → 0025   (приложени 12.09.2026)
+→ 0026                                                     (само източник)
 ```
 
-Използвайте само файловете и SHA-256 стойностите от manifest-а. Всички осем
+Използвайте само файловете и SHA-256 стойностите от manifest-а. Всичките девет
 drizzle/docs двойки трябва да са byte-identical. Всеки файл има transaction
 boundary, но 0021, 0022 и 0025 не са произволно retry-safe след неизвестно
 частично приложение. При прекъсване не пускайте отново на сляпо: запазете
 грешката, проверете transaction outcome read-only и изберете forward-fix.
 
-Очаквана последна миграция:
-`0025_product_result_selections`. Няма автоматични down migrations.
+Очаквана последна миграция: `0026_product_acl_hardening`. Тя е идемпотентна и
+повторното ѝ прилагане е безопасно. Няма автоматични down migrations.
 Не се измисля rollback за immutable receipts, artifacts, selections или
 refinements; данните се пазят, а корекциите са expand/contract или forward-fix.
 
@@ -85,10 +107,15 @@ refinements; данните се пазят, а корекциите са expand
 - Проверете очакваните таблици, колони, constraints, индекси, функции,
   triggers, policies, grants и revokes от manifest-а.
 - Проверете FORCE RLS и owner-read/service-mutate границата.
-- Извикайте read-only `load_product_result_state` с несъществуващи UUID и
-  64-символен нулев digest. Точният очакван резултат е
-  `{ "ok": false, "reason": "not_found" }`. Грешка или друг резултат държи
-  `migration_ready=false` и checkout затворен.
+- Функционално приемане на 0025: извикайте read-only
+  `load_product_result_state` с несъществуващи UUID и 64-символен нулев digest.
+  Точният очакван резултат е `{ "ok": false, "reason": "not_found" }`.
+- Готовност на средата (след 0026): `public.product_rollout_capability()` без
+  аргументи трябва да върне точно
+  `{ "ok": true, "migration": "0026_product_acl_hardening" }`. Липсваща функция,
+  грешка или различен отговор държи `migration_ready=false` и checkout затворен.
+- Проверете, че `anon` няма права, а `authenticated` има само SELECT върху петте
+  таблици за собственика и EXECUTE само върху `product_job_status(uuid)`.
 - Потвърдете, че данните от преди прозореца не са променени.
 
 ## 5. Конфигурационни имена и разделяне на средите

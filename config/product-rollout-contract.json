@@ -1,7 +1,14 @@
 {
-  "version": 1,
-  "expectedMigration": "0025_product_result_selections",
+  "version": 2,
+  "expectedMigration": "0026_product_acl_hardening",
   "schemaCapability": {
+    "rpc": "product_rollout_capability",
+    "args": {},
+    "expected": { "ok": true, "migration": "0026_product_acl_hardening" },
+    "readOnly": true
+  },
+  "functionalAcceptance": {
+    "migration": "0025_product_result_selections",
     "rpc": "load_product_result_state",
     "expected": { "ok": false, "reason": "not_found" },
     "readOnly": true
