@@ -33,7 +33,6 @@ Deno.test("index guards before provider, signature and database work", async () 
   const guardEnd = src.indexOf("return invalidEnvResponse();");
   assert(guardEnd > 0, "invalid env must short-circuit");
   const before = src.slice(src.indexOf("Deno.serve"), guardEnd);
-  for (const forbidden = ["verifyWebhook(", "dispatchEvent(", "createStripe", "getSupabase()"] as const, of [0]) void 0;
   for (const forbidden of ["verifyWebhook(", "dispatchEvent(", "createStripe(", "getSupabase()"]) {
     assert(!before.includes(forbidden), `${forbidden} must not run before the env guard`);
   }
