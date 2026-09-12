@@ -25,6 +25,16 @@
   - Няма активна `pg_cron` задача за `notify-unfinished-docs` или `legal-source-monitor`.
 - Безопасност: повреденият scheduler път в момента е fail-closed. Поправката на credential wiring би реактивирала функции, които изтриват/обновяват данни, пишат rollup-и и изпращат имейли.
 
+## Containment — приложено
+- Следните `pg_cron` задачи са паузирани (`active=false`), като schedule и command са запазени непроменени: job 7 `retention-sweeper-hourly`, job 8 `ai-post-market-rollup-daily`, job 9 `expire-pro-notify-daily`, job 10 `notify-due-reminders-daily`. Всички други cron задачи са оставени непроменени.
+- Задачите остават паузирани до отделно одобрение за въздействие.
+
+## No-write dry-run пакет (source, чака ревю и качване)
+- Добавен е общ помощник `supabase/functions/_shared/dry-run.ts` без зависимости и без достъп до средата.
+- Пет функции приемат строго тяло `{"dry_run":true}` (само булев `true`): `retention-sweeper`, `ai-post-market-rollup`, `expire-pro-notify`, `notify-unfinished-docs`, `notify-due-reminders`.
+- Проверката е след `requireServiceRole(req)` и връща `{"ok":true,"dry_run":true,"side_effects":false,"function":"<име>"}` преди `createClient()`, DB/storage/auth-admin достъп, имейл, външна заявка или запис. Това е authenticated no-op за доказване на wiring, а не impact report или преглед на данни.
+- Пакетът е само в източника: изисква ревю и контролирано качване; нищо не е качено в този цикъл.
+
 ## Гейтове
 - **G0 — заключване и доказателства:** фиксиран HEAD, byte-parity на миграциите, network-silent preflight, чисто работно дърво.
 - **G1 — интеграционни blockers:** изходните поправки са затворени, качени и потвърдени с negative smoke matrix. Остават две оперативни пречки: (1) положително доказателство за exact service-role удостоверяване на `legal-source-monitor`; (2) поправка на счупеното Vault reference/auth wiring за четирите активни HTTP cron задачи.
