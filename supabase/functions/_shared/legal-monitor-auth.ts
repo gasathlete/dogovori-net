@@ -14,7 +14,7 @@
  * Логиката е чиста и приема минимални зависимости, за да е тестваема.
  */
 import { isExactServiceRoleToken } from "./service-token.ts";
-import { isDedicatedCronCandidate } from "./cron-auth.ts";
+import { isDedicatedCronCandidate } from "./internal-cron-secret.ts";
 
 export type MonitorAuth =
   | { ok: true; isServiceRole: boolean; actorId: string | null }

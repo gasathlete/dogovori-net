@@ -13,26 +13,23 @@
 // Role claims are never decoded or trusted. Everything fails closed.
 
 import { bearerToken, isExactServiceRoleToken } from "./service-token.ts";
+import {
+  DEDICATED_CRON_SECRET_PATTERN,
+  INTERNAL_CRON_VERIFIER_RPC,
+  isDedicatedCronCandidate,
+} from "./internal-cron-secret.ts";
+
+export { DEDICATED_CRON_SECRET_PATTERN, INTERNAL_CRON_VERIFIER_RPC, isDedicatedCronCandidate };
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-/** Точен формат на посветения cron ключ: 64 малки шестнайсетични символа. */
-export const DEDICATED_CRON_SECRET_PATTERN = /^[0-9a-f]{64}$/;
-
-/** Единственото позволено DB извикване преди no-op отговора. */
-export const INTERNAL_CRON_VERIFIER_RPC = "verify_internal_cron_secret";
-
 export interface CronAuthDeps {
   serviceKey: string | null | undefined;
   /** Проверява посветения ключ през public.verify_internal_cron_secret. */
   verifyDedicated?: (candidate: string) => Promise<boolean>;
-}
-
-export function isDedicatedCronCandidate(token: string): boolean {
-  return DEDICATED_CRON_SECRET_PATTERN.test(token);
 }
 
 function deny(status: 401 | 403, error: "unauthorized" | "forbidden"): Response {

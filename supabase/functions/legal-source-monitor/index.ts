@@ -23,7 +23,7 @@ import {
 import type { LegalSourceEntry } from "../_shared/legal-source-registry.ts";
 import { safeFetchSource } from "../_shared/legal-fetch-guard.ts";
 import { authorizeMonitorRequest } from "../_shared/legal-monitor-auth.ts";
-import { INTERNAL_CRON_VERIFIER_RPC } from "../_shared/cron-auth.ts";
+import { INTERNAL_CRON_VERIFIER_RPC } from "../_shared/internal-cron-secret.ts";
 import { bearerToken } from "../_shared/service-token.ts";
 import { runAdapter } from "../_shared/legal-source-adapters.ts";
 import {
