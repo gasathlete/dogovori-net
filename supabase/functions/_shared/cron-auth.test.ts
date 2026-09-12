@@ -75,14 +75,40 @@ Deno.test("comparison is exact and length-safe", () => {
   assert(!isExactServiceRoleToken(null, KEY));
 });
 
+const EXPECTED_IMPORTERS = [
+  "ai-post-market-rollup",
+  "expire-pro-notify",
+  "notify-due-reminders",
+  "notify-unfinished-docs",
+  "retention-sweeper",
+];
+
+/** Динамична инвентаризация: кои функции реално импортират ../_shared/cron-auth.ts. */
+async function discoverImporters(): Promise<string[]> {
+  const found: string[] = [];
+  for await (const entry of Deno.readDir("supabase/functions")) {
+    if (!entry.isDirectory || entry.name.startsWith("_")) continue;
+    const path = `supabase/functions/${entry.name}/index.ts`;
+    let src: string;
+    try {
+      src = await Deno.readTextFile(path);
+    } catch {
+      continue;
+    }
+    if (/from\s+["']\.\.\/_shared\/cron-auth\.ts["']/.test(src)) found.push(entry.name);
+  }
+  return found.sort();
+}
+
+Deno.test("cron-auth importer inventory is exactly the reviewed set of five", async () => {
+  assertEquals(await discoverImporters(), EXPECTED_IMPORTERS);
+});
+
 Deno.test("no legacy getClaims/getUser service-role path remains in cron auth or importers", async () => {
-  const files = [
-    "supabase/functions/_shared/cron-auth.ts",
-    "supabase/functions/expire-pro-notify/index.ts",
-    "supabase/functions/retention-sweeper/index.ts",
-    "supabase/functions/notify-unfinished-docs/index.ts",
-    "supabase/functions/ai-post-market-rollup/index.ts",
-  ];
+  const importers = await discoverImporters();
+  const files = ["supabase/functions/_shared/cron-auth.ts", ...importers.map((n) =>
+    `supabase/functions/${n}/index.ts`
+  )];
   for (const path of files) {
     const src = await Deno.readTextFile(path);
     // Само реални извиквания; поясняващите коментари може да споменават имената.
@@ -90,7 +116,8 @@ Deno.test("no legacy getClaims/getUser service-role path remains in cron auth or
     assert(!code.includes("getClaims("), `${path} must not call getClaims`);
     assert(!code.includes("auth.getUser("), `${path} must not call auth.getUser`);
   }
-  for (const path of files.slice(1)) {
+  for (const name of importers) {
+    const path = `supabase/functions/${name}/index.ts`;
     const src = await Deno.readTextFile(path);
     assert(src.includes("requireServiceRole"), `${path} must guard with requireServiceRole`);
   }
