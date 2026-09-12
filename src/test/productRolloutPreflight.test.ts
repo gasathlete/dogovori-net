@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { validateProductRollout, type RolloutSource } from "../../scripts/product-rollout-preflight";
+import { checkConstraintsWithSubquery, validateProductRollout, type RolloutSource } from "../../scripts/product-rollout-preflight";
 
 const root = process.cwd();
 const disk: RolloutSource = { read: (path) => readFileSync(resolve(root, path), "utf8") };
