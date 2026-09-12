@@ -6468,6 +6468,7 @@ export type Database = {
         Returns: string[]
       }
       product_job_status: { Args: { p_entitlement_id: string }; Returns: Json }
+      product_rollout_capability: { Args: never; Returns: Json }
       purge_old_funnel_events: { Args: never; Returns: undefined }
       rate_limit_check: {
         Args: { _key: string; _max: number; _window_s: number }

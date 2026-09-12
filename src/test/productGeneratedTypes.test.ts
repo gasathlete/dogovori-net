@@ -30,6 +30,7 @@ const PRODUCT_RPCS = [
   "load_product_result_state",
   "save_product_result_selection",
   "begin_product_result_refinement",
+  "product_rollout_capability",
 ];
 
 describe("генерираните типове са сверени с живата схема", () => {
@@ -51,7 +52,15 @@ describe("генерираните типове са сверени с жива�
 
   it("съдържа продуктовите RPC подписи", () => {
     for (const rpc of PRODUCT_RPCS) {
-      expect(TYPES, rpc).toContain(`      ${rpc}: {`);
+      expect(TYPES, rpc).toMatch(new RegExp(`\\n      ${rpc}: \\{`));
     }
+  });
+
+  it("способността за готовност е без аргументи и връща Json", () => {
+    const match = TYPES.match(/\n {6}product_rollout_capability: \{[\s\S]{0,200}?\n/);
+    expect(match).not.toBeNull();
+    const signature = match![0];
+    expect(signature).toMatch(/Args:\s*(never|Record<PropertyKey, never>)/);
+    expect(signature).toContain("Returns: Json");
   });
 });
