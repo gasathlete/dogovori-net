@@ -49,13 +49,102 @@ export function checkConstraintsWithSubquery(sql: string): string[] {
   return offenders;
 }
 
+/** Всички продуктови таблици, въведени от базовата миграция и 0018–0025. */
+export const PRODUCT_TABLES = [
+  "product_checkout_intakes",
+  "product_entitlements",
+  "product_fulfillment_jobs",
+  "product_fulfillment_checkpoints",
+  "product_generation_calls",
+  "product_generation_artifacts",
+  "product_result_selections",
+  "product_result_selection_revisions",
+  "product_result_refinements",
+  "product_result_refinement_calls",
+] as const;
+
+/** Таблиците, които собственикът законно чете (само SELECT). */
+export const PRODUCT_OWNER_READ_TABLES = [
+  "product_checkout_intakes",
+  "product_entitlements",
+  "product_result_selections",
+  "product_result_selection_revisions",
+  "product_result_refinements",
+] as const;
+
+export const PRODUCT_ACL_MIGRATION = "drizzle/migrations/0026_product_acl_hardening.sql";
+export const PRODUCT_ACL_REVIEW = "docs/migrations/stage2b1d_product_acl_hardening.sql";
+
+/** Само изпълнимият SQL: обяснителните коментари нарочно назовават забраненото. */
+export function stripSqlComments(sql: string): string {
+  return sql.split("\n").filter((line) => !line.trimStart().startsWith("--")).join("\n");
+}
+
+/** Семантична проверка на 0026: отнемане първо, минимални права след това. */
+export function validateAclHardening(source: RolloutSource): string[] {
+  const failures: string[] = [];
+  let sql: string;
+  try {
+    sql = stripSqlComments(source.read(PRODUCT_ACL_MIGRATION));
+    if (source.read(PRODUCT_ACL_MIGRATION) !== source.read(PRODUCT_ACL_REVIEW)) {
+      failures.push("0026 mirror drift");
+    }
+  } catch {
+    return ["0026 ACL migration or review file missing"];
+  }
+  for (const table of PRODUCT_TABLES) {
+    if (!sql.includes(`REVOKE ALL PRIVILEGES ON TABLE public.${table} FROM PUBLIC, anon, authenticated;`)) {
+      failures.push(`0026 missing table revoke: ${table}`);
+    }
+    if (!sql.includes(`GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.${table} TO service_role;`)) {
+      failures.push(`0026 missing service_role table grant: ${table}`);
+    }
+    const ownerRead = (PRODUCT_OWNER_READ_TABLES as readonly string[]).includes(table);
+    const grant = sql.includes(`GRANT SELECT ON TABLE public.${table} TO authenticated;`);
+    if (ownerRead !== grant) failures.push(`0026 owner-read grant mismatch: ${table}`);
+  }
+  if (/GRANT[^;]*TO\s+anon/i.test(sql)) failures.push("0026 grants a privilege to anon");
+  if (/ALTER\s+DEFAULT\s+PRIVILEGES/i.test(sql)) failures.push("0026 mutates default privileges");
+  if (/DROP\s+(TABLE|COLUMN|POLICY|FUNCTION|TRIGGER)|TRUNCATE|DELETE\s+FROM|INSERT\s+INTO|UPDATE\s+public\./i.test(sql)) {
+    failures.push("0026 contains a destructive or data-mutating statement");
+  }
+  for (const clause of [
+    "REVOKE ALL PRIVILEGES ON FUNCTION %s FROM PUBLIC",
+    "REVOKE ALL PRIVILEGES ON FUNCTION %s FROM anon",
+    "REVOKE ALL PRIVILEGES ON FUNCTION %s FROM authenticated",
+    "GRANT EXECUTE ON FUNCTION %s TO service_role",
+    "pg_get_function_identity_arguments(p.oid)",
+    "GRANT EXECUTE ON FUNCTION public.product_job_status(uuid) TO authenticated;",
+    "CREATE OR REPLACE FUNCTION public.product_rollout_capability()",
+    "SECURITY DEFINER SET search_path = ''",
+    "'0026_product_acl_hardening'",
+    "REVOKE ALL PRIVILEGES ON FUNCTION public.product_rollout_capability() FROM PUBLIC, anon, authenticated;",
+    "GRANT EXECUTE ON FUNCTION public.product_rollout_capability() TO service_role;",
+  ]) {
+    if (!sql.includes(clause)) failures.push(`0026 missing function ACL clause: ${clause}`);
+  }
+  for (const name of [
+    "record_product_purchase",
+    "claim_product_job",
+    "product_job_status",
+    "load_product_result_state",
+    "complete_product_result_refinement_call",
+    "bind_product_entitlement_policy",
+  ]) {
+    if (!sql.includes(`'${name}'`)) failures.push(`0026 function allowlist missing: ${name}`);
+  }
+  return failures;
+}
+
+
 export function validateProductRollout(source: RolloutSource): string[] {
   const failures: string[] = [];
   const fail = (message: string) => failures.push(message);
   let manifest: { base: Migration; migrations: Migration[]; journalPolicy: string };
   let contract: JsonRecord & {
     expectedMigration: string;
-    schemaCapability: { rpc: string; expected: JsonRecord; readOnly: boolean };
+    schemaCapability: { rpc: string; args: JsonRecord; expected: JsonRecord; readOnly: boolean };
+    functionalAcceptance: { migration: string; rpc: string; expected: JsonRecord; readOnly: boolean };
     products: typeof EXPECTED_PRODUCTS; envNameAllowlist: string[];
     flags: { name: string; enabledValue: string; default: boolean }[];
     environmentNames: string[]; prepaymentGates: string[]; paidPathFiles: string[];
@@ -80,7 +169,7 @@ export function validateProductRollout(source: RolloutSource): string[] {
     fail("base migration or review file missing");
   }
 
-  if (manifest.migrations.length !== 8) fail("migration manifest must contain exactly 0018–0025");
+  if (manifest.migrations.length !== 9) fail("migration manifest must contain exactly 0018–0026");
   let dependency = "20260910090000_product_checkout_entitlements";
   for (let index = 0; index < manifest.migrations.length; index++) {
     const migration = manifest.migrations[index];
@@ -100,10 +189,26 @@ export function validateProductRollout(source: RolloutSource): string[] {
   }
   if (!manifest.journalPolicy?.includes("not-recorded")) fail("manual journal policy is undeclared");
 
-  if (contract.expectedMigration !== "0025_product_result_selections") fail("expected migration is not 0025");
-  if (contract.schemaCapability?.rpc !== "load_product_result_state" || contract.schemaCapability?.readOnly !== true || contract.schemaCapability?.expected?.reason !== "not_found") {
-    fail("0025 read-only schema capability declaration mismatch");
+  if (contract.expectedMigration !== "0026_product_acl_hardening") fail("expected migration is not 0026");
+  if (
+    contract.schemaCapability?.rpc !== "product_rollout_capability" ||
+    contract.schemaCapability?.readOnly !== true ||
+    contract.schemaCapability?.expected?.ok !== true ||
+    contract.schemaCapability?.expected?.migration !== "0026_product_acl_hardening" ||
+    JSON.stringify(contract.schemaCapability?.args) !== "{}"
+  ) {
+    fail("0026 read-only schema capability declaration mismatch");
   }
+  if (
+    contract.functionalAcceptance?.migration !== "0025_product_result_selections" ||
+    contract.functionalAcceptance?.rpc !== "load_product_result_state" ||
+    contract.functionalAcceptance?.readOnly !== true ||
+    contract.functionalAcceptance?.expected?.ok !== false ||
+    contract.functionalAcceptance?.expected?.reason !== "not_found"
+  ) {
+    fail("0025 functional acceptance declaration mismatch");
+  }
+  for (const failure of validateAclHardening(source)) fail(failure);
   if (JSON.stringify(contract.products) !== JSON.stringify(EXPECTED_PRODUCTS)) fail("product ID/price/currency contract mismatch");
   if (contract.currency !== "eur" || contract.taxBehavior !== "inclusive" || contract.priceType !== "one_time") fail("currency/tax/price type mismatch");
   if (JSON.stringify(contract.environmentNames) !== JSON.stringify(["sandbox", "live"])) fail("environment separation mismatch");
@@ -144,7 +249,7 @@ export function runProductRolloutPreflight(root = process.cwd()): number {
     failures.forEach((failure) => console.error(`- ${failure}`));
     return 1;
   }
-  console.log("[product-rollout-preflight] PASS: 8 migrations, 3 products, fail-closed gates; no network used.");
+  console.log("[product-rollout-preflight] PASS: 9 migrations, 3 products, fail-closed gates; no network used.");
   return 0;
 }
 if (process.argv[1]?.endsWith("product-rollout-preflight.ts")) {

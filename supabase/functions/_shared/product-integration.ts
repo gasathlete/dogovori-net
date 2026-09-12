@@ -15,7 +15,7 @@ export type EnvReader = (key: string) => string | undefined;
 
 /** Последната миграция, която ТРЯБВА да е приложена преди включване. */
 export const PRODUCT_EXPECTED_MIGRATION =
-  "0025_product_result_selections" as const;
+  "0026_product_acl_hardening" as const;
 
 export const PRODUCT_INTEGRATION_ENV = Object.freeze({
   gatewayKey: "LOVABLE_API_KEY",
@@ -165,26 +165,27 @@ export interface ProductRpcProbeClient {
 }
 
 /**
- * Read-only схемна способност, която ДОКАЗВА, че миграцията 0025 е приложена.
+ * Read-only способност, която ДОКАЗВА, че последната миграция (0026) е
+ * приложена, включително затягането на правата.
  *
- * Пробата чете несъществуващ UUID и очаква ограничения `not_found`: не пише,
- * не заявява задача и не докосва плащане. Това доказва функцията и зависимите
- * таблици от 0025. Липсваща функция или различен отговор → затворено.
+ * Пробата не приема аргументи, не пише, не заявява задача и не докосва
+ * плащане. Изисква точно `ok = true` и точно съвпадение на името на
+ * миграцията. Липсваща функция, грешка или различен отговор → ЗАТВОРЕНО.
+ *
+ * Функционалното приемане на 0025 (`load_product_result_state` →
+ * `{ok:false, reason:"not_found"}`) остава отделна проверка при прилагането и
+ * НЕ е тази способност.
  */
-export const PRODUCT_MIGRATION_CAPABILITY_RPC = "load_product_result_state" as const;
+export const PRODUCT_MIGRATION_CAPABILITY_RPC = "product_rollout_capability" as const;
 
 export async function isProductMigrationApplied(db: ProductRpcProbeClient): Promise<boolean> {
   try {
-    const { data, error } = await db.rpc(PRODUCT_MIGRATION_CAPABILITY_RPC, {
-      p_user_id: "00000000-0000-0000-0000-000000000000",
-      p_entitlement_id: "00000000-0000-0000-0000-000000000000",
-      p_result_digest: "0".repeat(64),
-    });
+    const { data, error } = await db.rpc(PRODUCT_MIGRATION_CAPABILITY_RPC, {});
     return !error &&
       typeof data === "object" &&
       data !== null &&
-      (data as { ok?: unknown }).ok === false &&
-      (data as { reason?: unknown }).reason === "not_found";
+      (data as { ok?: unknown }).ok === true &&
+      (data as { migration?: unknown }).migration === PRODUCT_EXPECTED_MIGRATION;
   } catch {
     return false;
   }

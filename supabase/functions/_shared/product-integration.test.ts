@@ -447,22 +447,41 @@ Deno.test("checkout and fulfillment blockers name the exact missing configuratio
 function rpcProbe(data: unknown, error: unknown = null) {
   return {
     calls: 0,
-    rpc(_name: string, _args: Record<string, unknown>) {
+    lastName: "",
+    lastArgs: {} as Record<string, unknown>,
+    rpc(name: string, args: Record<string, unknown>) {
       this.calls++;
+      this.lastName = name;
+      this.lastArgs = args;
       return Promise.resolve({ data, error });
     },
   };
 }
 
-const MIGRATION_CAPABILITY_OK = Object.freeze({ ok: false, reason: "not_found" });
+const MIGRATION_CAPABILITY_OK = Object.freeze({
+  ok: true,
+  migration: "0026_product_acl_hardening",
+});
 
 Deno.test("migration is proven only by the server, never by a constant", async () => {
-  assertEquals(PRODUCT_MIGRATION_CAPABILITY_RPC, "load_product_result_state");
-  assert(await isProductMigrationApplied(rpcProbe(MIGRATION_CAPABILITY_OK)));
+  assertEquals(PRODUCT_MIGRATION_CAPABILITY_RPC, "product_rollout_capability");
+  assertEquals(PRODUCT_EXPECTED_MIGRATION, "0026_product_acl_hardening");
+  const ok = rpcProbe(MIGRATION_CAPABILITY_OK);
+  assert(await isProductMigrationApplied(ok));
+  // Читаема, безаргументна проба: не пише и не заявява нищо.
+  assertEquals(ok.lastName, "product_rollout_capability");
+  assertEquals(ok.lastArgs, {});
+  // Липсваща функция, грешка, друга миграция или друг тип → ЗАТВОРЕНО.
+  assertFalse(await isProductMigrationApplied(rpcProbe(MIGRATION_CAPABILITY_OK, { code: "42883" })));
+  assertFalse(
+    await isProductMigrationApplied(rpcProbe({ ok: true, migration: "0025_product_result_selections" })),
+  );
+  assertFalse(await isProductMigrationApplied(rpcProbe({ ok: false, migration: "0026_product_acl_hardening" })));
+  assertFalse(await isProductMigrationApplied(rpcProbe({ ok: "true", migration: "0026_product_acl_hardening" })));
+  assertFalse(await isProductMigrationApplied(rpcProbe({ ok: false, reason: "not_found" })));
   assertFalse(await isProductMigrationApplied(rpcProbe(true)));
   assertFalse(await isProductMigrationApplied(rpcProbe(false)));
   assertFalse(await isProductMigrationApplied(rpcProbe(null)));
-  assertFalse(await isProductMigrationApplied(rpcProbe(true, { message: "missing function" })));
   assertFalse(
     await isProductMigrationApplied({
       rpc: () => Promise.reject(new Error("down")),

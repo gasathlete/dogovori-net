@@ -14,30 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      __codex_product_migration_stage_20260912: {
-        Row: {
-          expected_sha256: string
-          file_id: string
-          file_order: number
-          sql_text: string
-          stmt_order: number
-        }
-        Insert: {
-          expected_sha256: string
-          file_id: string
-          file_order: number
-          sql_text: string
-          stmt_order: number
-        }
-        Update: {
-          expected_sha256?: string
-          file_id?: string
-          file_order?: number
-          sql_text?: string
-          stmt_order?: number
-        }
-        Relationships: []
-      }
       ai_audit_log: {
         Row: {
           contains_personal_data: boolean
@@ -2764,74 +2740,137 @@ export type Database = {
       order_snapshots: {
         Row: {
           ai_ack_accepted: boolean
+          ai_notice_version: string | null
           billing_period: string | null
+          consent_recorded_at: string | null
           created_at: string
           currency: string
           dpa_version: string | null
           environment: string
           id: string
+          immediate_performance_consent: boolean | null
           ip: unknown
+          paid_at: string | null
           payment_status: string
           plan_name: string
           price_amount: number
           privacy_version: string
+          product_id: string | null
+          product_intake_id: string | null
+          product_source_char_count: number | null
+          product_source_char_unit: string | null
+          product_source_document_id: string | null
+          product_source_extraction_status: string | null
+          product_source_hash: string | null
+          product_source_kind: string | null
+          product_source_pages: number | null
+          product_source_updated_at: string | null
           purchase_kind: string
           refund_version: string
+          stripe_event_id: string | null
+          stripe_price_id: string | null
+          stripe_price_lookup_key: string | null
           stripe_session_id: string | null
           stripe_subscription_id: string | null
+          tax_amount_cents: number | null
+          tax_behavior: string | null
+          terms_accepted: boolean | null
           terms_version: string
           user_agent: string | null
           user_id: string
           vat_included: boolean
-          vat_rate: number
+          vat_rate: number | null
+          withdrawal_loss_acknowledged: boolean | null
           withdrawal_version: string
         }
         Insert: {
           ai_ack_accepted?: boolean
+          ai_notice_version?: string | null
           billing_period?: string | null
+          consent_recorded_at?: string | null
           created_at?: string
           currency?: string
           dpa_version?: string | null
           environment?: string
           id?: string
+          immediate_performance_consent?: boolean | null
           ip?: unknown
+          paid_at?: string | null
           payment_status?: string
           plan_name: string
           price_amount: number
           privacy_version: string
+          product_id?: string | null
+          product_intake_id?: string | null
+          product_source_char_count?: number | null
+          product_source_char_unit?: string | null
+          product_source_document_id?: string | null
+          product_source_extraction_status?: string | null
+          product_source_hash?: string | null
+          product_source_kind?: string | null
+          product_source_pages?: number | null
+          product_source_updated_at?: string | null
           purchase_kind?: string
           refund_version: string
+          stripe_event_id?: string | null
+          stripe_price_id?: string | null
+          stripe_price_lookup_key?: string | null
           stripe_session_id?: string | null
           stripe_subscription_id?: string | null
+          tax_amount_cents?: number | null
+          tax_behavior?: string | null
+          terms_accepted?: boolean | null
           terms_version: string
           user_agent?: string | null
           user_id: string
           vat_included?: boolean
-          vat_rate?: number
+          vat_rate?: number | null
+          withdrawal_loss_acknowledged?: boolean | null
           withdrawal_version: string
         }
         Update: {
           ai_ack_accepted?: boolean
+          ai_notice_version?: string | null
           billing_period?: string | null
+          consent_recorded_at?: string | null
           created_at?: string
           currency?: string
           dpa_version?: string | null
           environment?: string
           id?: string
+          immediate_performance_consent?: boolean | null
           ip?: unknown
+          paid_at?: string | null
           payment_status?: string
           plan_name?: string
           price_amount?: number
           privacy_version?: string
+          product_id?: string | null
+          product_intake_id?: string | null
+          product_source_char_count?: number | null
+          product_source_char_unit?: string | null
+          product_source_document_id?: string | null
+          product_source_extraction_status?: string | null
+          product_source_hash?: string | null
+          product_source_kind?: string | null
+          product_source_pages?: number | null
+          product_source_updated_at?: string | null
           purchase_kind?: string
           refund_version?: string
+          stripe_event_id?: string | null
+          stripe_price_id?: string | null
+          stripe_price_lookup_key?: string | null
           stripe_session_id?: string | null
           stripe_subscription_id?: string | null
+          tax_amount_cents?: number | null
+          tax_behavior?: string | null
+          terms_accepted?: boolean | null
           terms_version?: string
           user_agent?: string | null
           user_id?: string
           vat_included?: boolean
-          vat_rate?: number
+          vat_rate?: number | null
+          withdrawal_loss_acknowledged?: boolean | null
           withdrawal_version?: string
         }
         Relationships: []
@@ -3128,6 +3167,923 @@ export type Database = {
           yearly_suffix?: string | null
         }
         Relationships: []
+      }
+      product_checkout_intakes: {
+        Row: {
+          ai_ack_accepted: boolean
+          ai_notice_version: string
+          consent_recorded_at: string | null
+          context: Json
+          created_at: string
+          currency: string
+          environment: string
+          expected_amount_cents: number | null
+          expires_at: string
+          generation_policy_version: string | null
+          id: string
+          immediate_performance_consent: boolean
+          privacy_version: string
+          product_id: string
+          refund_version: string
+          request_id: string
+          source_char_count: number | null
+          source_char_unit: string | null
+          source_extraction_status: string | null
+          source_hash: string
+          source_kind: string | null
+          source_page_count: number | null
+          source_updated_at: string | null
+          status: string
+          stripe_price_id: string | null
+          stripe_price_lookup_key: string | null
+          stripe_session_id: string | null
+          terms_accepted: boolean
+          terms_version: string
+          updated_at: string
+          uploaded_contract_id: string | null
+          user_id: string
+          withdrawal_loss_acknowledged: boolean
+          withdrawal_version: string | null
+        }
+        Insert: {
+          ai_ack_accepted?: boolean
+          ai_notice_version: string
+          consent_recorded_at?: string | null
+          context?: Json
+          created_at?: string
+          currency?: string
+          environment: string
+          expected_amount_cents?: number | null
+          expires_at?: string
+          generation_policy_version?: string | null
+          id?: string
+          immediate_performance_consent?: boolean
+          privacy_version: string
+          product_id: string
+          refund_version: string
+          request_id: string
+          source_char_count?: number | null
+          source_char_unit?: string | null
+          source_extraction_status?: string | null
+          source_hash: string
+          source_kind?: string | null
+          source_page_count?: number | null
+          source_updated_at?: string | null
+          status?: string
+          stripe_price_id?: string | null
+          stripe_price_lookup_key?: string | null
+          stripe_session_id?: string | null
+          terms_accepted?: boolean
+          terms_version: string
+          updated_at?: string
+          uploaded_contract_id?: string | null
+          user_id: string
+          withdrawal_loss_acknowledged?: boolean
+          withdrawal_version?: string | null
+        }
+        Update: {
+          ai_ack_accepted?: boolean
+          ai_notice_version?: string
+          consent_recorded_at?: string | null
+          context?: Json
+          created_at?: string
+          currency?: string
+          environment?: string
+          expected_amount_cents?: number | null
+          expires_at?: string
+          generation_policy_version?: string | null
+          id?: string
+          immediate_performance_consent?: boolean
+          privacy_version?: string
+          product_id?: string
+          refund_version?: string
+          request_id?: string
+          source_char_count?: number | null
+          source_char_unit?: string | null
+          source_extraction_status?: string | null
+          source_hash?: string
+          source_kind?: string | null
+          source_page_count?: number | null
+          source_updated_at?: string | null
+          status?: string
+          stripe_price_id?: string | null
+          stripe_price_lookup_key?: string | null
+          stripe_session_id?: string | null
+          terms_accepted?: boolean
+          terms_version?: string
+          updated_at?: string
+          uploaded_contract_id?: string | null
+          user_id?: string
+          withdrawal_loss_acknowledged?: boolean
+          withdrawal_version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_checkout_intakes_uploaded_contract_id_fkey"
+            columns: ["uploaded_contract_id"]
+            isOneToOne: false
+            referencedRelation: "uploaded_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_entitlements: {
+        Row: {
+          amount_cents: number
+          attempt_count: number
+          created_at: string
+          currency: string
+          environment: string
+          fulfilled_at: string | null
+          generation_policy_version: string | null
+          id: string
+          intake_id: string | null
+          last_error_code: string | null
+          paid_at: string | null
+          processing_started_at: string | null
+          processing_token: string | null
+          product_id: string
+          refinement_attempts: number
+          refinement_error_code: string | null
+          refinement_started_at: string | null
+          refinement_state: string
+          refinement_token: string | null
+          refinements_included: number
+          refinements_used: number
+          result: Json | null
+          result_schema_version: number | null
+          source_char_count: number | null
+          source_char_unit: string | null
+          source_document_id: string | null
+          source_extraction_status: string | null
+          source_hash: string
+          source_kind: string | null
+          source_page_count: number | null
+          source_updated_at: string | null
+          status: string
+          stripe_event_id: string | null
+          stripe_price_id: string | null
+          stripe_price_lookup_key: string
+          stripe_session_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          attempt_count?: number
+          created_at?: string
+          currency?: string
+          environment: string
+          fulfilled_at?: string | null
+          generation_policy_version?: string | null
+          id?: string
+          intake_id?: string | null
+          last_error_code?: string | null
+          paid_at?: string | null
+          processing_started_at?: string | null
+          processing_token?: string | null
+          product_id: string
+          refinement_attempts?: number
+          refinement_error_code?: string | null
+          refinement_started_at?: string | null
+          refinement_state?: string
+          refinement_token?: string | null
+          refinements_included?: number
+          refinements_used?: number
+          result?: Json | null
+          result_schema_version?: number | null
+          source_char_count?: number | null
+          source_char_unit?: string | null
+          source_document_id?: string | null
+          source_extraction_status?: string | null
+          source_hash: string
+          source_kind?: string | null
+          source_page_count?: number | null
+          source_updated_at?: string | null
+          status?: string
+          stripe_event_id?: string | null
+          stripe_price_id?: string | null
+          stripe_price_lookup_key: string
+          stripe_session_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          attempt_count?: number
+          created_at?: string
+          currency?: string
+          environment?: string
+          fulfilled_at?: string | null
+          generation_policy_version?: string | null
+          id?: string
+          intake_id?: string | null
+          last_error_code?: string | null
+          paid_at?: string | null
+          processing_started_at?: string | null
+          processing_token?: string | null
+          product_id?: string
+          refinement_attempts?: number
+          refinement_error_code?: string | null
+          refinement_started_at?: string | null
+          refinement_state?: string
+          refinement_token?: string | null
+          refinements_included?: number
+          refinements_used?: number
+          result?: Json | null
+          result_schema_version?: number | null
+          source_char_count?: number | null
+          source_char_unit?: string | null
+          source_document_id?: string | null
+          source_extraction_status?: string | null
+          source_hash?: string
+          source_kind?: string | null
+          source_page_count?: number | null
+          source_updated_at?: string | null
+          status?: string
+          stripe_event_id?: string | null
+          stripe_price_id?: string | null
+          stripe_price_lookup_key?: string
+          stripe_session_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_entitlements_intake_id_fkey"
+            columns: ["intake_id"]
+            isOneToOne: false
+            referencedRelation: "product_checkout_intakes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_entitlements_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "uploaded_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_fulfillment_checkpoints: {
+        Row: {
+          created_at: string
+          cursor_key: string
+          entitlement_id: string
+          id: string
+          job_id: string
+          payload_digest: string | null
+          sequence: number
+          stage: string
+          status: string
+          usage_calls: number
+          usage_cost_micro_usd: number
+          usage_input_tokens: number
+          usage_output_tokens: number
+        }
+        Insert: {
+          created_at?: string
+          cursor_key: string
+          entitlement_id: string
+          id?: string
+          job_id: string
+          payload_digest?: string | null
+          sequence: number
+          stage: string
+          status?: string
+          usage_calls?: number
+          usage_cost_micro_usd?: number
+          usage_input_tokens?: number
+          usage_output_tokens?: number
+        }
+        Update: {
+          created_at?: string
+          cursor_key?: string
+          entitlement_id?: string
+          id?: string
+          job_id?: string
+          payload_digest?: string | null
+          sequence?: number
+          stage?: string
+          status?: string
+          usage_calls?: number
+          usage_cost_micro_usd?: number
+          usage_input_tokens?: number
+          usage_output_tokens?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_fulfillment_checkpoints_entitlement_id_fkey"
+            columns: ["entitlement_id"]
+            isOneToOne: false
+            referencedRelation: "product_entitlements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_fulfillment_checkpoints_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "product_fulfillment_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_fulfillment_jobs: {
+        Row: {
+          attempt: number
+          budget_hard_cost_micro_usd: number
+          budget_max_calls: number
+          budget_max_input_tokens: number
+          budget_max_output_tokens: number
+          budget_max_tokens: number
+          completed_at: string | null
+          created_at: string
+          cursor: Json
+          entitlement_id: string
+          error_class: string | null
+          error_code: string | null
+          generation_policy_version: string
+          generation_timestamp: string | null
+          id: string
+          idempotency_key: string | null
+          intake_id: string
+          lease_expires_at: string | null
+          lease_token: string | null
+          product_id: string
+          result_schema_version: number
+          source_char_count: number
+          source_char_unit: string
+          source_document_id: string
+          source_hash: string
+          source_kind: string
+          source_page_count: number | null
+          source_updated_at: string
+          stage: string
+          updated_at: string
+          usage_calls: number
+          usage_cost_micro_usd: number
+          usage_input_tokens: number
+          usage_output_tokens: number
+          user_id: string
+        }
+        Insert: {
+          attempt?: number
+          budget_hard_cost_micro_usd?: number
+          budget_max_calls?: number
+          budget_max_input_tokens?: number
+          budget_max_output_tokens?: number
+          budget_max_tokens?: number
+          completed_at?: string | null
+          created_at?: string
+          cursor?: Json
+          entitlement_id: string
+          error_class?: string | null
+          error_code?: string | null
+          generation_policy_version: string
+          generation_timestamp?: string | null
+          id?: string
+          idempotency_key?: string | null
+          intake_id: string
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          product_id: string
+          result_schema_version?: number
+          source_char_count: number
+          source_char_unit: string
+          source_document_id: string
+          source_hash: string
+          source_kind: string
+          source_page_count?: number | null
+          source_updated_at: string
+          stage?: string
+          updated_at?: string
+          usage_calls?: number
+          usage_cost_micro_usd?: number
+          usage_input_tokens?: number
+          usage_output_tokens?: number
+          user_id: string
+        }
+        Update: {
+          attempt?: number
+          budget_hard_cost_micro_usd?: number
+          budget_max_calls?: number
+          budget_max_input_tokens?: number
+          budget_max_output_tokens?: number
+          budget_max_tokens?: number
+          completed_at?: string | null
+          created_at?: string
+          cursor?: Json
+          entitlement_id?: string
+          error_class?: string | null
+          error_code?: string | null
+          generation_policy_version?: string
+          generation_timestamp?: string | null
+          id?: string
+          idempotency_key?: string | null
+          intake_id?: string
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          product_id?: string
+          result_schema_version?: number
+          source_char_count?: number
+          source_char_unit?: string
+          source_document_id?: string
+          source_hash?: string
+          source_kind?: string
+          source_page_count?: number | null
+          source_updated_at?: string
+          stage?: string
+          updated_at?: string
+          usage_calls?: number
+          usage_cost_micro_usd?: number
+          usage_input_tokens?: number
+          usage_output_tokens?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_fulfillment_jobs_entitlement_id_fkey"
+            columns: ["entitlement_id"]
+            isOneToOne: true
+            referencedRelation: "product_entitlements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_fulfillment_jobs_intake_id_fkey"
+            columns: ["intake_id"]
+            isOneToOne: false
+            referencedRelation: "product_checkout_intakes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_fulfillment_jobs_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "uploaded_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_generation_artifacts: {
+        Row: {
+          call_ids: string[]
+          coverage: Json | null
+          created_at: string
+          cursor_key: string
+          entitlement_id: string
+          generation_policy_version: string
+          generation_timestamp: string
+          id: string
+          job_id: string
+          payload: Json
+          payload_canonical: string
+          payload_digest: string
+          product_id: string
+          result_schema_version: number
+          sequence: number
+          source_char_count: number
+          source_char_unit: string
+          source_document_id: string
+          source_hash: string
+          source_kind: string
+          source_page_count: number | null
+          source_updated_at: string
+          stage: string
+          user_id: string
+        }
+        Insert: {
+          call_ids?: string[]
+          coverage?: Json | null
+          created_at?: string
+          cursor_key: string
+          entitlement_id: string
+          generation_policy_version: string
+          generation_timestamp: string
+          id?: string
+          job_id: string
+          payload: Json
+          payload_canonical: string
+          payload_digest: string
+          product_id: string
+          result_schema_version: number
+          sequence: number
+          source_char_count: number
+          source_char_unit: string
+          source_document_id: string
+          source_hash: string
+          source_kind: string
+          source_page_count?: number | null
+          source_updated_at: string
+          stage: string
+          user_id: string
+        }
+        Update: {
+          call_ids?: string[]
+          coverage?: Json | null
+          created_at?: string
+          cursor_key?: string
+          entitlement_id?: string
+          generation_policy_version?: string
+          generation_timestamp?: string
+          id?: string
+          job_id?: string
+          payload?: Json
+          payload_canonical?: string
+          payload_digest?: string
+          product_id?: string
+          result_schema_version?: number
+          sequence?: number
+          source_char_count?: number
+          source_char_unit?: string
+          source_document_id?: string
+          source_hash?: string
+          source_kind?: string
+          source_page_count?: number | null
+          source_updated_at?: string
+          stage?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_generation_artifacts_entitlement_id_fkey"
+            columns: ["entitlement_id"]
+            isOneToOne: false
+            referencedRelation: "product_entitlements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_generation_artifacts_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "product_fulfillment_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_generation_artifacts_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "uploaded_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_generation_calls: {
+        Row: {
+          artifact_digest: string | null
+          call_id: string
+          completed_at: string | null
+          created_at: string
+          cursor_key: string
+          entitlement_id: string
+          id: string
+          job_id: string
+          model: string
+          redacted_artifact: Json | null
+          redacted_artifact_canonical: string | null
+          request_digest: string
+          reservation_expires_at: string | null
+          reservation_token: string | null
+          stage: string
+          status: string
+          usage_cost_micro_usd: number | null
+          usage_input_tokens: number | null
+          usage_output_tokens: number | null
+          user_id: string
+        }
+        Insert: {
+          artifact_digest?: string | null
+          call_id: string
+          completed_at?: string | null
+          created_at?: string
+          cursor_key: string
+          entitlement_id: string
+          id?: string
+          job_id: string
+          model: string
+          redacted_artifact?: Json | null
+          redacted_artifact_canonical?: string | null
+          request_digest: string
+          reservation_expires_at?: string | null
+          reservation_token?: string | null
+          stage: string
+          status?: string
+          usage_cost_micro_usd?: number | null
+          usage_input_tokens?: number | null
+          usage_output_tokens?: number | null
+          user_id: string
+        }
+        Update: {
+          artifact_digest?: string | null
+          call_id?: string
+          completed_at?: string | null
+          created_at?: string
+          cursor_key?: string
+          entitlement_id?: string
+          id?: string
+          job_id?: string
+          model?: string
+          redacted_artifact?: Json | null
+          redacted_artifact_canonical?: string | null
+          request_digest?: string
+          reservation_expires_at?: string | null
+          reservation_token?: string | null
+          stage?: string
+          status?: string
+          usage_cost_micro_usd?: number | null
+          usage_input_tokens?: number | null
+          usage_output_tokens?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_generation_calls_entitlement_id_fkey"
+            columns: ["entitlement_id"]
+            isOneToOne: false
+            referencedRelation: "product_entitlements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_generation_calls_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "product_fulfillment_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_result_refinement_calls: {
+        Row: {
+          call_id: string
+          completed_at: string | null
+          created_at: string
+          entitlement_id: string
+          id: string
+          model: string
+          refinement_id: string
+          request_digest: string
+          reservation_expires_at: string | null
+          reservation_token: string | null
+          response: Json | null
+          response_canonical: string | null
+          response_digest: string | null
+          status: string
+          usage_cost_micro_usd: number | null
+          usage_input_tokens: number | null
+          usage_output_tokens: number | null
+          user_id: string
+        }
+        Insert: {
+          call_id: string
+          completed_at?: string | null
+          created_at?: string
+          entitlement_id: string
+          id?: string
+          model: string
+          refinement_id: string
+          request_digest: string
+          reservation_expires_at?: string | null
+          reservation_token?: string | null
+          response?: Json | null
+          response_canonical?: string | null
+          response_digest?: string | null
+          status?: string
+          usage_cost_micro_usd?: number | null
+          usage_input_tokens?: number | null
+          usage_output_tokens?: number | null
+          user_id: string
+        }
+        Update: {
+          call_id?: string
+          completed_at?: string | null
+          created_at?: string
+          entitlement_id?: string
+          id?: string
+          model?: string
+          refinement_id?: string
+          request_digest?: string
+          reservation_expires_at?: string | null
+          reservation_token?: string | null
+          response?: Json | null
+          response_canonical?: string | null
+          response_digest?: string | null
+          status?: string
+          usage_cost_micro_usd?: number | null
+          usage_input_tokens?: number | null
+          usage_output_tokens?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_result_refinement_calls_entitlement_id_fkey"
+            columns: ["entitlement_id"]
+            isOneToOne: false
+            referencedRelation: "product_entitlements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_result_refinement_calls_refinement_id_fkey"
+            columns: ["refinement_id"]
+            isOneToOne: true
+            referencedRelation: "product_result_refinements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_result_refinements: {
+        Row: {
+          attempts: number
+          base_result_digest: string
+          completed_at: string | null
+          created_at: string
+          entitlement_id: string
+          error_code: string | null
+          expected_refinement_version: number
+          id: string
+          idempotency_key: string
+          instruction_digest: string
+          lease_expires_at: string | null
+          lease_token: string | null
+          product_id: string
+          refinement_version: number
+          result: Json | null
+          result_canonical: string | null
+          result_digest: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          base_result_digest: string
+          completed_at?: string | null
+          created_at?: string
+          entitlement_id: string
+          error_code?: string | null
+          expected_refinement_version?: number
+          id?: string
+          idempotency_key: string
+          instruction_digest: string
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          product_id: string
+          refinement_version: number
+          result?: Json | null
+          result_canonical?: string | null
+          result_digest?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          base_result_digest?: string
+          completed_at?: string | null
+          created_at?: string
+          entitlement_id?: string
+          error_code?: string | null
+          expected_refinement_version?: number
+          id?: string
+          idempotency_key?: string
+          instruction_digest?: string
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          product_id?: string
+          refinement_version?: number
+          result?: Json | null
+          result_canonical?: string | null
+          result_digest?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_result_refinements_entitlement_id_fkey"
+            columns: ["entitlement_id"]
+            isOneToOne: false
+            referencedRelation: "product_entitlements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_result_selection_revisions: {
+        Row: {
+          created_at: string
+          decisions: Json
+          id: string
+          idempotency_key: string
+          patch_output_hash: string | null
+          selection_id: string
+          selection_version: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          decisions: Json
+          id?: string
+          idempotency_key: string
+          patch_output_hash?: string | null
+          selection_id: string
+          selection_version: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          decisions?: Json
+          id?: string
+          idempotency_key?: string
+          patch_output_hash?: string | null
+          selection_id?: string
+          selection_version?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_result_selection_revisions_selection_id_fkey"
+            columns: ["selection_id"]
+            isOneToOne: false
+            referencedRelation: "product_result_selections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_result_selections: {
+        Row: {
+          created_at: string
+          decisions: Json
+          entitlement_id: string
+          id: string
+          patch_output_hash: string | null
+          product_id: string
+          result_digest: string
+          result_schema_version: number
+          selection_version: number
+          source_char_count: number
+          source_char_unit: string
+          source_document_id: string
+          source_hash: string
+          source_kind: string
+          source_page_count: number | null
+          source_updated_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          decisions?: Json
+          entitlement_id: string
+          id?: string
+          patch_output_hash?: string | null
+          product_id: string
+          result_digest: string
+          result_schema_version: number
+          selection_version?: number
+          source_char_count: number
+          source_char_unit: string
+          source_document_id: string
+          source_hash: string
+          source_kind: string
+          source_page_count?: number | null
+          source_updated_at: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          decisions?: Json
+          entitlement_id?: string
+          id?: string
+          patch_output_hash?: string | null
+          product_id?: string
+          result_digest?: string
+          result_schema_version?: number
+          selection_version?: number
+          source_char_count?: number
+          source_char_unit?: string
+          source_document_id?: string
+          source_hash?: string
+          source_kind?: string
+          source_page_count?: number | null
+          source_updated_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_result_selections_entitlement_id_fkey"
+            columns: ["entitlement_id"]
+            isOneToOne: false
+            referencedRelation: "product_entitlements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_result_selections_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "uploaded_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -4534,6 +5490,11 @@ export type Database = {
           id: string
           mime_type: string | null
           original_filename: string | null
+          product_extracted_chars: number | null
+          product_extraction_at: string | null
+          product_extraction_status: string | null
+          product_source_kind: string | null
+          product_source_pages: number | null
           size_bytes: number | null
           source: string
           storage_path: string | null
@@ -4552,6 +5513,11 @@ export type Database = {
           id?: string
           mime_type?: string | null
           original_filename?: string | null
+          product_extracted_chars?: number | null
+          product_extraction_at?: string | null
+          product_extraction_status?: string | null
+          product_source_kind?: string | null
+          product_source_pages?: number | null
           size_bytes?: number | null
           source: string
           storage_path?: string | null
@@ -4570,6 +5536,11 @@ export type Database = {
           id?: string
           mime_type?: string | null
           original_filename?: string | null
+          product_extracted_chars?: number | null
+          product_extraction_at?: string | null
+          product_extraction_status?: string | null
+          product_source_kind?: string | null
+          product_source_pages?: number | null
           size_bytes?: number | null
           source?: string
           storage_path?: string | null
@@ -5196,6 +6167,26 @@ export type Database = {
         Returns: Json
       }
       award_user_loyalty: { Args: { _total_ops: number }; Returns: Json }
+      begin_product_fulfillment: {
+        Args: {
+          p_entitlement_id: string
+          p_stale_after?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      begin_product_result_refinement: {
+        Args: {
+          p_base_result_digest: string
+          p_entitlement_id: string
+          p_expected_refinement_version: number
+          p_idempotency_key: string
+          p_instruction_digest: string
+          p_lease_seconds: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
       bg_to_lat: { Args: { input: string }; Returns: string }
       can_access_saved_document: {
         Args: { _document_id: string; _user_id: string }
@@ -5207,7 +6198,111 @@ export type Database = {
         Returns: Json
       }
       check_compliance_reminders: { Args: never; Returns: Json }
+      claim_product_job: {
+        Args: {
+          p_budget_hard_cost_micro_usd: number
+          p_budget_max_calls: number
+          p_budget_max_input_tokens: number
+          p_budget_max_output_tokens: number
+          p_budget_max_tokens: number
+          p_entitlement_id: string
+          p_lease_seconds?: number
+          p_policy_version: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      claim_product_refinement: {
+        Args: {
+          p_entitlement_id: string
+          p_stale_after?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       cleanup_anonymous_drafts: { Args: never; Returns: number }
+      commit_product_generation_result: {
+        Args: {
+          p_artifact_stage: string
+          p_call_ids: string[]
+          p_current_cursor_key: string
+          p_generation_timestamp: string
+          p_job_id: string
+          p_lease_token: string
+          p_result: Json
+          p_result_canonical: string
+          p_result_digest: string
+        }
+        Returns: Json
+      }
+      complete_product_fulfillment: {
+        Args: {
+          p_entitlement_id: string
+          p_processing_token: string
+          p_product_id: string
+          p_result: Json
+          p_result_schema_version: number
+          p_source_hash: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      complete_product_generation_call: {
+        Args: {
+          p_artifact_digest: string
+          p_call_id: string
+          p_job_id: string
+          p_lease_token: string
+          p_redacted_artifact: Json
+          p_redacted_artifact_canonical: string
+          p_request_digest: string
+          p_reservation_token: string
+          p_usage_cost_micro_usd: number
+          p_usage_input_tokens: number
+          p_usage_output_tokens: number
+        }
+        Returns: Json
+      }
+      complete_product_refinement: {
+        Args: {
+          p_entitlement_id: string
+          p_refinement_token: string
+          p_result: Json
+          p_result_schema_version: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      complete_product_result_refinement: {
+        Args: {
+          p_lease_token: string
+          p_refinement_id: string
+          p_result: Json
+          p_result_canonical: string
+          p_result_digest: string
+        }
+        Returns: Json
+      }
+      complete_product_result_refinement_call: {
+        Args: {
+          p_call_id: string
+          p_lease_token: string
+          p_max_cost_micro_usd: number
+          p_max_input_tokens: number
+          p_max_output_tokens: number
+          p_max_total_tokens: number
+          p_refinement_id: string
+          p_request_digest: string
+          p_reservation_token: string
+          p_response: Json
+          p_response_canonical: string
+          p_response_digest: string
+          p_usage_cost_micro_usd: number
+          p_usage_input_tokens: number
+          p_usage_output_tokens: number
+        }
+        Returns: Json
+      }
       consume_ai_message: { Args: never; Returns: Json }
       consume_analysis_preview: { Args: never; Returns: Json }
       consume_assistant_message: {
@@ -5233,6 +6328,41 @@ export type Database = {
           p_price_id: string
           p_session_id: string
           p_user_id: string
+        }
+        Returns: Json
+      }
+      fail_product_fulfillment: {
+        Args: {
+          p_entitlement_id: string
+          p_error_code: string
+          p_processing_token: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      fail_product_job: {
+        Args: {
+          p_error_class: string
+          p_error_code: string
+          p_job_id: string
+          p_lease_token: string
+        }
+        Returns: Json
+      }
+      fail_product_refinement: {
+        Args: {
+          p_entitlement_id: string
+          p_error_code: string
+          p_refinement_token: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      fail_product_result_refinement: {
+        Args: {
+          p_error_code: string
+          p_lease_token: string
+          p_refinement_id: string
         }
         Returns: Json
       }
@@ -5276,6 +6406,18 @@ export type Database = {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
       }
+      load_product_generation_state: {
+        Args: { p_job_id: string; p_lease_token: string }
+        Returns: Json
+      }
+      load_product_result_state: {
+        Args: {
+          p_entitlement_id: string
+          p_result_digest: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       mark_all_notifications_read: { Args: never; Returns: number }
       mark_notification_read: { Args: { _id: string }; Returns: undefined }
       match_legal_chunks: {
@@ -5316,9 +6458,67 @@ export type Database = {
       metrics_overview: { Args: { _from: string; _to: string }; Returns: Json }
       my_team_ids: { Args: never; Returns: string[] }
       owner_scorecard: { Args: { _from: string; _to: string }; Returns: Json }
+      product_job_cursor_advances: {
+        Args: { p_current: Json; p_next: Json; p_product_id: string }
+        Returns: boolean
+      }
+      product_job_cursor_key: { Args: { p_cursor: Json }; Returns: string }
+      product_job_stage_sequence: {
+        Args: { p_product_id: string }
+        Returns: string[]
+      }
+      product_job_status: { Args: { p_entitlement_id: string }; Returns: Json }
       purge_old_funnel_events: { Args: never; Returns: undefined }
       rate_limit_check: {
         Args: { _key: string; _max: number; _window_s: number }
+        Returns: Json
+      }
+      record_product_generation_artifact: {
+        Args: {
+          p_artifact_stage: string
+          p_call_ids: string[]
+          p_coverage?: Json
+          p_current_cursor_key: string
+          p_generation_timestamp: string
+          p_job_id: string
+          p_lease_token: string
+          p_next_cursor: Json
+          p_payload: Json
+          p_payload_canonical: string
+          p_payload_digest: string
+          p_release_lease?: boolean
+        }
+        Returns: Json
+      }
+      record_product_job_checkpoint: {
+        Args: {
+          p_job_id: string
+          p_lease_token: string
+          p_next_cursor: Json
+          p_payload_digest?: string
+          p_release_lease?: boolean
+          p_usage_calls?: number
+          p_usage_cost_micro_usd?: number
+          p_usage_input_tokens?: number
+          p_usage_output_tokens?: number
+        }
+        Returns: Json
+      }
+      record_product_purchase: {
+        Args: {
+          p_amount_cents: number
+          p_currency: string
+          p_environment: string
+          p_intake_id: string
+          p_lookup_key: string
+          p_paid_at: string
+          p_price_id: string
+          p_product_id: string
+          p_refinements_included: number
+          p_session_id: string
+          p_stripe_event_id: string
+          p_user_id: string
+        }
         Returns: Json
       }
       record_web_vital_aggregate: {
@@ -5336,7 +6536,45 @@ export type Database = {
         Args: { _kind: string; _used_bonus?: boolean; _user_id: string }
         Returns: undefined
       }
+      release_product_job_lease: {
+        Args: { p_job_id: string; p_lease_token: string }
+        Returns: Json
+      }
       render_plans_section_content: { Args: never; Returns: string }
+      reserve_product_generation_call: {
+        Args: {
+          p_call_id: string
+          p_cursor_key: string
+          p_job_id: string
+          p_lease_token: string
+          p_model: string
+          p_request_digest: string
+          p_stage: string
+        }
+        Returns: Json
+      }
+      reserve_product_result_refinement_call: {
+        Args: {
+          p_call_id: string
+          p_lease_token: string
+          p_model: string
+          p_refinement_id: string
+          p_request_digest: string
+        }
+        Returns: Json
+      }
+      save_product_result_selection: {
+        Args: {
+          p_decisions: Json
+          p_entitlement_id: string
+          p_expected_version: number
+          p_idempotency_key: string
+          p_patch_output_hash: string
+          p_result_digest: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       search_templates: {
         Args: {
           p_bilingual_only?: boolean
