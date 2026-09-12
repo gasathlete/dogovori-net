@@ -36,6 +36,7 @@ vi.mock("@/lib/productUpload", async () => {
 
 import ProductCheckout from "@/pages/ProductCheckout";
 import {
+  PRODUCT_PERSIST_FAILED_MESSAGE,
   PRODUCT_SCHEMA_UNAVAILABLE_MESSAGE,
   ProductUploadError,
 } from "@/lib/productUpload";
