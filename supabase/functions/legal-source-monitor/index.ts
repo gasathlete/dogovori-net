@@ -23,6 +23,7 @@ import {
 import type { LegalSourceEntry } from "../_shared/legal-source-registry.ts";
 import { safeFetchSource } from "../_shared/legal-fetch-guard.ts";
 import { authorizeMonitorRequest } from "../_shared/legal-monitor-auth.ts";
+import { INTERNAL_CRON_VERIFIER_RPC } from "../_shared/cron-auth.ts";
 import { bearerToken } from "../_shared/service-token.ts";
 import { runAdapter } from "../_shared/legal-source-adapters.ts";
 import {
@@ -72,6 +73,13 @@ Deno.serve(async (req) => {
       isStaff: async (userId) => {
         const { data, error } = await admin.rpc("is_staff", { _user_id: userId });
         return { staff: data === true, error };
+      },
+      verifyDedicated: async (candidate) => {
+        const { data, error } = await admin.rpc(INTERNAL_CRON_VERIFIER_RPC, {
+          _candidate: candidate,
+        });
+        if (error) throw error;
+        return data === true;
       },
     },
     bearerToken(req),
