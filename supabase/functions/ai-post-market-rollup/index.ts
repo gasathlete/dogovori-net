@@ -4,11 +4,14 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { requireServiceRole } from "../_shared/cron-auth.ts";
+import { dryRunResponse, isDryRunRequest } from "../_shared/dry-run.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const denied = await requireServiceRole(req);
   if (denied) return denied;
+  if (await isDryRunRequest(req)) return dryRunResponse("ai-post-market-rollup", corsHeaders);
+
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,

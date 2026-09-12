@@ -2,6 +2,7 @@
 // Runs daily; idempotency keys ensure safe re-runs.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireServiceRole } from "../_shared/cron-auth.ts";
+import { dryRunResponse, isDryRunRequest } from "../_shared/dry-run.ts";
 import { sendAppEmail } from "../_shared/transactional-email-templates/send-and-log.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -16,6 +17,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const denied = await requireServiceRole(req);
   if (denied) return denied;
+  if (await isDryRunRequest(req)) return dryRunResponse("expire-pro-notify", corsHeaders);
+
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   const now = new Date();
