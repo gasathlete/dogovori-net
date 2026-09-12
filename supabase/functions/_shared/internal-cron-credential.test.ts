@@ -3,7 +3,9 @@
 //   * шестте функции с ръчна авторизация имат verify_jwt = false.
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 
-const MIGRATION = "docs/migrations/stage2b1e_internal_operational_cron_secret.sql";
+// Каноничен timestamped payload; supabase/migrations е защитена папка (огледало на
+// вече приложени миграции), затова неприложената SQL живее тук.
+const MIGRATION = "docs/migrations/20260912213000_internal_operational_cron_secret.sql";
 const IDENTIFIER = "internal_operational_cron_secret_v1";
 
 Deno.test("migration contains no credential material", async () => {
