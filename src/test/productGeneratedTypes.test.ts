@@ -57,7 +57,7 @@ describe("генерираните типове са сверени с жива�
   });
 
   it("способността за готовност е без аргументи и връща Json", () => {
-    const match = TYPES.match(/\n      product_rollout_capability: \{[\s\S]{0,200}?\n/);
+    const match = TYPES.match(/\n {6}product_rollout_capability: \{[\s\S]{0,200}?\n/);
     expect(match).not.toBeNull();
     const signature = match![0];
     expect(signature).toMatch(/Args:\s*(never|Record<PropertyKey, never>)/);
