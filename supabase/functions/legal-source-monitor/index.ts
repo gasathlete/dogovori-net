@@ -59,32 +59,23 @@ Deno.serve(async (req) => {
 
   const admin = createClient(supabaseUrl, serviceKey);
 
-  // ---- Fail-closed автентикация: service_role JWT или staff потребител ----
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
-  if (!token) return json({ error: "unauthorized" }, 401, cors);
-
-  let isServiceRole = false;
-  try {
-    const anon = createClient(supabaseUrl, anonKey);
-    // getClaims не е в типовете на закования SDK; ползваме тесен локален контракт.
-    const authWithClaims = anon.auth as unknown as {
-      getClaims: (t: string) => Promise<{ data?: { claims?: { role?: string } } }>;
-    };
-    const { data } = await authWithClaims.getClaims(token);
-    isServiceRole = data?.claims?.role === "service_role";
-  } catch {
-    isServiceRole = false;
-  }
-
-  let actorId: string | null = null;
-  if (!isServiceRole) {
-    const { data: ud } = await admin.auth.getUser(token);
-    actorId = ud?.user?.id ?? null;
-    if (!actorId) return json({ error: "unauthorized" }, 401, cors);
-    const { data: staff, error: staffErr } = await admin.rpc("is_staff", { _user_id: actorId });
-    if (staffErr || !staff) return json({ error: "forbidden" }, 403, cors);
-  }
+  // ---- Fail-closed автентикация: точен service ключ или staff потребител ----
+  const auth = await authorizeMonitorRequest(
+    {
+      serviceKey,
+      getUser: async (t) => {
+        const { data, error } = await admin.auth.getUser(t);
+        return { userId: data?.user?.id ?? null, error };
+      },
+      isStaff: async (userId) => {
+        const { data, error } = await admin.rpc("is_staff", { _user_id: userId });
+        return { staff: data === true, error };
+      },
+    },
+    bearerToken(req),
+  );
+  if (!auth.ok) return json({ error: auth.error }, auth.status, cors);
+  const isServiceRole = auth.isServiceRole;
 
   const body = (await req.json().catch(() => null)) as
     | { action?: unknown; source_key?: unknown; dry_run?: unknown }
