@@ -22,6 +22,8 @@ import {
 } from "../_shared/legal-source-registry.ts";
 import type { LegalSourceEntry } from "../_shared/legal-source-registry.ts";
 import { safeFetchSource } from "../_shared/legal-fetch-guard.ts";
+import { authorizeMonitorRequest } from "../_shared/legal-monitor-auth.ts";
+import { bearerToken } from "../_shared/service-token.ts";
 import { runAdapter } from "../_shared/legal-source-adapters.ts";
 import {
   aggregateHealth,
