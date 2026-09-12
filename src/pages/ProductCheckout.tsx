@@ -280,8 +280,9 @@ export default function ProductCheckout() {
             </div>
           ) : (
             <div className="mt-3 space-y-3">
+              <DocumentFilePicker file={file} onSelect={setFile} disabled={busy} />
               <div>
-                <Label htmlFor="product-title">Заглавие</Label>
+                <Label htmlFor="product-title">Заглавие (по избор)</Label>
                 <Input
                   id="product-title"
                   value={title}
@@ -290,22 +291,11 @@ export default function ProductCheckout() {
                   className="min-h-11"
                 />
               </div>
-              <p className="text-sm text-muted-foreground">{PRODUCT_ACCEPTED_INPUT}</p>
-              <div>
-                <Label htmlFor="product-file">Файл (PDF с четим текст или DOCX)</Label>
-                <Input
-                  id="product-file"
-                  type="file"
-                  accept=".pdf,.docx"
-                  className="min-h-11"
-                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                />
-              </div>
               <Button
                 type="button"
                 onClick={handlePrepare}
                 disabled={busy || !file}
-                className="min-h-11"
+                className="min-h-12 w-full sm:w-auto"
               >
                 {busy ? (phase || "Обработка…") : "Продължете"}
               </Button>
