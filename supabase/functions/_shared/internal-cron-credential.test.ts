@@ -30,7 +30,14 @@ Deno.test("verifier is hardened: fixed hash loop, privileges, safe search_path",
   assert(sql.includes("RETURNS boolean"));
   assert(sql.includes("SECURITY DEFINER"));
   assert(sql.includes("STABLE"));
-  assert(sql.includes("SET search_path = public, extensions, vault"));
+  // Безопасен, неписуем search_path: само pg_catalog; всичко останало е схемно квалифицирано.
+  assert(sql.includes("SET search_path = pg_catalog"));
+  assert(!/SET\s+search_path[^\n]*\bpublic\b/i.test(sql), "search_path must not include public");
+  assert(sql.includes("vault.decrypted_secrets"));
+  assert(sql.includes("INTO STRICT v_expected"));
+  assert(sql.includes("WHEN no_data_found THEN"));
+  assert(sql.includes("WHEN too_many_rows THEN"));
+  assert(!/LIMIT\s+1/i.test(sql), "verifier must not use LIMIT 1 for the Vault read");
   assert(sql.includes("'^[0-9a-f]{64}$'"));
   assert(sql.includes("extensions.digest(_candidate, 'sha256')"));
   assert(sql.includes("FOR i IN 0..31 LOOP"));
