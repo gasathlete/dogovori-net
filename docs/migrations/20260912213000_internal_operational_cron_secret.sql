@@ -148,7 +148,11 @@ BEGIN
        WHERE j.jobid::text IN (SELECT jsonb_object_keys(v_expected_jobs))
        ORDER BY j.jobid
     LOOP
-      -- Единствената промяна е идентификаторът; всеки друг байт се запазва.
+      -- Единствената промяна е точно едното срещане на идентификатора;
+      -- всеки друг байт се запазва.
+      IF (length(r.command) - length(replace(r.command, v_old_id, ''))) / length(v_old_id) <> 1 THEN
+        RAISE EXCEPTION 'cron job % no longer has exactly one old identifier', r.jobid;
+      END IF;
       v_new_command := replace(r.command, v_old_id, v_new_id);
       PERFORM cron.alter_job(job_id := r.jobid, command := v_new_command, active := false);
     END LOOP;
@@ -158,9 +162,10 @@ BEGIN
     SELECT count(*)
       FROM cron.job AS j
      WHERE j.jobid::text IN (SELECT jsonb_object_keys(v_expected_jobs))
+       AND j.jobname = (v_expected_jobs ->> j.jobid::text)
        AND j.active = false
-       AND position(v_new_id in j.command) > 0
-       AND position(v_old_id in j.command) = 0
+       AND (length(j.command) - length(replace(j.command, v_new_id, ''))) / length(v_new_id) = 1
+       AND (length(j.command) - length(replace(j.command, v_old_id, ''))) / length(v_old_id) = 0
   ) <> 4 THEN
     RAISE EXCEPTION 'post-rewire assertion failed for the four operational cron jobs';
   END IF;
