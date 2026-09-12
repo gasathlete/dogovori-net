@@ -1,27 +1,26 @@
 # Продуктов rollout — актуален статус и гейтван план
 
 ## Текущо състояние (истина към този момент)
-- Функционалният baseline за качване на Edge функциите е commit **8675471c1f83cce5115385aef70e1e5047e43521**. Следващите commits в хранилището са само документационни актуализации.
+- Изходният HEAD преди този документационен commit е **07fadf252c35573cdfa4205343a4426eae68e980**.
 - Базата е на миграция **0026_product_acl_hardening** (приложена и проверена).
 - Продуктовите feature flags са **ИЗКЛЮЧЕНИ**. Плащания не могат да стартират.
-- Седем засегнати Edge функции са качени от този HEAD около 19:29–19:30 UTC на 12 септември 2026:
-  `payments-webhook`, `legal-source-monitor`, `ai-post-market-rollup`, `expire-pro-notify`, `notify-due-reminders`, `notify-unfinished-docs`, `retention-sweeper`.
+- `payments-webhook` е качена по-рано от прегледания функционален baseline.
+- Следните шест Edge функции са качени успешно от функционалния baseline **07fadf252c35573cdfa4205343a4426eae68e980**:
+  `retention-sweeper`, `ai-post-market-rollup`, `expire-pro-notify`, `notify-unfinished-docs`, `notify-due-reminders`, `legal-source-monitor`.
+- Петте cron функции приемат authenticated no-write dry-run пакета; той е качен, не чака качване.
 - Няма поръчки, плащания, права или изпълнени задачи в продуктовите таблици.
-- Post-deploy броячи не са се променили: `uploaded_contracts` 13; `order_snapshots` 0; всички десет продуктови таблици са 0; `legal_source_registry`, `legal_source_snapshots`, `legal_change_candidates`, `legal_ingestion_runs` са 0.
+- Броячи не са се променили: `uploaded_contracts` 13; `order_snapshots` 0; всички десет продуктови таблици са 0; `legal_source_registry`, `legal_source_snapshots`, `legal_change_candidates`, `legal_ingestion_runs` са 0.
 
 ## Потвърден G1 оперативен статус
 - Изходните security поправки са завършени и качени.
-- Negative smoke matrix е преминал:
-  - `payments-webhook`: липсващ или невалиден `env` → 400; `env=sandbox` с липсващ/невалиден подпис → 400; `env=live` с липсващ/невалиден подпис → 400.
-  - `legal-source-monitor`: без Authorization → 401; обикновен/anon JWT → 401.
-  - Петте cron консуматора: без Authorization → 401; обикновен/anon JWT → 403.
-  - Не е извикана нито една положителна cron операция.
-- Единственото непотвърдено положително действие: `sync_registry` с `dry_run=true` в `legal-source-monitor` достига функцията, но връща 401. Наличният service credential в средата на изпълнение не е byte-идентичен с runtime `SUPABASE_SERVICE_ROLE_KEY` на функцията. Не се предполага кой точно формат ключ очаква runtime; не се предлага приемане на произволни `service_role` claims.
+- Negative smoke matrix след последното качване:
+  - Петте cron консуматора: без Authorization → 401; malformed bearer → 403; фиксиран грешен 64-hex кандидат → 403.
+  - `legal-source-monitor`: без Authorization → 401; фиксиран грешен 64-hex кандидат → 403 без fallthrough към user auth.
+  - Не е извикана нито една положителна операция.
 - Read-only scheduler диагностика:
-  - Активни са четири HTTP cron задачи: `retention-sweeper-hourly` (0 * * * *), `ai-post-market-rollup-daily` (30 3 * * *), `expire-pro-notify-daily` (0 9 * * *), `notify-due-reminders-daily` (0 8 * * *).
-  - Те ползват Authorization + Vault.
-  - Сравнението на metadata показва, че всяка задача препраща към Vault име, за което няма съответстващ Vault запис.
-  - Мрежовите логове показват по един 401 всеки час 15:00–19:00 UTC, съвпадащ с `retention-sweeper-hourly`.
+  - Четирите HTTP cron задачи (7–10) бяха активни по време на диагнозата, но сега са паузирани (`active=false`) под containment.
+  - Имена и разписания: `retention-sweeper-hourly` (0 * * * *), `ai-post-market-rollup-daily` (30 3 * * *), `expire-pro-notify-daily` (0 9 * * *), `notify-due-reminders-daily` (0 8 * * *).
+  - Всяка от четирите задачи все още препраща към стария Vault идентификатор `email_queue_service_role_key` точно веднъж.
   - Няма активна `pg_cron` задача за `notify-unfinished-docs` или `legal-source-monitor`.
 - Безопасност: повреденият scheduler път в момента е fail-closed. Поправката на credential wiring би реактивирала функции, които изтриват/обновяват данни, пишат rollup-и и изпращат имейли.
 
@@ -29,46 +28,39 @@
 - Следните `pg_cron` задачи са паузирани (`active=false`), като schedule и command са запазени непроменени: job 7 `retention-sweeper-hourly`, job 8 `ai-post-market-rollup-daily`, job 9 `expire-pro-notify-daily`, job 10 `notify-due-reminders-daily`. Всички други cron задачи са оставени непроменени.
 - Задачите остават паузирани до отделно одобрение за въздействие.
 
-## No-write dry-run пакет (source, чака ревю и качване)
-- Добавен е общ помощник `supabase/functions/_shared/dry-run.ts` без зависимости и без достъп до средата.
-- Пет функции приемат строго тяло `{"dry_run":true}` (само булев `true`): `retention-sweeper`, `ai-post-market-rollup`, `expire-pro-notify`, `notify-unfinished-docs`, `notify-due-reminders`.
-- Проверката е след `requireServiceRole(req)` и връща `{"ok":true,"dry_run":true,"side_effects":false,"function":"<име>"}` преди `createClient()`, DB/storage/auth-admin достъп, имейл, външна заявка или запис. Това е authenticated no-op за доказване на wiring, а не impact report или преглед на данни.
-- Пакетът е само в източника: изисква ревю и контролирано качване; нищо не е качено в този цикъл.
-
-## Посветен вътрешен cron ключ (source-prepared, НЕ приложен и НЕ качен)
+## Посветен вътрешен cron ключ (source-prepared, НЕ приложен, но функциите са качени)
 - Дизайн: 256-битов ключ, генериран изцяло в PostgreSQL Vault под фиксирания идентификатор `internal_operational_cron_secret_v1`. Стойността не съществува в източника, в литерал на миграция, в аргумент на инструмент, в журнал, в отговор или в Edge настройка.
-- SQL (каноничен timestamped payload, НЕ приложен): `docs/migrations/20260912213000_internal_operational_cron_secret.sql`. Папката `supabase/migrations` е защитена, защото огледално отразява ВЕЧЕ приложени миграции; защитата не се заобикаля. Този файл е единственият каноничен payload и се прилага еднократно през Supabase migration tool. Той НЕ е приложена миграция.
+- SQL (каноничен timestamped payload, НЕ приложен): `docs/migrations/20260912213000_internal_operational_cron_secret.sql`.
+  - Той НЕ е приложена миграция. Supabase migration tool го отхвърли преди изпълнение, защото операциите с Vault/ключове са защитени. Това е permission boundary; не е заобиколена.
   - `public.verify_internal_cron_secret(_candidate text)` — plpgsql, STABLE, SECURITY DEFINER, `SET search_path = pg_catalog` (без `public` и без други писуеми схеми; всички обекти са схемно квалифицирани), приема само точно 64 малки hex символа, чете точно един Vault ред с `INTO STRICT` (липса или повече от един ред → false), сравнява два sha256 хеша във фиксиран 32-итерационен акумулатор, fail-closed при повредена стойност, никога не изнася очакваната стойност, права само за `service_role`;
   - пазен идемпотентен блок: изисква точно задачи 7–10 с очакваните имена и `active=false`; за всяка задача се брои точният брой срещания — допустими са само (стар 1 / нов 0) или (стар 0 / нов 1), а both/none/multiple вдига грешка ПРЕДИ създаването на Vault стойността и преди всякаква мутация; после се изисква и глобално единно състояние на четирите; при старо състояние се заменя само едното срещане на идентификатора, `cron.alter_job(... active := false)`, и постусловие: точно едно ново срещане, нула стари, задачите паузирани.
-- Авторизация (source): `_shared/internal-cron-secret.ts` (контракт без стойности), `_shared/cron-auth.ts` (точен service ключ първо и без мрежа, после 64-hex кандидат през RPC; липсващ токен 401, всичко останало 403) и `_shared/legal-monitor-auth.ts` (същият кандидат получава service семантики; грешен кандидат или грешка на верификатора → 403 без преминаване към user auth; staff JWT е непроменен).
+- Авторизация (качена): `_shared/internal-cron-secret.ts` (контракт без стойности), `_shared/cron-auth.ts` (точен service ключ първо и без мрежа, после 64-hex кандидат през RPC; липсващ токен 401, всичко останало 403) и `_shared/legal-monitor-auth.ts` (същият кандидат получава service семантики; грешен кандидат или грешка на верификатора → 403 без преминаване към user auth; staff JWT е непроменен).
 - Gateway: `verify_jwt = false` за точно шест функции — `retention-sweeper`, `ai-post-market-rollup`, `expire-pro-notify`, `notify-unfinished-docs`, `notify-due-reminders`, `legal-source-monitor`. Ръчната авторизация във функцията остава задължителна.
 - Dry-run контракт: единственото допустимо DB извикване преди no-op отговора е верификаторът; след успешна авторизация dry-run връща преди всяко оперативно четене/запис, storage, имейл, AI или външна заявка; payload остава точно `{"ok":true,"dry_run":true,"side_effects":false,"function":"<име>"}`.
-- Състояние: само източник — source-prepared, НЕ приложен, НЕ качен. Няма приложена SQL, няма Vault операция, няма качване на функции, няма промяна по задачите. Задачи 7–10 остават паузирани. G2 (пускане на фронтенда) и всички feature флагове остават блокирани.
+- Потвърдено no-partial state: новият Vault идентификатор липсва; верификаторът липсва; задачи 7–10 са `active=false` и всяка препраща към стария идентификатор точно веднъж.
+- Функциите са качени с новата авторизация, но без приложен ключ миграцията няма да работи. Задачи 7–10 остават паузирани. G2 (пускане на фронтенда) и всички feature флагове остават блокирани.
 
 ## Гейтове
 - **G0 — заключване и доказателства:** фиксиран HEAD, byte-parity на миграциите, network-silent preflight, чисто работно дърво.
-- **G1 — интеграционни blockers:** изходните поправки са затворени, качени и потвърдени с negative smoke matrix. Остават две оперативни пречки: (1) положително доказателство за удостоверяване на `legal-source-monitor`; (2) поправка на счупеното Vault reference/auth wiring за четирите (сега паузирани) HTTP cron задачи. За двете е подготвена, но НЕ приложена и НЕ качена, ремедиация с посветен вътрешен cron ключ.
+- **G1 — интеграционни blockers:** изходните поправки са затворени, шестте функции са качени и negative smoke matrix е преминал. Остава една оперативна пречка: прилагане на миграцията за посветения cron ключ и доказване на положителни no-write проби (A1–A3).
 - **G2 — пускане на фронтенда с флагове OFF:** видим продуктов интерфейс без възможност за плащане. **Все още е блокиран.**
 - **G3 — sandbox E2E:** пълен тестов поток без реални карти и без реални клиентски документи.
 - **G4 — правно приемане:** условия, съгласия, поверителност и граници на резултата потвърдени.
 - **G5 — поетапно монетизиране:** включване на флаговете по един, с наблюдение и стоп-критерии.
 
-## Следваща стъпка — изрично одобрение (containment-first remediation)
-Следващото действие изисква изрично разрешение, защото ще докосне оперативни задачи, които могат да пишат и изтриват данни:
+## Строга оставаща последователност
+- **H1 (изисква човек):** собственикът на проекта отваря Supabase SQL Editor и изпълнява точно пълното съдържание на `docs/migrations/20260912213000_internal_operational_cron_secret.sql` веднъж, без редактиране и без показване на генерираната стойност.
+- **A1 след H1 (автоматизирано, само четене):** проверка на RPC metadata/ACL/search_path, брой на Vault имена, точните четири job ID/имена/`active=false`, стари срещания 0/нови 1, и нормализирани command fingerprints/разписания/database/username.
+- **A2 след H1 (автоматизирано, само no-write):** иницииране само на no-write положителни проби от PostgreSQL `pg_net`, като стойността на Vault се използва като scalar subquery в `Authorization` без връщане на стойността:
+  - `{"dry_run":true}` за петте cron функции;
+  - `{"action":"sync_registry","dry_run":true}` за `legal-source-monitor`.
+- **A3 след H1 (автоматизирано):** изисква HTTP 200 и точно петте generic dry-run payload-а; `sync_registry` dry_run трябва да е 200/no-write. Повторна проверка на всички DB броячи и `active=false` на задачите.
+- **STOP:** без повторно активиране на нито една задача. Повторното активиране е отделна одобрителна порта. Публикуването на фронтенда и всички feature flags остават блокирани.
 
-1. Snapshot на metadata на четирите активни HTTP cron задачи и паузирането им.
-2. Добавяне/проверка на no-write dry-run или impact-preview възможност за всяка оперативна функция преди каквото и да е положително извикване.
-3. Поправка или миграция на Vault/key/header wiring през сигурно secret management, без разкриване на стойности.
-4. Доказване на удостоверяването само чрез no-write проби и повторна проверка на DB броячите.
-5. Повторно активиране на всяка задача поотделно само след отделно одобрение за въздействие и наблюдение на първото ѝ изпълнение.
-6. Отделно решение дали да се мигрират legacy `service_role`/`anon` ключове към Supabase secret/publishable ключове преди края на 2026.
-
-**G2 публикуване на фронтенда и всички feature flags остават блокирани до изрично одобрение.**
-
-## Забранено в тази source фаза
+## Забранено в тази фаза
 - Включване на feature flags.
 - Публикуване на фронтенда.
-- SQL и миграции.
+- Прилагане на SQL/миграции без изрично одобрение H1.
 - Реални плащания и Stripe извиквания.
 - Живи AI извиквания.
 - Достъп до клиентски документи и данни.
