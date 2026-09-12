@@ -32,7 +32,7 @@ export interface PreparedProductDocument {
 
 export class ProductUploadError extends Error {}
 
-/** Кратки, човешки съобщения. Никога не показваме技 технически детайли на клиента. */
+/** Кратки, човешки съобщения. Никога не показваме технически детайли на клиента. */
 export const PRODUCT_SCHEMA_UNAVAILABLE_MESSAGE =
   "Продуктът се включва в момента. Документът не е запазен и плащане не е извършено.";
 export const PRODUCT_PERSIST_FAILED_MESSAGE =
