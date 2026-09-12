@@ -108,12 +108,18 @@ BEGIN
       RAISE EXCEPTION 'cron job % must stay paused before rewiring', r.jobid;
     END IF;
 
-    IF position(v_old_id in r.command) > 0 THEN
+    -- Точен брой срещания, не просто наличие.
+    v_old_hits := (length(r.command) - length(replace(r.command, v_old_id, ''))) / length(v_old_id);
+    v_new_hits := (length(r.command) - length(replace(r.command, v_new_id, ''))) / length(v_new_id);
+
+    IF v_old_hits = 1 AND v_new_hits = 0 THEN
       v_old_count := v_old_count + 1;
-    ELSIF position(v_new_id in r.command) > 0 THEN
+    ELSIF v_old_hits = 0 AND v_new_hits = 1 THEN
       v_new_count := v_new_count + 1;
     ELSE
-      RAISE EXCEPTION 'cron job % references no known cron credential identifier', r.jobid;
+      RAISE EXCEPTION
+        'cron job % has an unexpected credential identifier state (old %, new %)',
+        r.jobid, v_old_hits, v_new_hits;
     END IF;
   END LOOP;
 
