@@ -41,7 +41,7 @@ import {
   prepareProductDocument,
   type PreparedProductDocument,
 } from "@/lib/productUpload";
-import { PRODUCT_ACCEPTED_INPUT } from "@/lib/productSource";
+import { DocumentFilePicker } from "@/components/products/DocumentFilePicker";
 
 type Position = "conservative" | "balanced" | "assertive";
 type StepId = "document" | "context" | "payment";
@@ -280,8 +280,9 @@ export default function ProductCheckout() {
             </div>
           ) : (
             <div className="mt-3 space-y-3">
+              <DocumentFilePicker file={file} onSelect={setFile} disabled={busy} />
               <div>
-                <Label htmlFor="product-title">Заглавие</Label>
+                <Label htmlFor="product-title">Заглавие (по избор)</Label>
                 <Input
                   id="product-title"
                   value={title}
@@ -290,22 +291,11 @@ export default function ProductCheckout() {
                   className="min-h-11"
                 />
               </div>
-              <p className="text-sm text-muted-foreground">{PRODUCT_ACCEPTED_INPUT}</p>
-              <div>
-                <Label htmlFor="product-file">Файл (PDF с четим текст или DOCX)</Label>
-                <Input
-                  id="product-file"
-                  type="file"
-                  accept=".pdf,.docx"
-                  className="min-h-11"
-                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                />
-              </div>
               <Button
                 type="button"
                 onClick={handlePrepare}
                 disabled={busy || !file}
-                className="min-h-11"
+                className="min-h-12 w-full sm:w-auto"
               >
                 {busy ? (phase || "Обработка…") : "Продължете"}
               </Button>
@@ -403,11 +393,16 @@ export default function ProductCheckout() {
         {/* 3) Цена и условия */}
         <Card className="mt-4 p-4 md:p-6">
           <h2 className="text-lg font-semibold">3. Цена и условия</h2>
-          <p className="mt-2 text-sm">
-            <span className="font-medium">{product.name}</span> — за един документ, еднократно,
-            без абонамент.
-          </p>
-          <ProductPrice id={product.id} size="md" showLabel className="mt-2" />
+          <div
+            data-testid="product-price-summary"
+            className="mt-3 rounded-lg border border-gold/30 bg-gold/5 p-3"
+          >
+            <p className="text-sm font-semibold">{product.name}</p>
+            <ProductPrice id={product.id} size="md" showLabel className="mt-1" />
+            <p className="mt-1 text-xs text-muted-foreground">
+              За един документ, еднократно, без абонамент.
+            </p>
+          </div>
           {activeStep !== "payment" && (
             <p className="mt-3 text-sm text-muted-foreground">
               Условията и плащането се отварят, след като документът е прочетен и
