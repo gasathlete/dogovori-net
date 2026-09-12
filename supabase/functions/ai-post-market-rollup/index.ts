@@ -10,6 +10,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const denied = await requireServiceRole(req);
   if (denied) return denied;
+  if (await isDryRunRequest(req)) return dryRunResponse("ai-post-market-rollup", corsHeaders);
+
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
