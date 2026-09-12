@@ -9,7 +9,7 @@
  * заключени: така плащате точно това, което сте видели. „Започнете отначало“
  * прави нова заявка.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
@@ -37,6 +37,7 @@ import {
   productPriceLabel,
 } from "@/lib/products";
 import {
+  PRODUCT_PERSIST_FAILED_MESSAGE,
   ProductUploadError,
   prepareProductDocument,
   type PreparedProductDocument,
@@ -142,13 +143,14 @@ export default function ProductCheckout() {
         onPhase: setPhase,
       });
       setPrepared(result);
-      setOpenStep(null);
+      // Контекстът остава отворен, докато човекът сам не потвърди стъпката.
+      setOpenStep("context");
       toast.success("Документът е прочетен целият.");
     } catch (e) {
+      // Само вече обезопасените съобщения стигат до човека. Всичко останало
+      // получава едно и също общо изречение — никакви технически детайли.
       toast.error(
-        e instanceof ProductUploadError || e instanceof Error
-          ? e.message
-          : "Неуспешно качване.",
+        e instanceof ProductUploadError ? e.message : PRODUCT_PERSIST_FAILED_MESSAGE,
       );
     } finally {
       setPhase("");
@@ -217,15 +219,56 @@ export default function ProductCheckout() {
     .filter(Boolean)
     .join(" · ");
 
-  const reopen = (step: StepId) => (
-    <Button
-      type="button"
-      variant="outline"
-      className="mt-3 min-h-11"
-      onClick={() => setOpenStep(step)}
+  /**
+   * Свита стъпка: един компактен ред. Ако е достъпна, се отваря с „Промени“;
+   * заключените стъпки не се правят на кликаеми.
+   */
+  const summaryRow = (
+    testId: string,
+    index: number,
+    heading: string,
+    detail: ReactNode,
+    reopenStep: StepId | null,
+  ) => (
+    <div
+      data-testid={testId}
+      className="mt-3 flex items-center gap-3 rounded-xl border border-border/70 bg-card px-3 py-2.5"
     >
-      Промени
-    </Button>
+      <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-border/70 text-[11px] font-semibold tabular-nums text-muted-foreground">
+        {index}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold">{heading}</span>
+        <span className="block line-clamp-2 text-xs text-muted-foreground">{detail}</span>
+      </span>
+      {reopenStep && !locked && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="min-h-11 shrink-0"
+          onClick={() => setOpenStep(reopenStep)}
+        >
+          Промени
+        </Button>
+      )}
+    </div>
+  );
+
+  const priceBlock = (compact: boolean) => (
+    <div
+      data-testid="product-price-summary"
+      className={
+        compact
+          ? "mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-gold/30 bg-gold/5 px-3 py-2.5"
+          : "mt-3 rounded-xl border border-gold/30 bg-gold/5 p-3"
+      }
+    >
+      <ProductPrice id={product.id} size="md" showLabel />
+      <p className="text-xs text-muted-foreground">
+        За един документ, еднократно, без абонамент.
+      </p>
+    </div>
   );
 
   return (
@@ -237,7 +280,7 @@ export default function ProductCheckout() {
       />
       <Header />
       <main className="mx-auto max-w-2xl px-4 pb-28 pt-8 md:pb-16">
-        <p className="text-sm text-muted-foreground">
+        <p className="truncate text-sm text-muted-foreground">
           <Link to={productPath(product)} className="underline">{product.name}</Link>
         </p>
         <h1 className="mt-2 text-2xl font-semibold md:text-3xl">
@@ -253,71 +296,81 @@ export default function ProductCheckout() {
         />
 
         {/* 1) Документът */}
-        <Card className="mt-5 p-4 md:p-6">
-          <h2 className="text-lg font-semibold">1. Вашият документ</h2>
-          {prepared ? (
-            <div className="mt-3 space-y-2 text-sm">
-              <p className="font-medium">{prepared.title}</p>
-              <p className="text-muted-foreground">
-                {prepared.originalFilename}
-                {prepared.pageCount ? ` · ${prepared.pageCount} стр.` : ""} · прочетен целият
-              </p>
-              {activeStep === "document" && prepared.preview && (
-                <p className="rounded-md bg-muted/50 p-3 text-muted-foreground">
-                  „{prepared.preview}…“
+        {activeStep === "document" ? (
+          <Card className="mt-4 rounded-2xl p-4 md:p-6">
+            <h2 className="text-lg font-semibold">1. Вашият документ</h2>
+            {prepared ? (
+              <div className="mt-3 space-y-2 text-sm">
+                <p className="truncate font-medium">{prepared.title}</p>
+                <p className="truncate text-muted-foreground">
+                  {prepared.originalFilename}
+                  {prepared.pageCount ? ` · ${prepared.pageCount} стр.` : ""} · прочетен целият
                 </p>
-              )}
-              {!locked && (
+                {prepared.preview && (
+                  <p className="line-clamp-3 rounded-md bg-muted/50 p-3 text-muted-foreground">
+                    „{prepared.preview}…“
+                  </p>
+                )}
+                {!locked && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-11"
+                      onClick={changeDocument}
+                    >
+                      Смени документа
+                    </Button>
+                    <Button
+                      type="button"
+                      className="min-h-11"
+                      onClick={() => setOpenStep("context")}
+                    >
+                      Продължете
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="mt-3 space-y-3">
+                <DocumentFilePicker file={file} onSelect={setFile} disabled={busy} />
+                <div>
+                  <Label htmlFor="product-title">Заглавие (по избор)</Label>
+                  <Input
+                    id="product-title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Например: Договор за наем — офис"
+                    className="min-h-11"
+                  />
+                </div>
                 <Button
                   type="button"
-                  variant="outline"
-                  className="min-h-11"
-                  onClick={changeDocument}
+                  onClick={handlePrepare}
+                  disabled={busy || !file}
+                  className="min-h-12 w-full sm:w-auto"
                 >
-                  Смени документа
+                  {busy ? (phase || "Обработка…") : "Продължете"}
                 </Button>
-              )}
-            </div>
-          ) : (
-            <div className="mt-3 space-y-3">
-              <DocumentFilePicker file={file} onSelect={setFile} disabled={busy} />
-              <div>
-                <Label htmlFor="product-title">Заглавие (по избор)</Label>
-                <Input
-                  id="product-title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Например: Договор за наем — офис"
-                  className="min-h-11"
-                />
               </div>
-              <Button
-                type="button"
-                onClick={handlePrepare}
-                disabled={busy || !file}
-                className="min-h-12 w-full sm:w-auto"
-              >
-                {busy ? (phase || "Обработка…") : "Продължете"}
-              </Button>
-            </div>
-          )}
-        </Card>
+            )}
+          </Card>
+        ) : (
+          summaryRow(
+            "step-summary-document",
+            1,
+            prepared?.originalFilename || prepared?.title || "Вашият документ",
+            prepared
+              ? `Прочетен целият${prepared.pageCount ? ` · ${prepared.pageCount} стр.` : ""}`
+              : "Още не е качен",
+            prepared ? "document" : null,
+          )
+        )}
 
         {/* 2) Контекст — отваря се само след като документът е прочетен */}
-        <Card className="mt-4 p-4 md:p-6">
-          <h2 className="text-lg font-semibold">2. Вашата страна</h2>
-          {!prepared ? (
-            <p className="mt-2 text-sm text-muted-foreground">
-              Първо качете документа.
-            </p>
-          ) : activeStep !== "context" ? (
-            <div className="mt-2 text-sm">
-              <p className="text-muted-foreground">
-                {contextSummary || "Още не сте попълнили тази стъпка."}
-              </p>
-              {!locked && reopen("context")}
-            </div>
-          ) : (
+        {activeStep === "context" ? (
+          <Card className="mt-3 rounded-2xl p-4 md:p-6">
+            <h2 className="text-lg font-semibold">2. Вашата страна</h2>
             <div className="mt-3 space-y-3">
               <div>
                 <Label htmlFor="product-role">Коя страна сте по документа?</Label>
@@ -380,121 +433,110 @@ export default function ProductCheckout() {
               )}
               <Button
                 type="button"
-                className="min-h-11"
+                className="min-h-12 w-full sm:w-auto"
                 disabled={!contextReady}
                 onClick={() => setOpenStep("payment")}
               >
                 Продължете
               </Button>
             </div>
-          )}
-        </Card>
+          </Card>
+        ) : (
+          summaryRow(
+            "step-summary-context",
+            2,
+            "Вашата страна",
+            prepared
+              ? contextSummary || "Още не сте попълнили тази стъпка."
+              : "След документа",
+            prepared ? "context" : null,
+          )
+        )}
 
         {/* 3) Цена и условия */}
-        <Card className="mt-4 p-4 md:p-6">
-          <h2 className="text-lg font-semibold">3. Цена и условия</h2>
-          <div
-            data-testid="product-price-summary"
-            className="mt-3 rounded-lg border border-gold/30 bg-gold/5 p-3"
-          >
-            <p className="text-sm font-semibold">{product.name}</p>
-            <ProductPrice id={product.id} size="md" showLabel className="mt-1" />
-            <p className="mt-1 text-xs text-muted-foreground">
-              За един документ, еднократно, без абонамент.
-            </p>
-          </div>
-          {activeStep !== "payment" && (
-            <p className="mt-3 text-sm text-muted-foreground">
-              Условията и плащането се отварят, след като документът е прочетен и
-              сте посочили коя страна сте.
-            </p>
-          )}
-          {(() => {
-            // Съгласията са видими винаги, но са неактивни, докато стъпката не е
-            // достъпна — няма контрола, която изглежда активна без основание.
-            const consentsDisabled = locked || activeStep !== "payment";
-            return (
-            <>
-              <div className="mt-4 space-y-3 text-sm">
+        {activeStep === "payment" ? (
+          <Card className="mt-3 rounded-2xl p-4 md:p-6">
+            <h2 className="text-lg font-semibold">3. Цена и условия</h2>
+            {priceBlock(false)}
+            <div className="mt-4 space-y-3 text-sm">
+              <label className="flex min-h-11 items-start gap-3">
+                <Checkbox
+                  checked={terms}
+                  disabled={locked}
+                  onCheckedChange={(v) => setTerms(v === true)}
+                />
+                <span>
+                  Приемам{" "}
+                  <Link to="/terms" target="_blank" rel="noopener noreferrer" className="underline">
+                    Общите условия
+                  </Link>{" "}
+                  и{" "}
+                  <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="underline">
+                    Политиката за поверителност
+                  </Link>
+                  .
+                </span>
+              </label>
+              <label className="flex min-h-11 items-start gap-3">
+                <Checkbox
+                  checked={aiAck}
+                  disabled={locked}
+                  onCheckedChange={(v) => setAiAck(v === true)}
+                />
+                <span>
+                  Разбирам, че резултатът е автоматичен и не е юридически съвет.
+                </span>
+              </label>
+              <label className="flex min-h-11 items-start gap-3">
+                <Checkbox
+                  checked={immediate}
+                  disabled={locked}
+                  onCheckedChange={(v) => setImmediate(v === true)}
+                />
+                <span>Искам обработката да започне веднага след плащането.</span>
+              </label>
+              <label className="flex min-h-11 items-start gap-3">
+                <Checkbox
+                  checked={withdrawal}
+                  disabled={locked}
+                  onCheckedChange={(v) => setWithdrawal(v === true)}
+                />
+                <span>
+                  Разбирам, че след започване на обработката губя правото на отказ за вече
+                  доставеното съдържание.
+                </span>
+              </label>
+            </div>
 
-                <label className="flex min-h-11 items-start gap-3">
-                  <Checkbox
-                    checked={terms}
-                    disabled={consentsDisabled}
-                    onCheckedChange={(v) => setTerms(v === true)}
-                  />
-                  <span>
-                    Приемам{" "}
-                    <Link to="/terms" target="_blank" rel="noopener noreferrer" className="underline">
-                      Общите условия
-                    </Link>{" "}
-                    и{" "}
-                    <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="underline">
-                      Политиката за поверителност
-                    </Link>
-                    .
-                  </span>
-                </label>
-                <label className="flex min-h-11 items-start gap-3">
-                  <Checkbox
-                    checked={aiAck}
-                    disabled={consentsDisabled}
-                    onCheckedChange={(v) => setAiAck(v === true)}
-                  />
-                  <span>
-                    Разбирам, че резултатът е автоматичен и не е юридически съвет.
-                  </span>
-                </label>
-                <label className="flex min-h-11 items-start gap-3">
-                  <Checkbox
-                    checked={immediate}
-                    disabled={consentsDisabled}
-                    onCheckedChange={(v) => setImmediate(v === true)}
-                  />
-                  <span>Искам обработката да започне веднага след плащането.</span>
-                </label>
-                <label className="flex min-h-11 items-start gap-3">
-                  <Checkbox
-                    checked={withdrawal}
-                    disabled={consentsDisabled}
-                    onCheckedChange={(v) => setWithdrawal(v === true)}
-                  />
-                  <span>
-                    Разбирам, че след започване на обработката губя правото на отказ за вече
-                    доставеното съдържание.
-                  </span>
-                </label>
-              </div>
-
-              {!locked ? (
-                <Button
-                  type="button"
-                  className="mt-5 min-h-12 w-full"
-                  disabled={!canPay}
-                  onClick={handlePay}
-                >
-                  Към плащане · {priceLabel}
+            {!locked ? (
+              <Button
+                type="button"
+                className="mt-5 min-h-12 w-full"
+                disabled={!canPay}
+                onClick={handlePay}
+              >
+                Към плащане · {priceLabel}
+              </Button>
+            ) : (
+              <div className="mt-5 space-y-3">
+                <StripeEmbeddedCheckout
+                  clientSecret={clientSecret}
+                  analyticsSource="product_checkout"
+                  analyticsPlan={product.id}
+                  analyticsBilling="one_time"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Плащате точно за документа и условията по-горе. Ако искате друг документ:
+                </p>
+                <Button type="button" variant="outline" className="min-h-11" onClick={restart}>
+                  Започнете отначало
                 </Button>
-              ) : (
-                <div className="mt-5 space-y-3">
-                  <StripeEmbeddedCheckout
-                    clientSecret={clientSecret}
-                    analyticsSource="product_checkout"
-                    analyticsPlan={product.id}
-                    analyticsBilling="one_time"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Плащате точно за документа и условията по-горе. Ако искате друг документ:
-                  </p>
-                  <Button type="button" variant="outline" className="min-h-11" onClick={restart}>
-                    Започнете отначало
-                  </Button>
-                </div>
-              )}
-            </>
-            );
-          })()}
-        </Card>
+              </div>
+            )}
+          </Card>
+        ) : (
+          priceBlock(true)
+        )}
       </main>
     </>
   );

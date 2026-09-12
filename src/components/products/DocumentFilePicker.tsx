@@ -79,6 +79,7 @@ export function DocumentFilePicker({
           ref={inputRef}
           id="product-file"
           type="file"
+          aria-label="Изберете друг файл"
           accept=".pdf,.docx"
           className="sr-only"
           disabled={disabled}
@@ -122,6 +123,7 @@ export function DocumentFilePicker({
         ref={inputRef}
         id="product-file"
         type="file"
+        aria-label="Изберете файл от устройството"
         accept=".pdf,.docx"
         className="sr-only"
         disabled={disabled}
