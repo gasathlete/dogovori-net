@@ -41,7 +41,7 @@ import {
   prepareProductDocument,
   type PreparedProductDocument,
 } from "@/lib/productUpload";
-import { PRODUCT_ACCEPTED_INPUT } from "@/lib/productSource";
+import { DocumentFilePicker } from "@/components/products/DocumentFilePicker";
 
 type Position = "conservative" | "balanced" | "assertive";
 type StepId = "document" | "context" | "payment";
