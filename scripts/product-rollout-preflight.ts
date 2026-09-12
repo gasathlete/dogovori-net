@@ -47,6 +47,11 @@ export function validateProductRollout(source: RolloutSource): string[] {
     const base = source.read(manifest.base.file);
     if (base !== source.read(manifest.base.review)) fail("base migration mirror drift");
     if (sha256(base) !== manifest.base.sha256) fail("base migration checksum drift");
+    for (const constraint of checkConstraintsWithSubquery(base)) {
+      fail(`CHECK constraint contains a forbidden subquery: ${constraint}`);
+    }
+    const allowedKeysExpression = "(context - ARRAY['role', 'objective', 'counterparty_context', 'preferred_position']::text[]) = '{}'::jsonb";
+    if (!base.includes(allowedKeysExpression)) fail("base context constraint must use the immutable JSONB subtraction expression");
   } catch {
     fail("base migration or review file missing");
   }
