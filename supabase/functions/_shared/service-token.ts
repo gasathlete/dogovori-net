@@ -7,14 +7,22 @@
  * ключът няма `sub` claim, затова GoTrue `/user` винаги отказва.
  */
 
-/** Constant-time сравнение на два низа (по байтове). */
+/**
+ * Сравнение на два низа по байтове с постоянна работа спрямо конфигурирания
+ * ключ (`b`): няма ранно връщане при различна дължина. Акумулаторът стартира с
+ * разликата в дължините, а липсващите байтове на кандидата се броят като 0,
+ * затова цикълът винаги обхожда цялата дължина на ключа.
+ * Минава само при точно еднакви байтове.
+ */
 export function timingSafeEqualString(a: string, b: string): boolean {
   const enc = new TextEncoder();
-  const ba = enc.encode(a);
-  const bb = enc.encode(b);
-  if (ba.length !== bb.length) return false;
-  let diff = 0;
-  for (let i = 0; i < ba.length; i++) diff |= ba[i] ^ bb[i];
+  const candidate = enc.encode(a);
+  const configured = enc.encode(b);
+  let diff = candidate.length ^ configured.length;
+  for (let i = 0; i < configured.length; i++) {
+    const c = i < candidate.length ? candidate[i] : 0;
+    diff |= c ^ configured[i];
+  }
   return diff === 0;
 }
 
