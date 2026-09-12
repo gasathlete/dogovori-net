@@ -9,7 +9,7 @@
  * заключени: така плащате точно това, което сте видели. „Започнете отначало“
  * прави нова заявка.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
@@ -226,7 +226,7 @@ export default function ProductCheckout() {
     testId: string,
     index: number,
     heading: string,
-    detail: React.ReactNode,
+    detail: ReactNode,
     reopenStep: StepId | null,
   ) => (
     <div
