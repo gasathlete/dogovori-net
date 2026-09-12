@@ -85,6 +85,35 @@ Deno.test("missing configured service key never grants service role", async () =
   assert(res.ok === false || res.isServiceRole === false);
 });
 
+const HEX = "b".repeat(64);
+
+Deno.test("dedicated cron candidate is accepted with service semantics and no user auth", async () => {
+  const seen: string[] = [];
+  const d = deps({
+    verifyDedicated: (c) => {
+      seen.push(c);
+      return Promise.resolve(true);
+    },
+  });
+  const res = await authorizeMonitorRequest(d, HEX);
+  assertEquals(res, { ok: true, isServiceRole: true, actorId: null });
+  assertEquals(seen, [HEX]);
+  assertEquals(d.calls, []);
+});
+
+Deno.test("wrong or unverifiable dedicated candidate is 403 and never falls through", async () => {
+  for (const verify of [
+    () => Promise.resolve(false),
+    () => Promise.reject(new Error("verifier down")),
+    undefined,
+  ]) {
+    const d = deps(verify ? { verifyDedicated: verify } : {});
+    const res = await authorizeMonitorRequest(d, HEX);
+    assertEquals(res, { ok: false, status: 403, error: "forbidden" });
+    assertEquals(d.calls, []);
+  }
+});
+
 Deno.test("monitor source uses the shared guard and no claim decoding", async () => {
   const src = await Deno.readTextFile("supabase/functions/legal-source-monitor/index.ts");
   assert(src.includes("authorizeMonitorRequest"));

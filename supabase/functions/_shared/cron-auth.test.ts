@@ -1,6 +1,11 @@
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { requireServiceRole } from "./cron-auth.ts";
+import {
+  authorizeCronRequest,
+  isDedicatedCronCandidate,
+  requireServiceRole,
+} from "./cron-auth.ts";
 import { isExactServiceRoleToken, timingSafeEqualString } from "./service-token.ts";
+
 
 const KEY = "service-role-key-abcdef";
 
@@ -23,24 +28,89 @@ function withKey<T>(value: string | null, fn: () => T): T {
   }
 }
 
-Deno.test("exact service token passes locally without any auth lookup", () => {
+const HEX = "a".repeat(64);
+
+Deno.test("exact service token passes locally without any auth lookup", async () => {
   // Мрежата е забранена в този тест: успехът е чисто локален.
   const originalFetch = globalThis.fetch;
   globalThis.fetch = () => {
     throw new Error("no network allowed");
   };
   try {
-    withKey(KEY, () => {
-      assertEquals(requireServiceRole(req(`Bearer ${KEY}`)), null);
+    await withKey(KEY, async () => {
+      assertEquals(await requireServiceRole(req(`Bearer ${KEY}`)), null);
     });
   } finally {
     globalThis.fetch = originalFetch;
   }
 });
 
+Deno.test("exact service token never reaches the dedicated verifier", async () => {
+  let calls = 0;
+  const res = await authorizeCronRequest(
+    {
+      serviceKey: KEY,
+      verifyDedicated: () => {
+        calls += 1;
+        return Promise.resolve(true);
+      },
+    },
+    KEY,
+  );
+  assertEquals(res, null);
+  assertEquals(calls, 0);
+});
+
+Deno.test("correct dedicated candidate is authorized via the verifier", async () => {
+  const seen: string[] = [];
+  const res = await authorizeCronRequest(
+    {
+      serviceKey: KEY,
+      verifyDedicated: (c) => {
+        seen.push(c);
+        return Promise.resolve(true);
+      },
+    },
+    HEX,
+  );
+  assertEquals(res, null);
+  assertEquals(seen, [HEX]);
+});
+
+Deno.test("dedicated candidate failures all fail closed with 403", async () => {
+  const cases: Array<{ token: string; verify?: (c: string) => Promise<boolean> }> = [
+    { token: HEX, verify: () => Promise.resolve(false) },
+    { token: HEX, verify: () => Promise.reject(new Error("rpc down")) },
+    { token: HEX },
+    { token: HEX.toUpperCase() },
+    { token: HEX.slice(0, 63) },
+    { token: `${HEX}0` },
+    { token: `${HEX.slice(0, 63)}z` },
+    { token: "anon.jwt.token" },
+  ];
+  for (const c of cases) {
+    const res = await authorizeCronRequest(
+      { serviceKey: KEY, ...(c.verify ? { verifyDedicated: c.verify } : {}) },
+      c.token,
+    );
+    assert(res, `token ${c.token.slice(0, 8)} must be denied`);
+    assertEquals(res.status, 403);
+    assertEquals(await res.json(), { error: "forbidden" });
+  }
+});
+
+Deno.test("dedicated candidate format is exactly 64 lowercase hex", () => {
+  assert(isDedicatedCronCandidate(HEX));
+  assert(isDedicatedCronCandidate("0123456789abcdef".repeat(4)));
+  assert(!isDedicatedCronCandidate(HEX.toUpperCase()));
+  assert(!isDedicatedCronCandidate(HEX.slice(0, 63)));
+  assert(!isDedicatedCronCandidate(`${HEX}a`));
+  assert(!isDedicatedCronCandidate(""));
+});
+
 Deno.test("missing token is 401", async () => {
   await withKey(KEY, async () => {
-    const res = requireServiceRole(req());
+    const res = await requireServiceRole(req());
     assert(res);
     assertEquals(res.status, 401);
     assertEquals(await res.json(), { error: "unauthorized" });
@@ -50,7 +120,7 @@ Deno.test("missing token is 401", async () => {
 Deno.test("wrong token is 403", async () => {
   await withKey(KEY, async () => {
     for (const token of [`Bearer ${KEY}x`, `Bearer ${KEY.slice(0, -1)}`, "Bearer anon"]) {
-      const res = requireServiceRole(req(token));
+      const res = await requireServiceRole(req(token));
       assert(res);
       assertEquals(res.status, 403);
       assertEquals(await res.json(), { error: "forbidden" });
@@ -58,9 +128,9 @@ Deno.test("wrong token is 403", async () => {
   });
 });
 
-Deno.test("missing configured key fails closed with 403", () => {
-  withKey(null, () => {
-    const res = requireServiceRole(req(`Bearer ${KEY}`));
+Deno.test("missing configured key fails closed with 403", async () => {
+  await withKey(null, async () => {
+    const res = await requireServiceRole(req(`Bearer ${KEY}`));
     assert(res);
     assertEquals(res.status, 403);
   });

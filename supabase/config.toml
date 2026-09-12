@@ -14,13 +14,17 @@ project_id = "wkbxojefiovdczkwhved"
   [functions.create-share-link]
     verify_jwt = false
   [functions.expire-pro-notify]
-    verify_jwt = true
+    verify_jwt = false
   [functions.retention-sweeper]
-    verify_jwt = true
+    verify_jwt = false
   [functions.notify-unfinished-docs]
-    verify_jwt = true
+    verify_jwt = false
   [functions.ai-post-market-rollup]
-    verify_jwt = true
+    verify_jwt = false
+  [functions.notify-due-reminders]
+    verify_jwt = false
+  [functions.legal-source-monitor]
+    verify_jwt = false
   [functions.customer-portal]
     verify_jwt = false
   [functions.download-document]
