@@ -23,19 +23,6 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-function decodeRole(token: string): string | null {
-  try {
-    const part = token.split(".")[1];
-    if (!part) return null;
-    const b64 = part.replace(/-/g, "+").replace(/_/g, "/");
-    const json = atob(b64.padEnd(Math.ceil(b64.length / 4) * 4, "="));
-    const claims = JSON.parse(json) as { role?: string };
-    return typeof claims.role === "string" ? claims.role : null;
-  } catch {
-    return null;
-  }
-}
-
 export function requireServiceRole(req: Request): Response | null {
   const forbidden = (status: number, error: string) =>
     new Response(JSON.stringify({ error }), {
