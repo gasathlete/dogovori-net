@@ -5,7 +5,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { storageRemove, insertError } = vi.hoisted(() => ({
-  storageRemove: vi.fn(() => Promise.resolve({ data: null, error: null })),
+  storageRemove: vi.fn((_paths: string[]) => Promise.resolve({ data: null, error: null })),
   insertError: { value: null as null | { code?: string; message: string } },
 }));
 
