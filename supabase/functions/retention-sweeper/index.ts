@@ -16,6 +16,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const denied = await requireServiceRole(req);
   if (denied) return denied;
+  if (await isDryRunRequest(req)) return dryRunResponse("retention-sweeper", corsHeaders);
+
 
   const stats = {
     uploaded_deleted: 0,
