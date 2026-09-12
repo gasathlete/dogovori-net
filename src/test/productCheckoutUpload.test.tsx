@@ -188,31 +188,25 @@ describe("грешка при запис", () => {
   });
 });
 
-describe("свити стъпки", () => {
-  it("след прочитане на документа стъпката е тънко резюме", async () => {
-    prepareMock.mockResolvedValue({
-      uploadedContractId: "uc1",
-      title: "Договор",
-      source: "docx",
-      textLength: 5000,
-      charUnit: "codepoints",
-      sourceHash: "h1",
-      originalFilename: "Договор.docx",
-      extractionStatus: "full",
-      pageCount: 3,
-      preview: "Настоящият договор се сключва",
-    });
+describe("неочаквана грешка", () => {
+  it("сурова грешка се заменя с едно общо българско съобщение", async () => {
+    prepareMock.mockRejectedValue(
+      new Error("relation secret_table does not exist / provider payload"),
+    );
     renderPage();
     const input = document.getElementById("product-file") as HTMLInputElement;
     await userEvent.upload(input, makeFile("Договор.docx"));
-    await userEvent.click(screen.getByRole("button", { name: /Продължете/ }));
+    await userEvent.click(screen.getByRole("button", { name: /^Продължете$/ }));
 
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /Смени документа/ })).toBeInTheDocument(),
-    );
-    expect(screen.queryByTestId("product-file-dropzone")).toBeNull();
-    expect(screen.getByTestId("product-price-summary").textContent).toMatch(
-      /еднократно, без абонамент/i,
-    );
+    await waitFor(() => expect(toastError).toHaveBeenCalled());
+    const shown = String(toastError.mock.calls[0][0]);
+    expect(shown).toBe(PRODUCT_PERSIST_FAILED_MESSAGE);
+    for (const banned of ["secret_table", "relation", "provider payload", "does not exist"]) {
+      expect(shown).not.toContain(banned);
+    }
+    expect(document.body.textContent).not.toMatch(/secret_table|provider payload/);
+    expect(toastSuccess).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("stripe-mounted")).toBeNull();
+    expect(screen.getByRole("button", { name: /^Продължете$/ })).not.toBeDisabled();
   });
 });
