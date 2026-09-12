@@ -3,7 +3,9 @@
 //   * шестте функции с ръчна авторизация имат verify_jwt = false.
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 
-const MIGRATION = "docs/migrations/stage2b1e_internal_operational_cron_secret.sql";
+// Каноничен timestamped payload; supabase/migrations е защитена папка (огледало на
+// вече приложени миграции), затова неприложената SQL живее тук.
+const MIGRATION = "docs/migrations/20260912213000_internal_operational_cron_secret.sql";
 const IDENTIFIER = "internal_operational_cron_secret_v1";
 
 Deno.test("migration contains no credential material", async () => {
@@ -28,7 +30,14 @@ Deno.test("verifier is hardened: fixed hash loop, privileges, safe search_path",
   assert(sql.includes("RETURNS boolean"));
   assert(sql.includes("SECURITY DEFINER"));
   assert(sql.includes("STABLE"));
-  assert(sql.includes("SET search_path = public, extensions, vault"));
+  // Безопасен, неписуем search_path: само pg_catalog; всичко останало е схемно квалифицирано.
+  assert(sql.includes("SET search_path = pg_catalog"));
+  assert(!/SET\s+search_path[^\n]*\bpublic\b/i.test(sql), "search_path must not include public");
+  assert(sql.includes("vault.decrypted_secrets"));
+  assert(sql.includes("INTO STRICT v_expected"));
+  assert(sql.includes("WHEN no_data_found THEN"));
+  assert(sql.includes("WHEN too_many_rows THEN"));
+  assert(!/LIMIT\s+1/i.test(sql), "verifier must not use LIMIT 1 for the Vault read");
   assert(sql.includes("'^[0-9a-f]{64}$'"));
   assert(sql.includes("extensions.digest(_candidate, 'sha256')"));
   assert(sql.includes("FOR i IN 0..31 LOOP"));
@@ -56,6 +65,20 @@ Deno.test("job rewiring is guarded, identifier-only and keeps the jobs paused", 
   }
   assert(sql.includes("must stay paused before rewiring"));
   assert(sql.includes("mixed cron credential state"));
+  // Точен брой срещания: both-in-one, none и multiple се отхвърлят преди Vault и мутация.
+  assert(sql.includes("v_old_hits = 1 AND v_new_hits = 0"));
+  assert(sql.includes("v_old_hits = 0 AND v_new_hits = 1"));
+  assert(sql.includes("unexpected credential identifier state"));
+  assert(
+    sql.indexOf("unexpected credential identifier state") < sql.indexOf("vault.create_secret("),
+    "occurrence guard must precede Vault creation",
+  );
+  assert(sql.includes("no longer has exactly one old identifier"));
+  // Постусловие: точно едно ново срещане, нула стари, задачите паузирани.
+  assert(sql.includes("replace(j.command, v_new_id, ''))) / length(v_new_id) = 1"));
+  assert(sql.includes("replace(j.command, v_old_id, ''))) / length(v_old_id) = 0"));
+  assert(sql.includes("AND j.active = false"));
+  assert(!/position\(v_(old|new)_id in/.test(sql), "presence checks must be exact-count checks");
   assert(sql.includes("expected exactly 4 operational cron jobs"));
   assert(sql.includes("replace(r.command, v_old_id, v_new_id)"));
   assert(sql.includes("cron.alter_job(job_id := r.jobid, command := v_new_command, active := false)"));
