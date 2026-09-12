@@ -2,6 +2,7 @@
 // Runs daily; idempotency keys ensure safe re-runs.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireServiceRole } from "../_shared/cron-auth.ts";
+import { dryRunResponse, isDryRunRequest } from "../_shared/dry-run.ts";
 import { sendAppEmail } from "../_shared/transactional-email-templates/send-and-log.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
