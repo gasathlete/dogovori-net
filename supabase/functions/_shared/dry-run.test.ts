@@ -47,7 +47,7 @@ Deno.test("dry-run response is a bare no-op payload", async () => {
   });
   assertEquals(Object.keys(JSON.parse(text)).sort(), ["dry_run", "function", "ok", "side_effects"]);
   // Никакви данни: без идентификатори, имейли, имена, документи или броячи.
-  for (const forbidden of ["@", "id", "email", "name", "count", "user", "title", "document"]) {
+  for (const forbidden of ["@", "\"id\"", "_id", "email", "name", "count", "user", "title", "document"]) {
     assert(!text.toLowerCase().includes(forbidden), `payload must not contain "${forbidden}"`);
   }
 });
