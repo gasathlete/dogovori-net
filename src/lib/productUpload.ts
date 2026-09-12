@@ -173,7 +173,8 @@ export async function prepareProductDocument(
     } catch {
       // Неуспешното чистене не бива да скрива истинската грешка.
     }
-    throw new ProductUploadError(res.error.message);
+    // Само класификация — никакви имена на таблици, колони или кодове в UI.
+    throw new ProductUploadError(productPersistErrorMessage(res.error));
   }
 
   return {
