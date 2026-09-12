@@ -1,7 +1,9 @@
--- stage2b1e_internal_operational_cron_secret
+-- 20260912213000_internal_operational_cron_secret
 --
 -- Dedicated internal operational cron credential. SOURCE-PREPARED, NOT APPLIED.
--- Канонична SQL за прилагане като следваща миграция (0027) чрез migration tool.
+-- Каноничният timestamped payload за еднократно прилагане през Supabase migration
+-- tool. НЕ е приложена миграция; папката supabase/migrations е защитена (огледало
+-- на вече приложени миграции) и не се заобикаля.
 --
 -- Цел: спира зависимостта на планираните задачи от служебния ключ и от липсващия
 -- Vault идентификатор email_queue_service_role_key.
