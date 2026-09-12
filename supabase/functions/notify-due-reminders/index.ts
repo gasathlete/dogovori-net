@@ -17,6 +17,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const denied = await requireServiceRole(req);
   if (denied) return denied;
+  if (await isDryRunRequest(req)) return dryRunResponse("notify-due-reminders", corsHeaders);
+
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   const now = new Date();
