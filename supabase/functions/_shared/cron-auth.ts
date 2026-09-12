@@ -8,20 +8,12 @@
 // We compare the bearer token with the configured service role key directly
 // (constant time). No network auth lookup is performed.
 
+import { bearerToken, isExactServiceRoleToken } from "./service-token.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-function timingSafeEqual(a: string, b: string): boolean {
-  const enc = new TextEncoder();
-  const ba = enc.encode(a);
-  const bb = enc.encode(b);
-  if (ba.length !== bb.length) return false;
-  let diff = 0;
-  for (let i = 0; i < ba.length; i++) diff |= ba[i] ^ bb[i];
-  return diff === 0;
-}
 
 export function requireServiceRole(req: Request): Response | null {
   const forbidden = (status: number, error: string) =>
@@ -30,14 +22,13 @@ export function requireServiceRole(req: Request): Response | null {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  const token = bearerToken(req);
   if (!token) return forbidden(401, "unauthorized");
 
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   // Fail closed if the key is not configured.
   if (!serviceKey) return forbidden(403, "forbidden");
 
-  if (timingSafeEqual(token, serviceKey)) return null;
+  if (isExactServiceRoleToken(token, serviceKey)) return null;
   return forbidden(403, "forbidden");
 }
