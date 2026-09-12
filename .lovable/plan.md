@@ -9,7 +9,7 @@
 ## Активни G1 blockers
 1. `payments-webhook` при липсващ/невалиден `env` връщаше 2xx — коригирано в източника; изисква регресионно покритие и по-късно контролирано качване.
 2. `legal-source-monitor` разпознаваше служебната роля през JWT claims/потребителска проверка — коригирано на точно constant-time сравнение с ключа; изисква проверка и по-късно качване.
-3. Четирите cron функции (`expire-pro-notify`, `retention-sweeper`, `notify-unfinished-docs`, `ai-post-market-rollup`) вече ползват поправения `_shared/cron-auth.ts`; нужни са регресионни тестове и по-късно контролирано качване.
+3. Петте cron функции (`ai-post-market-rollup`, `expire-pro-notify`, `notify-due-reminders`, `notify-unfinished-docs`, `retention-sweeper`) вече ползват поправения `_shared/cron-auth.ts`; покритието е с детерминирана инвентаризация на импортерите (шести импортер прави теста червен), нужно е по-късно контролирано качване.
 
 ## Гейтове
 - **G0 — заключване и доказателства:** фиксиран HEAD, byte-parity на миграциите, network-silent preflight, чисто работно дърво.
