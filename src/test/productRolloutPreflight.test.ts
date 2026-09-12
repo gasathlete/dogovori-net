@@ -45,4 +45,55 @@ describe("network-silent product rollout preflight", () => {
       s.replace(/stripe_event_id/g, "event_proof").replace(/stripe_session_id/g, "session_proof"));
     expect(validateProductRollout(source).join("\n")).toContain("webhook entitlement idempotency");
   });
+
+  it("keeps base executable and review byte-identical with the manifest SHA", () => {
+    const base = disk.read("supabase/migrations/20260910090000_product_checkout_entitlements.sql");
+    expect(base).toEqual(disk.read("docs/migrations/stage2a_product_checkout_entitlements.sql"));
+    const manifest = JSON.parse(disk.read("docs/migrations/product-rollout-manifest.json")) as { base: { sha256: string } };
+    expect(manifest.base.sha256).toBe("9b27341a7dcd5a0988663a4b8479417235935bea1f0526f5e340a08a627f26b2");
+  });
+
+  it("uses the immutable JSONB subtraction instead of a subquery for unknown context keys", () => {
+    const expression = "(context - ARRAY['role', 'objective', 'counterparty_context', 'preferred_position']::text[]) = '{}'::jsonb";
+    for (const path of [
+      "supabase/migrations/20260910090000_product_checkout_entitlements.sql",
+      "docs/migrations/stage2a_product_checkout_entitlements.sql",
+    ]) {
+      const sql = disk.read(path);
+      expect(sql).toContain(expression);
+      expect(checkConstraintsWithSubquery(sql)).toEqual([]);
+    }
+  });
+
+  it("rejects the exact SQLSTATE 0A000 regression in product_checkout_intakes_context_ck", () => {
+    const invalid = `
+DO $$ BEGIN
+  ALTER TABLE public.product_checkout_intakes
+    ADD CONSTRAINT product_checkout_intakes_context_ck CHECK (
+      jsonb_typeof(context) = 'object'
+      AND NOT EXISTS (
+        SELECT 1 FROM jsonb_object_keys(context) AS k
+        WHERE k NOT IN ('role')
+      )
+    );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;`;
+    expect(checkConstraintsWithSubquery(invalid)).toEqual(["product_checkout_intakes_context_ck"]);
+    const source = override("supabase/migrations/20260910090000_product_checkout_entitlements.sql", (s) =>
+      s.replace(
+        "(context - ARRAY['role', 'objective', 'counterparty_context', 'preferred_position']::text[]) = '{}'::jsonb",
+        "NOT EXISTS (SELECT 1 FROM jsonb_object_keys(context) AS k WHERE k NOT IN ('role'))",
+      ));
+    expect(validateProductRollout(source).join("\n")).toContain("forbidden subquery: product_checkout_intakes_context_ck");
+  });
+
+  it("does not flag SELECT statements outside a CHECK body", () => {
+    const benign = `
+DO $$ DECLARE n int; BEGIN
+  SELECT count(*) INTO n FROM public.product_checkout_intakes;
+  ALTER TABLE public.product_checkout_intakes
+    ADD CONSTRAINT ok_ck CHECK (jsonb_typeof(context) = 'object' AND (context - ARRAY['role']::text[]) = '{}'::jsonb);
+  PERFORM (SELECT 1);
+END $$;`;
+    expect(checkConstraintsWithSubquery(benign)).toEqual([]);
+  });
 });
