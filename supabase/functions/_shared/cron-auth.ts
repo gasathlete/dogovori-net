@@ -6,7 +6,7 @@
 // a service_role JWT has no `sub` claim, so the GoTrue /user lookup answers
 // 403 bad_jwt "invalid claim: missing sub claim" and every cron run is denied.
 // We compare the bearer token with the configured service role key directly
-// (constant time) and additionally accept a locally decoded service_role JWT.
+// (constant time). No network auth lookup is performed.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
