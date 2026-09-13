@@ -26,7 +26,7 @@ describe("SensitiveDataNotice", () => {
 
   it("не предлага заобикаляне при специална категория", () => {
     render(<SensitiveDataNotice classification={{ risk_level: "blocked", reasons: ["special:health_diagnosis"] }} blocked />);
-    expect(screen.getByText("Здравна информация или диагноза")).toBeInTheDocument();
+    expect(screen.getByText(/Здравна информация или диагноза/)).toBeInTheDocument();
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     expect(screen.queryByText("Потвърждавам данните и продължавам")).not.toBeInTheDocument();
   });

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, ShieldAlert } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -55,11 +55,15 @@ export function SensitiveDataNotice({
   onDismiss,
 }: SensitiveDataNoticeProps) {
   const [accepted, setAccepted] = useState(false);
+  const noticeRef = useRef<HTMLDivElement>(null);
   const labels = sensitiveDataLabels(classification);
   const Icon = blocked ? ShieldAlert : AlertTriangle;
 
   useEffect(() => {
+    setAccepted(false);
     trackMetric("sensitive_notice_shown", { state: blocked ? "sensitive_blocked" : "needs_confirmation" });
+    noticeRef.current?.focus({ preventScroll: true });
+    noticeRef.current?.scrollIntoView({ block: "nearest" });
   }, [blocked]);
 
   const confirm = () => {
@@ -69,6 +73,7 @@ export function SensitiveDataNotice({
 
   return (
     <div
+      ref={noticeRef}
       role="alert"
       tabIndex={-1}
       className="scroll-mt-24 rounded-lg border border-gold/40 bg-gold/5 p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
