@@ -6,6 +6,12 @@
 - [x] Проверима EUR рамка в планове, paywall и checkout без недоказуеми обещания
 - [x] Фокусирани тестове, типова проверка, build и responsive browser проверка
 
+## Каталожна продуктова витрина
+- [x] Три постоянно видими продуктови карти без автоматична въртележка
+- [x] Точни цени, отстъпки, резултат и пример за всеки продукт
+- [x] Подготвено, скрито място за бъдещи проверени оценки
+- [x] Фокусирани тестове, build и responsive browser проверка
+
 ## P0 — Stage 2B1B2 (source only)
 - [x] Add pure resumable generation runtime with explicit mocked model/legal ports and no live-provider default
 - [x] Add deterministic redaction/rehydration, complete-source chunk coverage, evidence, absence, correction, legal-basis, budget and v2-ready gates

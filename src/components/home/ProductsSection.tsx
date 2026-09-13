@@ -9,7 +9,7 @@ import { useEffect } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { ArrowRight } from "@/icons";
 import { useInView } from "@/hooks/useInView";
-import { ProductShowcaseCarousel } from "@/components/products/ProductShowcaseCarousel";
+import { ProductCatalogGrid } from "@/components/products/ProductCatalogGrid";
 import { ONE_TIME_PRODUCTS, PRODUCT_EVENTS } from "@/lib/products";
 import { trackFunnelEvent } from "@/lib/funnel";
 
@@ -45,8 +45,8 @@ export function ProductsSection() {
         Ето как изглежда резултатът при всеки от трите продукта.
       </p>
 
-      <div ref={ref} className="mx-auto max-w-5xl">
-        <ProductShowcaseCarousel source="home" />
+      <div ref={ref} className="mx-auto max-w-6xl">
+        <ProductCatalogGrid source="home" />
       </div>
 
       <div className="mt-6 text-center">
