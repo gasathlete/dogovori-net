@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { type GeneratedContract } from "@/lib/exporters";
-import { SensitiveDataWarning } from "@/components/SensitiveDataWarning";
+import { SensitiveDataNotice } from "@/components/wizard/SensitiveDataNotice";
 import {
   parseSensitiveResponse,
   isConfirmationRequired,
@@ -226,17 +226,17 @@ export function RefineDraftBox({
         </div>
       </div>
 
-      <SensitiveDataWarning
-        open={sensitiveOpen}
-        onClose={() => setSensitiveOpen(false)}
+      {sensitiveOpen && <SensitiveDataNotice
+        onDismiss={() => setSensitiveOpen(false)}
         onConfirm={() => {
           setSensitiveOpen(false);
           void submit(true);
         }}
         classification={sensitiveClass}
         blocked={sensitiveBlocked}
-        operationLabel="AI редакция на документа"
-      />
+        operationLabel="редакция на документа"
+        busy={busy}
+      />}
     </div>
   );
 }

@@ -1,5 +1,11 @@
 # Roadmap — Conversion reliability
 
+## Спринт „Активация и стойност“
+- [x] Линейно изрично потвърждение при `needs_confirmation` без автоматично продължаване
+- [x] Непреодолим линеен блокаж при `sensitive_blocked`
+- [x] Проверима EUR рамка в планове, paywall и checkout без недоказуеми обещания
+- [x] Фокусирани тестове, типова проверка, build и responsive browser проверка
+
 ## P0 — Stage 2B1B2 (source only)
 - [x] Add pure resumable generation runtime with explicit mocked model/legal ports and no live-provider default
 - [x] Add deterministic redaction/rehydration, complete-source chunk coverage, evidence, absence, correction, legal-basis, budget and v2-ready gates

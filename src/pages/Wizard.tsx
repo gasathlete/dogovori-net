@@ -45,7 +45,7 @@ import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { generateContractJob } from "@/lib/generateContractJob";
 import { classifyGenerationError, errorClassOf, type GenerationError } from "@/lib/generationErrors";
 
-import { SensitiveDataWarning } from "@/components/SensitiveDataWarning";
+import { SensitiveDataNotice } from "@/components/wizard/SensitiveDataNotice";
 import {
   parseSensitiveResponse,
   isConfirmationRequired,
@@ -202,10 +202,8 @@ export default function WizardPage() {
   const [sensitiveOpen, setSensitiveOpen] = useState(false);
   const [sensitiveBlocked, setSensitiveBlocked] = useState(false);
   const [sensitiveClass, setSensitiveClass] = useState<ClassificationSummary | null>(null);
-  const [personalDataNotice, setPersonalDataNotice] = useState(false);
   /** Сървърът изисква изрично съгласие — показваме панел с конкретните полета. */
   const [consentRequired, setConsentRequired] = useState(false);
-  const [consentChecked, setConsentChecked] = useState(false);
   /** Последният опит за генериране е неуспешен → бутонът става „Опитай отново". */
   const [genFailed, setGenFailed] = useState(false);
   /** Спряно генериране (квота / потвърждение) → ясен модал с 1-click изход. */
@@ -268,16 +266,6 @@ export default function WizardPage() {
       ),
       { duration: 9000 },
     );
-  };
-  /** Български етикети за категориите лични данни от сървърната класификация. */
-  const PII_LABELS: Record<string, string> = {
-    egn: "ЕГН",
-    iban: "IBAN банкова сметка",
-    email: "Имейл адрес",
-    phone: "Телефонен номер",
-    id_card: "Данни от лична карта",
-    address: "Адрес",
-    name: "Имена на физически лица",
   };
   const handleEnterFocusNext = useEnterFocusNext();
 
@@ -558,7 +546,6 @@ export default function WizardPage() {
         setSensitiveClass(sensitive?.classification ?? data?.classification ?? null);
         setSensitiveBlocked(false);
         setConsentRequired(true);
-        setConsentChecked(false);
         toast.message("Нужно е потвърждение за личните данни", {
           description: "Вижте панела за съгласие при въпросите и потвърдете, за да продължим.",
         });
@@ -1083,11 +1070,6 @@ export default function WizardPage() {
           return;
         }
         if (isConfirmationRequired(sensitive) || data?.error === "needs_confirmation") {
-          if (!correctionsConfirmed) {
-            setPersonalDataNotice(true);
-            void handleApplyCorrections(sel, true);
-            return;
-          }
           setSensitiveClass(sensitive?.classification ?? null);
           setSensitiveBlocked(false);
           setCorrectionsPending(sel);
@@ -1418,70 +1400,36 @@ export default function WizardPage() {
               <RiskMeter level="unknown" />
             )}
 
-            {personalDataNotice && (
-              <div className="flex items-start gap-2 rounded-lg border border-border/60 bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground animate-fade-in">
-                <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-gold" aria-hidden />
-                <span>
-                  Документът съдържа лични данни. Обработваме ги само за изготвянето му, в
-                  съответствие с GDPR — не е нужно допълнително потвърждение.
-                </span>
+            {consentRequired && !result && (
+              <div ref={consentRef}>
+                <SensitiveDataNotice
+                  classification={sensitiveClass}
+                  busy={generating}
+                  operationLabel="изготвяне на документа"
+                  onDismiss={() => setConsentRequired(false)}
+                  onConfirm={() => void handleGenerate(true)}
+                />
               </div>
             )}
 
-            {consentRequired && !result && (
-              <div
-                ref={consentRef}
-                className="rounded-lg border-2 border-primary/60 bg-primary/5 p-4 animate-fade-in"
-                role="alert"
-              >
-                <div className="flex items-start gap-2">
-                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-foreground">
-                      Потвърдете обработката на личните данни
-                    </p>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      В отговорите ви са открити лични данни. За да изготвим документа, е нужно
-                      изричното ви съгласие те да бъдат обработени само за тази цел (GDPR, чл. 6).
-                    </p>
-                    {(() => {
-                      const counts = (sensitiveClass?.pii_counts ?? {}) as Record<string, number>;
-                      const items = Object.entries(counts).filter(([, n]) => (n ?? 0) > 0);
-                      if (items.length === 0) return null;
-                      return (
-                        <ul className="mt-2 space-y-1 rounded-md border border-border/60 bg-background/60 p-2.5">
-                          {items.map(([key, n]) => (
-                            <li key={key} className="flex items-center justify-between gap-2 text-xs">
-                              <span className="font-medium text-foreground">{PII_LABELS[key] ?? key}</span>
-                              <span className="text-muted-foreground">
-                                {n} {n === 1 ? "поле" : "полета"}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      );
-                    })()}
-                    <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-foreground">
-                      <input
-                        type="checkbox"
-                        checked={consentChecked}
-                        onChange={(e) => setConsentChecked(e.target.checked)}
-                        className="mt-0.5 h-4 w-4 accent-emerald-600"
-                      />
-                      Съгласен/на съм въведените лични данни да бъдат обработени единствено за
-                      изготвяне на този документ.
-                    </label>
-                    <Button
-                      size="sm"
-                      className="mt-3 w-full sm:w-auto"
-                      disabled={!consentChecked || generating}
-                      onClick={() => void handleGenerate(true)}
-                    >
-                      Потвърждавам и генерирам
-                    </Button>
-                  </div>
-                </div>
-              </div>
+            {sensitiveOpen && (
+              <SensitiveDataNotice
+                classification={sensitiveClass}
+                blocked={sensitiveBlocked}
+                busy={applyingCorrections}
+                operationLabel={correctionsPending ? "корекция на документа" : "изготвяне на документа"}
+                onDismiss={() => {
+                  setSensitiveOpen(false);
+                  setCorrectionsPending(null);
+                }}
+                onConfirm={() => {
+                  setSensitiveOpen(false);
+                  const pending = correctionsPending;
+                  setCorrectionsPending(null);
+                  if (pending) void handleApplyCorrections(pending, true);
+                  else void handleGenerate(true);
+                }}
+              />
             )}
 
 
@@ -1954,24 +1902,6 @@ export default function WizardPage() {
         sectorId={sector?.id}
         docName={docName ?? sector?.contractName}
         wizardHref={wizardHref}
-      />
-
-      <SensitiveDataWarning
-        open={sensitiveOpen}
-        onClose={() => {
-          setSensitiveOpen(false);
-          setCorrectionsPending(null);
-        }}
-        onConfirm={() => {
-          setSensitiveOpen(false);
-          const pending = correctionsPending;
-          setCorrectionsPending(null);
-          if (pending) void handleApplyCorrections(pending, true);
-          else void handleGenerate(true);
-        }}
-        classification={sensitiveClass}
-        blocked={sensitiveBlocked}
-        operationLabel={correctionsPending ? "корекция на документа" : "създаване на документа"}
       />
 
       <WizardFeedbackPrompt

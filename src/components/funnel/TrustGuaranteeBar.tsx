@@ -5,7 +5,7 @@ type Item = { icon: React.ComponentType<{ className?: string }>; title: string; 
 const ITEMS: Item[] = [
   { icon: CreditCard, title: "Без карта", sub: "5 безпл. операции през първите 30 дни" },
   { icon: RotateCcw, title: "Отказ по всяко време", sub: "Един клик от профила" },
-  { icon: ShieldCheck, title: "14 дни гаранция", sub: "Връщаме сумата без въпроси" },
+  { icon: ShieldCheck, title: "ДДС включено", sub: "Прозрачни цени в евро" },
   { icon: Lock, title: "GDPR & TLS 1.3", sub: "Криптиране в покой и при пренос" },
   { icon: Headphones, title: "Поддръжка на БГ", sub: "Отговор < 24 ч. в раб. дни" },
 ];
