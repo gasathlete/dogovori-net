@@ -10,7 +10,7 @@
 - [x] Три постоянно видими продуктови карти без автоматична въртележка
 - [x] Точни цени, отстъпки, резултат и пример за всеки продукт
 - [x] Подготвено, скрито място за бъдещи проверени оценки
-- [ ] Фокусирани тестове, build и responsive browser проверка
+- [x] Фокусирани тестове, build и responsive browser проверка
 
 ## P0 — Stage 2B1B2 (source only)
 - [x] Add pure resumable generation runtime with explicit mocked model/legal ports and no live-provider default
