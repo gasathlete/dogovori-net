@@ -25,7 +25,7 @@ import { PreviewPane } from "./buildContract/PreviewPane";
 import { FinalizePane } from "./buildContract/FinalizePane";
 
 import { Header } from "@/components/Header";
-import { SensitiveDataWarning } from "@/components/SensitiveDataWarning";
+import { SensitiveDataNotice } from "@/components/wizard/SensitiveDataNotice";
 import {
   parseSensitiveResponse,
   isConfirmationRequired,
@@ -569,11 +569,6 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         return;
       }
       if (isConfirmationRequired(sensitive) || (data as { error?: string })?.error === "needs_confirmation") {
-        // Автоматично потвърждение — без блокиращ диалог за потребителя.
-        if (!userConfirmed) {
-          void handleGenerate(true);
-          return;
-        }
         trackGenerate("blocked", { source: "build", doc_key: documentType, reason: "needs_confirmation", ...genMeta });
         setSensitiveClass(sensitive?.classification ?? null);
         setSensitiveBlocked(false);
@@ -835,10 +830,6 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
           return;
         }
         if (isConfirmationRequired(sensitive) || data?.error === "needs_confirmation") {
-          if (!correctionsConfirmed) {
-            void handleApplyCorrections(sel, true);
-            return;
-          }
           setSensitiveClass(sensitive?.classification ?? null);
           setSensitiveBlocked(false);
           setCorrectionsPending(sel);
@@ -1548,6 +1539,26 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                   </div>
 
 
+                  {sensitiveOpen && (
+                    <SensitiveDataNotice
+                      classification={sensitiveClass}
+                      blocked={sensitiveBlocked}
+                      busy={generating || applyingCorrections}
+                      operationLabel={correctionsPending ? "корекция на документа" : "изготвяне на документа"}
+                      onDismiss={() => {
+                        setSensitiveOpen(false);
+                        setCorrectionsPending(null);
+                      }}
+                      onConfirm={() => {
+                        setSensitiveOpen(false);
+                        const pending = correctionsPending;
+                        setCorrectionsPending(null);
+                        if (pending) void handleApplyCorrections(pending, true);
+                        else void handleGenerate(true);
+                      }}
+                    />
+                  )}
+
                   {generating && (
                     <div className="rounded-lg border border-gold/30 bg-gold/5 p-4 animate-fade-in">
                       <div className="flex items-center gap-3">
@@ -1644,23 +1655,6 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         </div>
       </main>
 
-      <SensitiveDataWarning
-        open={sensitiveOpen}
-        onClose={() => {
-          setSensitiveOpen(false);
-          setCorrectionsPending(null);
-        }}
-        onConfirm={() => {
-          setSensitiveOpen(false);
-          const pending = correctionsPending;
-          setCorrectionsPending(null);
-          if (pending) void handleApplyCorrections(pending, true);
-          else void handleGenerate(true);
-        }}
-        classification={sensitiveClass}
-        blocked={sensitiveBlocked}
-        operationLabel={correctionsPending ? "корекция на документа" : "изготвяне на документа"}
-      />
     </div>
   );
 }

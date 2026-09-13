@@ -64,7 +64,7 @@ const TRIGGER_COPY: Record<
   ai_limit: {
     title: "Достигна лимита на AI Асистента",
     description: () =>
-      `1 съобщение = 1 операция. ${PRICING_PLANS.professional.name}: ${PRICING_PLANS.professional.opsPerMonth}/мес.; ${PRICING_PLANS.entrepreneur.name}: ${PRICING_PLANS.entrepreneur.opsPerMonth}/мес. + GPT-5; ${PRICING_PLANS.team.name}: ${PRICING_PLANS.team.opsPerMonth}/място/мес.`,
+      `1 съобщение = 1 операция. ${planSummary("professional")}; ${planSummary("entrepreneur")}.`,
   },
   bilingual: {
     title: "Отключи пълните двуезични договори",
@@ -97,7 +97,7 @@ const TRIGGER_COPY: Record<
       "Качи логото на компанията си и то ще се появява като дискретен фирмен знак в горната част на всеки изтеглен договор — без воден знак на Dogovori.net.",
   },
   negotiation_strategy: {
-    title: "Изготви стратегия за преговори (GPT-5)",
+    title: "Изгответе стратегия за преговори",
     description: () =>
       `${PRICING_PLANS.entrepreneur.name} отключва AI стратег: силни позиции, възможни отстъпки, BATNA, готови реплики и контра-клаузи — на база реалния анализ на договора.`,
   },
@@ -111,7 +111,7 @@ const TRIGGER_COPY: Record<
 
 const FEATURES = [
   { icon: Zap, label: `${PRICING_PLANS.professional.opsPerMonth}–${PRICING_PLANS.entrepreneur.opsPerMonth} операции / месец (1 съобщение = 1 операция)` },
-  { icon: Sparkles, label: `Неограничен AI Асистент + GPT-5 (${PRICING_PLANS.entrepreneur.name})` },
+  { icon: Sparkles, label: `DogovaryAI в рамките на включените действия` },
   { icon: Crown, label: "Двуезични договори (EN / DE / FR)" },
   { icon: Check, label: "Неограничени комплекти документи и корекции" },
   { icon: Check, label: "Без воден знак на PDF" },
@@ -215,7 +215,7 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
             onClick={() => goToBilling("entrepreneur", "monthly")}
             className="w-full bg-gradient-gold text-navy hover:shadow-gold"
           >
-            {planSummary("entrepreneur")} + GPT-5
+            {planSummary("entrepreneur")}
           </Button>
           <Button
             onClick={() => goToBilling("professional", "monthly")}

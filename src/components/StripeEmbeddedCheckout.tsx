@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
-import { AlertTriangle, RefreshCw } from "@/icons";
+import { AlertTriangle, RefreshCw, Lock, Check } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { getStripe, getStripeEnvironment } from "@/lib/stripe";
 import { supabase } from "@/integrations/supabase/client";
@@ -112,6 +112,11 @@ export function StripeEmbeddedCheckout({
 
   return (
     <div id="checkout">
+      <div className="mb-4 grid gap-2 rounded-lg border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground sm:grid-cols-3">
+        <span className="flex min-h-11 items-center gap-2"><Lock className="h-4 w-4 text-gold" />Сигурно плащане</span>
+        <span className="flex min-h-11 items-center gap-2"><Check className="h-4 w-4 text-gold" />ДДС включено</span>
+        <span className="flex min-h-11 items-center gap-2"><RefreshCw className="h-4 w-4 text-gold" />Отказ по всяко време</span>
+      </div>
       <EmbeddedCheckoutProvider
         // Ключът принуждава нов Provider при повторен опит — иначе Stripe
         // отказва да смени client secret след създаване.
