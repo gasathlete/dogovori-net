@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle, ShieldAlert } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { ClassificationSummary } from "@/lib/aiSensitiveData";
+import { trackMetric } from "@/lib/metrics";
 
 const REASON_LABELS: Record<string, string> = {
   egn: "ЕГН",
@@ -57,6 +58,15 @@ export function SensitiveDataNotice({
   const labels = sensitiveDataLabels(classification);
   const Icon = blocked ? ShieldAlert : AlertTriangle;
 
+  useEffect(() => {
+    trackMetric("sensitive_notice_shown", { state: blocked ? "sensitive_blocked" : "needs_confirmation" });
+  }, [blocked]);
+
+  const confirm = () => {
+    trackMetric("sensitive_notice_confirmed", { state: "needs_confirmation" });
+    onConfirm?.();
+  };
+
   return (
     <div
       role="alert"
@@ -86,12 +96,17 @@ export function SensitiveDataNotice({
                 <span>Съгласен/на съм тези данни да бъдат обработени само за {operationLabel}.</span>
               </label>
               <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                <Button className="min-h-11" disabled={!accepted || busy} onClick={onConfirm}>
+                <Button className="min-h-11" disabled={!accepted || busy} onClick={confirm}>
                   Потвърждавам данните и продължавам
                 </Button>
                 {onDismiss && <Button className="min-h-11" variant="outline" onClick={onDismiss}>Назад към редакция</Button>}
               </div>
             </>
+          )}
+          {blocked && onDismiss && (
+            <Button className="mt-3 min-h-11" variant="outline" onClick={onDismiss}>
+              Към редакцията
+            </Button>
           )}
         </div>
       </div>
