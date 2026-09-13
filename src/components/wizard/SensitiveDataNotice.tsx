@@ -63,7 +63,9 @@ export function SensitiveDataNotice({
     setAccepted(false);
     trackMetric("sensitive_notice_shown", { state: blocked ? "sensitive_blocked" : "needs_confirmation" });
     noticeRef.current?.focus({ preventScroll: true });
-    noticeRef.current?.scrollIntoView({ block: "nearest" });
+    if (typeof noticeRef.current?.scrollIntoView === "function") {
+      noticeRef.current.scrollIntoView({ block: "nearest" });
+    }
   }, [blocked]);
 
   const confirm = () => {
