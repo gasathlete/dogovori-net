@@ -92,8 +92,11 @@ export function ProductCatalogGrid({ source }: { source: string }) {
               </div>
             </div>
 
-            <div className="relative mx-3 h-48 overflow-hidden rounded-xl border border-border/70 bg-background/70 sm:mx-4 sm:h-56">
-              <div className="pointer-events-none origin-top scale-[0.72] select-none [width:138.89%]" aria-hidden="true">
+            <div
+              className="relative mx-3 h-48 overflow-hidden rounded-xl border border-border/70 bg-background/70 sm:mx-4 sm:h-56"
+              aria-label={`Примерен резултат за ${product.name}`}
+            >
+              <div className="pointer-events-none origin-top scale-[0.72] select-none [width:138.89%] [&_button]:hidden" aria-hidden="true">
                 <ProductResultPreview productId={product.id} size="compact" className="rounded-none border-0 shadow-none" />
               </div>
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent" />

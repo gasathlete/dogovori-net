@@ -43,6 +43,7 @@ import {
   type PreparedProductDocument,
 } from "@/lib/productUpload";
 import { DocumentFilePicker } from "@/components/products/DocumentFilePicker";
+import { CheckCircle2, FileUp } from "@/icons";
 
 type Position = "conservative" | "balanced" | "assertive";
 type StepId = "document" | "context" | "payment";
@@ -287,6 +288,30 @@ export default function ProductCheckout() {
           Купувате: {product.name}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">{ONE_TIME_TERMS}</p>
+
+        <section
+          aria-label="Резюме на покупката"
+          className="mt-4 grid gap-3 border-y border-border/70 py-4 sm:grid-cols-2"
+        >
+          <div className="flex gap-3">
+            <FileUp className="mt-0.5 size-5 shrink-0 text-gold" aria-hidden="true" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">Вие качвате</p>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                {product.page.youProvide[0]}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-gold" aria-hidden="true" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">Вие получавате</p>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                {product.page.youReceive[0]}
+              </p>
+            </div>
+          </div>
+        </section>
 
         <CheckoutStepper
           className="mt-4"
