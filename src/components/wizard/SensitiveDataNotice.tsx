@@ -26,7 +26,7 @@ const REASON_LABELS: Record<string, string> = {
   "special:minor": "Данни за непълнолетно лице",
 };
 
-export function sensitiveDataLabels(classification: ClassificationSummary | null): string[] {
+function sensitiveDataLabels(classification: ClassificationSummary | null): string[] {
   const keys = new Set<string>();
   for (const [key, count] of Object.entries(classification?.pii_counts ?? {})) {
     if (count > 0) keys.add(key);

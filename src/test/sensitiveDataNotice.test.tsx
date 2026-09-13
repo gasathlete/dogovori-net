@@ -1,16 +1,19 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { SensitiveDataNotice, sensitiveDataLabels } from "@/components/wizard/SensitiveDataNotice";
+import { SensitiveDataNotice } from "@/components/wizard/SensitiveDataNotice";
 
 vi.mock("@/lib/metrics", () => ({ trackMetric: vi.fn() }));
 
 describe("SensitiveDataNotice", () => {
   it("показва само категориите, без подадени стойности", () => {
-    expect(sensitiveDataLabels({
+    render(<SensitiveDataNotice classification={{
       risk_level: "high",
       pii_counts: { egn: 1, email: 2 },
       reasons: ["egn:example-value"],
-    })).toEqual(["ЕГН", "Имейл адрес"]);
+    }} />);
+    expect(screen.getByText(/ЕГН/)).toBeInTheDocument();
+    expect(screen.getByText(/Имейл адрес/)).toBeInTheDocument();
+    expect(screen.queryByText(/example-value/)).not.toBeInTheDocument();
   });
 
   it("изисква отделно изрично потвърждение", () => {
