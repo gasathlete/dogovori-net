@@ -1,14 +1,22 @@
-/** Началната страница — редакционна витрина с трите еднократни продукта. */
+/**
+ * Началната страница — витрина, която следва избрания сегмент:
+ * „Частно лице“ → трите еднократни продукта, „Фирма“ → абонаментите.
+ */
 import { useEffect } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { ArrowRight } from "@/icons";
 import { useInView } from "@/hooks/useInView";
 import { ProductCatalogGrid } from "@/components/products/ProductCatalogGrid";
+import { SubscriptionShowcase } from "@/components/plans/SubscriptionShowcase";
+import { AudienceToggle } from "@/components/funnel/AudienceToggle";
+import { useAudience } from "@/hooks/useAudience";
 import { ONE_TIME_PRODUCTS, PRODUCT_EVENTS } from "@/lib/products";
 import { trackFunnelEvent } from "@/lib/funnel";
 
 export function ProductsSection() {
   const { ref, inView } = useInView<HTMLDivElement>({ threshold: 0.3 });
+  const { audience } = useAudience();
+  const business = audience === "business";
 
   useEffect(() => {
     if (!inView) return;
