@@ -192,10 +192,11 @@ export default function ProductCheckout() {
             ...(needsObjective ? { objective: objective.trim(), preferred_position: position } : {}),
             ...(needsCounterparty ? { counterparty_context: counterparty.trim() } : {}),
           },
-          termsAccepted: terms,
-          aiAckAccepted: aiAck,
-          immediatePerformanceConsent: immediate,
-          withdrawalLossAcknowledged: withdrawal,
+          // Едно съгласие към Условията за покупка, които изброяват четирите точки.
+          termsAccepted: purchaseTerms,
+          aiAckAccepted: purchaseTerms,
+          immediatePerformanceConsent: purchaseTerms,
+          withdrawalLossAcknowledged: purchaseTerms,
         },
       });
       if (error || !data?.clientSecret) throw new Error(error?.message ?? "checkout_failed");
