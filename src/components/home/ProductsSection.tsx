@@ -1,10 +1,4 @@
-/**
- * Началната страница — продуктите се показват като един работен изглед, който
- * се сменя спокойно, вместо три текстови карти.
- *
- * Цените, връзките и примерните данни идват от общата конфигурация; тук няма
- * литерали.
- */
+/** Началната страница — редакционна витрина с трите еднократни продукта. */
 import { useEffect } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { ArrowRight } from "@/icons";
@@ -31,17 +25,17 @@ export function ProductsSection() {
       aria-labelledby="home-products-title"
       className="container py-10 sm:py-14"
     >
-      <div className="eyebrow mb-3 justify-center">
+      <div className="eyebrow mb-3 justify-start sm:justify-center">
         <span className="h-px w-8 bg-gold/40" />
         Три продукта, еднократно плащане
       </div>
       <h2
         id="home-products-title"
-        className="mb-2 text-center font-serif text-2xl font-bold text-foreground sm:text-3xl"
+        className="mb-2 max-w-md text-left font-serif text-3xl font-bold leading-tight text-foreground sm:mx-auto sm:text-center sm:text-4xl"
       >
         Разгледайте нашите продукти
       </h2>
-      <p className="mx-auto mb-6 max-w-xl text-center text-sm text-muted-foreground">
+      <p className="mb-7 max-w-xl text-left text-base text-muted-foreground sm:mx-auto sm:text-center">
         Ето как изглежда резултатът при всеки от трите продукта.
       </p>
 
