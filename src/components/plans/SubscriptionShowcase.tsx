@@ -34,7 +34,7 @@ const PLAN_EXCERPT: Record<"professional" | "entrepreneur" | "team", string> = {
 
 const PLAN_INCLUDES: Record<"professional" | "entrepreneur" | "team", string> = {
   professional: "Изготвяне, проверка, поправки и сваляне на документи в един профил.",
-  entrepreneur: "По-голям месечен обем и същите функции без ограничение по вид документ.",
+  entrepreneur: "По-голям месечен обем и премиум  функции без ограничение.\n\n",
   team: "Отделен профил за всеки колега и общ достъп до документите на фирмата.",
 };
 
@@ -129,14 +129,14 @@ export function SubscriptionShowcase() {
           <div className="p-4 sm:p-6">
             <div className="eyebrow mb-3 justify-start">
               <span className="h-px w-8 bg-gold/40" />
-              Абонамент за фирма
+              АБОНАМЕНТИ
             </div>
             <h3 className="font-serif text-2xl font-bold leading-tight text-foreground sm:text-3xl">
-              Когато документите са всяка седмица, а не веднъж
+              Когато документите са ежедневие...
             </h3>
             <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-              Абонаментът дава месечен обем действия — изготвяне, проверка, поправки и сваляне —
-              в един профил на фирмата. Плащате веднъж месечно или годишно, без отделна покупка
+              Абонаментът дава месечен обем действия — изготвяне, проверка, поправки, сваляне,
+              подписи — в един профил. Плащате веднъж месечно или годишно, без отделна покупка
               за всеки документ.
             </p>
             <p className="mt-3 text-base leading-relaxed text-muted-foreground">
