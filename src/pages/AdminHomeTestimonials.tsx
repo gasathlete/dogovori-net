@@ -329,7 +329,7 @@ export default function AdminHomeTestimonialsPage() {
                       {r.is_admin_added && <Badge variant="outline">Админ</Badge>}
                       {r.is_verified_customer && (
                         <Badge variant="secondary" className="border-gold/30 bg-gold/10 text-gold">
-                          <BadgeCheck className="mr-1 h-3.5 w-3.5" /> Проверен клиент
+                          <BadgeCheck className="mr-1 h-3.5 w-3.5 text-success" /> Проверен клиент
                         </Badge>
                       )}
                     </div>
@@ -353,7 +353,7 @@ export default function AdminHomeTestimonialsPage() {
                     <Button size="sm" variant="outline" onClick={() => unapprove(r.id)}>Скрий</Button>
                   ) : (
                     <>
-                      <Button size="sm" onClick={() => approve(r.id)}><CheckCircle2 className="mr-1 h-4 w-4" />Одобри</Button>
+                      <Button size="sm" onClick={() => approve(r.id)}><CheckCircle2 className="mr-1 h-4 w-4 text-success" />Одобри</Button>
                       <Button size="sm" variant="outline" onClick={() => reject(r.id)}>Откажи</Button>
                     </>
                   )}
@@ -363,7 +363,7 @@ export default function AdminHomeTestimonialsPage() {
                     onClick={() => toggleVerified(r)}
                     title="Отметка „Проверен клиент“"
                   >
-                    <BadgeCheck className="mr-1 h-4 w-4" />
+                    <BadgeCheck className="mr-1 h-4 w-4 text-success" />
                     {r.is_verified_customer ? "Проверен" : "Провери"}
                   </Button>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">

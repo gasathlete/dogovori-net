@@ -68,7 +68,7 @@ export function DetectedReferencesBanner({
                     <span className="font-medium text-foreground">{r.displayLabel}</span>
                     {linked && (
                       <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-emerald-400">
-                        <Check className="h-3 w-3" /> прикачен
+                        <Check className="h-3 w-3 text-success" /> прикачен
                       </span>
                     )}
                   </div>

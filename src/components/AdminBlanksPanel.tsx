@@ -94,7 +94,7 @@ export function AdminBlanksPanel() {
                     <Button size="sm" variant="outline" onClick={() => setPreview(r)}>Прегледай</Button>
                     {r.status !== "published" && (
                       <Button size="sm" variant="outline" onClick={() => setStatus(r.id, "published")}>
-                        <Check className="mr-1 h-3 w-3" /> Публикувай
+                        <Check className="mr-1 h-3 w-3 text-success" /> Публикувай
                       </Button>
                     )}
                     {r.status !== "rejected" && (

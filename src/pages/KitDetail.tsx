@@ -170,15 +170,15 @@ export default function KitDetailPage() {
             </h2>
             <ol className="mt-4 space-y-2 text-sm text-muted-foreground">
               <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-gold" />
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                 <span>Натискате „Стартирай комплекта" — създаваме празна папка в профила ви.</span>
               </li>
               <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-gold" />
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                 <span>Преминавате през wizard на всеки документ — данните се запазват автоматично.</span>
               </li>
               <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-gold" />
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                 <span>Когато комплектът е готов, изтегляте всичко като един обединен PDF.</span>
               </li>
             </ol>

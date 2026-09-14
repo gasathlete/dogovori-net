@@ -353,7 +353,7 @@ function ItemColumn({
             <>
               <div className="flex items-start gap-3">
                 {done ? (
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-gold" />
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                 ) : (
                   <FileText className="mt-0.5 h-4 w-4 shrink-0 text-gold/70" />
                 )}

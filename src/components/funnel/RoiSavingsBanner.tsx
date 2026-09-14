@@ -57,15 +57,15 @@ export function RoiSavingsBanner({ className = "" }: { className?: string }) {
           </p>
           <ul className="mt-2 space-y-1 text-[11px] text-muted-foreground">
             <li className="flex items-start gap-1.5">
-              <Check className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600 dark:text-gold" aria-hidden />
+              <Check className="mt-0.5 h-3 w-3 shrink-0 text-success" aria-hidden />
               Цените са в EUR, с включен ДДС 20%.
             </li>
             <li className="flex items-start gap-1.5">
-              <Check className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600 dark:text-gold" aria-hidden />
+              <Check className="mt-0.5 h-3 w-3 shrink-0 text-success" aria-hidden />
               1 действие = 1 сваляне, 1 анализ или 1 AI съобщение.
             </li>
             <li className="flex items-start gap-1.5">
-              <Check className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600 dark:text-gold" aria-hidden />
+              <Check className="mt-0.5 h-3 w-3 shrink-0 text-success" aria-hidden />
               Сравнението е илюстративно и не е обещан резултат.
             </li>
           </ul>

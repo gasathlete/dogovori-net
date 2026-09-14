@@ -58,7 +58,7 @@ export function FeaturedBlanks() {
       <div className="mb-10 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between md:mb-12">
         <div className="max-w-2xl">
           <div className="eyebrow mb-3">
-            <span className="section-number font-serif text-base font-normal tracking-normal text-gold/60">02</span>
+            <span className="section-number font-serif text-base font-normal tracking-normal text-gold/60">05</span>
             <span className="h-px w-6 bg-gold/40" />
             <Sparkles className="h-3 w-3" />
             <span className="whitespace-pre-line text-left leading-tight">ИЗБРАНИ ОТ ДОГОВОРИ НЕТ</span>
@@ -122,15 +122,15 @@ export function FeaturedBlanks() {
                   expandedContent={
                     <ul className="space-y-1.5 rounded-md border border-hairline bg-card/40 p-3 text-[11px] leading-relaxed text-muted-foreground">
                       <li className="flex gap-1.5">
-                        <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600 dark:text-gold/80" />
+                        <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-success" />
                         <span><span className="text-foreground/80 font-semibold">Кога: </span>{details.when}</span>
                       </li>
                       <li className="flex gap-1.5">
-                        <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600 dark:text-gold/80" />
+                        <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-success" />
                         <span><span className="text-foreground/80 font-semibold">Кой подписва: </span>{details.signer}</span>
                       </li>
                       <li className="flex gap-1.5">
-                        <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600 dark:text-gold/80" />
+                        <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-success" />
                         <span><span className="text-foreground/80 font-semibold">Срок: </span>{details.term}</span>
                       </li>
                     </ul>

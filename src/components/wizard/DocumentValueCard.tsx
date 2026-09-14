@@ -53,7 +53,7 @@ export function DocumentValueCard({
     <div className="rounded-2xl border border-gold/40 bg-gold/5 p-5 shadow-soft animate-fade-in">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gold/40 bg-gold/10 text-gold">
-          <CheckCircle2 className="h-4 w-4" aria-hidden />
+          <CheckCircle2 className="h-4 w-4 text-success" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">

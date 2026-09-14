@@ -1313,7 +1313,7 @@ export default function WizardPage() {
                     }`}
                   >
                     {done ? (
-                      <Check className="h-4 w-4 shrink-0 text-emerald-500" />
+                      <Check className="h-4 w-4 shrink-0 text-success" />
                     ) : active ? (
                       <Loader2 className="h-4 w-4 shrink-0 animate-spin text-gold" />
                     ) : (

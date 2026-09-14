@@ -24,7 +24,7 @@ export function BrandedDocumentShowcase() {
         {/* Текстова част */}
         <div>
           <div className="eyebrow">
-            <span className="section-number font-serif text-base font-normal tracking-normal text-gold/60">05</span>
+            <span className="section-number font-serif text-base font-normal tracking-normal text-gold/60">04</span>
             <span className="h-px w-5 bg-gold/40" />
             Персонално брандиране
           </div>
@@ -45,7 +45,7 @@ export function BrandedDocumentShowcase() {
             {BENEFITS.map((b) => (
               <li key={b} className="flex items-start gap-2.5 text-sm">
                 <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                  <Check className="h-3 w-3" strokeWidth={2.5} />
+                  <Check className="h-3 w-3 text-success" strokeWidth={2.5} />
                 </span>
                 <span className="text-muted-foreground">{b}</span>
               </li>

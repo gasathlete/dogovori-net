@@ -139,7 +139,7 @@ export function AdminPartnersPanel() {
                   <div className="flex gap-1 justify-end flex-wrap">
                     {p.status !== "approved" && (
                       <Button size="sm" variant="outline" onClick={() => setStatus(p, "approved")}>
-                        <Check className="h-3 w-3 mr-1" /> Одобри
+                        <Check className="h-3 w-3 mr-1 text-success" /> Одобри
                       </Button>
                     )}
                     {p.status !== "rejected" && (

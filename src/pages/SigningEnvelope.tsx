@@ -83,7 +83,7 @@ export default function SigningEnvelope() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {s.status === "signed" ? <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                {s.status === "signed" ? <CheckCircle2 className="h-5 w-5 text-success" />
                   : s.status === "declined" ? <XCircle className="h-5 w-5 text-destructive" />
                   : <Clock className="h-5 w-5 text-muted-foreground" />}
                 {s.status !== "signed" && s.status !== "declined" && (

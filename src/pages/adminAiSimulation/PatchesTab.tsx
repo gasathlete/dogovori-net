@@ -151,7 +151,7 @@ export default function PatchesTab() {
                 <Button size="sm" onClick={() => applyWithRegression(p)} disabled={busy} className="bg-gold text-gold-foreground hover:bg-gold/90" title="Създай draft + автоматична регресия по 3 сценария">
                   <Sparkles className="h-3 w-3 mr-1" /> С регресия
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => applyPatch(p)} disabled={busy}><Check className="h-3 w-3 mr-1" /> Бързо</Button>
+                <Button size="sm" variant="outline" onClick={() => applyPatch(p)} disabled={busy}><Check className="h-3 w-3 mr-1 text-success" /> Бързо</Button>
                 <Button size="sm" variant="outline" onClick={() => reject(p)}><X className="h-3 w-3 mr-1" /> Отхвърли</Button>
               </div>
             )}

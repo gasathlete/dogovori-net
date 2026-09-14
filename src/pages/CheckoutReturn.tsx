@@ -228,7 +228,7 @@ export default function CheckoutReturn() {
       <main className="container max-w-md py-20 text-center">
         <div className="rounded-2xl border border-gold/30 bg-gradient-card p-10">
           {view === "ready" ? (
-            <CheckCircle2 data-testid="checkout-ready-icon" className="mx-auto h-12 w-12 text-emerald-600 dark:text-gold" />
+            <CheckCircle2 data-testid="checkout-ready-icon" className="mx-auto h-12 w-12 text-success" />
           ) : view === "timeout" ? (
             <AlertTriangle data-testid="checkout-warning-icon" className="mx-auto h-12 w-12 text-amber-600" />
           ) : view === "pending" ? (

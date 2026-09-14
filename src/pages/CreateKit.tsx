@@ -275,7 +275,7 @@ export default function CreateKitPage() {
                 />
                 {kit && (
                   <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-300">
-                    <CheckCircle2 className="h-3 w-3" /> Комплектът е създаден
+                    <CheckCircle2 className="h-3 w-3 text-success" /> Комплектът е създаден
                   </p>
                 )}
               </div>
@@ -379,7 +379,7 @@ export default function CreateKitPage() {
                                   {busy ? (
                                     <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
                                   ) : added ? (
-                                    <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                                    <CheckCircle2 className="mr-1 h-3.5 w-3.5 text-success" />
                                   ) : (
                                     <Wand2 className="mr-1 h-3.5 w-3.5" />
                                   )}
@@ -474,7 +474,7 @@ export default function CreateKitPage() {
                                   {busy ? (
                                     <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
                                   ) : added ? (
-                                    <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                                    <CheckCircle2 className="mr-1 h-3.5 w-3.5 text-success" />
                                   ) : (
                                     <Plus className="mr-1 h-3.5 w-3.5" />
                                   )}

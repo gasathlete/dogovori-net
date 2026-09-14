@@ -3,7 +3,25 @@ import * as Icons from "@/icons";
 import { ArrowRight, Compass, ChevronDown } from "@/icons";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { LIFE_SCENARIOS } from "@/data/lifeScenarios";
-import { getKit } from "@/data/documentKits";
+import { getKit, type DocumentKit } from "@/data/documentKits";
+import kitCorporate from "@/assets/kits/kit-corporate.jpg";
+import kitRealEstate from "@/assets/kits/kit-real-estate.jpg";
+import kitEmployment from "@/assets/kits/kit-employment.jpg";
+import kitDigital from "@/assets/kits/kit-digital.jpg";
+import kitIp from "@/assets/kits/kit-ip.jpg";
+import kitFamily from "@/assets/kits/kit-family.jpg";
+import kitOther from "@/assets/kits/kit-other.jpg";
+
+/** По едно изображение за всяка категория комплект. */
+const KIT_GROUP_IMAGE: Record<DocumentKit["group"], string> = {
+  corporate: kitCorporate,
+  real_estate: kitRealEstate,
+  employment: kitEmployment,
+  digital: kitDigital,
+  ip: kitIp,
+  family: kitFamily,
+  other: kitOther,
+};
 
 const INITIAL_COUNT = 8;
 
@@ -24,7 +42,7 @@ export function LifeScenarios() {
     >
       <div className="mb-8 max-w-2xl md:mb-10">
         <div className="eyebrow mb-3">
-          <span className="section-number font-serif text-base font-normal tracking-normal text-gold/60">06</span>
+          <span className="section-number font-serif text-base font-normal tracking-normal text-gold/60">03</span>
           <span className="h-px w-6 bg-gold/40" />
           <Compass className="h-3 w-3" />
           Готови комплекти
@@ -50,23 +68,37 @@ export function LifeScenarios() {
             <li key={s.id} className="card-contain">
               <Link
                 to={to}
-                className="group flex h-full items-start gap-3 rounded-xl border border-hairline bg-card/60 p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-gold/45 hover:bg-card sm:p-4"
+                className="group flex h-full flex-col overflow-hidden rounded-xl border border-hairline bg-card/60 transition-all duration-200 hover:-translate-y-0.5 hover:border-gold/45 hover:bg-card"
               >
-                <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gold/30 bg-gold/10 text-gold transition-colors group-hover:border-gold/55 group-hover:bg-gold/15 sm:h-11 sm:w-11">
-                  <Icon className="h-[18px] w-[18px] sm:h-5 sm:w-5" strokeWidth={1.6} />
+                <span className="relative block aspect-[16/9] w-full overflow-hidden bg-navy-deep/60">
+                  <img
+                    src={KIT_GROUP_IMAGE[kit?.group ?? "other"]}
+                    alt={kit ? `Комплект „${kit.title}“ — ${kit.groupLabel}` : "Всички комплекти документи"}
+                    loading="lazy"
+                    width={768}
+                    height={512}
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                  />
+                  <span className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/20 to-transparent" />
+                  <span className="absolute bottom-2 left-2 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gold/30 bg-background/80 text-gold">
+                    <Icon className="h-[18px] w-[18px]" strokeWidth={1.6} />
+                  </span>
                 </span>
-                <span className="flex flex-1 flex-col gap-1 min-w-0">
+                <span className="flex flex-1 flex-col gap-1 min-w-0 p-3.5 sm:p-4">
                   <span className="text-[13px] font-medium leading-snug text-foreground sm:text-sm break-words">
                     {s.label}
                   </span>
                   <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gold/70">
                     {meta}
                   </span>
+                  <span className="mt-auto inline-flex items-center gap-1 pt-2 text-[11px] font-semibold text-gold/80">
+                    Вижте комплекта
+                    <ArrowRight
+                      className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5"
+                      aria-hidden="true"
+                    />
+                  </span>
                 </span>
-                <ArrowRight
-                  className="mt-1 h-3.5 w-3.5 shrink-0 text-gold/0 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-gold"
-                  aria-hidden="true"
-                />
               </Link>
             </li>
           );

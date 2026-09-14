@@ -60,7 +60,7 @@ export function DtrustLevelPicker({ value, onChange, lockedLevels = [], classNam
           >
             <div className="flex items-center justify-between">
               <Icon className={cn("h-5 w-5", active ? "text-gold" : "text-muted-foreground")} />
-              {active && <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />}
+              {active && <Check className="h-4 w-4 text-success" />}
             </div>
             <div>
               <p className="font-serif text-sm font-bold">{label.name}</p>

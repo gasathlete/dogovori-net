@@ -84,13 +84,13 @@ describe("hero — безплатното начало е водещо", () => {
 describe("DogovaryAI рано на началната страница", () => {
   const home = read("src/components/home/HomeSections.tsx");
 
-  it("стои веднага след продуктовата секция и преди PrimaryChoice", () => {
+  it("стои веднага след продуктовата секция и преди комплектите", () => {
     const products = home.indexOf("<ProductsSection />");
     const ai = home.indexOf("<DogovaryAIShowcase />");
-    const primary = home.indexOf("<PrimaryChoice />");
+    const kits = home.indexOf("<LifeScenarios />");
     expect(products).toBeGreaterThan(-1);
     expect(ai).toBeGreaterThan(products);
-    expect(ai).toBeLessThan(primary);
+    expect(ai).toBeLessThan(kits);
   });
 
   it("има точно едно място в композицията", () => {
@@ -170,7 +170,6 @@ describe("възстановена обща композиция на начал
       "Hero",
       "SocialProofStrip",
       "ProductsSection",
-      "PrimaryChoice",
       "FeaturedBlanks",
       "PlatformCapabilities",
       "BrandedDocumentShowcase",

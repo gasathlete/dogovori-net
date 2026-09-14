@@ -34,6 +34,7 @@ export function ProductsSection() {
       className="container py-10 sm:py-14"
     >
       <div className="eyebrow mb-3 justify-start sm:justify-center">
+        <span className="section-number font-serif text-base font-normal tracking-normal text-gold/60">01</span>
         <span className="h-px w-8 bg-gold/40" />
         {business ? "Абонаменти за фирми" : "Три продукта, еднократно плащане"}
       </div>

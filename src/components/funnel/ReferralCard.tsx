@@ -123,7 +123,7 @@ export function ReferralCard({ userId, email }: { userId: string; email?: string
           className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-border/60 bg-background/70 px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-muted"
           aria-label="Копирай линка"
         >
-          {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+          {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
           {copied ? "Копирано" : "Копирай"}
         </button>
 

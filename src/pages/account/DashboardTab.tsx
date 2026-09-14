@@ -352,7 +352,7 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
                     <Icon className={`h-5 w-5 ${unlocked ? "text-gold" : "text-muted-foreground"}`} />
                   </div>
                   {unlocked ? (
-                    <Check className="h-4 w-4 text-gold" />
+                    <Check className="h-4 w-4 text-success" />
                   ) : (
                     <Lock className="h-4 w-4 text-muted-foreground" />
                   )}

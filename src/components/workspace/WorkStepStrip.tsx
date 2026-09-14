@@ -65,7 +65,7 @@ export function WorkStepStrip({
                     : "text-muted-foreground/60",
               )}
             >
-              {done && <Check className="size-3 shrink-0" aria-hidden="true" />}
+              {done && <Check className="size-3 shrink-0 text-success" aria-hidden="true" />}
               <span className="truncate">
                 {i + 1}. {s.label}
               </span>

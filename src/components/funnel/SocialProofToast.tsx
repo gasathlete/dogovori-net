@@ -119,7 +119,7 @@ export function SocialProofToast() {
         className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-emerald-500/20 bg-card/95 p-3 pr-2 shadow-elegant backdrop-blur-md animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:animate-none"
       >
         <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-500">
-          <CheckCircle2 className="h-4 w-4" />
+          <CheckCircle2 className="h-4 w-4 text-success" />
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-[13px] leading-snug text-foreground">

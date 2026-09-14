@@ -45,7 +45,7 @@ function StatusBadge({ r }: { r: Row }) {
   if (r.is_approved) {
     return (
       <Badge variant="secondary" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600">
-        <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Публикувано
+        <CheckCircle2 className="mr-1 h-3.5 w-3.5 text-success" /> Публикувано
       </Badge>
     );
   }
@@ -165,7 +165,7 @@ export default function MyReviewsPage() {
                       <StatusBadge r={r} />
                       {r.is_verified_customer && (
                         <Badge variant="secondary" className="border-gold/30 bg-gold/10 text-gold">
-                          <BadgeCheck className="mr-1 h-3.5 w-3.5" /> Проверен клиент
+                          <BadgeCheck className="mr-1 h-3.5 w-3.5 text-success" /> Проверен клиент
                         </Badge>
                       )}
                     </div>

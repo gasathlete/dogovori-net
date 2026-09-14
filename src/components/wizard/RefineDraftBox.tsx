@@ -205,7 +205,7 @@ export function RefineDraftBox({
 
             {lastSummary && (
               <div className="mt-3 flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2.5 text-xs">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                 <div className="min-w-0">
                   <div className="font-medium text-emerald-700 dark:text-emerald-400">Приложено</div>
                   <div className="mt-0.5 text-muted-foreground">{lastSummary}</div>

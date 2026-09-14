@@ -48,7 +48,7 @@ export default function Connect() {
               <Button size="sm" variant="secondary" onClick={copy}>
                 {copied ? (
                   <>
-                    <Check className="mr-1.5 h-4 w-4" /> Копирано
+                    <Check className="mr-1.5 h-4 w-4 text-success" /> Копирано
                   </>
                 ) : (
                   <>

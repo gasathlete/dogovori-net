@@ -323,7 +323,7 @@ function OutlineCard({ args, onSendMessage }: { args: any; onSendMessage?: (text
           onClick={handleConfirm}
           className="h-7 bg-gold text-navy hover:bg-gold/90 text-xs"
         >
-          <Check className="mr-1 h-3 w-3" /> Финализирай и попълни
+          <Check className="mr-1 h-3 w-3 text-success" /> Финализирай и попълни
         </Button>
         <Button
           size="sm"

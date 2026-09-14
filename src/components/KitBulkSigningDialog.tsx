@@ -199,7 +199,7 @@ export function KitBulkSigningDialog(p: Props) {
                 <li key={r.itemId} className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-card/40 px-3 py-2 text-sm">
                   <div className="flex min-w-0 items-center gap-2">
                     {r.requestId ? (
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
                     ) : (
                       <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
                     )}

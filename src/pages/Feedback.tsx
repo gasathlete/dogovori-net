@@ -125,7 +125,7 @@ export default function FeedbackPage() {
 
         {done ? (
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-8 text-center">
-            <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" />
+            <CheckCircle2 className="mx-auto h-10 w-10 text-success" />
             <h2 className="mt-3 font-serif text-xl font-bold">Благодарим!</h2>
             <p className="mt-2 text-sm text-muted-foreground">
               Получихме обратната Ви връзка. Ако оставихте имейл, ще ви потърсим при нужда.
