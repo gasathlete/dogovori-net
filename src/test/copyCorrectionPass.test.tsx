@@ -14,8 +14,6 @@ const PRIORITY_FILES = [
   "src/components/Logo.tsx",
   "src/components/Hero.tsx",
   "src/components/home/HomeSections.tsx",
-  "src/components/home/PrimaryChoice.tsx",
-  "src/components/home/ChoiceFlow.tsx",
   "src/components/home/DogovaryAIShowcase.tsx",
   "src/components/products/HeroProductRail.tsx",
   "src/components/products/ProductCard.tsx",
@@ -73,13 +71,6 @@ describe("клиентският текст е учтив и без AI жарг�
 
   it("началната страница е един responsive вариант", () => {
     expect(read("src/components/home/HomeSections.tsx")).toContain('data-home-variant="responsive"');
-  });
-
-  it("ChoiceFlow ползва учтиви глаголи и не рекламира OCR", () => {
-    const src = read("src/components/home/ChoiceFlow.tsx");
-    expect(src).toContain("Оценка на риска");
-    expect(src).toMatch(/Качвате документа/);
-    expect(src).not.toMatch(/OCR|снимка/i);
   });
 
   it("DogovaryAI отговаря условно, не категорично", () => {

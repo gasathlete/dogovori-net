@@ -57,19 +57,6 @@ describe("йерархия на началната страница", () => {
     expect([...positions].sort((a, b) => a - b)).toEqual(positions);
   });
 
-  it("пътят на документа е компактен: три стъпки, едно тихо действие", () => {
-    render(
-      <MemoryRouter>
-        <DocumentPathStrip />
-      </MemoryRouter>,
-    );
-    expect(screen.getByTestId("document-path-strip")).toBeTruthy();
-    expect(screen.getAllByRole("listitem")).toHaveLength(3);
-    const links = screen.getAllByRole("link");
-    expect(links).toHaveLength(1);
-    expect(links[0].getAttribute("href")).toBe("/catalog");
-    expect(read("src/components/home/DocumentPathStrip.tsx")).not.toContain("btn-gold");
-  });
 });
 
 describe("продуктови факти без взаимодействие", () => {

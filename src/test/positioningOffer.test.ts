@@ -19,8 +19,6 @@ const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 const CONVERSION_FILES = [
   "src/lib/audience.ts",
   "src/components/Hero.tsx",
-  "src/components/home/PrimaryChoice.tsx",
-  "src/components/home/ChoiceFlow.tsx",
   "src/components/PlatformCapabilities.tsx",
   "src/components/home/DogovaryAIShowcase.tsx",
   "src/pages/Index.tsx",
@@ -63,7 +61,7 @@ describe("позициониране на началната страница", 
       index.indexOf("<ProductsSection />"),
     );
     expect(index.indexOf("<DogovaryAIShowcase />")).toBeLessThan(
-      index.indexOf("<PrimaryChoice />"),
+      index.indexOf("<LifeScenarios />"),
     );
   });
 });
