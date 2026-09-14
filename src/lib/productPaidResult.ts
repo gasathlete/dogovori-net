@@ -25,6 +25,7 @@ import {
   normalizeProductSourceText,
 } from "@/lib/productSource";
 import { isOneTimeProductId } from "@/lib/products";
+import { snapshotAmountToCents } from "../../supabase/functions/_shared/product-purchase";
 
 /** Точната Stripe сесия от връщането след плащане. */
 export const CHECKOUT_SESSION_RE = /^cs_(test|live)_[A-Za-z0-9]{10,240}$/;
@@ -148,7 +149,10 @@ export async function loadPaidPurchase(
   if (order.payment_status !== "paid" || order.purchase_kind !== "product") return null;
   if (order.product_id !== entitlement.product_id) return null;
   if (order.environment !== entitlement.environment) return null;
-  if (order.price_amount !== entitlement.amount_cents) return null;
+  // `order_snapshots.price_amount` е в цели валутни единици (евро), а правото е
+  // в евроцентове. Сравнението минава през същото строго преобразуване като на
+  // сървъра — иначе точната платена сума не съвпада никога.
+  if (snapshotAmountToCents(order.price_amount) !== entitlement.amount_cents) return null;
   if (
     order.product_source_hash !== null &&
     order.product_source_hash.toLowerCase() !== entitlement.source_hash.toLowerCase()

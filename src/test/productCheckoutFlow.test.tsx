@@ -56,7 +56,7 @@ beforeEach(() => {
 afterEach(() => vi.clearAllMocks());
 
 describe("продуктова страница за плащане", () => {
-  it("всички съгласия са неотметнати и Stripe не се вика", async () => {
+  it("без готов документ няма съгласие и Stripe не се вика", async () => {
     render(
       <MemoryRouter initialEntries={["/produkti/proverka-predi-podpis/start"]}>
         <Routes>
@@ -64,15 +64,17 @@ describe("продуктова страница за плащане", () => {
         </Routes>
       </MemoryRouter>,
     );
-    const boxes = await screen.findAllByRole("checkbox");
-    expect(boxes).toHaveLength(1);
-    for (const box of boxes) expect(box).toHaveAttribute("data-state", "unchecked");
-    const pay = screen.getByRole("button", { name: /плащане/i });
-    expect(pay).toBeDisabled();
-    await userEvent.click(pay);
+    await screen.findByRole("main");
+    // Съгласието се появява само на своята стъпка и никога не е предварително
+    // отметнато: докато документът не е готов, отметка няма.
+    expect(document.querySelectorAll('[role="checkbox"]').length).toBe(0);
+    for (const box of screen.queryAllByRole("checkbox")) {
+      expect(box).toHaveAttribute("data-state", "unchecked");
+    }
     expect(invokeMock).not.toHaveBeenCalled();
     expect(screen.queryByTestId("stripe-mounted")).toBeNull();
   });
+
 
   it("показва точната еднократна цена без абонамент", async () => {
     render(

@@ -720,7 +720,18 @@ function assemble(state: ProductGenerationState, synthesis: Candidate): ProductR
       if (new Set(options.map((option) => normalizeVariant(String((option as Candidate).replacement_text ?? "")))).size !== 3) {
         throw new ProductGenerationError("invalid_model_output");
       }
-      return { ...item, id: correctionId({ start: span.start, end: span.end, mode: item.mode as "replace" | "insert_before" | "insert_after", original_text: String(item.original_text) }) };
+      // Оригиналният текст НИКОГА не се взема от модела: той е точно текстът на
+      // документа между началото и края на мястото. Ако мястото не съвпада с
+      // дословната извадка, поправката се отказва, а не се „наглася“.
+      const exact = sliceByCodePoints(state.sourceText, span.start, span.end);
+      if (exact.length === 0 || exact !== span.excerpt) {
+        throw new ProductGenerationError("invalid_model_output");
+      }
+      return {
+        ...item,
+        original_text: exact,
+        id: correctionId({ start: span.start, end: span.end, mode: item.mode as "replace" | "insert_before" | "insert_after", original_text: exact }),
+      };
     });
     base.corrections = resolveAnchorOverlaps(prepared as never[]).kept;
   }
