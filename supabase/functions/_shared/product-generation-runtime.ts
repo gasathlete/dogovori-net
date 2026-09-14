@@ -33,7 +33,6 @@ import {
   originalOffsetFromRedacted,
   ProductRedactionError,
   placeholdersIn,
-  placeholdersForAnchor,
   redactProductBundle,
   redactedSourceRange,
   rehydrateProductOutput,
@@ -185,7 +184,11 @@ function callBound(state: ProductGenerationState, stage: ProductStageId, ordinal
 
 function exactSpan(source: string, raw: EvidenceInput): SourceSpan {
   const resolved = resolveEvidence(source, raw);
-  if (!resolved.ok) throw new ProductGenerationError("invalid_evidence");
+  if (!resolved.ok) {
+    console.error("product evidence rejection", { reason: resolved.reason });
+    throw new ProductGenerationError("invalid_evidence");
+  }
+
   const map = buildSourceMap(source);
   const location = locateOffset(map, resolved.span.start);
   return { ...resolved.span, page: location.page, section: location.section, paragraph: location.paragraph };
@@ -561,7 +564,11 @@ function requiredPlaceholders(
       if (typeof quoted !== "string") continue;
       const range = anchorRange(start as number, end as number, quoted);
       if (!range) continue;
-      placeholdersForAnchor(map, range[0], range[1]).forEach((token) => required.add(token));
+      // Маркерите се четат ОТ САМИЯ заличен текст в обявеното място. Картата на
+      // заличаванията е в координати на оригинала, затова сравнение с нея тук би
+      // изисквало чужди маркери.
+      placeholdersIn(sliceByCodePoints(redactedSource, range[0], range[1]), map)
+        .forEach((token) => required.add(token));
     }
     Object.values(row).forEach(visit);
   };
@@ -613,13 +620,30 @@ function realignAnchor(anchor: unknown, map: ProductRedactionMap, sourceText: st
     row.end = translatedEnd;
     return row;
   }
+  // Преводът от заличените координати не съвпада. Мястото се възстановява САМО
+  // когато откъсът се среща ТОЧНО еднократно в източника — иначе се премахва.
+  const unique = uniqueCodePointRange(sourceText, excerpt);
+  if (unique) {
+    row.start = unique.start;
+    row.end = unique.end;
+    return row;
+  }
   delete row.start;
   delete row.end;
   return row;
 }
 
+/** Точно едно срещане на откъса в източника, в кодови точки. Иначе null. */
+function uniqueCodePointRange(sourceText: string, excerpt: string): { start: number; end: number } | null {
+  if (excerpt.length === 0) return null;
+  const first = sourceText.indexOf(excerpt);
+  if (first < 0 || sourceText.indexOf(excerpt, first + 1) >= 0) return null;
+  const start = Array.from(sourceText.slice(0, first)).length;
+  return { start, end: start + Array.from(excerpt).length };
+}
 
-function validateAbsence(source: string, raw: unknown): Candidate[] {
+
+export function validateAbsence(source: string, raw: unknown): Candidate[] {
   if (!Array.isArray(raw)) return [];
   const folded = foldToString(source, { lowercase: true });
   return raw.flatMap((item) => {
@@ -629,8 +653,42 @@ function validateAbsence(source: string, raw: unknown): Candidate[] {
     const terms = value.searched_terms.filter((term): term is string => typeof term === "string" && term.trim().length > 0);
     if (terms.length === 0) return [];
     const found = terms.some((term) => folded.includes(foldToString(term, { lowercase: true })));
-    return [{ ...value, coverage: ABSENCE_COVERAGE, found, spans: found ? value.spans ?? [] : [] }];
+    const spans = found ? (Array.isArray(value.spans) ? value.spans : []) : [];
+    // Проверката за отсъствие доказва ЛИПСА. Когато понятието присъства, но няма
+    // проверимо място, проверката се изпуска — не се твърди нито липса, нито място.
+    if (found && spans.length === 0) return [];
+    return [{ ...value, coverage: ABSENCE_COVERAGE, found, spans, note: typeof value.note === "string" ? value.note : null }];
   });
+}
+
+/**
+ * Страните се посочват с точния си текст от документа. Едно и също име може да
+ * се среща няколко пъти (в началото и при подписите), затова тук мястото се
+ * взема от ПЪРВОТО буквално срещане на същия текст. Нищо не се измисля: липсва
+ * ли текстът в източника, мястото остава непопълнено.
+ */
+export function anchorPassportParties(raw: unknown, sourceText: string): unknown {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return raw;
+  const passport = { ...(raw as Record<string, unknown>) };
+  const parties = passport.parties;
+  if (!Array.isArray(parties)) return passport;
+  passport.parties = parties.map((party) => {
+    if (!party || typeof party !== "object" || Array.isArray(party)) return party;
+    const row = { ...(party as Record<string, unknown>) };
+    const span = row.span;
+    if (!span || typeof span !== "object" || Array.isArray(span)) return row;
+    const spanRow = { ...(span as Record<string, unknown>) };
+    if (Number.isInteger(spanRow.start) && Number.isInteger(spanRow.end)) return row;
+    const excerpt = spanRow.excerpt;
+    if (typeof excerpt !== "string" || excerpt.length === 0) return row;
+    const at = sourceText.indexOf(excerpt);
+    if (at < 0) return row;
+    spanRow.start = Array.from(sourceText.slice(0, at)).length;
+    spanRow.end = (spanRow.start as number) + Array.from(excerpt).length;
+    row.span = spanRow;
+    return row;
+  });
+  return passport;
 }
 
 function assemble(state: ProductGenerationState, synthesis: Candidate): ProductResult {
@@ -644,7 +702,7 @@ function assemble(state: ProductGenerationState, synthesis: Candidate): ProductR
     ? synthesis.missing_protections.filter((item) => item && typeof item === "object" && absentIds.has(String((item as Candidate).absence_check_id)))
     : [];
   const base: Candidate = {
-    passport: passport?.passport ?? passport,
+    passport: anchorPassportParties(passport?.passport ?? passport, state.sourceText),
     executive_summary: synthesis.executive_summary,
     priority_summary: synthesis.priority_summary ?? [],
     findings: byKind("finding"), obligations: byKind("obligation"),
@@ -724,7 +782,10 @@ export class ProductGenerationRuntime {
     const bound = callBound(state, route, ordinal);
     assertUsage(state, bound);
     const callId = `${jobIdempotencyKey(state.entitlementId, state.cursor)}:${route}:${ordinal}`;
-    if (state.completedCallIds.has(callId)) throw new ProductGenerationError("invalid_cursor");
+    // Завършено обръщение се възпроизвежда от записа (виж `invoke`), затова тук
+    // спира само случаят без хранилище, в който възпроизвеждане е невъзможно.
+    if (!this.calls && state.completedCallIds.has(callId)) throw new ProductGenerationError("invalid_cursor");
+
     const redactedArtifacts = state.artifacts;
     const payload = safePayloadForStage(
       route,
@@ -806,7 +867,11 @@ export class ProductGenerationRuntime {
       };
       result = assemble(hydratedState, validated as Candidate);
       const ready = readyProductResult(result, state.binding, state.productId);
-      if (!ready.ok) throw new ProductGenerationError("invalid_result");
+      if (!ready.ok) {
+        // Само имената на полетата — без съдържание на резултата или документа.
+        console.error("product result rejected", { fields: ready.errors.map((e) => e.split(":")[0]) });
+        throw new ProductGenerationError("invalid_result");
+      }
     }
     const persistedPayload = result ?? redactValidatedArtifact(validated, redaction.map);
     const artifact: ProductGenerationArtifact = {
