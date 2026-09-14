@@ -4,6 +4,7 @@
  * страница (обхождаема от търсачките). Без автоматичен въртележка и без popup.
  */
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
+import { ArrowRight } from "@/icons";
 import { trackFunnelEvent } from "@/lib/funnel";
 import { ProductPrice } from "@/components/products/ProductPrice";
 import {
