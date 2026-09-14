@@ -62,10 +62,11 @@ describe("каталожна продуктова витрина", () => {
     expect(screen.queryByLabelText(/звезд/i)).toBeNull();
   });
 
-  it("запазва пълния пакет на цял ред при телефонна решетка", () => {
+  it("извежда препоръчания продукт като широк редакционен акцент", () => {
     renderGrid();
-    expect(screen.getByTestId("catalog-product-negotiation_package").className).toContain(
+    expect(screen.getByTestId("catalog-product-contract_improve").className).toContain(
       "col-span-2",
     );
+    expect(screen.getByAltText(/Тъмносини папки/)).toBeInTheDocument();
   });
 });

@@ -12,6 +12,7 @@ import {
   type OneTimeProductId,
 } from "@/lib/products";
 import { cn } from "@/lib/utils";
+import editorialStillLife from "@/assets/product-editorial-still-life.jpg";
 
 const PRODUCT_ICON: Record<OneTimeProductId, LucideIcon> = {
   contract_check: FileSearch,
@@ -26,15 +27,21 @@ const RECEIVE_COPY: Record<OneTimeProductId, string> = {
 };
 
 export function ProductCatalogGrid({ source }: { source: string }) {
+  const displayProducts = [
+    ONE_TIME_PRODUCTS.find((product) => product.id === "contract_improve"),
+    ONE_TIME_PRODUCTS.find((product) => product.id === "contract_check"),
+    ONE_TIME_PRODUCTS.find((product) => product.id === "negotiation_package"),
+  ].filter((product): product is (typeof ONE_TIME_PRODUCTS)[number] => Boolean(product));
+
   return (
     <div
       data-testid="product-catalog-grid"
-      className="grid grid-cols-2 gap-3 lg:grid-cols-3 lg:gap-5"
+      className="grid grid-cols-2 items-stretch gap-3 sm:gap-5 lg:grid-cols-12"
     >
-      {ONE_TIME_PRODUCTS.map((product, index) => {
+      {displayProducts.map((product) => {
         const Icon = PRODUCT_ICON[product.id];
         const featured = product.id === "contract_improve";
-        const packageProduct = product.id === "negotiation_package";
+        const productNumber = ONE_TIME_PRODUCTS.findIndex((item) => item.id === product.id) + 1;
 
         return (
           <article
@@ -43,22 +50,40 @@ export function ProductCatalogGrid({ source }: { source: string }) {
             className={cn(
               "group flex min-w-0 flex-col overflow-hidden rounded-2xl border bg-card/45 transition-[border-color,box-shadow,transform] duration-300 motion-reduce:transition-none",
               "hover:-translate-y-0.5 hover:border-gold/50 hover:shadow-elegant motion-reduce:hover:translate-y-0",
-              featured ? "border-gold/45 ring-1 ring-gold/15" : "border-border/70",
-              packageProduct && "col-span-2 lg:col-span-1",
+              featured
+                ? "col-span-2 border-gold/50 ring-1 ring-gold/15 lg:col-span-6"
+                : "col-span-1 border-border/70 lg:col-span-3",
             )}
           >
+            {featured && (
+              <div className="relative aspect-[16/9] overflow-hidden border-b border-gold/20 sm:aspect-[2/1] lg:aspect-[16/7]">
+                <img
+                  src={editorialStillLife}
+                  alt="Тъмносини папки, документи и писалка върху работна маса"
+                  width={1600}
+                  height={1000}
+                  loading="lazy"
+                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+                />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
+                <span className="absolute bottom-3 left-3 inline-flex min-h-7 items-center rounded-full border border-gold/35 bg-card/90 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-gold backdrop-blur-sm sm:left-4">
+                  Най-предпочитан
+                </span>
+              </div>
+            )}
+
             <div className="flex flex-1 flex-col p-3 sm:p-4">
               <div className="flex items-start justify-between gap-2">
                 <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-gold/30 bg-gold/[0.08] text-gold">
                   <Icon className="size-5" aria-hidden="true" />
                 </span>
                 <span className="pt-1 font-serif text-xs tabular-nums text-muted-foreground">
-                  0{index + 1}
+                  0{productNumber}
                 </span>
               </div>
 
-              <div className="mt-4 min-h-[7.5rem] sm:min-h-[6.75rem]">
-                {product.badge && (
+              <div className={cn("mt-4", !featured && "min-h-[10.5rem] sm:min-h-[9rem] lg:min-h-[12.5rem]")}>
+                {product.badge && !featured && (
                   <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-gold">
                     {product.badge}
                   </p>
@@ -93,7 +118,10 @@ export function ProductCatalogGrid({ source }: { source: string }) {
             </div>
 
             <div
-              className="relative mx-3 h-48 overflow-hidden rounded-xl border border-border/70 bg-background/70 sm:mx-4 sm:h-56"
+              className={cn(
+                "relative mx-3 overflow-hidden rounded-xl border border-border/70 bg-background/70 sm:mx-4",
+                featured ? "h-52 sm:h-60" : "h-40 sm:h-52 lg:h-48",
+              )}
               aria-label={`Примерен резултат за ${product.name}`}
             >
               <div className="pointer-events-none origin-top scale-[0.72] select-none [width:138.89%] [&_button]:hidden" aria-hidden="true">
@@ -112,7 +140,7 @@ export function ProductCatalogGrid({ source }: { source: string }) {
                     variant: "catalog_grid",
                   })
                 }
-                className="btn-gold btn-press inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-3 text-center text-sm font-bold"
+                className="btn-gold btn-press inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-2 text-center text-xs font-bold sm:px-3 sm:text-sm"
               >
                 <span>{product.ctaLabel}</span>
                 <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
@@ -134,7 +162,7 @@ export function ProductCatalogGrid({ source }: { source: string }) {
         );
       })}
 
-      <p className="col-span-2 text-center text-sm text-muted-foreground lg:col-span-3">
+      <p className="col-span-2 text-center text-sm text-muted-foreground lg:col-span-12">
         {ONE_TIME_TERMS}
       </p>
     </div>
