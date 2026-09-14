@@ -81,10 +81,12 @@ export default function ProductCheckout() {
   const [counterparty, setCounterparty] = useState("");
   const [position, setPosition] = useState<Position>("balanced");
 
-  const [terms, setTerms] = useState(false);
-  const [aiAck, setAiAck] = useState(false);
-  const [immediate, setImmediate] = useState(false);
-  const [withdrawal, setWithdrawal] = useState(false);
+  /**
+   * Едно изрично съгласие към Условията за покупка. Условията изброяват четирите
+   * точки (условия и поверителност, автоматичен резултат, незабавно изпълнение,
+   * загуба на правото на отказ), затова сървърът получава истината както е дадена.
+   */
+  const [purchaseTerms, setPurchaseTerms] = useState(false);
 
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   /** Отворена стъпка по избор на човека; иначе следва естествения ред. */
