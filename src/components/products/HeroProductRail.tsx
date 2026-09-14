@@ -37,7 +37,7 @@ export function HeroProductRail() {
         {ONE_TIME_PRODUCTS.map((product) => (
           <li
             key={product.id}
-            className="min-w-[81%] shrink-0 snap-start sm:min-w-0 sm:shrink"
+            className="w-[72%] shrink-0 snap-start sm:w-auto sm:min-w-0 sm:shrink"
           >
             <Link
               to={productPath(product)}
