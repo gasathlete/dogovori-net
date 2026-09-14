@@ -12,7 +12,24 @@ import {
   type OneTimeProductId,
 } from "@/lib/products";
 import { cn } from "@/lib/utils";
-import editorialStillLife from "@/assets/product-editorial-still-life.jpg";
+import checkStillLife from "@/assets/product-check-still-life.jpg";
+import improveStillLife from "@/assets/product-improve-still-life.jpg";
+import negotiationStillLife from "@/assets/product-negotiation-still-life.jpg";
+
+const PRODUCT_IMAGE: Record<OneTimeProductId, { src: string; alt: string }> = {
+  contract_check: {
+    src: checkStillLife,
+    alt: "Документ с лупа върху тъмносиньо бюро",
+  },
+  contract_improve: {
+    src: improveStillLife,
+    alt: "Два документа с поправки и златна писалка върху тъмносиньо бюро",
+  },
+  negotiation_package: {
+    src: negotiationStillLife,
+    alt: "Писмо с златен печат между две тъмносини папки",
+  },
+};
 
 const PRODUCT_ICON: Record<OneTimeProductId, LucideIcon> = {
   contract_check: FileSearch,
