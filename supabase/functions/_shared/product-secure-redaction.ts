@@ -117,7 +117,10 @@ function tokensIn(value: string): string[] {
   return [...value.matchAll(TOKEN_RE)].map((match) => match[0]);
 }
 
-/** Rejects invented, malformed, repeated or unexpectedly omitted placeholders before rehydration. */
+/** Най-много толкова повторения на един и същ маркер в един изход. */
+const MAX_PLACEHOLDER_OCCURRENCES = 8;
+
+/** Rejects invented, malformed, over-repeated or unexpectedly omitted placeholders before rehydration. */
 export function rehydrateProductOutput(
   value: string,
   map: ProductRedactionMap,
