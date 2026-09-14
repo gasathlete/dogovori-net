@@ -10,7 +10,6 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { readFileSync } from "node:fs";
-import { DocumentPathStrip } from "@/components/home/DocumentPathStrip";
 import { MOBILE_NAV_ITEMS } from "@/components/MobileBottomNav";
 import { ONE_TIME_PRODUCTS, productPriceLabel } from "@/lib/products";
 import { PREVIEW_NOTE, PREVIEW_TITLE } from "@/components/products/previewData";
@@ -35,7 +34,6 @@ const PUBLIC_SURFACES = [
   "src/components/Hero.tsx",
   "src/components/home/HomeSections.tsx",
   "src/components/home/ProductsSection.tsx",
-  "src/components/home/DocumentPathStrip.tsx",
   "src/pages/Products.tsx",
   "src/pages/ProductDetail.tsx",
   "src/components/products/ProductComparisonList.tsx",
@@ -51,9 +49,9 @@ describe("йерархия на началната страница", () => {
     expect(hero).toContain("HeroProductRail");
   });
 
-  it("редът на секциите е доверие → продукти → път на документа → DogovaryAI", () => {
+  it("редът на секциите е доверие → продукти → DogovaryAI → комплекти → брандиране", () => {
     const src = read("src/components/home/HomeSections.tsx");
-    const order = ["SocialProofStrip />", "ProductsSection />", "DocumentPathStrip />", "DogovaryAIShowcase />"];
+    const order = ["SocialProofStrip />", "ProductsSection />", "DogovaryAIShowcase />", "LifeScenarios />", "BrandedDocumentShowcase />"];
     const positions = order.map((token) => src.indexOf(token));
     expect(positions.every((p) => p > 0)).toBe(true);
     expect([...positions].sort((a, b) => a - b)).toEqual(positions);
