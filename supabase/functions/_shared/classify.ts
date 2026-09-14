@@ -41,14 +41,16 @@ const ADDRESS_RE = new RegExp(
   CYR_LB + "(?:гр\\.|град|с\\.|село|ул\\.|улица|бул\\.|булевард|ж\\.к\\.|кв\\.)\\s+[А-ЯA-Z][^\\n,.;]{2,80}",
   "g",
 );
-const NAME_RE = new RegExp(
+/** Споделен с анонимизацията на платените продукти: едно определение за имена. */
+export const PERSON_NAME_RE = new RegExp(
   CYR_LB +
   "([А-ЯA-Z][а-яa-z]{1,20})\\s+([А-ЯA-Z][а-яa-z]{1,20})(?:\\s+([А-ЯA-Z][а-яa-z]{1,20}))?" +
   CYR_RB,
   "g",
 );
+const NAME_RE = PERSON_NAME_RE;
 
-const NAME_STOPWORDS = new Set([
+export const PERSON_NAME_STOPWORDS: ReadonlySet<string> = new Set([
   "Република","България","София","Пловдив","Варна","Бургас","Русе",
   "Чл","Член","Алинея","Точка","Глава","Раздел",
   "Договор","Страна","Страните","Възложител","Изпълнител",
@@ -56,6 +58,7 @@ const NAME_STOPWORDS = new Set([
   "Закон","Кодекс","Регламент","Директива",
   "Настоящият","Настоящата","Настоящото",
 ]);
+const NAME_STOPWORDS = PERSON_NAME_STOPWORDS;
 
 function makeCyrPattern(body: string): RegExp {
   return new RegExp(CYR_LB + body + CYR_RB, "i");

@@ -38,7 +38,7 @@ import {
   type ProductModelRequest,
   type ProductModelResponse,
 } from "../_shared/product-generation-runtime.ts";
-import { requireProductSpec } from "../_shared/product-purchase.ts";
+import { requireProductSpec, snapshotAmountToCents } from "../_shared/product-purchase.ts";
 import {
   PRODUCT_SOURCE_CHAR_UNIT,
   ProductSourceError,
@@ -249,7 +249,7 @@ Deno.serve(async (req) => {
       snapshot.stripe_event_id !== ent.stripe_event_id ||
       snapshot.stripe_price_id !== ent.stripe_price_id ||
       snapshot.stripe_price_lookup_key !== spec.lookupKey ||
-      snapshot.price_amount !== spec.amountCents ||
+      snapshotAmountToCents(snapshot.price_amount) !== spec.amountCents ||
       String(snapshot.currency).toLowerCase() !== spec.currency ||
       !snapshot.paid_at ||
       snapshot.environment !== ent.environment ||
@@ -284,7 +284,7 @@ Deno.serve(async (req) => {
     const { data: intake } = await admin
       .from("product_checkout_intakes")
       .select(
-        "id, user_id, product_id, uploaded_contract_id, source_hash, source_updated_at, source_char_count, source_char_unit, source_kind, source_page_count, source_extraction_status, context, status, environment, generation_policy_version, amount_cents, currency, stripe_price_id, stripe_price_lookup_key, terms_version, privacy_version, refund_version, ai_notice_version, withdrawal_version, terms_accepted, ai_ack_accepted, immediate_performance_consent, withdrawal_loss_acknowledged",
+        "id, user_id, product_id, uploaded_contract_id, source_hash, source_updated_at, source_char_count, source_char_unit, source_kind, source_page_count, source_extraction_status, context, status, environment, generation_policy_version, expected_amount_cents, currency, stripe_price_id, stripe_price_lookup_key, terms_version, privacy_version, refund_version, ai_notice_version, withdrawal_version, terms_accepted, ai_ack_accepted, immediate_performance_consent, withdrawal_loss_acknowledged",
       )
       .eq("id", ent.intake_id)
       .maybeSingle();
@@ -303,7 +303,7 @@ Deno.serve(async (req) => {
       intake.source_kind !== ent.source_kind ||
       (intake.source_page_count ?? null) !== (ent.source_page_count ?? null) ||
       intake.source_extraction_status !== "full" ||
-      intake.amount_cents !== spec.amountCents ||
+      intake.expected_amount_cents !== spec.amountCents ||
       String(intake.currency).toLowerCase() !== spec.currency ||
       intake.stripe_price_lookup_key !== spec.lookupKey ||
       intake.stripe_price_id !== ent.stripe_price_id ||
@@ -500,6 +500,11 @@ Deno.serve(async (req) => {
         }
         return fail("failed_retryable", 503, headers, cid);
       }
+      // Само затворен код на грешката — без текст, откъс или изход на модела.
+      console.error("fulfill-product permanent failure", {
+        cid,
+        code: gateway || generation ? String((error as { code?: unknown }).code ?? "unknown") : "unknown",
+      });
       await admin.rpc("fail_product_job", {
         p_job_id: jobId,
         p_lease_token: leaseToken,
@@ -602,8 +607,12 @@ Deno.serve(async (req) => {
           postRedactionReclassificationRequired: eligibility.policy.postRedactionReclassificationRequired,
           postRedactionReclassificationCompleted: !eligibility.policy.postRedactionReclassificationRequired,
           userConfirmationRequired: eligibility.policy.userConfirmationRequired,
-          userConfirmationCompleted: !eligibility.policy.userConfirmationRequired,
-          modelCallAllowed: !eligibility.policy.userConfirmationRequired,
+          // Изричното потвърждение е дадено ПРЕДИ плащането като отделно,
+          // непредварително отметнато съгласие за обработка с AI и е проверено
+          // по-горе в тази функция (`intake.ai_ack_accepted === true`), заедно с
+          // точната версия на съобщението. Никога не се предполага.
+          userConfirmationCompleted: intake.ai_ack_accepted === true,
+          modelCallAllowed: intake.ai_ack_accepted === true,
         },
       });
       // 9) Проверката на артефакта и курсора стои В СЪЩИЯ блок: постоянният

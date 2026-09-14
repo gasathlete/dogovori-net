@@ -1,4 +1,9 @@
-import { classifyDocumentBeforeAI, type Classification } from "./classify.ts";
+import {
+  classifyDocumentBeforeAI,
+  PERSON_NAME_RE,
+  PERSON_NAME_STOPWORDS,
+  type Classification,
+} from "./classify.ts";
 
 export interface ProductRedactionMap {
   readonly entries: Readonly<Record<string, string>>;
@@ -57,6 +62,22 @@ export function redactProductSource(source: string): ProductRedactionResult {
       const end = start + Array.from(match[0]).length;
       matches.push({ start, end, value: match[0], kind: candidate.kind });
     }
+  }
+  // Имената на лица се откриват със същото определение, което ползва
+  // класификацията, и със същите изключения — иначе след анонимизирането
+  // остават лични данни и обработката спира.
+  PERSON_NAME_RE.lastIndex = 0;
+  for (const match of source.matchAll(PERSON_NAME_RE)) {
+    if (match.index === undefined) continue;
+    const parts = [match[1], match[2], match[3]].filter((part): part is string => typeof part === "string");
+    if (parts.some((part) => PERSON_NAME_STOPWORDS.has(part))) continue;
+    const start = utf16ToCodePoint(match.index);
+    matches.push({
+      start,
+      end: start + Array.from(match[0]).length,
+      value: match[0],
+      kind: "NAME",
+    });
   }
   matches.sort((a, b) => a.start - b.start || b.end - a.end || a.kind.localeCompare(b.kind));
   const accepted = matches.filter((match, index, all) =>
@@ -131,6 +152,39 @@ export function placeholdersIn(value: string, map: ProductRedactionMap): readonl
 }
 
 /** Required placeholders for a declared original-source anchor. */
+/**
+ * Превръща отместване в ЗАЛИЧЕНИЯ текст в отместване в оригинала.
+ *
+ * Моделът вижда само заличения текст, затова неговите числа са в негови
+ * координати. Доказателството обаче се проверява срещу оригинала, така че
+ * координатите трябва да се преведат детерминирано по същата карта, с която е
+ * извършено заличаването. Отместване вътре в маркер се приравнява на началото
+ * (`edge: "start"`) или на края (`edge: "end"`) на заличената стойност — така
+ * никога не се сочи към част от личен идентификатор.
+ */
+export function originalOffsetFromRedacted(
+  map: ProductRedactionMap,
+  index: number,
+  edge: "start" | "end",
+): number {
+  if (!Number.isInteger(index) || index < 0) return -1;
+  const ordered = map.orderedTokens
+    .map((item) => ({ item, span: map.spans[item] }))
+    .filter((entry): entry is { item: string; span: { start: number; end: number } } => Boolean(entry.span))
+    .sort((a, b) => a.span.start - b.span.start);
+  let original = 0;
+  let redacted = 0;
+  for (const entry of ordered) {
+    const gap = entry.span.start - original;
+    if (index < redacted + gap) return original + (index - redacted);
+    const tokenLength = Array.from(entry.item).length;
+    if (index < redacted + gap + tokenLength) return edge === "start" ? entry.span.start : entry.span.end;
+    original = entry.span.end;
+    redacted += gap + tokenLength;
+  }
+  return original + (index - redacted);
+}
+
 export function placeholdersForAnchor(
   map: ProductRedactionMap,
   start: number,

@@ -7,7 +7,11 @@
  * Общите операции/квоти НЕ се докосват: платеният продукт не харчи операции.
  */
 import { PRODUCT_GENERATION_POLICY_VERSION } from "./product-generation-policy.ts";
-import { requireProductSpec, type ProductPurchaseSpec } from "./product-purchase.ts";
+import {
+  requireProductSpec,
+  snapshotAmountToCents,
+  type ProductPurchaseSpec,
+} from "./product-purchase.ts";
 import {
   PRODUCT_SOURCE_CHAR_UNIT,
   verifyStoredProductSource,
@@ -58,6 +62,8 @@ export interface PaidAccessGranted {
   readonly resultRaw: unknown;
   /** Пълният нормализиран текст — само когато е поискан изрично. */
   readonly sourceText: string | null;
+  /** Изричното съгласие за обработка с AI, дадено преди плащането. */
+  readonly aiAckAccepted: boolean;
 }
 
 export type PaidAccess = PaidAccessGranted | PaidAccessFailure;
@@ -140,7 +146,7 @@ export async function loadReadyPaidProduct(
     snapshot.stripe_event_id !== ent.stripe_event_id ||
     snapshot.stripe_price_id !== ent.stripe_price_id ||
     snapshot.stripe_price_lookup_key !== spec.lookupKey ||
-    snapshot.price_amount !== spec.amountCents ||
+    snapshotAmountToCents(snapshot.price_amount) !== spec.amountCents ||
     String(snapshot.currency).toLowerCase() !== spec.currency ||
     !snapshot.paid_at ||
     snapshot.environment !== ent.environment ||
@@ -169,7 +175,7 @@ export async function loadReadyPaidProduct(
   const { data: intake } = await admin
     .from("product_checkout_intakes")
     .select(
-      "id, user_id, product_id, uploaded_contract_id, source_hash, source_updated_at, source_char_count, source_char_unit, source_kind, source_page_count, source_extraction_status, context, status, environment, generation_policy_version, amount_cents, currency, stripe_price_id, stripe_price_lookup_key, terms_version, privacy_version, refund_version, ai_notice_version, withdrawal_version, terms_accepted, ai_ack_accepted, immediate_performance_consent, withdrawal_loss_acknowledged",
+      "id, user_id, product_id, uploaded_contract_id, source_hash, source_updated_at, source_char_count, source_char_unit, source_kind, source_page_count, source_extraction_status, context, status, environment, generation_policy_version, expected_amount_cents, currency, stripe_price_id, stripe_price_lookup_key, terms_version, privacy_version, refund_version, ai_notice_version, withdrawal_version, terms_accepted, ai_ack_accepted, immediate_performance_consent, withdrawal_loss_acknowledged",
     )
     .eq("id", ent.intake_id)
     .maybeSingle();
@@ -188,7 +194,7 @@ export async function loadReadyPaidProduct(
     intake.source_kind !== ent.source_kind ||
     (intake.source_page_count ?? null) !== (ent.source_page_count ?? null) ||
     intake.source_extraction_status !== "full" ||
-    intake.amount_cents !== spec.amountCents ||
+    intake.expected_amount_cents !== spec.amountCents ||
     String(intake.currency).toLowerCase() !== spec.currency ||
     intake.stripe_price_lookup_key !== spec.lookupKey ||
     intake.stripe_price_id !== ent.stripe_price_id ||
@@ -271,5 +277,6 @@ export async function loadReadyPaidProduct(
     result: ready.result as unknown as ProductResult,
     resultRaw: ent.result,
     sourceText,
+    aiAckAccepted: intake.ai_ack_accepted === true,
   });
 }

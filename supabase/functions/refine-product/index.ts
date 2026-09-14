@@ -221,7 +221,9 @@ Deno.serve(async (req) => {
     const bound = eligibility.policy.bounds.calls.find(
       (call) => call.stage === "refinement" && call.reserved,
     );
-    if (!bound || !bound.modelCallAllowed || bound.userConfirmationRequired) {
+    // Изискваното потвърждение е дадено преди плащането като отделно съгласие за
+    // обработка с AI и е проверено при зареждането на платеното право.
+    if (!bound || (bound.userConfirmationRequired && access.aiAckAccepted !== true)) {
       return fail("safety_gate", 409, headers, cid, MESSAGES.safety_gate);
     }
 
