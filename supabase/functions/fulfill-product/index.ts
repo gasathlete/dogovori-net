@@ -498,13 +498,21 @@ Deno.serve(async (req) => {
           });
           return fail("internal", 500, headers, cid);
         }
+        // Само затворен код — за диагностика на повторимите прекъсвания.
+        console.error("fulfill-product retryable failure", {
+          cid,
+          code: String((error as { code?: unknown }).code ?? "unknown"),
+        });
         return fail("failed_retryable", 503, headers, cid);
+
       }
-      // Само затворен код на грешката — без текст, откъс или изход на модела.
+      // Само затворен код/причина на грешката — без текст, откъс или изход на модела.
       console.error("fulfill-product permanent failure", {
         cid,
         code: gateway || generation ? String((error as { code?: unknown }).code ?? "unknown") : "unknown",
+        reason: gateway ? String((error as { reason?: unknown }).reason ?? "unknown") : "n/a",
       });
+
       await admin.rpc("fail_product_job", {
         p_job_id: jobId,
         p_lease_token: leaseToken,
@@ -644,7 +652,17 @@ Deno.serve(async (req) => {
         p_payload: artifact.payload, p_payload_canonical: canonical, p_payload_digest: artifact.digest,
         p_generation_timestamp: durableState.generation_timestamp, p_coverage: null, p_release_lease: true,
       });
-      if (storedErr || (stored as Record<string, unknown> | null)?.ok !== true) return await releaseRetryable();
+      if (storedErr || (stored as Record<string, unknown> | null)?.ok !== true) {
+        // Само затворена причина/код от базата — без съдържание на артефакта.
+        console.error("fulfill-product artifact not recorded", {
+          cid,
+          reason: String((stored as Record<string, unknown> | null)?.reason ?? "rpc_error"),
+          db_code: String((storedErr as { code?: unknown } | null)?.code ?? "none"),
+        });
+
+        return await releaseRetryable();
+      }
+
       return json({ status: "processing", stage: step.nextCursor.stage, message: MESSAGES.processing, correlation_id: cid }, 202, headers);
     } catch (error) {
       return await handlePostClaimFailure(error);

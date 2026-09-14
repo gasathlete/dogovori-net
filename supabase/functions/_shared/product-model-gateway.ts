@@ -199,6 +199,9 @@ function requestBody(request: ProductModelRequest): Record<string, unknown> {
     model: request.model,
     temperature: PRODUCT_GATEWAY_TEMPERATURE,
     max_tokens: request.maxOutputTokens,
+    // Задачата е детерминистично извличане, не разсъждение: без това полето
+    // „reasoning“ изразходва изходния бюджет и отговорът се отрязва.
+    reasoning_effort: "none",
     response_format: { type: "json_object" },
     // Само за корелация: детерминистичен, непрозрачен ключ на извикването.
     user: request.callId,

@@ -12,8 +12,16 @@ import { sliceByCodePoints } from "./product-source-map.ts";
 import { findAllCodePoints, foldText } from "./product-text-fold.ts";
 import type { SourceSpan } from "./product-result-contract.ts";
 
-export const EVIDENCE_MIN_EXCERPT_CHARS = 12;
+/**
+ * Долна граница за дължина на извадка. Кратки стойности като „900 евро“ са
+ * напълно проверими: приемат се само когато обявеното място съвпада дословно
+ * или когато извадката се среща точно един път в документа. Двусмислените
+ * къси извадки продължават да падат по-долу като `excerpt_ambiguous`.
+ */
+export const EVIDENCE_MIN_EXCERPT_CHARS = 4;
 export const EVIDENCE_MAX_EXCERPT_CHARS = 1200;
+
+
 
 export type EvidenceRejection =
   | "excerpt_missing"
@@ -56,9 +64,11 @@ export function resolveEvidence(sourceText: string, input: EvidenceInput): Evide
   }
   const cps = Array.from(sourceText);
   const wanted = foldExcerpt(input.excerpt);
+  const hasAnchor = typeof input.start === "number" && typeof input.end === "number";
   if (wanted.length < EVIDENCE_MIN_EXCERPT_CHARS) {
     return { ok: false, reason: "excerpt_too_short" };
   }
+
   if (wanted.length > EVIDENCE_MAX_EXCERPT_CHARS) {
     return { ok: false, reason: "excerpt_too_long" };
   }
@@ -67,7 +77,7 @@ export function resolveEvidence(sourceText: string, input: EvidenceInput): Evide
   const positions = findAllCodePoints(index.folded, wanted);
   if (positions.length === 0) return { ok: false, reason: "excerpt_not_found" };
 
-  const hasAnchor = typeof input.start === "number" && typeof input.end === "number";
+
   if (hasAnchor) {
     const start = input.start as number;
     const end = input.end as number;

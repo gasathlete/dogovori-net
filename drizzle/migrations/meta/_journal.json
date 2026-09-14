@@ -120,6 +120,13 @@
       "when": 1788906167506,
       "tag": "0016_assistant_edit_proposals",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1789388429382,
+      "tag": "0017_allow_array_product_generation_artifact_payload",
+      "breakpoints": true
     }
   ]
 }
