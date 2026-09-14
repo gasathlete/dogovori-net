@@ -72,22 +72,29 @@ export function ProductCatalogGrid({ source }: { source: string }) {
                 : "col-span-1 border-border/70 lg:col-span-3",
             )}
           >
-            {featured && (
-              <div className="relative aspect-[16/9] overflow-hidden border-b border-gold/20 sm:aspect-[2/1] lg:aspect-[16/7]">
-                <img
-                  src={editorialStillLife}
-                  alt="Тъмносини папки, документи и писалка върху работна маса"
-                  width={1600}
-                  height={1000}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-                />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
+            <div
+              className={cn(
+                "relative overflow-hidden border-b border-gold/20",
+                featured
+                  ? "aspect-[16/9] sm:aspect-[2/1] lg:aspect-[16/7]"
+                  : "aspect-[4/3] sm:aspect-[16/10]",
+              )}
+            >
+              <img
+                src={PRODUCT_IMAGE[product.id].src}
+                alt={PRODUCT_IMAGE[product.id].alt}
+                width={1600}
+                height={1000}
+                loading="lazy"
+                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+              />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
+              {featured && (
                 <span className="absolute bottom-3 left-3 inline-flex min-h-7 items-center rounded-full border border-gold/35 bg-card/90 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-gold backdrop-blur-sm sm:left-4">
                   Най-предпочитан
                 </span>
-              </div>
-            )}
+              )}
+            </div>
 
             <div className="flex flex-1 flex-col p-3 sm:p-4">
               <div className="flex items-start justify-between gap-2">
