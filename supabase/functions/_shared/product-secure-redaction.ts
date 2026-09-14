@@ -117,7 +117,10 @@ function tokensIn(value: string): string[] {
   return [...value.matchAll(TOKEN_RE)].map((match) => match[0]);
 }
 
-/** Rejects invented, malformed, repeated or unexpectedly omitted placeholders before rehydration. */
+/** Най-много толкова повторения на един и същ маркер в един изход. */
+const MAX_PLACEHOLDER_OCCURRENCES = 8;
+
+/** Rejects invented, malformed, over-repeated or unexpectedly omitted placeholders before rehydration. */
 export function rehydrateProductOutput(
   value: string,
   map: ProductRedactionMap,
@@ -132,7 +135,11 @@ export function rehydrateProductOutput(
     if (!(item in map.entries)) throw new ProductRedactionError("unknown_placeholder");
     counts.set(item, (counts.get(item) ?? 0) + 1);
   }
-  if ([...counts.values()].some((count) => count > 1)) {
+  // Един и същ маркер законно се среща и в данните, и в закотвящия цитат за
+  // същото място. Повторението НЕ разкрива нищо ново — стойността вече е
+  // видяна от модела — затова се допуска, но с таван, за да не се раздува
+  // изходът с безкрайни повторения на един идентификатор.
+  if ([...counts.values()].some((count) => count > MAX_PLACEHOLDER_OCCURRENCES)) {
     throw new ProductRedactionError("duplicated_placeholder");
   }
   for (const item of expectedTokens) {

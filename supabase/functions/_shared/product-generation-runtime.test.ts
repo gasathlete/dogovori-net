@@ -64,7 +64,16 @@ Deno.test("deterministic redaction rehydrates exact values and rejects placehold
   assertEquals(tokens.length, 2);
   assertEquals(rehydrateProductOutput(tokens.join(" / "), redacted.map, tokens), "test@example.com / BG80BNBG96611020345678");
   assertRejects(async () => rehydrateProductOutput(tokens[0], redacted.map, tokens), ProductRedactionError, "missing_placeholder");
-  assertRejects(async () => rehydrateProductOutput(`${tokens[0]} ${tokens[0]}`, redacted.map, [tokens[0]]), ProductRedactionError, "duplicated_placeholder");
+  // Един маркер в данните И в закотвящия цитат е законен изход.
+  assertEquals(
+    rehydrateProductOutput(`${tokens[0]} ${tokens[0]}`, redacted.map, [tokens[0]]),
+    "test@example.com test@example.com",
+  );
+  assertRejects(
+    async () => rehydrateProductOutput(Array(9).fill(tokens[0]).join(" "), redacted.map, [tokens[0]]),
+    ProductRedactionError,
+    "duplicated_placeholder",
+  );
   assertRejects(async () => rehydrateProductOutput("⟦PD_EMAIL_9999⟧", redacted.map, []), ProductRedactionError, "unknown_placeholder");
 });
 
