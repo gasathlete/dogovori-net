@@ -407,6 +407,7 @@ const AnimatedRoutes = () => {
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/cookies" element={<Cookies />} />
         <Route path="/refund" element={<Refund />} />
+        <Route path="/usloviya-za-pokupka" element={<PurchaseTerms />} />
         <Route path="/contacts" element={<Contacts />} />
         <Route path="/provider-info" element={<ProviderInfo />} />
         <Route path="/withdrawal-form" element={<WithdrawalForm />} />
