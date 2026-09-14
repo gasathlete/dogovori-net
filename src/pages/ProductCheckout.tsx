@@ -484,14 +484,38 @@ export default function ProductCheckout() {
             <h2 className="text-lg font-semibold">3. Цена и условия</h2>
             {priceBlock(false)}
             <div className="mt-4 space-y-3 text-sm">
+              <div
+                role="note"
+                className="rounded-xl border border-gold/30 bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground"
+              >
+                <span className="block font-medium text-foreground">
+                  Личните данни остават при Вас
+                </span>
+                Преди анализа системата разпознава лични данни в текста — имена, ЕГН,
+                адреси, телефони, имейли, банкови сметки — и ги заменя с маркери. Към
+                езиковия модел се изпраща само заличеният текст, а Вие виждате мястото в
+                своя документ.
+              </div>
+
               <label className="flex min-h-11 items-start gap-3">
                 <Checkbox
-                  checked={terms}
+                  checked={purchaseTerms}
                   disabled={locked}
-                  onCheckedChange={(v) => setTerms(v === true)}
+                  onCheckedChange={(v) => setPurchaseTerms(v === true)}
                 />
                 <span>
                   Приемам{" "}
+                  <Link
+                    to="/usloviya-za-pokupka"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                  >
+                    Условията за покупка
+                  </Link>
+                  : резултатът е автоматичен и не е юридически съвет, обработката започва
+                  веднага след плащането и след започването губя правото на отказ за вече
+                  доставеното съдържание. Приемам и{" "}
                   <Link to="/terms" target="_blank" rel="noopener noreferrer" className="underline">
                     Общите условия
                   </Link>{" "}
@@ -500,35 +524,6 @@ export default function ProductCheckout() {
                     Политиката за поверителност
                   </Link>
                   .
-                </span>
-              </label>
-              <label className="flex min-h-11 items-start gap-3">
-                <Checkbox
-                  checked={aiAck}
-                  disabled={locked}
-                  onCheckedChange={(v) => setAiAck(v === true)}
-                />
-                <span>
-                  Разбирам, че резултатът е автоматичен и не е юридически съвет.
-                </span>
-              </label>
-              <label className="flex min-h-11 items-start gap-3">
-                <Checkbox
-                  checked={immediate}
-                  disabled={locked}
-                  onCheckedChange={(v) => setImmediate(v === true)}
-                />
-                <span>Искам обработката да започне веднага след плащането.</span>
-              </label>
-              <label className="flex min-h-11 items-start gap-3">
-                <Checkbox
-                  checked={withdrawal}
-                  disabled={locked}
-                  onCheckedChange={(v) => setWithdrawal(v === true)}
-                />
-                <span>
-                  Разбирам, че след започване на обработката губя правото на отказ за вече
-                  доставеното съдържание.
                 </span>
               </label>
             </div>
