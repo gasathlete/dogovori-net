@@ -151,6 +151,7 @@ const Terms = lazy(() => import("./pages/legal/Terms.tsx"));
 const Privacy = lazy(() => import("./pages/legal/Privacy.tsx"));
 const Cookies = lazy(() => import("./pages/legal/Cookies.tsx"));
 const Refund = lazy(() => import("./pages/legal/Refund.tsx"));
+const PurchaseTerms = lazy(() => import("./pages/legal/PurchaseTerms.tsx"));
 const Contacts = lazy(() => import("./pages/legal/Contacts.tsx"));
 const ProviderInfo = lazy(() => import("./pages/legal/ProviderInfo.tsx"));
 const WithdrawalForm = lazy(() => import("./pages/legal/WithdrawalForm.tsx"));
