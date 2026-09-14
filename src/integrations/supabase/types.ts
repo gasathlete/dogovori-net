@@ -6628,6 +6628,10 @@ export type Database = {
       unaccent_or_lower: { Args: { _t: string }; Returns: string }
       unread_notifications_count: { Args: never; Returns: number }
       verify_cron_secret: { Args: { _secret: string }; Returns: boolean }
+      verify_internal_cron_secret: {
+        Args: { _candidate: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
