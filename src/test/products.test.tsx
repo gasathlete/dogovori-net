@@ -134,7 +134,11 @@ describe("витрина — паритет между началната стр
       screen.getByRole("heading", { name: "Разгледайте нашите продукти" }),
     ).toBeInTheDocument();
     for (const p of ONE_TIME_PRODUCTS) {
-      expect(screen.getByRole("tab", { name: new RegExp(p.shortName) })).toBeInTheDocument();
+      expect(screen.getByTestId(`catalog-product-${p.id}`)).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: p.name })).toHaveAttribute(
+        "href",
+        productPath(p),
+      );
     }
     expect(
       screen.getByTestId(`product-price-${ONE_TIME_PRODUCTS[0].id}`),
