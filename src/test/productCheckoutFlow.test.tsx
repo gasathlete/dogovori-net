@@ -65,7 +65,7 @@ describe("продуктова страница за плащане", () => {
       </MemoryRouter>,
     );
     const boxes = await screen.findAllByRole("checkbox");
-    expect(boxes).toHaveLength(4);
+    expect(boxes).toHaveLength(1);
     for (const box of boxes) expect(box).toHaveAttribute("data-state", "unchecked");
     const pay = screen.getByRole("button", { name: /плащане/i });
     expect(pay).toBeDisabled();

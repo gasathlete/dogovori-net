@@ -151,6 +151,7 @@ const Terms = lazy(() => import("./pages/legal/Terms.tsx"));
 const Privacy = lazy(() => import("./pages/legal/Privacy.tsx"));
 const Cookies = lazy(() => import("./pages/legal/Cookies.tsx"));
 const Refund = lazy(() => import("./pages/legal/Refund.tsx"));
+const PurchaseTerms = lazy(() => import("./pages/legal/PurchaseTerms.tsx"));
 const Contacts = lazy(() => import("./pages/legal/Contacts.tsx"));
 const ProviderInfo = lazy(() => import("./pages/legal/ProviderInfo.tsx"));
 const WithdrawalForm = lazy(() => import("./pages/legal/WithdrawalForm.tsx"));
@@ -406,6 +407,7 @@ const AnimatedRoutes = () => {
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/cookies" element={<Cookies />} />
         <Route path="/refund" element={<Refund />} />
+        <Route path="/usloviya-za-pokupka" element={<PurchaseTerms />} />
         <Route path="/contacts" element={<Contacts />} />
         <Route path="/provider-info" element={<ProviderInfo />} />
         <Route path="/withdrawal-form" element={<WithdrawalForm />} />

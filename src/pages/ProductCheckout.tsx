@@ -81,10 +81,12 @@ export default function ProductCheckout() {
   const [counterparty, setCounterparty] = useState("");
   const [position, setPosition] = useState<Position>("balanced");
 
-  const [terms, setTerms] = useState(false);
-  const [aiAck, setAiAck] = useState(false);
-  const [immediate, setImmediate] = useState(false);
-  const [withdrawal, setWithdrawal] = useState(false);
+  /**
+   * Едно изрично съгласие към Условията за покупка. Условията изброяват четирите
+   * точки (условия и поверителност, автоматичен резултат, незабавно изпълнение,
+   * загуба на правото на отказ), затова сървърът получава истината както е дадена.
+   */
+  const [purchaseTerms, setPurchaseTerms] = useState(false);
 
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   /** Отворена стъпка по избор на човека; иначе следва естествения ред. */
@@ -97,7 +99,7 @@ export default function ProductCheckout() {
 
   const needsObjective = product?.id !== "contract_check";
   const needsCounterparty = product?.id === "negotiation_package";
-  const allConsents = terms && aiAck && immediate && withdrawal;
+  const allConsents = purchaseTerms;
   // Плащаме само когато имаме всичко, което продуктът реално ползва.
   const contextReady =
     role.trim().length > 1 &&
@@ -171,10 +173,7 @@ export default function ProductCheckout() {
     requestIdRef.current = crypto.randomUUID();
     setClientSecret(null);
     changeDocument();
-    setTerms(false);
-    setAiAck(false);
-    setImmediate(false);
-    setWithdrawal(false);
+    setPurchaseTerms(false);
     setOpenStep(null);
   };
 
@@ -193,10 +192,11 @@ export default function ProductCheckout() {
             ...(needsObjective ? { objective: objective.trim(), preferred_position: position } : {}),
             ...(needsCounterparty ? { counterparty_context: counterparty.trim() } : {}),
           },
-          termsAccepted: terms,
-          aiAckAccepted: aiAck,
-          immediatePerformanceConsent: immediate,
-          withdrawalLossAcknowledged: withdrawal,
+          // Едно съгласие към Условията за покупка, които изброяват четирите точки.
+          termsAccepted: purchaseTerms,
+          aiAckAccepted: purchaseTerms,
+          immediatePerformanceConsent: purchaseTerms,
+          withdrawalLossAcknowledged: purchaseTerms,
         },
       });
       if (error || !data?.clientSecret) throw new Error(error?.message ?? "checkout_failed");
@@ -484,14 +484,38 @@ export default function ProductCheckout() {
             <h2 className="text-lg font-semibold">3. Цена и условия</h2>
             {priceBlock(false)}
             <div className="mt-4 space-y-3 text-sm">
+              <div
+                role="note"
+                className="rounded-xl border border-gold/30 bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground"
+              >
+                <span className="block font-medium text-foreground">
+                  Личните данни остават при Вас
+                </span>
+                Преди анализа системата разпознава лични данни в текста — имена, ЕГН,
+                адреси, телефони, имейли, банкови сметки — и ги заменя с маркери. Към
+                езиковия модел се изпраща само заличеният текст, а Вие виждате мястото в
+                своя документ.
+              </div>
+
               <label className="flex min-h-11 items-start gap-3">
                 <Checkbox
-                  checked={terms}
+                  checked={purchaseTerms}
                   disabled={locked}
-                  onCheckedChange={(v) => setTerms(v === true)}
+                  onCheckedChange={(v) => setPurchaseTerms(v === true)}
                 />
                 <span>
                   Приемам{" "}
+                  <Link
+                    to="/usloviya-za-pokupka"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                  >
+                    Условията за покупка
+                  </Link>
+                  : резултатът е автоматичен и не е юридически съвет, обработката започва
+                  веднага след плащането и след започването губя правото на отказ за вече
+                  доставеното съдържание. Приемам и{" "}
                   <Link to="/terms" target="_blank" rel="noopener noreferrer" className="underline">
                     Общите условия
                   </Link>{" "}
@@ -500,35 +524,6 @@ export default function ProductCheckout() {
                     Политиката за поверителност
                   </Link>
                   .
-                </span>
-              </label>
-              <label className="flex min-h-11 items-start gap-3">
-                <Checkbox
-                  checked={aiAck}
-                  disabled={locked}
-                  onCheckedChange={(v) => setAiAck(v === true)}
-                />
-                <span>
-                  Разбирам, че резултатът е автоматичен и не е юридически съвет.
-                </span>
-              </label>
-              <label className="flex min-h-11 items-start gap-3">
-                <Checkbox
-                  checked={immediate}
-                  disabled={locked}
-                  onCheckedChange={(v) => setImmediate(v === true)}
-                />
-                <span>Искам обработката да започне веднага след плащането.</span>
-              </label>
-              <label className="flex min-h-11 items-start gap-3">
-                <Checkbox
-                  checked={withdrawal}
-                  disabled={locked}
-                  onCheckedChange={(v) => setWithdrawal(v === true)}
-                />
-                <span>
-                  Разбирам, че след започване на обработката губя правото на отказ за вече
-                  доставеното съдържание.
                 </span>
               </label>
             </div>
