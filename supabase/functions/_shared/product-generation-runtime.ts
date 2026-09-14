@@ -31,6 +31,7 @@ import { buildSourceMap, locateOffset, sliceByCodePoints } from "./product-sourc
 import { foldToString } from "./product-text-fold.ts";
 import {
   originalOffsetFromRedacted,
+  ProductRedactionError,
   placeholdersIn,
   placeholdersForAnchor,
   redactProductBundle,
