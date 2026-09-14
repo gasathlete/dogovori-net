@@ -303,7 +303,7 @@ export default function ProductCheckout() {
             </div>
           </div>
           <div className="flex gap-3">
-            <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-gold" aria-hidden="true" />
+            <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-success" aria-hidden="true" />
             <div>
               <p className="text-sm font-semibold text-foreground">Вие получавате</p>
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground">

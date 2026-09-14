@@ -185,7 +185,7 @@ export function AdminMFAGuard({ children }: { children: ReactNode }) {
                   variant="outline"
                   onClick={() => { navigator.clipboard.writeText(secret ?? ""); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
                 >
-                  {copied ? <Check className="mr-2 h-3 w-3" /> : <Copy className="mr-2 h-3 w-3" />}
+                  {copied ? <Check className="mr-2 h-3 w-3 text-success" /> : <Copy className="mr-2 h-3 w-3" />}
                   Копирай secret
                 </Button>
               </AlertDescription>

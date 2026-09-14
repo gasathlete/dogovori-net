@@ -100,8 +100,8 @@ export default function CompareTemplates() {
         <section className="border rounded-lg p-5 bg-card space-y-3">
           <h2 className="font-serif text-xl">Кога да изберете кой?</h2>
           <ul className="text-sm space-y-2">
-            <li><CheckCircle2 className="h-4 w-4 text-emerald-600 inline mr-2" /><strong>{ta.doc.name}</strong> е подходящ, когато сте в категория „{ta.category.title}“.</li>
-            <li><CheckCircle2 className="h-4 w-4 text-emerald-600 inline mr-2" /><strong>{tb.doc.name}</strong> е подходящ, когато сте в категория „{tb.category.title}“.</li>
+            <li><CheckCircle2 className="h-4 w-4 inline mr-2 text-success" /><strong>{ta.doc.name}</strong> е подходящ, когато сте в категория „{ta.category.title}“.</li>
+            <li><CheckCircle2 className="h-4 w-4 inline mr-2 text-success" /><strong>{tb.doc.name}</strong> е подходящ, когато сте в категория „{tb.category.title}“.</li>
             <li><XCircle className="h-4 w-4 text-destructive inline mr-2" /> Никой от двата не заменя индивидуална правна консултация.</li>
           </ul>
         </section>

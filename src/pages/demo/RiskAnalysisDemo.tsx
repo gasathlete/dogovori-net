@@ -132,7 +132,7 @@ export default function RiskAnalysisDemo() {
           </ul>
 
           <div className="mt-6 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
-            <CheckCircle2 className="h-4 w-4" />
+            <CheckCircle2 className="h-4 w-4 text-success" />
             След регистрация получавате пълен отчет в PDF + предложения за поправени клаузи.
           </div>
         </section>

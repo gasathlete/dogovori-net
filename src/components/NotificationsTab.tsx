@@ -130,7 +130,7 @@ export function NotificationsTab() {
         </div>
         {unreadCount > 0 && (
           <Button size="sm" variant="outline" onClick={markAllRead} disabled={busy}>
-            {busy ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : <Check className="mr-2 h-3 w-3" />}
+            {busy ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : <Check className="mr-2 h-3 w-3 text-success" />}
             Маркирай всички като прочетени
           </Button>
         )}
@@ -203,7 +203,7 @@ export function NotificationsTab() {
                     )}
                     {!isRead && (
                       <Button size="sm" variant="ghost" onClick={() => markRead(n.id)}>
-                        <Check className="mr-1 h-3 w-3" /> Прочетено
+                        <Check className="mr-1 h-3 w-3 text-success" /> Прочетено
                       </Button>
                     )}
                   </div>

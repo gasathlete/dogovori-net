@@ -132,7 +132,7 @@ export function OnboardingTour({ open, onClose }: Props) {
                 >
                   {isLast ? (
                     <>
-                      <Check className="mr-1 h-4 w-4" /> Готово
+                      <Check className="mr-1 h-4 w-4 text-success" /> Готово
                     </>
                   ) : (
                     <>

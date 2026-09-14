@@ -170,7 +170,7 @@ export function DocumentReminderDialog({
                     <div className="flex shrink-0 gap-1">
                       {!r.done_at && (
                         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => markDone(r.id)} title="Изпълнено">
-                          <Check className="h-3.5 w-3.5" />
+                          <Check className="h-3.5 w-3.5 text-success" />
                         </Button>
                       )}
                       <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => remove(r.id)} title="Изтрий">

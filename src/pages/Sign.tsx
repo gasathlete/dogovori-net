@@ -200,7 +200,7 @@ export default function Sign() {
               <ol className="space-y-2 text-sm">
                 {peers.map((p) => (
                   <li key={p.id} className="flex items-center gap-2">
-                    {p.status === "signed" ? <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    {p.status === "signed" ? <CheckCircle2 className="h-4 w-4 text-success" />
                       : p.status === "declined" ? <XCircle className="h-4 w-4 text-destructive" />
                       : <span className="h-2 w-2 rounded-full bg-muted-foreground/40 inline-block" />}
                     <span className={p.id === signer.id ? "font-semibold" : ""}>{p.name}</span>

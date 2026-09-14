@@ -93,7 +93,7 @@ export function ProductCard({
         <ul className="space-y-1.5">
           {outcomes.map((o) => (
             <li key={o} className="flex items-start gap-2 text-[12.5px] leading-snug text-foreground/85">
-              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold" />
+              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
               <span>{o}</span>
             </li>
           ))}

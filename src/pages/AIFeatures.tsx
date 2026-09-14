@@ -120,7 +120,7 @@ export default function AIFeaturesPage() {
           <h2 id="limits" className="sr-only">Възможности и ограничения</h2>
           <article className="rounded-xl border border-gold/20 bg-gold/[0.03] p-6">
             <h3 className="mb-3 flex items-center gap-2 font-serif text-lg font-bold">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-gold" /> Какво AI може
+              <CheckCircle2 className="h-5 w-5 text-success" /> Какво AI може
             </h3>
             <ul className="space-y-2 text-sm leading-relaxed text-foreground/90">
               <li>• Маркира липсващи задължителни клаузи по ЗЗД/ТЗ/КТ.</li>

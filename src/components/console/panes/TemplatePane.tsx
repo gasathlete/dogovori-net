@@ -54,7 +54,7 @@ export function TemplatePane({ slug }: { slug: string }) {
         )}
         {tpl.lawyer_reviewed && (
           <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
-            <CheckCircle2 className="h-2.5 w-2.5" /> Прегледан от юрист
+            <CheckCircle2 className="h-2.5 w-2.5 text-success" /> Прегледан от юрист
           </span>
         )}
       </div>

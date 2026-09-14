@@ -226,7 +226,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
 
   const Feature = ({ children }: { children: React.ReactNode }) => (
     <li className="flex items-start gap-2.5 text-[13px] leading-relaxed text-foreground/85">
-      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-gold" strokeWidth={2.5} />
+      <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" strokeWidth={2.5} />
       <span>{children}</span>
     </li>
   );

@@ -410,7 +410,7 @@ export default function SharedDocument() {
 
         {doc.signed_at ? (
           <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/5 p-6 text-center">
-            <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-400" />
+            <CheckCircle2 className="mx-auto h-8 w-8 text-success" />
             <p className="mt-2 font-serif text-base">
               Подписано от {doc.signer_name} на {new Date(doc.signed_at).toLocaleString("bg-BG")}
             </p>

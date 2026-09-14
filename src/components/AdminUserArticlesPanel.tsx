@@ -154,7 +154,7 @@ export function AdminUserArticlesPanel() {
                     )}
                     {r.status !== "approved" && (
                       <Button size="sm" variant="outline" onClick={() => setStatus(r.id, "approved")}>
-                        <Check className="mr-1 h-3 w-3" /> Одобри
+                        <Check className="mr-1 h-3 w-3 text-success" /> Одобри
                       </Button>
                     )}
                     {r.status !== "rejected" && (

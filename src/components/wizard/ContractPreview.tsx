@@ -61,7 +61,7 @@ export function ContractPreview({ contract, onChange }: Props) {
           <X className="h-3.5 w-3.5" />
         </Button>
         <Button size="sm" onClick={save} className="h-7 px-2 bg-gradient-gold text-navy">
-          <Check className="h-3.5 w-3.5" />
+          <Check className="h-3.5 w-3.5 text-success" />
         </Button>
       </div>
     ) : (

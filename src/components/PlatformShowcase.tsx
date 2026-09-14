@@ -227,7 +227,7 @@ function MiniVisual({ kind }: { kind: FeatureSlide["visual"] }) {
           </div>
           <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 p-2.5">
             <div className="flex items-start gap-2">
-              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" strokeWidth={2.4} />
+              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" strokeWidth={2.4} />
               <div className="flex-1">
                 <div className="text-xs font-semibold text-emerald-300 sm:text-[13px]">
                   Срок и предмет — коректни

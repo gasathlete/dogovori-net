@@ -30,7 +30,7 @@ export function SuccessCelebration({ className }: { className?: string }) {
           }
         />
       ))}
-      <CheckCircle className="success-pop h-5 w-5 text-emerald-600 dark:text-gold" />
+      <CheckCircle className="success-pop h-5 w-5 text-success" />
     </span>
   );
 }

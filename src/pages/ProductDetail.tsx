@@ -216,7 +216,7 @@ export default function ProductDetail() {
             <ul className="mt-3 space-y-2">
               {product.page.youProvide.map((item) => (
                 <li key={item} className="flex items-start gap-2 text-[14px] leading-snug">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                   <span>{item}</span>
                 </li>
               ))}
@@ -229,7 +229,7 @@ export default function ProductDetail() {
             <ul className="mt-3 space-y-2">
               {product.page.youReceive.map((item) => (
                 <li key={item} className="flex items-start gap-2 text-[14px] leading-snug">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                   <span>{item}</span>
                 </li>
               ))}
@@ -261,7 +261,7 @@ export default function ProductDetail() {
                       key={item}
                       className="flex items-start gap-2 text-[13.5px] leading-snug text-muted-foreground"
                     >
-                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold" />
+                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
                       <span>{item}</span>
                     </li>
                   ))}

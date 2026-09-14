@@ -150,7 +150,7 @@ export function KitPane({ kitId, tabId }: Props) {
           </Button>
           {kit.status !== "complete" && (
             <Button onClick={handleComplete} disabled={!!busy} size="sm" variant="outline" className="border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/10">
-              <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Завърши
+              <CheckCircle2 className="mr-1 h-3.5 w-3.5 text-success" /> Завърши
             </Button>
           )}
           {kit.status !== "archived" && (
@@ -222,7 +222,7 @@ function ItemColumn({
             <>
               <div className="flex items-start gap-3">
                 {done
-                  ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                  ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                   : <FileText className="mt-0.5 h-4 w-4 shrink-0 text-gold/70" />}
                 <div className="min-w-0">
                   <span className="text-sm font-medium text-foreground">{name}</span>

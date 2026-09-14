@@ -293,7 +293,7 @@ export function ExitIntentLeadMagnet() {
         {step === "newsletter" && (
           <div className="px-5 pb-5 pt-6 sm:px-7 sm:pb-6 sm:pt-7">
             <div className="flex items-start gap-2.5 rounded-xl border border-brand/30 bg-brand/10 px-3 py-2.5 text-[13px]">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand text-success" aria-hidden="true" />
               <p>
                 PDF-ът се изтегля. Ако не започне автоматично —{" "}
                 <a href={magnet.fileUrl} download className="font-semibold text-brand underline-offset-2 hover:underline">
@@ -391,7 +391,7 @@ export function ExitIntentLeadMagnet() {
         {step === "subscribed" && (
           <div className="px-5 pb-6 pt-8 text-center sm:px-7">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand/15 text-brand">
-              <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
+              <CheckCircle2 className="h-6 w-6 text-success" aria-hidden="true" />
             </div>
             <DialogTitle className="mt-3 font-serif text-lg font-bold">Записахме те. Благодарим!</DialogTitle>
             <DialogDescription className="mt-1 text-sm text-muted-foreground">

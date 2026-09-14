@@ -146,7 +146,7 @@ export function OnboardingChecklist({ stats }: { stats: OnboardingStats }) {
                   s.done ? "bg-brand/20 text-brand" : "bg-muted/40 text-muted-foreground"
                 }`}
               >
-                {s.done ? <Check className="h-3.5 w-3.5" /> : <Circle className="h-3 w-3" />}
+                {s.done ? <Check className="h-3.5 w-3.5 text-success" /> : <Circle className="h-3 w-3" />}
               </span>
               <div className="min-w-0">
                 <div className={`text-sm font-medium ${s.done ? "line-through text-muted-foreground" : ""}`}>

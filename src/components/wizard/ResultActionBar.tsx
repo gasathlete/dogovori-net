@@ -142,7 +142,7 @@ export function ResultActionBar({
               {saving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : saved ? (
-                <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-gold" />
+                <CheckCircle className="h-4 w-4 text-success" />
               ) : (
                 <Save className="h-4 w-4" />
               )}

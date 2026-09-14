@@ -85,7 +85,7 @@ export function ProductComparisonList() {
                     key={item}
                     className="flex items-start gap-2 text-[13px] leading-snug text-foreground/85"
                   >
-                    <Check className="mt-0.5 size-3.5 shrink-0 text-gold" aria-hidden="true" />
+                    <Check className="mt-0.5 size-3.5 shrink-0 text-success" aria-hidden="true" />
                     <span className="min-w-0">{item}</span>
                   </span>
                 ))}

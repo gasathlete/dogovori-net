@@ -51,7 +51,7 @@ export function CheckoutStepper({
             >
               <span className="inline-flex size-4 items-center justify-center">
                 {done ? (
-                  <Check className="size-3.5 text-gold" aria-hidden="true" />
+                  <Check className="size-3.5 text-success" aria-hidden="true" />
                 ) : (
                   <span className="text-[11px] tabular-nums">{i + 1}</span>
                 )}

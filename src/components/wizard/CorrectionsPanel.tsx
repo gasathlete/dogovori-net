@@ -92,7 +92,7 @@ export function CorrectionsPanel({
       {applied && applied.length > 0 && (
         <div className="mb-4 rounded-lg border border-success/30 bg-success/5 p-3">
           <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-success">
-            <CheckCircle2 className="h-3.5 w-3.5" /> Приложени корекции
+            <CheckCircle2 className="h-3.5 w-3.5 text-success" /> Приложени корекции
           </div>
           <ul className="space-y-1 text-xs text-muted-foreground">
             {applied.map((a, i) => (

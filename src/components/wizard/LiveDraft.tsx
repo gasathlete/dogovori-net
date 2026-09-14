@@ -208,7 +208,7 @@ export function LiveDraft({
               onClick={() => setEditing((v) => !v)}
               className={editing ? "bg-gradient-gold text-navy" : "border-gold/40 hover:bg-gold/10 hover:text-gold"}
             >
-              {editing ? <><Check className="mr-1 h-3.5 w-3.5" />Готово</> : <><Pencil className="mr-1 h-3.5 w-3.5" />Редактирай</>}
+              {editing ? <><Check className="mr-1 h-3.5 w-3.5 text-success" />Готово</> : <><Pencil className="mr-1 h-3.5 w-3.5" />Редактирай</>}
             </Button>
           ) : (
             <span className="inline-flex items-center gap-1 rounded-md border border-border/60 px-2 py-1 text-[11px] text-muted-foreground">

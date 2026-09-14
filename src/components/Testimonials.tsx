@@ -215,7 +215,7 @@ function TestimonialDetail({
             )}
             {t.is_verified_customer && (
               <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-gold/35 bg-gold/10 px-2.5 py-1 text-[11px] font-medium text-gold">
-                <BadgeCheck className="h-3.5 w-3.5" />
+                <BadgeCheck className="h-3.5 w-3.5 text-success" />
                 Проверен клиент
               </div>
             )}
@@ -242,7 +242,7 @@ function TestimonialDetail({
 
         {t.is_verified_customer && (
           <p className="mt-4 flex items-start gap-2 border-t border-hairline pt-3 text-[11px] leading-relaxed text-muted-foreground">
-            <BadgeCheck className="mt-px h-3.5 w-3.5 shrink-0 text-gold" />
+            <BadgeCheck className="mt-px h-3.5 w-3.5 shrink-0 text-success" />
             Отметката „Проверен клиент" се поставя след като авторът е посочил код на поръчка или изготвен документ в
             платформата и екипът го е потвърдил.
           </p>
@@ -296,7 +296,7 @@ function TestimonialCard({ t, onOpen }: { t: Testimonial; onOpen: (t: Testimonia
             <span className="font-serif text-sm font-bold text-foreground">{t.name}</span>
             {t.is_verified_customer && (
               <span title="Проверен клиент" className="inline-flex items-center text-gold">
-                <BadgeCheck className="h-4 w-4" />
+                <BadgeCheck className="h-4 w-4 text-success" />
                 <span className="sr-only">Проверен клиент</span>
               </span>
             )}

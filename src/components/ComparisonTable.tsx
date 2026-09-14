@@ -22,7 +22,7 @@ function Mark({ value }: { value: Cell }) {
   if (value === "yes")
     return (
       <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-emerald-500/45 bg-emerald-500/15 text-emerald-500">
-        <Check className="h-3.5 w-3.5" />
+        <Check className="h-3.5 w-3.5 text-success" />
       </span>
     );
   if (value === "no")

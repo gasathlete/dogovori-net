@@ -210,7 +210,7 @@ export function PlanWelcomeDialog() {
                 <div className="text-sm font-semibold">{f.title}</div>
                 <div className="text-xs text-muted-foreground">{f.desc}</div>
               </div>
-              <Check className="ml-auto h-4 w-4 shrink-0 text-emerald-300" aria-hidden />
+              <Check className="ml-auto h-4 w-4 shrink-0 text-success" aria-hidden />
             </div>
           ))}
         </div>

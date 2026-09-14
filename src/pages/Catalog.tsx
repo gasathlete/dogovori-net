@@ -361,7 +361,7 @@ export default function CatalogPage() {
                             }
                           >
                             <span className="flex items-center gap-2 truncate">
-                              {active && <Check className="h-3.5 w-3.5 shrink-0" />}
+                              {active && <Check className="h-3.5 w-3.5 shrink-0 text-success" />}
                               <span className={active ? "" : "pl-[22px]"}>{d.shortLabel}</span>
                             </span>
                             <span className="text-[11px] text-muted-foreground">{count}</span>
@@ -404,7 +404,7 @@ export default function CatalogPage() {
             >
             <Languages className="h-3.5 w-3.5" />
               Двуезичен документ
-              {bilingualOnly && <Check className="h-3.5 w-3.5" />}
+              {bilingualOnly && <Check className="h-3.5 w-3.5 text-success" />}
             </button>
 
             <button
@@ -421,7 +421,7 @@ export default function CatalogPage() {
             >
               <Zap className="h-3.5 w-3.5" />
               Динамичен уизард
-              {dynamicOnly && <Check className="h-3.5 w-3.5" />}
+              {dynamicOnly && <Check className="h-3.5 w-3.5 text-success" />}
             </button>
 
             <span className="mx-1 hidden h-5 w-px bg-border/60 md:inline-block" aria-hidden />

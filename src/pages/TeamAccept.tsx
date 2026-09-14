@@ -112,7 +112,7 @@ export default function TeamAccept() {
               )}
               <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
                 <Button onClick={accept} disabled={busy} className="bg-gradient-gold text-navy">
-                  {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+                  {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4 text-success" />}
                   Приеми
                 </Button>
                 <Button variant="outline" onClick={decline} disabled={busy}>Откажи</Button>

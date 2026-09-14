@@ -174,7 +174,7 @@ export function ShareForSignDialog({ documentId, uploadedContractId, documentTit
                 <div className="flex gap-2">
                   <Input readOnly value={link} className="font-mono text-xs" />
                   <Button size="sm" variant="outline" onClick={copy}>
-                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
                   </Button>
                 </div>
                 {usePassword && password && (

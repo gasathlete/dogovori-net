@@ -117,7 +117,7 @@ export function SignedContractsTab({ userId }: { userId: string }) {
               <div className="min-w-0">
                 <h3 className="font-serif font-semibold truncate">{r.doc?.title ?? "(изтрит документ)"}</h3>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                  <CheckCircle2 className="h-3.5 w-3.5 text-success" />
                   <span>Подписан от <strong className="text-foreground">{r.signer_name}</strong></span>
                   <span>· {r.signed_at && new Date(r.signed_at).toLocaleString("bg-BG")}</span>
                 </div>

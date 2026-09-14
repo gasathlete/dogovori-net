@@ -33,7 +33,7 @@ export default function ESignatureDemo() {
       <Header />
       <main className="container max-w-5xl py-10 sm:py-14">
         <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-300">
-          <CheckCircle2 className="h-3.5 w-3.5" /> Пример · Успешно подписан документ
+          <CheckCircle2 className="h-3.5 w-3.5 text-success" /> Пример · Успешно подписан документ
         </div>
         <h1 className="font-serif text-3xl font-bold leading-tight sm:text-4xl">
           Електронен подпис — <span className="text-accent-gradient">валиден в целия ЕС</span>
@@ -46,7 +46,7 @@ export default function ESignatureDemo() {
         <section className="mt-10 overflow-hidden rounded-2xl border border-emerald-500/30 bg-card/50">
           <div className="flex items-center justify-between gap-3 border-b border-emerald-500/30 bg-emerald-500/10 px-5 py-4">
             <div className="flex items-center gap-2.5">
-              <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+              <CheckCircle2 className="h-5 w-5 text-success" />
               <div>
                 <div className="font-serif text-base font-bold">Договор за услуги — подписан</div>
                 <div className="text-[11px] text-muted-foreground">Envelope #DGV-2026-001847 · Финализиран на 17.06.2026, 13:02 EET</div>
@@ -76,7 +76,7 @@ export default function ESignatureDemo() {
                   </div>
                   <div className="text-right">
                     <div className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
-                      <CheckCircle2 className="h-3 w-3" /> Подписан
+                      <CheckCircle2 className="h-3 w-3 text-success" /> Подписан
                     </div>
                     <div className="mt-1 text-[11px] text-muted-foreground">{s.at}</div>
                   </div>

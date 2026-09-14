@@ -196,7 +196,7 @@ export function BulkActionsBar({
                 className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs hover:bg-card/60"
                 aria-label={allSelected ? "Размаркирай всички" : "Маркирай всички"}
               >
-                {allSelected ? <CheckSquare className="h-4 w-4 text-gold" /> : <Square className="h-4 w-4" />}
+                {allSelected ? <CheckSquare className="h-4 w-4 text-success" /> : <Square className="h-4 w-4" />}
                 {allSelected ? "Размаркирай всички" : "Маркирай всички"}
               </button>
               <span className="text-xs text-muted-foreground">
