@@ -971,6 +971,26 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* LEFT — form */}
           <section className="space-y-5">
+            {sensitiveOpen && (
+              <SensitiveDataNotice
+                classification={sensitiveClass}
+                blocked={sensitiveBlocked}
+                busy={generating || applyingCorrections}
+                operationLabel={correctionsPending ? "корекция на документа" : "изготвяне на документа"}
+                onDismiss={() => {
+                  setSensitiveOpen(false);
+                  setCorrectionsPending(null);
+                }}
+                onConfirm={() => {
+                  setSensitiveOpen(false);
+                  const pending = correctionsPending;
+                  setCorrectionsPending(null);
+                  if (pending) void handleApplyCorrections(pending, true);
+                  else void handleGenerate(true);
+                }}
+              />
+            )}
+
             {!result && (
               <div className="rounded-2xl border border-gold/25 bg-gradient-card p-6 shadow-soft md:p-7">
                 <div className="mb-3 flex items-center gap-3">
@@ -1537,28 +1557,6 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
                       </Button>
                     )}
                   </div>
-
-
-                  {sensitiveOpen && (
-                    <SensitiveDataNotice
-                      classification={sensitiveClass}
-                      blocked={sensitiveBlocked}
-                      busy={generating || applyingCorrections}
-                      operationLabel={correctionsPending ? "корекция на документа" : "изготвяне на документа"}
-                      onDismiss={() => {
-                        setSensitiveOpen(false);
-                        setCorrectionsPending(null);
-                      }}
-                      onConfirm={() => {
-                        setSensitiveOpen(false);
-                        const pending = correctionsPending;
-                        setCorrectionsPending(null);
-                        if (pending) void handleApplyCorrections(pending, true);
-                        else void handleGenerate(true);
-                      }}
-                    />
-                  )}
-
                   {generating && (
                     <div className="rounded-lg border border-gold/30 bg-gold/5 p-4 animate-fade-in">
                       <div className="flex items-center gap-3">

@@ -105,6 +105,14 @@ describe("/build — генераторът показва стъпка, не о
     expect(BUILD).toContain('data-testid="build-topbar-step"');
   });
 
+  it("показва предупреждението за лични данни и при готов резултат", () => {
+    const noticePosition = BUILD.indexOf("{sensitiveOpen && (");
+    const unfinishedFormPosition = BUILD.indexOf("{!result && (");
+    expect(noticePosition).toBeGreaterThan(-1);
+    expect(noticePosition).toBeLessThan(unfinishedFormPosition);
+    expect(BUILD).toContain('operationLabel={correctionsPending ? "корекция на документа"');
+  });
+
   it("няма обещания за време, готовност или AI обяснения в горния ред", () => {
     expect(BUILD).not.toContain("Системата е в готовност");
     expect(BUILD).not.toContain("AI-подпомогнат");
