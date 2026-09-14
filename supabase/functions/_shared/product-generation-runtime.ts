@@ -755,12 +755,20 @@ export class ProductGenerationRuntime {
       const rawJson = canonicalProductJson(output);
       const observed = placeholdersIn(rawJson, redaction.map);
       const outboundInventory = new Set(placeholdersIn(canonicalProductJson(payload), redaction.map));
-      if (observed.some((token) => !outboundInventory.has(token))) throw new ProductGenerationError("invalid_placeholder");
+      if (observed.some((token) => !outboundInventory.has(token))) {
+        // Съдържание никога не се записва — само причината за отказа.
+        console.error("product placeholder rejection", { stage: schemaStage, reason: "outside_outbound_inventory" });
+        throw new ProductGenerationError("invalid_placeholder");
+      }
       const expected = requiredPlaceholders(output, redaction.map, redaction.text);
       let hydrated: unknown;
       try { hydrated = JSON.parse(rehydrateProductOutput(rawJson, redaction.map, expected)); }
       catch (error) {
         if (error instanceof ProductGenerationError) throw error;
+        console.error("product placeholder rejection", {
+          stage: schemaStage,
+          reason: error instanceof ProductRedactionError ? error.reason : "unparsable_output",
+        });
         throw new ProductGenerationError("invalid_placeholder");
       }
       assertStageShape(schemaStage, hydrated);
