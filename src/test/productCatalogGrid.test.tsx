@@ -67,6 +67,7 @@ describe("каталожна продуктова витрина", () => {
     expect(screen.getByTestId("catalog-product-contract_improve").className).toContain(
       "col-span-2",
     );
-    expect(screen.getByAltText(/Тъмносини папки/)).toBeInTheDocument();
+    expect(screen.getAllByRole("img")).toHaveLength(3);
+    expect(screen.getByAltText(/лупа/)).toBeInTheDocument();
   });
 });
