@@ -99,7 +99,7 @@ export default function ProductCheckout() {
 
   const needsObjective = product?.id !== "contract_check";
   const needsCounterparty = product?.id === "negotiation_package";
-  const allConsents = terms && aiAck && immediate && withdrawal;
+  const allConsents = purchaseTerms;
   // Плащаме само когато имаме всичко, което продуктът реално ползва.
   const contextReady =
     role.trim().length > 1 &&
