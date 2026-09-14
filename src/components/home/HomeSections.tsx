@@ -9,7 +9,6 @@ import { Hero } from "@/components/Hero";
 import { SeoFooter } from "@/components/SeoFooter";
 import { LazyOnVisible } from "@/components/LazyOnVisible";
 import { SectionSkeleton } from "@/components/SectionSkeleton";
-import { PrimaryChoice } from "@/components/home/PrimaryChoice";
 import { BackdropSection } from "@/components/SectionBackdrop";
 
 const ProductsSection = lazy(() => import("@/components/home/ProductsSection").then((m) => ({ default: m.ProductsSection })));
@@ -25,7 +24,6 @@ const Testimonials = lazy(() => import("@/components/Testimonials").then((m) => 
 const FAQ = lazy(() => import("@/components/FAQ").then((m) => ({ default: m.FAQ })));
 const ComplianceSection = lazy(() => import("@/components/ComplianceSection").then((m) => ({ default: m.ComplianceSection })));
 const CTABand = lazy(() => import("@/components/CTABand").then((m) => ({ default: m.CTABand })));
-const DocumentPathStrip = lazy(() => import("@/components/home/DocumentPathStrip").then((m) => ({ default: m.DocumentPathStrip })));
 
 export function HomeSections() {
   return (
@@ -46,15 +44,6 @@ export function HomeSections() {
         </Suspense>
       </LazyOnVisible>
 
-      {/* Кратък визуален път на документа — компактно, преди дългите секции. */}
-      <LazyOnVisible minHeight={320}>
-        <Suspense fallback={<SectionSkeleton />}>
-          <BackdropSection variant="dots" align="center">
-            <DocumentPathStrip />
-          </BackdropSection>
-        </Suspense>
-      </LazyOnVisible>
-
       {/* DogovaryAI веднага след продуктите — видим е и на телефон, рано. */}
       <LazyOnVisible minHeight={520}>
         <Suspense fallback={<SectionSkeleton />}>
@@ -64,22 +53,11 @@ export function HomeSections() {
         </Suspense>
       </LazyOnVisible>
 
-      <BackdropSection variant="rings">
-        <PrimaryChoice />
-      </BackdropSection>
-
-      <LazyOnVisible minHeight={420}>
+      {/* Готови комплекти */}
+      <LazyOnVisible minHeight={480}>
         <Suspense fallback={<SectionSkeleton />}>
-          <BackdropSection variant="papers" align="bottom">
-            <FeaturedBlanks />
-          </BackdropSection>
-        </Suspense>
-      </LazyOnVisible>
-
-      <LazyOnVisible minHeight={420}>
-        <Suspense fallback={<SectionSkeleton />}>
-          <BackdropSection variant="grid" align="top">
-            <PlatformCapabilities />
+          <BackdropSection variant="rings">
+            <LifeScenarios />
           </BackdropSection>
         </Suspense>
       </LazyOnVisible>
@@ -93,11 +71,18 @@ export function HomeSections() {
         </Suspense>
       </LazyOnVisible>
 
-      {/* Готови комплекти */}
-      <LazyOnVisible minHeight={480}>
+      <LazyOnVisible minHeight={420}>
         <Suspense fallback={<SectionSkeleton />}>
-          <BackdropSection variant="rings">
-            <LifeScenarios />
+          <BackdropSection variant="papers" align="bottom">
+            <FeaturedBlanks />
+          </BackdropSection>
+        </Suspense>
+      </LazyOnVisible>
+
+      <LazyOnVisible minHeight={420}>
+        <Suspense fallback={<SectionSkeleton />}>
+          <BackdropSection variant="grid" align="top">
+            <PlatformCapabilities />
           </BackdropSection>
         </Suspense>
       </LazyOnVisible>
