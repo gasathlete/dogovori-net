@@ -35,28 +35,34 @@ export function ProductsSection() {
     >
       <div className="eyebrow mb-3 justify-start sm:justify-center">
         <span className="h-px w-8 bg-gold/40" />
-        Три продукта, еднократно плащане
+        {business ? "Абонаменти за фирми" : "Три продукта, еднократно плащане"}
       </div>
       <h2
         id="home-products-title"
         className="mb-2 max-w-md text-left font-serif text-3xl font-bold leading-tight text-foreground sm:mx-auto sm:text-center sm:text-4xl"
       >
-        Разгледайте нашите продукти
+        {business ? "Изберете абонамент за фирмата" : "Разгледайте нашите продукти"}
       </h2>
-      <p className="mb-7 max-w-xl text-left text-base text-muted-foreground sm:mx-auto sm:text-center">
-        Ето как изглежда резултатът при всеки от трите продукта.
+      <p className="mb-5 max-w-xl text-left text-base text-muted-foreground sm:mx-auto sm:text-center">
+        {business
+          ? "Месечен обем действия по документи в един профил, вместо отделна покупка за всеки документ."
+          : "Ето как изглежда резултатът при всеки от трите продукта."}
       </p>
 
+      <div className="mb-7 flex justify-start sm:justify-center">
+        <AudienceToggle />
+      </div>
+
       <div ref={ref} className="mx-auto max-w-6xl">
-        <ProductCatalogGrid source="home" />
+        {business ? <SubscriptionShowcase /> : <ProductCatalogGrid source="home" />}
       </div>
 
       <div className="mt-6 text-center">
         <Link
-          to="/produkti"
+          to={business ? "/plans" : "/produkti"}
           className="inline-flex min-h-[44px] items-center gap-1.5 text-[13px] font-semibold text-muted-foreground transition-colors hover:text-gold"
         >
-          Вижте подробно всеки продукт
+          {business ? "Вижте всички планове и включени функции" : "Вижте подробно всеки продукт"}
           <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
