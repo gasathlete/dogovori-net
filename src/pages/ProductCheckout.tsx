@@ -173,10 +173,7 @@ export default function ProductCheckout() {
     requestIdRef.current = crypto.randomUUID();
     setClientSecret(null);
     changeDocument();
-    setTerms(false);
-    setAiAck(false);
-    setImmediate(false);
-    setWithdrawal(false);
+    setPurchaseTerms(false);
     setOpenStep(null);
   };
 
