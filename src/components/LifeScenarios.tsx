@@ -3,24 +3,48 @@ import * as Icons from "@/icons";
 import { ArrowRight, Compass, ChevronDown } from "@/icons";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { LIFE_SCENARIOS } from "@/data/lifeScenarios";
-import { getKit, type DocumentKit } from "@/data/documentKits";
-import kitCorporate from "@/assets/kits/kit-corporate.jpg";
-import kitRealEstate from "@/assets/kits/kit-real-estate.jpg";
-import kitEmployment from "@/assets/kits/kit-employment.jpg";
-import kitDigital from "@/assets/kits/kit-digital.jpg";
-import kitIp from "@/assets/kits/kit-ip.jpg";
-import kitFamily from "@/assets/kits/kit-family.jpg";
-import kitOther from "@/assets/kits/kit-other.jpg";
+import { getKit } from "@/data/documentKits";
+import rentOutImage from "@/assets/scenarios/sc-rent-out.jpg";
+import buySellRealEstateImage from "@/assets/scenarios/sc-buy-sell-re.jpg";
+import startBusinessImage from "@/assets/scenarios/sc-start-biz.jpg";
+import investmentImage from "@/assets/scenarios/sc-invest.jpg";
+import hireImage from "@/assets/scenarios/sc-hire.jpg";
+import terminateImage from "@/assets/scenarios/sc-terminate.jpg";
+import freelanceImage from "@/assets/scenarios/sc-freelance.jpg";
+import digitalImage from "@/assets/scenarios/sc-digital.jpg";
+import ecommerceImage from "@/assets/scenarios/sc-ecommerce.jpg";
+import vehicleImage from "@/assets/scenarios/sc-vehicle.jpg";
+import powerOfAttorneyImage from "@/assets/scenarios/sc-poa.jpg";
+import ndaImage from "@/assets/scenarios/sc-nda.jpg";
+import gdprImage from "@/assets/scenarios/sc-gdpr.jpg";
+import familyImage from "@/assets/scenarios/sc-family.jpg";
+import inheritanceImage from "@/assets/scenarios/sc-inheritance.jpg";
+import loanImage from "@/assets/scenarios/sc-loan.jpg";
+import collectionImage from "@/assets/scenarios/sc-collect.jpg";
+import declarationImage from "@/assets/scenarios/sc-declaration.jpg";
+import unsureImage from "@/assets/scenarios/sc-unsure.jpg";
 
-/** По едно изображение за всяка категория комплект. */
-const KIT_GROUP_IMAGE: Record<DocumentKit["group"], string> = {
-  corporate: kitCorporate,
-  real_estate: kitRealEstate,
-  employment: kitEmployment,
-  digital: kitDigital,
-  ip: kitIp,
-  family: kitFamily,
-  other: kitOther,
+/** Уникална реалистична сцена за всяка житейска ситуация. */
+const SCENARIO_IMAGE: Record<string, string> = {
+  "rent-out": rentOutImage,
+  "buy-sell-re": buySellRealEstateImage,
+  "start-biz": startBusinessImage,
+  invest: investmentImage,
+  hire: hireImage,
+  terminate: terminateImage,
+  freelance: freelanceImage,
+  digital: digitalImage,
+  ecommerce: ecommerceImage,
+  vehicle: vehicleImage,
+  poa: powerOfAttorneyImage,
+  nda: ndaImage,
+  gdpr: gdprImage,
+  family: familyImage,
+  inheritance: inheritanceImage,
+  loan: loanImage,
+  collect: collectionImage,
+  declaration: declarationImage,
+  unsure: unsureImage,
 };
 
 const INITIAL_COUNT = 8;
@@ -72,8 +96,8 @@ export function LifeScenarios() {
               >
                 <span className="relative block aspect-[16/9] w-full overflow-hidden bg-navy-deep/60">
                   <img
-                    src={KIT_GROUP_IMAGE[kit?.group ?? "other"]}
-                    alt={kit ? `Комплект „${kit.title}“ — ${kit.groupLabel}` : "Всички комплекти документи"}
+                    src={SCENARIO_IMAGE[s.id]}
+                    alt={`${s.label} — комплект документи`}
                     loading="lazy"
                     width={768}
                     height={512}
