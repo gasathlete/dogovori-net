@@ -271,7 +271,9 @@ Deno.test("late-chunk PII never appears in primary or repair payloads", async ()
   for (const payload of outbound) for (const value of values) assertEquals(payload.includes(value), false);
 });
 
-Deno.test("an exact quote must preserve its anchored placeholder", async () => {
+// Преразказан „цитат“ пада, защото не е дословен текст от източника. Кодът е
+// `invalid_evidence`: закотвянето е мястото, където това се доказва.
+Deno.test("a paraphrased quote is rejected instead of anchored", async () => {
   const raw = "test@example.com";
   const withIdentifier = `Имейл ${raw} е адресът за уведомяване.`;
   const start = 0;
@@ -285,5 +287,45 @@ Deno.test("an exact quote must preserve its anchored placeholder", async () => {
     sourceText: withIdentifier, binding: localBinding,
     bounds: computeProductCostBounds("contract_check", localBinding.char_count, classifyDocumentBeforeAI(withIdentifier)),
     cursor: { stage: "review", batch_index: 0, chunk_index: 0 },
-  })), ProductGenerationError, "invalid_placeholder");
+  })), ProductGenerationError, "invalid_evidence");
+});
+
+// Дословен цитат, който покрива заличена стойност, но е БЕЗ нейния маркер, е
+// отказ: така не може да се промъкне възстановена лична стойност или изтрит
+// маркер в доказателството.
+Deno.test("a literal quote over a redacted value must carry its placeholder", async () => {
+  const raw = "test@example.com";
+  const withIdentifier = `Имейл ${raw} е адресът за уведомяване.`;
+  const model: ProductModelPort = { invoke: async () => ({
+    // Отместванията са умишлено неверни: сървърът закотвя по самия цитат.
+    output: [{ kind: "obligation", id: "o1", party: "you", summary: "Уведомяване", deadline: null, span: { start: 999, end: 1200, excerpt: "Имейл  е адресът за уведомяване." } }],
+    inputTokens: 1, outputTokens: 1, elapsedMs: 1,
+  }) };
+  const localBinding = { ...binding, char_count: Array.from(withIdentifier).length };
+  await assertRejects(() => new ProductGenerationRuntime(model, legal).runStep(state({
+    sourceText: withIdentifier, binding: localBinding,
+    bounds: computeProductCostBounds("contract_check", localBinding.char_count, classifyDocumentBeforeAI(withIdentifier)),
+    cursor: { stage: "review", batch_index: 0, chunk_index: 0 },
+  })), ProductGenerationError);
+});
+
+// Дословен цитат с маркера на място минава: отместванията идват от сървъра.
+Deno.test("a literal quote with its placeholder anchors on server offsets", async () => {
+  const raw = "test@example.com";
+  const withIdentifier = `Имейл ${raw} е адресът за уведомяване.`;
+  const model: ProductModelPort = { invoke: async () => ({
+    output: [{ kind: "obligation", id: "o1", party: "you", summary: "Уведомяване", deadline: null, span: { start: 999, end: 1200, excerpt: "Имейл ⟦PD_EMAIL_0001⟧ е адресът за уведомяване." } }],
+    inputTokens: 1, outputTokens: 1, elapsedMs: 1,
+  }) };
+  const localBinding = { ...binding, char_count: Array.from(withIdentifier).length };
+  const result = await new ProductGenerationRuntime(model, legal).runStep(state({
+    sourceText: withIdentifier, binding: localBinding,
+    bounds: computeProductCostBounds("contract_check", localBinding.char_count, classifyDocumentBeforeAI(withIdentifier)),
+    cursor: { stage: "review", batch_index: 0, chunk_index: 0 },
+  }));
+  const items = result.artifact?.payload as Array<Record<string, unknown>>;
+  const span = items[0].span as { start: number; end: number; excerpt: string };
+  assertEquals(span.start, 0);
+  // Запазеният артефакт остава заличен: маркерът си стои вместо личната стойност.
+  assertEquals(span.excerpt, "Имейл ⟦PD_EMAIL_0001⟧ е адресът за уведомяване.");
 });

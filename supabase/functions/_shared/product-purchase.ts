@@ -323,3 +323,21 @@ export function readProductSessionMetadata(meta: Record<string, unknown> | null 
   return { productId, userId, intakeId, sourceDocumentId, environment };
 }
 
+
+/**
+ * `order_snapshots.price_amount` се записва в ЦЕЛИ валутни единици (евро), а
+ * каноничната истина е в евроцентове. Преобразуването е строго: приема се само
+ * точна стойност с най-много два знака, без загуба и без закръгляне „на око“.
+ * При каквото и да е отклонение връща `null` и проверката отказва достъп.
+ */
+export function snapshotAmountToCents(value: unknown): number | null {
+  const raw = typeof value === "number"
+    ? value
+    : typeof value === "string" && value.trim() !== ""
+    ? Number(value)
+    : Number.NaN;
+  if (!Number.isFinite(raw) || raw < 0) return null;
+  const cents = Math.round(raw * 100);
+  if (Math.abs(raw * 100 - cents) > 1e-6) return null;
+  return cents;
+}
