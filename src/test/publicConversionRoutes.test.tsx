@@ -191,7 +191,8 @@ describe("началото на купуването — стъпки и гей�
     const src = read("src/pages/ProductCheckout.tsx");
     expect(src).toContain("contextSummary");
     expect(src).toContain("Промени");
-    expect(src).toContain("{!locked && reopen(\"context\")}");
+    // Свитата стъпка се отваря отново само докато плащането не е заключено.
+    expect(src).toContain("{reopenStep && !locked && (");
   });
 });
 
