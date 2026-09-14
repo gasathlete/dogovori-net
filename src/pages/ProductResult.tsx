@@ -53,6 +53,11 @@ import {
 } from "@/components/product-result/NegotiationWorkspace";
 import { ExportBar, type ExportAction } from "@/components/product-result/ExportBar";
 import {
+  isFulfillmentStage,
+  ProcessingProgress,
+  type FulfillmentStage,
+} from "@/components/product-result/ProcessingProgress";
+import {
   trackCorrectedPreviewOpened,
   trackCorrectionSelected,
   trackExportCompleted,
@@ -73,16 +78,25 @@ import {
 import type { CorrectionDecision } from "../../supabase/functions/_shared/product-selections";
 import type { ReadyProductResult } from "../../supabase/functions/_shared/product-result-contract";
 
-/** Изчакваме кратко и ограничено, с нарастваща пауза. */
-const MAX_ATTEMPTS = 14;
-const FIRST_DELAY_MS = 1500;
-const MAX_DELAY_MS = 8000;
+/** Изчакваме ограничено, с нарастваща пауза, и продължаваме сами при прекъсване. */
+const MAX_ATTEMPTS = 30;
+const MAX_RETRYABLE = 4;
+/** Потвърждението на плащането идва отвън и може да закъснее с няколко секунди. */
+const CONFIRM_ATTEMPTS = 10;
+const FIRST_DELAY_MS = 1200;
+const MAX_DELAY_MS = 6000;
 
 type Phase =
   | { readonly kind: "loading" }
   | { readonly kind: "no_access" }
+  | { readonly kind: "confirming" }
   | { readonly kind: "not_found" }
-  | { readonly kind: "processing"; readonly productId: string }
+  | {
+      readonly kind: "processing";
+      readonly productId: string;
+      readonly stage: FulfillmentStage | null;
+      readonly resuming: boolean;
+    }
   | { readonly kind: "failed"; readonly productId: string }
   | { readonly kind: "conflict" }
   | { readonly kind: "ready"; readonly purchase: PaidPurchase; readonly result: ReadyProductResult };
@@ -112,7 +126,9 @@ export default function ProductResult() {
   const [state, setState] = useState<ProductResultStateResponse | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const attemptsRef = useRef(0);
-  const fulfillRef = useRef(false);
+  const retriesRef = useRef(0);
+  const stageRef = useRef<FulfillmentStage | null>(null);
+  const resumingRef = useRef(false);
 
   /* ------------------------- зареждане и изчакване ------------------------- */
 
@@ -132,6 +148,13 @@ export default function ProductResult() {
       const purchase = await loadPaidPurchase(user.id, access).catch(() => null);
       if (cancelled) return;
       if (!purchase) {
+        // Потвърждението на плащането може да закъснее — изчакваме, вместо да
+        // казваме, че покупка няма.
+        if (access.mode === "checkout_return" && attemptsRef.current <= CONFIRM_ATTEMPTS) {
+          setPhase({ kind: "confirming" });
+          timer = setTimeout(() => void tick(), Math.min(FIRST_DELAY_MS * attemptsRef.current, MAX_DELAY_MS));
+          return;
+        }
         setPhase({ kind: "not_found" });
         return;
       }
@@ -150,16 +173,44 @@ export default function ProductResult() {
         setPhase({ kind: "failed", productId: row.product_id });
         return;
       }
-      setPhase({ kind: "processing", productId: row.product_id });
-      if (!fulfillRef.current) {
-        fulfillRef.current = true;
-        // Повторното заявяване е безопасно: не плаща пак и не ползва операции.
-        void startProductFulfillment(row.id);
-      }
+      setPhase({
+        kind: "processing",
+        productId: row.product_id,
+        stage: stageRef.current,
+        resuming: resumingRef.current,
+      });
       if (attemptsRef.current >= MAX_ATTEMPTS) {
         setPhase({ kind: "failed", productId: row.product_id });
         return;
       }
+
+      // Всяка заявка придвижва обработката с една стъпка. Повторното заявяване
+      // е безопасно: не плаща пак и не изразходва операции.
+      const fulfil = await startProductFulfillment(row.id);
+      if (cancelled) return;
+      if (fulfil.ok === true) {
+        resumingRef.current = false;
+        const stage = (fulfil.data as { stage?: unknown }).stage;
+        if (isFulfillmentStage(stage)) stageRef.current = stage;
+        if (fulfil.data.status === "ready") stageRef.current = "ready";
+      } else if (fulfil.failure.error === "failed_permanent") {
+        setPhase({ kind: "failed", productId: row.product_id });
+        return;
+      } else if (fulfil.failure.error === "failed_retryable" || fulfil.failure.error === "network") {
+        // Преходно прекъсване: продължаваме сами, без нова покупка.
+        retriesRef.current += 1;
+        resumingRef.current = true;
+        if (retriesRef.current > MAX_RETRYABLE) {
+          setPhase({ kind: "failed", productId: row.product_id });
+          return;
+        }
+      }
+      setPhase({
+        kind: "processing",
+        productId: row.product_id,
+        stage: stageRef.current,
+        resuming: resumingRef.current,
+      });
       const delay = Math.min(FIRST_DELAY_MS * attemptsRef.current, MAX_DELAY_MS);
       timer = setTimeout(() => void tick(), delay);
     };
@@ -196,7 +247,8 @@ export default function ProductResult() {
   }, [access, entitlementId, reloadKey]);
 
   const reload = useCallback(() => {
-    fulfillRef.current = false;
+    retriesRef.current = 0;
+    resumingRef.current = false;
     setReloadKey((v) => v + 1);
     setPhase({ kind: "loading" });
   }, []);
@@ -353,14 +405,49 @@ export default function ProductResult() {
     );
   }
 
-  if (phase.kind === "no_access" || phase.kind === "not_found") {
+  if (phase.kind === "confirming") {
+    return frame(
+      <>
+        <h1 className="text-2xl font-semibold md:text-3xl">Потвърждаваме плащането</h1>
+        <Card className="mt-5 p-5">
+          <p className="flex items-center gap-3 text-sm font-medium" aria-live="polite">
+            <Loader2 className="h-4 w-4 animate-spin text-gold" aria-hidden />
+            Изчакваме потвърждението от платежния доставчик.
+          </p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Това отнема няколко секунди. Страницата продължава сама — не плащайте отново.
+          </p>
+        </Card>
+      </>,
+    );
+  }
+
+  if (phase.kind === "not_found") {
+    return frame(
+      <>
+        <h1 className="text-2xl font-semibold md:text-3xl">Не намираме потвърдено плащане</h1>
+        <p className="mt-3 text-muted-foreground">
+          Ако сумата е удържана, покупката Ви е записана. {CONTACT}
+        </p>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <Button type="button" className="min-h-11" onClick={reload}>
+            Проверете отново
+          </Button>
+          <Button asChild variant="ghost" className="min-h-11">
+            <Link to="/account?tab=documents">Вашите документи</Link>
+          </Button>
+        </div>
+      </>,
+    );
+  }
+
+
+  if (phase.kind === "no_access") {
     return frame(
       <>
         <h1 className="text-2xl font-semibold md:text-3xl">Няма намерена покупка</h1>
         <p className="mt-3 text-muted-foreground">
-          {phase.kind === "no_access"
-            ? "Отворете страницата от връзката, която получихте след плащането."
-            : "Ако току-що платихте, изчакайте малко и опитайте отново."}
+          Отворете страницата от връзката, която получихте след плащането.
         </p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <Button asChild variant="outline" className="min-h-11">
@@ -379,15 +466,11 @@ export default function ProductResult() {
     return frame(
       <>
         <h1 className="text-2xl font-semibold md:text-3xl">{name}</h1>
-        <Card className="mt-5 p-5">
-          <p className="flex items-center gap-3 text-sm font-medium" aria-live="polite">
-            <Loader2 className="h-4 w-4 animate-spin text-gold" aria-hidden />
-            Плащането е потвърдено. Подготвяме резултата.
-          </p>
-          <p className="mt-3 text-sm text-muted-foreground">
-            Това отнема малко време. Страницата ще се обнови сама.
-          </p>
-        </Card>
+        <ProcessingProgress
+          productId={phase.productId}
+          stage={phase.stage}
+          resuming={phase.resuming}
+        />
       </>,
     );
   }
