@@ -30,7 +30,7 @@ export function PlatformCapabilities() {
       <div className="container">
         <div className="mx-auto max-w-2xl text-center">
           <p className="flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-gold/80 sm:text-[11px]">
-            <span className="section-number font-serif text-base font-normal tracking-normal text-gold/60">03</span>
+            <span className="section-number font-serif text-base font-normal tracking-normal text-gold/60">06</span>
             <span className="h-px w-5 bg-gold/40" />
             КАКВО ИМА В НАШАТА ПЛАТФОРМА ?
           </p>
