@@ -59,7 +59,7 @@ export default function AuthPage() {
   const [acceptAge, setAcceptAge] = useState(true);
   // Маркетинговото съгласие е по желание — стартира изключено и НЕ участва
   // в готовността за регистрация (GDPR: свободно, конкретно съгласие).
-  const [acceptMarketing, setAcceptMarketing] = useState(false);
+  const [acceptMarketing, setAcceptMarketing] = useState(true);
   // Задължително: име и имейл се пазят за вътрешни известия и проверката при подпис.
   const [acceptNotifications, setAcceptNotifications] = useState(true);
   // Отделно, изрично заявен отказ от имейл маркетинг.
