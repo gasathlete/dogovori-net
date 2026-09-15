@@ -70,7 +70,10 @@ export function resolveEvidence(sourceText: string, input: EvidenceInput): Evide
   const cps = Array.from(sourceText);
   const wanted = foldExcerpt(input.excerpt);
   const hasAnchor = typeof input.start === "number" && typeof input.end === "number";
-  if (wanted.length < EVIDENCE_MIN_EXCERPT_CHARS) {
+  const minChars = hasAnchor
+    ? EVIDENCE_MIN_EXCERPT_CHARS
+    : EVIDENCE_MIN_UNANCHORED_EXCERPT_CHARS;
+  if (wanted.length < minChars) {
     return { ok: false, reason: "excerpt_too_short" };
   }
 
