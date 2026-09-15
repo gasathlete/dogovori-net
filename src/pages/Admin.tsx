@@ -195,6 +195,13 @@ export default function AdminPage() {
                   </TableCell>
 
                   <TableCell className="text-center">{r.bonus_contracts}</TableCell>
+                  <TableCell className="text-center">
+                    {r.marketing_opt_out ? (
+                      <Badge variant="destructive" title="Изричен отказ от имейл маркетинг — не включвайте в кампании">−</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-emerald-600 border-emerald-500/40" title="Няма възражение срещу имейл маркетинг">+</Badge>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
                       {r.is_admin && <Badge variant="secondary">Admin</Badge>}
@@ -221,7 +228,7 @@ export default function AdminPage() {
                 </TableRow>
               ))}
               {rows.length === 0 && (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Няма резултати</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Няма резултати</TableCell></TableRow>
               )}
 
             </TableBody>
