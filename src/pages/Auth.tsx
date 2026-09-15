@@ -368,13 +368,41 @@ export default function AuthPage() {
                   </div>
                   <div className="flex items-start gap-2">
                     <Checkbox
+                      id="c-notify"
+                      checked={acceptNotifications}
+                      onCheckedChange={(v) => setAcceptNotifications(!!v)}
+                      className="mt-0.5"
+                    />
+                    <Label htmlFor="c-notify" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
+                      Съгласявам се да предоставя име и имейл, които се съхраняват в профила ми и се
+                      използват за вътрешни известия по документите, както и за проверката при
+                      подписване, за да можем да Ви уведомим при нужда. <span className="text-gold">*</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Checkbox
+                      id="c-mkt-refuse"
+                      checked={refuseMarketing}
+                      onCheckedChange={(v) => {
+                        setRefuseMarketing(!!v);
+                        if (v) setAcceptMarketing(false);
+                      }}
+                      className="mt-0.5"
+                    />
+                    <Label htmlFor="c-mkt-refuse" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
+                      Изрично отказвам да получавам имейл маркетинг. <span className="text-muted-foreground">(по желание)</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Checkbox
                       id="c-mkt"
                       checked={acceptMarketing}
+                      disabled={refuseMarketing}
                       onCheckedChange={(v) => setAcceptMarketing(!!v)}
                       className="mt-0.5"
                     />
                     <Label htmlFor="c-mkt" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
-                      Съгласявам се да предоставя име и имейл на администратора на платформата за получаване на съобщения, известия за бонуси и награди в профила ми в dogovori.net. <span className="text-muted-foreground">(по желание)</span>
+                      Съгласявам се да получавам имейл съобщения за новости, бонуси и награди. <span className="text-muted-foreground">(по желание)</span>
                     </Label>
                   </div>
                 </div>
