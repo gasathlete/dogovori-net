@@ -15,6 +15,7 @@ import {
   Bird,
   Package,
 } from "@/icons";
+import { BrandMark, BrandLogo } from "@/components/BrandLogo";
 
 const ITEMS: { id: ConsoleSection; label: string; icon: any }[] = [
   { id: "assistant", label: "DogovaryAI", icon: Bird },
@@ -50,14 +51,7 @@ export function ConsoleSidebar() {
       )}
     >
       <div className="flex items-center justify-between p-2">
-        <span
-          className={cn(
-            "px-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground",
-            collapsed && "sr-only",
-          )}
-        >
-          Workspace
-        </span>
+        {collapsed ? <BrandMark decorative className="h-7 w-8" /> : <BrandLogo compact className="scale-90 origin-left" />}
         <button
           type="button"
           onClick={toggleSidebar}

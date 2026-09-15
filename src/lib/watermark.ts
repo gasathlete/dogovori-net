@@ -1,6 +1,6 @@
 import type { jsPDF } from "jspdf";
 import { Header, Paragraph, TextRun, ImageRun, AlignmentType, type IImageOptions } from "docx";
-import logoUrl from "@/assets/logo-dogovori.webp";
+const logoUrl = "/brand-mark.svg";
 
 export interface WatermarkOpts {
   watermark: true;

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 112" width="128" height="112" role="img" aria-labelledby="title">
+  <title id="title">Договори.нет</title>
+  <path fill="#0B1525" fill-rule="evenodd" d="M25 11h37c31 0 48 18 48 45S93 101 62 101H25V11Zm19 17v56h17c19 0 29-10 29-28S80 28 61 28H44Z"/>
+  <path fill="#C9A84C" d="M47 34v47h15V58l24 23V59L47 34Z"/>
+  <g fill="none" stroke="#C9A84C" stroke-linecap="round" stroke-linejoin="round">
+    <path stroke-width="6" d="M8 35h112"/>
+    <path stroke-width="4" d="M15 39 5 68m10-29 13 29M111 39 98 68m13-29 12 29"/>
+    <path stroke-width="5" d="M3 69h27c-2 9-7 13-14 13S5 78 3 69Zm93 0h29c-2 9-7 13-15 13s-12-4-14-13Z"/>
+  </g>
+</svg>

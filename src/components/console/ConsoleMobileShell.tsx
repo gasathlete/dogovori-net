@@ -23,6 +23,7 @@ import {
   Wand2,
 } from "@/icons";
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/BrandLogo";
 import {
   Sheet,
   SheetContent,
@@ -170,7 +171,8 @@ export function ConsoleMobileShell() {
           aria-label="Раздели"
           className="relative w-screen shrink-0 snap-start overflow-y-auto bg-background"
         >
-          <div className="border-b border-border/60 px-4 py-3">
+          <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
+            <BrandLogo compact />
             <h2
               className="font-semibold uppercase tracking-widest text-muted-foreground"
               style={{ fontSize: FS.sectionCaption, lineHeight: 1.4 }}
