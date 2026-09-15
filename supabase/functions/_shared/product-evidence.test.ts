@@ -17,10 +17,16 @@ Deno.test("кратка извадка с вярно обявено място �
   assertEquals(resolved.ok, true);
 });
 
-Deno.test("двусмислена кратка извадка се отхвърля", () => {
-  const resolved = resolveEvidence("наем наем наем", { excerpt: "наем" });
+Deno.test("двусмислена извадка се отхвърля", () => {
+  const resolved = resolveEvidence("наеми наеми наеми", { excerpt: "наеми" });
   assertEquals(resolved.ok, false);
   if (!resolved.ok) assertEquals(resolved.reason, "excerpt_ambiguous");
+});
+
+Deno.test("къса извадка без обявено място се отхвърля", () => {
+  const resolved = resolveEvidence("наем наем наем", { excerpt: "наем" });
+  assertEquals(resolved.ok, false);
+  if (!resolved.ok) assertEquals(resolved.reason, "excerpt_too_short");
 });
 
 Deno.test("измислена извадка се отхвърля", () => {
