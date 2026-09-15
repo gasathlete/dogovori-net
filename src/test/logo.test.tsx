@@ -30,7 +30,7 @@ describe("Logo", () => {
     const { container } = render(<MemoryRouter><Logo /></MemoryRouter>);
     const logo = container.querySelector("svg");
 
-    expect(logo).toHaveAttribute("viewBox", "0 0 1880 280");
+    expect(logo).toHaveAttribute("viewBox", "0 0 1408 280");
     expect(logo?.querySelectorAll("path")).toHaveLength(
       BRAND_FRAME_PATHS.length + BRAND_MONOGRAM_PATHS.length + BRAND_SCALE_PATHS.length + BRAND_WORDMARK_PATHS.length,
     );

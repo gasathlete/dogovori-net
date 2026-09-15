@@ -4,9 +4,10 @@ import {
   BRAND_LOGO_VIEWBOX,
   BRAND_MARK_VIEWBOX,
   BRAND_MONOGRAM_PATHS,
+  BRAND_MONOGRAM_TRANSFORM,
   BRAND_SCALE_PATHS,
-  BRAND_WORDMARK_GOLD_START,
   BRAND_WORDMARK_PATHS,
+  BRAND_WORDMARK_TRANSFORM,
 } from "@/lib/brandGeometry";
 
 type BrandVariant = "auto" | "light" | "dark";
@@ -28,7 +29,7 @@ const variantClass: Record<BrandVariant, string> = {
 };
 
 /** Одобреният кирилски ДН знак в прекъсната рамка с отделена малка везна. */
-export function BrandMark({ className, variant = "auto", decorative = false }: BrandMarkProps) {
+export function BrandMark({ className, decorative = false }: BrandMarkProps) {
   return (
     <svg
       viewBox={BRAND_MARK_VIEWBOX}
@@ -37,10 +38,12 @@ export function BrandMark({ className, variant = "auto", decorative = false }: B
       role={decorative ? undefined : "img"}
       aria-hidden={decorative || undefined}
       aria-label={decorative ? undefined : "Договори.нет"}
-      className={cn("block shrink-0 text-gold", variantClass[variant], className)}
+      className={cn("block shrink-0 text-gold", className)}
     >
       {BRAND_FRAME_PATHS.map((path) => <path key={path} fill="currentColor" d={path} />)}
-      {BRAND_MONOGRAM_PATHS.map((path) => <path key={path} fill="currentColor" d={path} />)}
+      <g transform={BRAND_MONOGRAM_TRANSFORM}>
+        {BRAND_MONOGRAM_PATHS.map((path) => <path key={path} fill="currentColor" d={path} />)}
+      </g>
       {BRAND_SCALE_PATHS.map((path) => <path key={path} fill="currentColor" d={path} />)}
     </svg>
   );
@@ -51,25 +54,21 @@ export function BrandLogo({ className, variant = "auto", compact = false }: Bran
   return (
     <svg
       viewBox={BRAND_LOGO_VIEWBOX}
-      width="1880"
+      width="1408"
       height="280"
       role="img"
       aria-label="Договори.нет"
-      className={cn("block shrink-0", compact ? "h-8 w-[215px]" : "h-10 w-[269px]", variantClass[variant], className)}
+      className={cn("block shrink-0", compact ? "h-8 w-[161px]" : "h-10 w-[201px]", variantClass[variant], className)}
     >
       <g className="text-gold">
         {BRAND_FRAME_PATHS.map((path) => <path key={path} fill="currentColor" d={path} />)}
-        {BRAND_MONOGRAM_PATHS.map((path) => <path key={path} fill="currentColor" d={path} />)}
+        <g transform={BRAND_MONOGRAM_TRANSFORM}>
+          {BRAND_MONOGRAM_PATHS.map((path) => <path key={path} fill="currentColor" d={path} />)}
+        </g>
         {BRAND_SCALE_PATHS.map((path) => <path key={path} fill="currentColor" d={path} />)}
       </g>
-      <g transform="translate(380 0)">
-        {BRAND_WORDMARK_PATHS.map((path, index) => (
-          <path
-            key={path}
-            fill={index >= BRAND_WORDMARK_GOLD_START ? "hsl(var(--gold))" : "currentColor"}
-            d={path}
-          />
-        ))}
+      <g transform={BRAND_WORDMARK_TRANSFORM}>
+        {BRAND_WORDMARK_PATHS.map((path) => <path key={path} fill="currentColor" d={path} />)}
       </g>
     </svg>
   );
