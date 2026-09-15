@@ -7,6 +7,7 @@ export const CONSENT_VERSIONS = {
   terms: "2026-05-16",
   privacy: "2026-05-16",
   marketing: "2026-06-02",
+  operational_notifications: "2026-09-15",
   ai_disclaimer: "2026-05-16",
   cookies: "2026-05-16",
   age_18: "2026-05-16",
@@ -67,6 +68,34 @@ export async function hasConsent(type: ConsentType): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * Flush consents stashed at signup (`pending_consents` in sessionStorage) to
+ * the server on first authenticated session. Runs once per browser — the
+ * stash is removed before the request so a failure cannot double-record.
+ *
+ * Marketing is recorded only on an explicit signal:
+ *  - `marketing === true`         → granted = true (opt-in);
+ *  - `marketing_refused === true` → granted = false (explicit opt-out,
+ *    shown as „−" in the admin panel; everyone without such a record is „+").
+ */
+export async function flushPendingConsents() {
+  try {
+    const raw = sessionStorage.getItem("pending_consents");
+    if (!raw) return;
+    sessionStorage.removeItem("pending_consents");
+    const data = JSON.parse(raw) as Record<string, unknown>;
+    const records: ConsentRecord[] = [
+      { consent_type: "terms", granted: true },
+      { consent_type: "privacy", granted: true },
+      { consent_type: "age_18", granted: true },
+      { consent_type: "operational_notifications", granted: data.operational_notifications !== false },
+    ];
+    if (data.marketing === true) records.push({ consent_type: "marketing", granted: true });
+    if (data.marketing_refused === true) records.push({ consent_type: "marketing", granted: false });
+    await recordConsents(records);
+  } catch { /* storage unavailable or malformed payload — ignore */ }
 }
 
 /* Note: anonymous AI-disclaimer persistence is handled by

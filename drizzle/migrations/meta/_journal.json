@@ -127,6 +127,13 @@
       "when": 1789388429382,
       "tag": "0017_allow_array_product_generation_artifact_payload",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1789504102768,
+      "tag": "0018_admin_list_users_marketing_opt_out",
+      "breakpoints": true
     }
   ]
 }
