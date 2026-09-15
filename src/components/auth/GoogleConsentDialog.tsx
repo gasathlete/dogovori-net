@@ -26,7 +26,7 @@ export function GoogleConsentDialog({ open, onOpenChange, onConfirm, busy }: Goo
   // Задължително: име и имейл за вътрешни известия и проверката при подпис.
   const [notifications, setNotifications] = useState(true);
   // По желание — не блокира влизането с Google.
-  const [marketing, setMarketing] = useState(false);
+  const [marketing, setMarketing] = useState(true);
   const [marketingRefused, setMarketingRefused] = useState(false);
 
   useEffect(() => {
@@ -35,7 +35,7 @@ export function GoogleConsentDialog({ open, onOpenChange, onConfirm, busy }: Goo
       setTerms(true);
       setPrivacy(true);
       setNotifications(true);
-      setMarketing(false);
+      setMarketing(true);
       setMarketingRefused(false);
     }
   }, [open]);

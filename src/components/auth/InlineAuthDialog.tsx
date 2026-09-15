@@ -32,8 +32,12 @@ export function InlineAuthDialog() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [age, setAge] = useState(true);
+  const [terms, setTerms] = useState(true);
+  const [privacy, setPrivacy] = useState(true);
   // Задължително съгласие за съхранение на име/имейл и вътрешни известия.
   const [notifications, setNotifications] = useState(true);
+  const [marketing, setMarketing] = useState(true);
   // Отделен, изрично заявен отказ от имейл маркетинг.
   const [marketingRefused, setMarketingRefused] = useState(false);
   const successRef = useRef<(() => void) | null>(null);
@@ -73,6 +77,10 @@ export function InlineAuthDialog() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === "signup" && (!age || !terms || !privacy || !notifications)) {
+      toast.error("Моля, потвърдете задължителните полета");
+      return;
+    }
     setBusy(true);
     if (mode === "login") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -123,12 +131,12 @@ export function InlineAuthDialog() {
       sessionStorage.setItem(
         "pending_consents",
         JSON.stringify({
-          marketing: false,
+          marketing: marketing && !marketingRefused,
           marketing_refused: marketingRefused,
           operational_notifications: mode === "signup" ? notifications : true,
-          terms: true,
-          privacy: true,
-          age_18: true,
+          terms: mode === "signup" ? terms : true,
+          privacy: mode === "signup" ? privacy : true,
+          age_18: mode === "signup" ? age : true,
           ts: Date.now(),
         }),
       );
@@ -200,6 +208,24 @@ export function InlineAuthDialog() {
             {mode === "signup" && (
               <div className="space-y-2 rounded-md border border-border/60 bg-card/30 p-3">
                 <div className="flex items-start gap-2">
+                  <Checkbox id="inline-c-age" checked={age} onCheckedChange={(v) => setAge(!!v)} className="mt-0.5" />
+                  <Label htmlFor="inline-c-age" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
+                    Потвърждавам, че съм навършил/а <strong>18 години</strong>. <span className="text-gold">*</span>
+                  </Label>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Checkbox id="inline-c-terms" checked={terms} onCheckedChange={(v) => setTerms(!!v)} className="mt-0.5" />
+                  <Label htmlFor="inline-c-terms" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
+                    Прочетох и приемам <Link to="/terms" target="_blank" className="text-gold hover:underline">Общите условия</Link>. <span className="text-gold">*</span>
+                  </Label>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Checkbox id="inline-c-privacy" checked={privacy} onCheckedChange={(v) => setPrivacy(!!v)} className="mt-0.5" />
+                  <Label htmlFor="inline-c-privacy" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
+                    Прочетох и приемам <Link to="/privacy" target="_blank" className="text-gold hover:underline">Политиката за поверителност</Link> и обработката на личните ми данни съгласно GDPR. <span className="text-gold">*</span>
+                  </Label>
+                </div>
+                <div className="flex items-start gap-2">
                   <Checkbox
                     id="inline-c-notify"
                     checked={notifications}
@@ -223,9 +249,21 @@ export function InlineAuthDialog() {
                     Изрично отказвам да получавам имейл маркетинг. <span className="text-muted-foreground">(по желание)</span>
                   </Label>
                 </div>
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    id="inline-c-mkt"
+                    checked={marketing}
+                    disabled={marketingRefused}
+                    onCheckedChange={(v) => setMarketing(!!v)}
+                    className="mt-0.5"
+                  />
+                  <Label htmlFor="inline-c-mkt" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
+                    Съгласявам се да получавам имейл съобщения за новости, бонуси и награди. <span className="text-muted-foreground">(по желание)</span>
+                  </Label>
+                </div>
               </div>
             )}
-            <Button type="submit" className="w-full gap-2" disabled={busy || (mode === "signup" && !notifications)}>
+            <Button type="submit" className="w-full gap-2" disabled={busy || (mode === "signup" && (!age || !terms || !privacy || !notifications))}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               {mode === "login" ? "Вход и продължаване" : "Създай профил и продължи"}
             </Button>
