@@ -46,8 +46,11 @@ export function lazyRetry<T extends ComponentType<any>>(factory: () => Promise<{
         } catch (err2) {
           let reloaded = false;
           try {
-            reloaded = sessionStorage.getItem(RELOAD_KEY) === "1";
-            sessionStorage.setItem(RELOAD_KEY, "1");
+            // Time-boxed guard: prevents reload loops, but still allows a fresh
+            // recovery attempt later (a permanent flag left users on a blank screen).
+            const last = Number(sessionStorage.getItem(RELOAD_KEY) || "0");
+            reloaded = Date.now() - last < 10_000;
+            sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
           } catch {}
           if (!reloaded) {
             reloadFresh();
