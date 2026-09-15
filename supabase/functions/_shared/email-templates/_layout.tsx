@@ -15,13 +15,13 @@ import {
 } from 'npm:@react-email/components@0.0.22'
 
 export const COLORS = {
-  bg: '#f6f5f1',
+  bg: '#FAF8F3',
   card: '#ffffff',
-  navy: '#0f1a30',
+  navy: '#101827',
   navySoft: '#1a2540',
   text: '#3a3f4a',
   muted: '#8a8f99',
-  gold: '#c9a84c',
+  gold: '#B69A58',
   goldDark: '#9b8033',
   border: '#ece7d8',
 }
@@ -122,7 +122,7 @@ export const Layout = ({ preview, children, siteUrl = 'https://dogovori.net' }: 
       <Container style={wrapper}>
         <Section style={card}>
           <Section style={headerBar}>
-            <Img src={`${siteUrl}/logo-email.png?v=20260915b`} width="280" height="56" alt="Договори.нет" style={brandLogo} />
+            <Img src={`${siteUrl}/logo-email.png?v=20260915c`} width="280" height="56" alt="Договори.нет" style={brandLogo} />
             <Text style={tagline}>Професионален юридически помощник</Text>
           </Section>
           <Hr style={goldBar} />
