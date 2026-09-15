@@ -60,6 +60,10 @@ export default function AuthPage() {
   // Маркетинговото съгласие е по желание — стартира изключено и НЕ участва
   // в готовността за регистрация (GDPR: свободно, конкретно съгласие).
   const [acceptMarketing, setAcceptMarketing] = useState(false);
+  // Задължително: име и имейл се пазят за вътрешни известия и проверката при подпис.
+  const [acceptNotifications, setAcceptNotifications] = useState(false);
+  // Отделно, изрично заявен отказ от имейл маркетинг.
+  const [refuseMarketing, setRefuseMarketing] = useState(false);
   const [tab, setTab] = useState<"login" | "signup">(
     params.get("tab") === "signup" ? "signup" : "login",
   );
@@ -114,7 +118,7 @@ export default function AuthPage() {
     setTab(params.get("tab") === "signup" ? "signup" : "login");
   }, [params]);
 
-  const signupReady = acceptTerms && acceptPrivacy && acceptAge;
+  const signupReady = acceptTerms && acceptPrivacy && acceptAge && acceptNotifications;
   const showBgEmailWarning = isRiskyBgEmail(email);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -161,7 +165,9 @@ export default function AuthPage() {
       sessionStorage.setItem(
         "pending_consents",
         JSON.stringify({
-          marketing: acceptMarketing,
+          marketing: acceptMarketing && !refuseMarketing,
+          marketing_refused: refuseMarketing,
+          operational_notifications: acceptNotifications,
           terms: true,
           privacy: true,
           age_18: true,
@@ -178,7 +184,7 @@ export default function AuthPage() {
   };
 
 
-  const startGoogleOAuth = async (marketing: boolean) => {
+  const startGoogleOAuth = async (marketing: boolean, marketingRefused = false) => {
     setBusy(true);
     try {
       sessionStorage.setItem("post_login_redirect", redirect);
@@ -187,7 +193,15 @@ export default function AuthPage() {
       // via Google have the required terms/privacy/age records.
       sessionStorage.setItem(
         "pending_consents",
-        JSON.stringify({ marketing, terms: true, privacy: true, age_18: true, ts: Date.now() }),
+        JSON.stringify({
+          marketing: marketing && !marketingRefused,
+          marketing_refused: marketingRefused,
+          operational_notifications: true,
+          terms: true,
+          privacy: true,
+          age_18: true,
+          ts: Date.now(),
+        }),
       );
     } catch { /* storage unavailable */ }
     const result = await lovable.auth.signInWithOAuth("google", {
@@ -209,7 +223,7 @@ export default function AuthPage() {
         toast.error("Преди регистрация с Google, моля приемете задължителните условия");
         return;
       }
-      await startGoogleOAuth(acceptMarketing);
+      await startGoogleOAuth(acceptMarketing, refuseMarketing);
       return;
     }
     // Login tab: open consent dialog before OAuth to close the gap where
@@ -217,9 +231,9 @@ export default function AuthPage() {
     setGoogleConsentOpen(true);
   };
 
-  const handleGoogleConsentConfirm = async (marketing: boolean) => {
+  const handleGoogleConsentConfirm = async (marketing: boolean, marketingRefused = false) => {
     setGoogleConsentOpen(false);
-    await startGoogleOAuth(marketing);
+    await startGoogleOAuth(marketing, marketingRefused);
   };
 
   const handleReset = async () => {
@@ -368,13 +382,41 @@ export default function AuthPage() {
                   </div>
                   <div className="flex items-start gap-2">
                     <Checkbox
+                      id="c-notify"
+                      checked={acceptNotifications}
+                      onCheckedChange={(v) => setAcceptNotifications(!!v)}
+                      className="mt-0.5"
+                    />
+                    <Label htmlFor="c-notify" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
+                      Съгласявам се да предоставя име и имейл, които се съхраняват в профила ми и се
+                      използват за вътрешни известия по документите, както и за проверката при
+                      подписване, за да можем да Ви уведомим при нужда. <span className="text-gold">*</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Checkbox
+                      id="c-mkt-refuse"
+                      checked={refuseMarketing}
+                      onCheckedChange={(v) => {
+                        setRefuseMarketing(!!v);
+                        if (v) setAcceptMarketing(false);
+                      }}
+                      className="mt-0.5"
+                    />
+                    <Label htmlFor="c-mkt-refuse" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
+                      Изрично отказвам да получавам имейл маркетинг. <span className="text-muted-foreground">(по желание)</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Checkbox
                       id="c-mkt"
                       checked={acceptMarketing}
+                      disabled={refuseMarketing}
                       onCheckedChange={(v) => setAcceptMarketing(!!v)}
                       className="mt-0.5"
                     />
                     <Label htmlFor="c-mkt" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
-                      Съгласявам се да предоставя име и имейл на администратора на платформата за получаване на съобщения, известия за бонуси и награди в профила ми в dogovori.net. <span className="text-muted-foreground">(по желание)</span>
+                      Съгласявам се да получавам имейл съобщения за новости, бонуси и награди. <span className="text-muted-foreground">(по желание)</span>
                     </Label>
                   </div>
                 </div>

@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, ShieldCheck, Sparkles } from "@/icons";
 
 /**
@@ -31,6 +32,10 @@ export function InlineAuthDialog() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  // Задължително съгласие за съхранение на име/имейл и вътрешни известия.
+  const [notifications, setNotifications] = useState(false);
+  // Отделен, изрично заявен отказ от имейл маркетинг.
+  const [marketingRefused, setMarketingRefused] = useState(false);
   const successRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -106,6 +111,10 @@ export function InlineAuthDialog() {
   };
 
   const google = async () => {
+    if (mode === "signup" && !notifications) {
+      toast.error("Моля, потвърдете задължителното съгласие за име и имейл.");
+      return;
+    }
     setBusy(true);
     try {
       // Пълното OAuth пренасочване връща потребителя на същия адрес —
@@ -113,7 +122,15 @@ export function InlineAuthDialog() {
       sessionStorage.setItem("post_login_redirect", currentReturnPath());
       sessionStorage.setItem(
         "pending_consents",
-        JSON.stringify({ marketing: false, terms: true, privacy: true, age_18: true, ts: Date.now() }),
+        JSON.stringify({
+          marketing: false,
+          marketing_refused: marketingRefused,
+          operational_notifications: mode === "signup" ? notifications : true,
+          terms: true,
+          privacy: true,
+          age_18: true,
+          ts: Date.now(),
+        }),
       );
     } catch { /* хранилището е недостъпно */ }
     const result = await lovable.auth.signInWithOAuth("google", {
@@ -180,7 +197,35 @@ export function InlineAuthDialog() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-            <Button type="submit" className="w-full gap-2" disabled={busy}>
+            {mode === "signup" && (
+              <div className="space-y-2 rounded-md border border-border/60 bg-card/30 p-3">
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    id="inline-c-notify"
+                    checked={notifications}
+                    onCheckedChange={(v) => setNotifications(!!v)}
+                    className="mt-0.5"
+                  />
+                  <Label htmlFor="inline-c-notify" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
+                    Съгласявам се да предоставя име и имейл, които се съхраняват в профила ми и се
+                    използват за вътрешни известия по документите и за проверката при подписване.{" "}
+                    <span className="text-gold">*</span>
+                  </Label>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    id="inline-c-mkt-refuse"
+                    checked={marketingRefused}
+                    onCheckedChange={(v) => setMarketingRefused(!!v)}
+                    className="mt-0.5"
+                  />
+                  <Label htmlFor="inline-c-mkt-refuse" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
+                    Изрично отказвам да получавам имейл маркетинг. <span className="text-muted-foreground">(по желание)</span>
+                  </Label>
+                </div>
+              </div>
+            )}
+            <Button type="submit" className="w-full gap-2" disabled={busy || (mode === "signup" && !notifications)}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               {mode === "login" ? "Вход и продължаване" : "Създай профил и продължи"}
             </Button>
