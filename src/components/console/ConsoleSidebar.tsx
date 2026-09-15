@@ -51,7 +51,7 @@ export function ConsoleSidebar() {
       )}
     >
       <div className="flex items-center justify-between p-2">
-        {collapsed ? <BrandMark decorative className="h-7 w-8" /> : <BrandLogo compact className="scale-90 origin-left" />}
+        {collapsed ? <BrandMark decorative className="h-7 w-10" /> : <BrandLogo compact className="scale-90 origin-left" />}
         <button
           type="button"
           onClick={toggleSidebar}

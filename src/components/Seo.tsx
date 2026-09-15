@@ -11,7 +11,7 @@ interface SeoProps {
 }
 
 const SITE = "https://dogovori.net";
-const DEFAULT_IMAGE = `${SITE}/og-image.jpg`;
+const DEFAULT_IMAGE = `${SITE}/og-image.jpg?v=20260915b`;
 
 export function Seo({
   title,

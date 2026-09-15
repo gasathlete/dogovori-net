@@ -74,7 +74,7 @@ export function articleSchema(a: ArticleSchemaInput) {
     publisher: {
       "@type": "Organization",
       name: a.publisherName ?? "Dogovori.net",
-      logo: { "@type": "ImageObject", url: abs(a.publisherLogo ?? "/icon-512.png"), width: 512, height: 512 },
+      logo: { "@type": "ImageObject", url: abs(a.publisherLogo ?? "/icon-512.png?v=20260915b"), width: 512, height: 512 },
     },
   };
 }
