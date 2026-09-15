@@ -19,6 +19,11 @@ import type { SourceSpan } from "./product-result-contract.ts";
  * къси извадки продължават да падат по-долу като `excerpt_ambiguous`.
  */
 export const EVIDENCE_MIN_EXCERPT_CHARS = 4;
+/**
+ * Без подадено място минимумът е по-висок: къса дума без anchor не е
+ * доказателство, дори когато се среща само веднъж.
+ */
+export const EVIDENCE_MIN_UNANCHORED_EXCERPT_CHARS = 5;
 export const EVIDENCE_MAX_EXCERPT_CHARS = 1200;
 
 
