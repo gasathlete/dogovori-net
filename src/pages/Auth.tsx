@@ -165,7 +165,9 @@ export default function AuthPage() {
       sessionStorage.setItem(
         "pending_consents",
         JSON.stringify({
-          marketing: acceptMarketing,
+          marketing: acceptMarketing && !refuseMarketing,
+          marketing_refused: refuseMarketing,
+          operational_notifications: acceptNotifications,
           terms: true,
           privacy: true,
           age_18: true,
