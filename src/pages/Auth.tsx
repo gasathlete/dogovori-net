@@ -60,6 +60,10 @@ export default function AuthPage() {
   // Маркетинговото съгласие е по желание — стартира изключено и НЕ участва
   // в готовността за регистрация (GDPR: свободно, конкретно съгласие).
   const [acceptMarketing, setAcceptMarketing] = useState(false);
+  // Задължително: име и имейл се пазят за вътрешни известия и проверката при подпис.
+  const [acceptNotifications, setAcceptNotifications] = useState(false);
+  // Отделно, изрично заявен отказ от имейл маркетинг.
+  const [refuseMarketing, setRefuseMarketing] = useState(false);
   const [tab, setTab] = useState<"login" | "signup">(
     params.get("tab") === "signup" ? "signup" : "login",
   );
@@ -114,7 +118,7 @@ export default function AuthPage() {
     setTab(params.get("tab") === "signup" ? "signup" : "login");
   }, [params]);
 
-  const signupReady = acceptTerms && acceptPrivacy && acceptAge;
+  const signupReady = acceptTerms && acceptPrivacy && acceptAge && acceptNotifications;
   const showBgEmailWarning = isRiskyBgEmail(email);
 
   const handleLogin = async (e: React.FormEvent) => {
