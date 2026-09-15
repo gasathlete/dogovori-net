@@ -223,7 +223,7 @@ export default function AuthPage() {
         toast.error("Преди регистрация с Google, моля приемете задължителните условия");
         return;
       }
-      await startGoogleOAuth(acceptMarketing);
+      await startGoogleOAuth(acceptMarketing, refuseMarketing);
       return;
     }
     // Login tab: open consent dialog before OAuth to close the gap where
@@ -231,9 +231,9 @@ export default function AuthPage() {
     setGoogleConsentOpen(true);
   };
 
-  const handleGoogleConsentConfirm = async (marketing: boolean) => {
+  const handleGoogleConsentConfirm = async (marketing: boolean, marketingRefused = false) => {
     setGoogleConsentOpen(false);
-    await startGoogleOAuth(marketing);
+    await startGoogleOAuth(marketing, marketingRefused);
   };
 
   const handleReset = async () => {
