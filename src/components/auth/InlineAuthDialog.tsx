@@ -242,7 +242,10 @@ export function InlineAuthDialog() {
                   <Checkbox
                     id="inline-c-mkt-refuse"
                     checked={marketingRefused}
-                    onCheckedChange={(v) => setMarketingRefused(!!v)}
+                    onCheckedChange={(v) => {
+                      setMarketingRefused(!!v);
+                      if (v) setMarketing(false);
+                    }}
                     className="mt-0.5"
                   />
                   <Label htmlFor="inline-c-mkt-refuse" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
