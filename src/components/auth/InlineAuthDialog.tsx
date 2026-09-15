@@ -111,6 +111,10 @@ export function InlineAuthDialog() {
   };
 
   const google = async () => {
+    if (mode === "signup" && !notifications) {
+      toast.error("Моля, потвърдете задължителното съгласие за име и имейл.");
+      return;
+    }
     setBusy(true);
     try {
       // Пълното OAuth пренасочване връща потребителя на същия адрес —
@@ -118,7 +122,15 @@ export function InlineAuthDialog() {
       sessionStorage.setItem("post_login_redirect", currentReturnPath());
       sessionStorage.setItem(
         "pending_consents",
-        JSON.stringify({ marketing: false, terms: true, privacy: true, age_18: true, ts: Date.now() }),
+        JSON.stringify({
+          marketing: false,
+          marketing_refused: marketingRefused,
+          operational_notifications: mode === "signup" ? notifications : true,
+          terms: true,
+          privacy: true,
+          age_18: true,
+          ts: Date.now(),
+        }),
       );
     } catch { /* хранилището е недостъпно */ }
     const result = await lovable.auth.signInWithOAuth("google", {
