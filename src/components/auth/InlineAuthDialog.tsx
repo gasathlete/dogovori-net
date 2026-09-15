@@ -33,7 +33,7 @@ export function InlineAuthDialog() {
   const [busy, setBusy] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   // Задължително съгласие за съхранение на име/имейл и вътрешни известия.
-  const [notifications, setNotifications] = useState(false);
+  const [notifications, setNotifications] = useState(true);
   // Отделен, изрично заявен отказ от имейл маркетинг.
   const [marketingRefused, setMarketingRefused] = useState(false);
   const successRef = useRef<(() => void) | null>(null);
