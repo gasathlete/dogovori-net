@@ -23,6 +23,7 @@ import {
   readPaidResult,
   sha256Hex,
   type PaidAccessRequest,
+  type PaidEntitlementRow,
   type PaidPurchase,
 } from "@/lib/productPaidResult";
 import {
