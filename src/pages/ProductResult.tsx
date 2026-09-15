@@ -16,6 +16,7 @@ import { Loader2 } from "@/icons";
 import { useAuth } from "@/hooks/useAuth";
 import { getProduct, isOneTimeProductId, productPathById } from "@/lib/products";
 import {
+  bindingFromEntitlement,
   loadBoundSourceText,
   loadPaidPurchase,
   priceBg,
@@ -59,6 +60,7 @@ import {
   type FulfillmentStage,
 } from "@/components/product-result/ProcessingProgress";
 import { PurchaseBreakdown } from "@/components/product-result/PurchaseBreakdown";
+import { ManualClauseReview } from "@/components/product-result/ManualClauseReview";
 import {
   trackCorrectedPreviewOpened,
   trackCorrectionSelected,
@@ -100,7 +102,11 @@ type Phase =
       readonly stage: FulfillmentStage | null;
       readonly resuming: boolean;
     }
-  | { readonly kind: "failed"; readonly productId: string }
+  | {
+      readonly kind: "failed";
+      readonly productId: string;
+      readonly entitlement: PaidEntitlementRow;
+    }
   | { readonly kind: "conflict" }
   | { readonly kind: "ready"; readonly purchase: PaidPurchase; readonly result: ReadyProductResult };
 
@@ -173,7 +179,7 @@ export default function ProductResult() {
         return;
       }
       if (row.status === "failed" || row.status === "refunded") {
-        setPhase({ kind: "failed", productId: row.product_id });
+        setPhase({ kind: "failed", productId: row.product_id, entitlement: row });
         return;
       }
       setPhase({
@@ -184,7 +190,7 @@ export default function ProductResult() {
         resuming: resumingRef.current,
       });
       if (attemptsRef.current >= MAX_ATTEMPTS) {
-        setPhase({ kind: "failed", productId: row.product_id });
+        setPhase({ kind: "failed", productId: row.product_id, entitlement: row });
         return;
       }
 
@@ -198,14 +204,14 @@ export default function ProductResult() {
         if (isFulfillmentStage(stage)) stageRef.current = stage;
         if (fulfil.data.status === "ready") stageRef.current = "ready";
       } else if (fulfil.failure.error === "failed_permanent") {
-        setPhase({ kind: "failed", productId: row.product_id });
+        setPhase({ kind: "failed", productId: row.product_id, entitlement: row });
         return;
       } else if (fulfil.failure.error === "failed_retryable" || fulfil.failure.error === "network") {
         // Преходно прекъсване: продължаваме сами, без нова покупка.
         retriesRef.current += 1;
         resumingRef.current = true;
         if (retriesRef.current > MAX_RETRYABLE) {
-          setPhase({ kind: "failed", productId: row.product_id });
+          setPhase({ kind: "failed", productId: row.product_id, entitlement: row });
           return;
         }
       }
@@ -299,6 +305,43 @@ export default function ProductResult() {
   );
 
   const [manifest, setManifest] = useState<ProductPatchManifest | null>(null);
+
+  /* ---------------------------- ръчен преглед ----------------------------- */
+
+  type ManualSource =
+    | { readonly kind: "loading" }
+    | { readonly kind: "ready"; readonly text: string }
+    | { readonly kind: "error"; readonly message: string };
+
+  const [manual, setManual] = useState<ManualSource | null>(null);
+
+  /**
+   * Ръчният преглед ползва САМО точния платен текст. Ако документът не съвпада
+   * с платеното обвързване, не показваме нищо и казваме защо.
+   */
+  const openManualReview = useCallback(async (row: PaidEntitlementRow) => {
+    setManual({ kind: "loading" });
+    const binding = bindingFromEntitlement(row);
+    if (!binding) {
+      setManual({
+        kind: "error",
+        message: "Не намираме обвързания текст на документа за тази покупка.",
+      });
+      return;
+    }
+    const source = await loadBoundSourceText(binding).catch(() => null);
+    if (!source || source.ok === false) {
+      setManual({
+        kind: "error",
+        message:
+          source && source.reason === "source_changed"
+            ? "Документът се е променил след плащането, затова не показваме текста."
+            : "Не намираме текста на документа за тази покупка.",
+      });
+      return;
+    }
+    setManual({ kind: "ready", text: source.text });
+  }, []);
 
   const saveSelection = useCallback(
     async (decisions: readonly CorrectionDecision[]): Promise<SaveOutcome> => {
@@ -482,15 +525,49 @@ export default function ProductResult() {
   }
 
   if (phase.kind === "failed") {
+    const failedRow = phase.entitlement;
     return frame(
       <>
         <h1 className="text-2xl font-semibold md:text-3xl">Не успяхме да завършим</h1>
         <p className="mt-3 text-muted-foreground">
           Опитайте отново след малко. Ако проблемът остане, {CONTACT}
         </p>
-        <Button type="button" className="mt-6 min-h-11" onClick={reload}>
-          Опитайте отново
-        </Button>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <Button type="button" className="min-h-11" onClick={reload}>
+            Опитайте отново
+          </Button>
+          {manual === null && (
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11"
+              onClick={() => void openManualReview(failedRow)}
+            >
+              Прегледайте клаузите ръчно
+            </Button>
+          )}
+        </div>
+        {manual?.kind === "loading" && (
+          <p className="mt-6 flex items-center gap-3 text-sm" aria-live="polite">
+            <Loader2 className="h-4 w-4 animate-spin text-gold" aria-hidden />
+            Зареждаме текста на документа.
+          </p>
+        )}
+        {manual?.kind === "error" && (
+          <Card className="mt-6 p-5">
+            <p className="text-sm">{manual.message}</p>
+          </Card>
+        )}
+        {manual?.kind === "ready" && (
+          <ManualClauseReview
+            title={
+              isOneTimeProductId(failedRow.product_id)
+                ? getProduct(failedRow.product_id).name
+                : "Документ"
+            }
+            sourceText={manual.text}
+          />
+        )}
       </>,
     );
   }
