@@ -356,6 +356,7 @@ const AnimatedRoutes = () => {
         {/* Самостоятелните продуктови страници — стабилни ASCII slug-ове. */}
         {/* Покупката и състоянието на поръчката — само за влезли потребители. */}
         <Route path="/produkti/rezultat" element={<ProtectedRoute><ProductResult /></ProtectedRoute>} />
+        <Route path="/produkti/moite-pokupki" element={<ProtectedRoute><MyPurchases /></ProtectedRoute>} />
         <Route
           path="/produkti/:slug/start"
           element={<ProtectedRoute><ProductCheckout /></ProtectedRoute>}
