@@ -96,20 +96,46 @@ export function GoogleConsentDialog({ open, onOpenChange, onConfirm, busy }: Goo
           </div>
           <div className="flex items-start gap-2">
             <Checkbox
+              id="g-notify"
+              checked={notifications}
+              onCheckedChange={(v) => setNotifications(!!v)}
+              className="mt-0.5"
+            />
+            <Label htmlFor="g-notify" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
+              Съгласявам се да предоставя име и имейл, които се съхраняват в профила ми и се използват за вътрешни известия по документите, както и за проверката при подписване, за да можем да Ви уведомим при нужда. <span className="text-gold">*</span>
+            </Label>
+          </div>
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id="g-mkt-refuse"
+              checked={marketingRefused}
+              onCheckedChange={(v) => {
+                setMarketingRefused(!!v);
+                if (v) setMarketing(false);
+              }}
+              className="mt-0.5"
+            />
+            <Label htmlFor="g-mkt-refuse" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
+              Изрично отказвам да получавам имейл маркетинг. <span className="text-muted-foreground">(по желание)</span>
+            </Label>
+          </div>
+          <div className="flex items-start gap-2">
+            <Checkbox
               id="g-mkt"
               checked={marketing}
+              disabled={marketingRefused}
               onCheckedChange={(v) => setMarketing(!!v)}
               className="mt-0.5"
             />
             <Label htmlFor="g-mkt" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
-              Съгласявам се да предоставя име и имейл на администратора на платформата за получаване на съобщения, известия за бонуси и награди в профила ми в dogovori.net. <span className="text-muted-foreground">(по желание)</span>
+              Съгласявам се да получавам имейл съобщения за новости, бонуси и награди. <span className="text-muted-foreground">(по желание)</span>
             </Label>
           </div>
         </div>
 
         <Button
           type="button"
-          onClick={() => onConfirm(marketing)}
+          onClick={() => onConfirm(marketing && !marketingRefused, marketingRefused)}
           disabled={!ready || busy}
           className="btn-sheen w-full bg-gradient-gold text-navy hover:shadow-gold disabled:opacity-50"
         >
