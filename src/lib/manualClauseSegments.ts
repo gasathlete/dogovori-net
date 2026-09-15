@@ -23,7 +23,7 @@ const MAX_LABEL_CHARS = 90;
 
 /** Ред, който започва нова клауза: „Чл. 5", „Член 5", „Раздел II", „1.", „1)". */
 const HEADING_RE =
-  /^\s*(?:чл\.?|член|раздел|глава|приложение)\b|^\s*(?:[IVXLC]+|\d+(?:\.\d+)*)\s*[.)]\s+/i;
+  /^\s*(?:(?:чл|член|раздел|глава|приложение)\.?(?![\p{L}])|(?:[IVXLC]+|\d+(?:\.\d+)*)\s*[.)]\s+)/iu;
 
 function labelOf(text: string): string {
   const firstLine = text.split("\n").find((line) => line.trim().length > 0) ?? text;
