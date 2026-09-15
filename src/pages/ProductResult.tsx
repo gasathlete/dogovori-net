@@ -100,7 +100,11 @@ type Phase =
       readonly stage: FulfillmentStage | null;
       readonly resuming: boolean;
     }
-  | { readonly kind: "failed"; readonly productId: string }
+  | {
+      readonly kind: "failed";
+      readonly productId: string;
+      readonly entitlement: PaidEntitlementRow;
+    }
   | { readonly kind: "conflict" }
   | { readonly kind: "ready"; readonly purchase: PaidPurchase; readonly result: ReadyProductResult };
 
@@ -173,7 +177,7 @@ export default function ProductResult() {
         return;
       }
       if (row.status === "failed" || row.status === "refunded") {
-        setPhase({ kind: "failed", productId: row.product_id });
+        setPhase({ kind: "failed", productId: row.product_id, entitlement: row });
         return;
       }
       setPhase({
@@ -184,7 +188,7 @@ export default function ProductResult() {
         resuming: resumingRef.current,
       });
       if (attemptsRef.current >= MAX_ATTEMPTS) {
-        setPhase({ kind: "failed", productId: row.product_id });
+        setPhase({ kind: "failed", productId: row.product_id, entitlement: row });
         return;
       }
 
@@ -198,14 +202,14 @@ export default function ProductResult() {
         if (isFulfillmentStage(stage)) stageRef.current = stage;
         if (fulfil.data.status === "ready") stageRef.current = "ready";
       } else if (fulfil.failure.error === "failed_permanent") {
-        setPhase({ kind: "failed", productId: row.product_id });
+        setPhase({ kind: "failed", productId: row.product_id, entitlement: row });
         return;
       } else if (fulfil.failure.error === "failed_retryable" || fulfil.failure.error === "network") {
         // Преходно прекъсване: продължаваме сами, без нова покупка.
         retriesRef.current += 1;
         resumingRef.current = true;
         if (retriesRef.current > MAX_RETRYABLE) {
-          setPhase({ kind: "failed", productId: row.product_id });
+          setPhase({ kind: "failed", productId: row.product_id, entitlement: row });
           return;
         }
       }
