@@ -96,6 +96,25 @@ export default function StartPage() {
               Изберете едно от трите. Отвеждаме Ви директно до документа — без
               междинни менюта.
             </p>
+            {!user && (
+              <div className="mt-6 flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  data-testid="start-free-signup"
+                  onClick={() => {
+                    trackFunnelEvent("start_signup_cta_clicked", { source: "start_header" });
+                    openInlineAuth({ action: "Безплатна регистрация", mode: "signup" });
+                  }}
+                  className="btn-gold btn-press inline-flex min-h-[48px] w-full max-w-[320px] items-center justify-center gap-2 rounded-xl px-6 text-[16px] font-bold normal-case tracking-normal"
+                >
+                  Безплатна регистрация
+                  <ArrowRight className="h-[16px] w-[16px]" />
+                </button>
+                <p className="text-[12px] text-muted-foreground">
+                  {FREE_OFFER_RULE} · без карта
+                </p>
+              </div>
+            )}
           </header>
 
           <ul className="mt-10 grid gap-4 md:grid-cols-3">
