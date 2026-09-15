@@ -180,7 +180,35 @@ export function InlineAuthDialog() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-            <Button type="submit" className="w-full gap-2" disabled={busy}>
+            {mode === "signup" && (
+              <div className="space-y-2 rounded-md border border-border/60 bg-card/30 p-3">
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    id="inline-c-notify"
+                    checked={notifications}
+                    onCheckedChange={(v) => setNotifications(!!v)}
+                    className="mt-0.5"
+                  />
+                  <Label htmlFor="inline-c-notify" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
+                    Съгласявам се да предоставя име и имейл, които се съхраняват в профила ми и се
+                    използват за вътрешни известия по документите и за проверката при подписване.{" "}
+                    <span className="text-gold">*</span>
+                  </Label>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    id="inline-c-mkt-refuse"
+                    checked={marketingRefused}
+                    onCheckedChange={(v) => setMarketingRefused(!!v)}
+                    className="mt-0.5"
+                  />
+                  <Label htmlFor="inline-c-mkt-refuse" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
+                    Изрично отказвам да получавам имейл маркетинг. <span className="text-muted-foreground">(по желание)</span>
+                  </Label>
+                </div>
+              </div>
+            )}
+            <Button type="submit" className="w-full gap-2" disabled={busy || (mode === "signup" && !notifications)}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               {mode === "login" ? "Вход и продължаване" : "Създай профил и продължи"}
             </Button>
