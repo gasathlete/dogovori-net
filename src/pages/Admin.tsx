@@ -33,6 +33,7 @@ type Row = {
   is_moderator: boolean;
   is_admin: boolean;
   created_at: string;
+  marketing_opt_out: boolean;
 };
 
 
@@ -172,6 +173,7 @@ export default function AdminPage() {
                 <TableHead className="text-center" title="Операции този месец / общо за времето на акаунта. 1 операция = свален договор, свален шаблон, качване+анализ или AI съобщение.">Операции</TableHead>
 
                 <TableHead className="text-center">Бонус</TableHead>
+                <TableHead className="text-center" title="Имейл маркетинг: „+“ = няма възражение (може да получава), „−“ = изричен отказ — изключва се от маркетингови кампании.">Маркетинг</TableHead>
                 <TableHead>Роля</TableHead>
                 <TableHead className="text-right">Действия</TableHead>
               </TableRow>
