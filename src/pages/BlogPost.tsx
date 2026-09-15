@@ -45,7 +45,7 @@ export default function BlogPost() {
     publisher: {
       "@type": "Organization",
       name: "Dogovori.net",
-      logo: { "@type": "ImageObject", url: "https://dogovori.net/icon-512.png?v=20260915c", width: 512, height: 512 },
+      logo: { "@type": "ImageObject", url: "https://dogovori.net/icon-512.png?v=20260915d", width: 512, height: 512 },
     },
     mainEntityOfPage: { "@type": "WebPage", "@id": url },
     inLanguage: "bg-BG",

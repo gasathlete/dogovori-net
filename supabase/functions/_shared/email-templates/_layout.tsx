@@ -122,7 +122,7 @@ export const Layout = ({ preview, children, siteUrl = 'https://dogovori.net' }: 
       <Container style={wrapper}>
         <Section style={card}>
           <Section style={headerBar}>
-            <Img src={`${siteUrl}/logo-email.png?v=20260915c`} width="280" height="56" alt="Договори.нет" style={brandLogo} />
+            <Img src={`${siteUrl}/logo-email.png?v=20260915d`} width="352" height="70" alt="Договори.нет" style={brandLogo} />
             <Text style={tagline}>Професионален юридически помощник</Text>
           </Section>
           <Hr style={goldBar} />

@@ -7,9 +7,10 @@ import {
   BRAND_LOGO_VIEWBOX,
   BRAND_MARK_VIEWBOX,
   BRAND_MONOGRAM_PATHS,
+  BRAND_MONOGRAM_TRANSFORM,
   BRAND_SCALE_PATHS,
-  BRAND_WORDMARK_GOLD_START,
   BRAND_WORDMARK_PATHS,
+  BRAND_WORDMARK_TRANSFORM,
 } from "./brandGeometry";
 
 const root = resolve(import.meta.dir, "../..");
@@ -17,10 +18,11 @@ const out = import.meta.dir;
 mkdirSync(out, { recursive: true });
 
 const paths = (items: readonly string[], fill: string) => items.map((d) => `<path fill="${fill}" d="${d}"/>`).join("");
-const markBody = (color: string, detail = true) => `${paths(BRAND_FRAME_PATHS, color)}${paths(BRAND_MONOGRAM_PATHS, color)}${detail ? paths(BRAND_SCALE_PATHS, color) : ""}`;
-const wordmarkBody = (fore: string, gold: string) => BRAND_WORDMARK_PATHS.map((d, i) => `<path fill="${i >= BRAND_WORDMARK_GOLD_START ? gold : fore}" d="${d}"/>`).join("");
+const markBody = (color: string, detail = true) => `${paths(BRAND_FRAME_PATHS, color)}<g transform="${BRAND_MONOGRAM_TRANSFORM}">${paths(BRAND_MONOGRAM_PATHS, color)}</g>${detail ? paths(BRAND_SCALE_PATHS, color) : ""}`;
+const wordmarkBody = (color: string) => paths(BRAND_WORDMARK_PATHS, color);
 const svg = (viewBox: string, body: string, label = "Договори.нет") => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" role="img" aria-label="${label}">${body}</svg>\n`;
-const logo = (fore: string) => svg(BRAND_LOGO_VIEWBOX, `<g>${markBody(BRAND_COLORS.gold)}</g><g transform="translate(380 0)">${wordmarkBody(fore, BRAND_COLORS.gold)}</g>`);
+const logoBody = (fore: string, markColor = BRAND_COLORS.gold) => `<g>${markBody(markColor)}</g><g transform="${BRAND_WORDMARK_TRANSFORM}">${wordmarkBody(fore)}</g>`;
+const logo = (fore: string) => svg(BRAND_LOGO_VIEWBOX, logoBody(fore));
 const mark = (color: string, detail = true) => svg(BRAND_MARK_VIEWBOX, markBody(color, detail));
 
 writeFileSync(resolve(out, "logo-light.svg"), logo(BRAND_COLORS.navy));
@@ -28,7 +30,7 @@ writeFileSync(resolve(out, "logo-dark.svg"), logo(BRAND_COLORS.ivory));
 writeFileSync(resolve(out, "mark-gold.svg"), mark(BRAND_COLORS.gold));
 writeFileSync(resolve(out, "mark-navy.svg"), mark(BRAND_COLORS.navy));
 writeFileSync(resolve(out, "mark-white.svg"), mark(BRAND_COLORS.ivory));
-writeFileSync(resolve(out, "logo-mono.svg"), svg(BRAND_LOGO_VIEWBOX, `<g>${markBody("#000000")}</g><g transform="translate(380 0)">${wordmarkBody("#000000", "#000000")}</g>`));
+writeFileSync(resolve(out, "logo-mono.svg"), svg(BRAND_LOGO_VIEWBOX, logoBody("#000000", "#000000")));
 writeFileSync(resolve(out, "mark-mini.svg"), mark(BRAND_COLORS.gold, false));
 
 function magick(args: string[]) {
@@ -38,13 +40,13 @@ function magick(args: string[]) {
 function render(source: string, destination: string, width: number, height: number, background = "none") {
   magick(["-background", background, resolve(out, source), "-resize", `${width}x${height}`, "-gravity", "center", "-extent", `${width}x${height}`, resolve(out, destination)]);
 }
-render("logo-light.svg", "logo-light@2x.png", 1880, 280);
-render("logo-dark.svg", "logo-dark@2x.png", 1880, 280);
+render("logo-light.svg", "logo-light@2x.png", 2816, 560);
+render("logo-dark.svg", "logo-dark@2x.png", 2816, 560);
 render("mark-gold.svg", "icon512.png", 512, 512);
 render("mark-gold.svg", "avatar-light1024.png", 1024, 1024, BRAND_COLORS.ivory);
 render("mark-gold.svg", "avatar-dark1024.png", 1024, 1024, BRAND_COLORS.navy);
 
-const ogSvg = svg("0 0 1200 630", `<path fill="${BRAND_COLORS.navy}" d="M0 0H1200V630H0Z"/><g transform="translate(120 190) scale(.9)">${markBody(BRAND_COLORS.gold)}</g><g transform="translate(430 175) scale(.42)">${wordmarkBody(BRAND_COLORS.ivory, BRAND_COLORS.gold)}</g>`);
+const ogSvg = svg("0 0 1200 630", `<path fill="${BRAND_COLORS.navy}" d="M0 0H1200V630H0Z"/><g transform="translate(80 211) scale(.74)">${logoBody(BRAND_COLORS.ivory)}</g>`);
 writeFileSync(resolve(out, "og1200x630.svg"), ogSvg);
 magick([resolve(out, "og1200x630.svg"), "-quality", "92", resolve(out, "og1200x630.jpg")]);
 
@@ -66,7 +68,7 @@ copyFileSync(resolve(out, "mark-white.svg"), resolve(root, "public/brand-mark-da
 copyFileSync(resolve(out, "logo-light.svg"), resolve(root, "public/logo-horizontal.svg"));
 copyFileSync(resolve(out, "logo-dark.svg"), resolve(root, "public/logo-horizontal-dark.svg"));
 copyFileSync(resolve(out, "og1200x630.jpg"), resolve(root, "public/og-image.jpg"));
-render("logo-dark.svg", "../logo-email.png", 560, 112);
+render("logo-dark.svg", "../logo-email.png", 704, 140);
 render("mark-mini.svg", "../favicon-16.png", 16, 16, BRAND_COLORS.navy);
 render("mark-mini.svg", "../favicon-32.png", 32, 32, BRAND_COLORS.navy);
 render("mark-gold.svg", "../favicon.png", 512, 512, BRAND_COLORS.navy);
