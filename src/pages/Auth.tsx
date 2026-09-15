@@ -184,7 +184,7 @@ export default function AuthPage() {
   };
 
 
-  const startGoogleOAuth = async (marketing: boolean) => {
+  const startGoogleOAuth = async (marketing: boolean, marketingRefused = false) => {
     setBusy(true);
     try {
       sessionStorage.setItem("post_login_redirect", redirect);
@@ -193,7 +193,15 @@ export default function AuthPage() {
       // via Google have the required terms/privacy/age records.
       sessionStorage.setItem(
         "pending_consents",
-        JSON.stringify({ marketing, terms: true, privacy: true, age_18: true, ts: Date.now() }),
+        JSON.stringify({
+          marketing: marketing && !marketingRefused,
+          marketing_refused: marketingRefused,
+          operational_notifications: true,
+          terms: true,
+          privacy: true,
+          age_18: true,
+          ts: Date.now(),
+        }),
       );
     } catch { /* storage unavailable */ }
     const result = await lovable.auth.signInWithOAuth("google", {
