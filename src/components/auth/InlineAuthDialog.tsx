@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, ShieldCheck, Sparkles } from "@/icons";
 
 /**
@@ -31,6 +32,10 @@ export function InlineAuthDialog() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  // Задължително съгласие за съхранение на име/имейл и вътрешни известия.
+  const [notifications, setNotifications] = useState(false);
+  // Отделен, изрично заявен отказ от имейл маркетинг.
+  const [marketingRefused, setMarketingRefused] = useState(false);
   const successRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
