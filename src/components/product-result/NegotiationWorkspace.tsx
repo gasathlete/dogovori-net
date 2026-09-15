@@ -234,5 +234,6 @@ export function NegotiationWorkspace({
         </Card>
       </TabsContent>
     </Tabs>
+    </>
   );
 }
