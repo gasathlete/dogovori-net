@@ -58,6 +58,7 @@ import {
   ProcessingProgress,
   type FulfillmentStage,
 } from "@/components/product-result/ProcessingProgress";
+import { PurchaseBreakdown } from "@/components/product-result/PurchaseBreakdown";
 import {
   trackCorrectedPreviewOpened,
   trackCorrectionSelected,
