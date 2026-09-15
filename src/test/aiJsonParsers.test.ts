@@ -128,7 +128,14 @@ describe("diagnoseJson — точка на прекъсване и предло�
   });
 });
 
-describe("регресия: всички edge функции ползват общия парсер", () => {
+describe("регресия: всички едже функции ползват общия парсер", () => {
+  /**
+   * Единствено изключение: платеният продуктов шлюз НЕ поправя отговор на модел.
+   * Там отрязан или повреден JSON трябва да е отказ (`invalid_json`), защото
+   * поправен частичен отговор би дал непълен платен резултат.
+   */
+  const STRICT_BY_DESIGN = ["_shared/product-model-gateway.ts"];
+
   it("никоя функция не парсва AI съдържание с директен JSON.parse", async () => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");
