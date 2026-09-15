@@ -52,7 +52,7 @@ export function Hero() {
         <div className="relative mx-auto max-w-3xl text-center">
           {/* Clean logo — no rotating rings or tick marks */}
           <div className="mb-4 hidden justify-center sm:flex">
-            <div className="flex h-16 w-[74px] items-center justify-center md:h-[72px] md:w-[82px]">
+            <div className="flex h-16 w-[91px] items-center justify-center md:h-[72px] md:w-[103px]">
               <BrandMark className="h-full w-full" />
             </div>
           </div>

@@ -53,7 +53,7 @@ function priceText(eur: number): string {
 
 const DIST = resolve(process.cwd(), "dist");
 const SITE = "https://dogovori.net";
-const OG = `${SITE}/og-image.jpg`;
+const OG = `${SITE}/og-image.jpg?v=20260915b`;
 
 if (!existsSync(`${DIST}/index.html`)) {
   console.error("dist/index.html not found — did `vite build` run?");
@@ -426,7 +426,7 @@ for (const cat of CATALOG) {
       description: resolved.guarded ? guardedDesc : doc.purpose,
       inLanguage: "bg-BG",
       author: { "@type": "Organization", name: "Dogovori.net" },
-      publisher: { "@type": "Organization", name: "Dogovori.net", logo: { "@type": "ImageObject", url: `${SITE}/favicon.png` } },
+      publisher: { "@type": "Organization", name: "Dogovori.net", logo: { "@type": "ImageObject", url: `${SITE}/icon-512.png?v=20260915b`, width: 512, height: 512 } },
       mainEntityOfPage: `${SITE}/shablon/${slug}`,
     };
     const breadcrumbsLd = {
@@ -641,7 +641,7 @@ if (blogPosts.length) {
           publisher: {
             "@type": "Organization",
             name: "Dogovori.net",
-            logo: { "@type": "ImageObject", url: `${SITE}/favicon.png` },
+            logo: { "@type": "ImageObject", url: `${SITE}/icon-512.png?v=20260915b`, width: 512, height: 512 },
           },
           mainEntityOfPage: `${SITE}/blog/${post.slug}`,
         },

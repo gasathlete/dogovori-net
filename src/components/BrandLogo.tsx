@@ -13,33 +13,36 @@ interface BrandLogoProps extends BrandMarkProps {
 }
 
 const variantClass: Record<BrandVariant, string> = {
-  auto: "text-foreground",
+  auto: "",
   light: "text-navy",
-  dark: "text-primary-foreground",
+  dark: "text-[hsl(var(--brand-logo-dark))]",
 };
 
 /** Одобреният DN знак: D контур, N диагонал и архитектурна везна. */
 export function BrandMark({ className, variant = "auto", decorative = false }: BrandMarkProps) {
   return (
     <svg
-      viewBox="0 0 128 112"
-      width="128"
-      height="112"
+      viewBox="0 0 400 280"
+      width="400"
+      height="280"
       role={decorative ? undefined : "img"}
       aria-hidden={decorative || undefined}
       aria-label={decorative ? undefined : "Договори.нет"}
       className={cn("block shrink-0", variantClass[variant], className)}
     >
-      <path
-        fill="currentColor"
-        fillRule="evenodd"
-        d="M25 11h37c31 0 48 18 48 45S93 101 62 101H25V11Zm19 17v56h17c19 0 29-10 29-28S80 28 61 28H44Z"
-      />
-      <path fill="hsl(var(--gold))" d="M47 34v47h15V58l24 23V59L47 34Z" />
-      <g fill="none" stroke="hsl(var(--gold))" strokeLinecap="round" strokeLinejoin="round">
-        <path strokeWidth="6" d="M8 35h112" />
-        <path strokeWidth="4" d="M15 39 5 68m10-29 13 29M111 39 98 68m13-29 12 29" />
-        <path strokeWidth="5" d="M3 69h27c-2 9-7 13-14 13S5 78 3 69Zm93 0h29c-2 9-7 13-15 13s-12-4-14-13Z" />
+      <path fill="currentColor" d="M90 0H218C267 0 304 23 328 69H290C274 46 253 35 220 35H126V69H90Z" />
+      <path fill="currentColor" d="M90 94H126V239H215C249 239 274 229 290 210H328C302 255 265 275 218 275H90Z" />
+      <path fill="currentColor" d="M234 93H270V227L234 239Z" />
+      <g fill="hsl(var(--gold))">
+        <path d="M140 64V128L228 215V151Z" />
+        <path d="M30 78H134V92H30Z" />
+        <path d="M234 78H365V92H234Z" />
+        <path d="M0 173H92L76 201H17Z" />
+        <path d="M298 173H390L374 201H315Z" />
+      </g>
+      <g fill="none" stroke="hsl(var(--gold))" strokeWidth="10" strokeLinecap="butt" strokeLinejoin="miter">
+        <path d="M45 90L9 173M45 90L81 173" />
+        <path d="M343 90L307 173M343 90L379 173" />
       </g>
     </svg>
   );
@@ -52,7 +55,7 @@ export function BrandLogo({ className, variant = "auto", compact = false }: Bran
       className={cn("inline-flex min-w-0 items-center", compact ? "gap-2" : "gap-3", variantClass[variant], className)}
       aria-label="Договори.нет"
     >
-      <BrandMark decorative variant={variant} className={compact ? "h-9 w-[41px]" : "h-11 w-[50px]"} />
+      <BrandMark decorative variant={variant} className={compact ? "h-9 w-[52px]" : "h-11 w-[63px]"} />
       <span className={cn("whitespace-nowrap font-sans font-extrabold leading-none", compact ? "text-[19px]" : "text-[22px]")}> 
         Договори<span className="text-gold">.нет</span>
       </span>

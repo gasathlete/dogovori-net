@@ -61,10 +61,10 @@ export function WorkStateShell({
       <div className="flex justify-center text-gold" aria-hidden="true">
         {tone === "loading" ? (
           <span className="relative flex h-10 w-12 items-center justify-center">
-            <BrandMark decorative className="h-8 w-9 opacity-70" />
+            <BrandMark decorative className="h-8 w-[46px] opacity-70" />
             <Loader2 className="absolute size-10 animate-spin opacity-45 motion-reduce:animate-none" />
           </span>
-        ) : (icon ?? <BrandMark decorative className="h-9 w-10 opacity-75" />)}
+        ) : (icon ?? <BrandMark decorative className="h-9 w-[52px] opacity-75" />)}
       </div>
       {eyebrow && (
         <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
