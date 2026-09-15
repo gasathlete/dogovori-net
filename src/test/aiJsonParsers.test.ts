@@ -139,7 +139,7 @@ describe("регресия: всички edge функции ползват об
       for (const e of await fs.readdir(dir, { withFileTypes: true })) {
         const p = path.join(dir, e.name);
         if (e.isDirectory()) await walk(p);
-        else if (e.name.endsWith(".ts")) {
+        else if (e.name.endsWith(".ts") && !e.name.endsWith(".test.ts")) {
           const src = await fs.readFile(p, "utf8");
           const re = /JSON\.parse\(\s*(?:content|raw|text|aiText|aiContent|completion|message\.content)\s*\)/g;
           if (re.test(src)) offenders.push(path.relative(root, p));
