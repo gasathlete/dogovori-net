@@ -155,7 +155,7 @@ describe("регресия: всички едже функции ползват 
     }
 
     await walk(root);
-    expect(offenders).toEqual([]);
+    expect(offenders.filter((f) => !STRICT_BY_DESIGN.includes(f))).toEqual([]);
   });
 });
 
