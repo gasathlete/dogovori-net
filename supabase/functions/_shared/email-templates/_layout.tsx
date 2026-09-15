@@ -80,13 +80,7 @@ const headerBar = {
   padding: '20px 28px',
   textAlign: 'center' as const,
 }
-const brandText = {
-  color: COLORS.gold,
-  fontSize: '20px',
-  fontWeight: 'bold' as const,
-  letterSpacing: '1.5px',
-  margin: 0,
-}
+const brandLogo = { display: 'block', width: '280px', maxWidth: '100%', height: '56px', margin: '0 auto' }
 const tagline = {
   color: '#c9b88c',
   fontSize: '10px',
@@ -128,7 +122,7 @@ export const Layout = ({ preview, children, siteUrl = 'https://dogovori.net' }: 
       <Container style={wrapper}>
         <Section style={card}>
           <Section style={headerBar}>
-            <Text style={brandText}>DOGOVORI.NET</Text>
+            <Img src={`${siteUrl}/logo-email.png`} width="280" height="56" alt="Договори.нет" style={brandLogo} />
             <Text style={tagline}>Професионален юридически помощник</Text>
           </Section>
           <Hr style={goldBar} />
