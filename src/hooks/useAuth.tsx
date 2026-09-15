@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState, ReactNode } fro
 import { clearAllDraftStorage, readPointer } from "@/lib/activationDraft";
 import { clearAssistantDocumentContext } from "@/lib/assistantDocumentContext";
 import { isAuthLandingPath, resolvePostAuthRedirect } from "@/lib/postAuthRedirect";
+import { flushPendingConsents } from "@/lib/consents";
 import { sanitizeReturnPath } from "@/lib/safeRoute";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,7 +73,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       setLoading(false);
-      if (event === "SIGNED_IN" && s) applyPostAuthRedirect();
+      if (event === "SIGNED_IN" && s) {
+        applyPostAuthRedirect();
+        // Записваме съгласията от регистрацията (вкл. маркетинговия отказ)
+        // сървърно при първия реален вход — само веднъж на браузър.
+        flushPendingConsents().catch(() => undefined);
+      }
 
       // При изход нищо от започнатия документ не остава в браузъра: указателят
       // е безполезен без сесия, а съдържанието в таба не бива да се вижда от
