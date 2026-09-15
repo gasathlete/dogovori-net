@@ -129,6 +129,13 @@ describe("diagnoseJson — точка на прекъсване и предло�
 });
 
 describe("регресия: всички edge функции ползват общия парсер", () => {
+  /**
+   * Единствено изключение: платеният продуктов шлюз НЕ поправя отговор на модел.
+   * Там отрязан или повреден JSON трябва да е отказ (`invalid_json`), защото
+   * поправен частичен отговор би дал непълен платен резултат.
+   */
+  const STRICT_BY_DESIGN = ["_shared/product-model-gateway.ts"];
+
   it("никоя функция не парсва AI съдържание с директен JSON.parse", async () => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");
@@ -139,7 +146,7 @@ describe("регресия: всички edge функции ползват об
       for (const e of await fs.readdir(dir, { withFileTypes: true })) {
         const p = path.join(dir, e.name);
         if (e.isDirectory()) await walk(p);
-        else if (e.name.endsWith(".ts")) {
+        else if (e.name.endsWith(".ts") && !e.name.endsWith(".test.ts")) {
           const src = await fs.readFile(p, "utf8");
           const re = /JSON\.parse\(\s*(?:content|raw|text|aiText|aiContent|completion|message\.content)\s*\)/g;
           if (re.test(src)) offenders.push(path.relative(root, p));
@@ -148,7 +155,7 @@ describe("регресия: всички edge функции ползват об
     }
 
     await walk(root);
-    expect(offenders).toEqual([]);
+    expect(offenders.filter((f) => !STRICT_BY_DESIGN.includes(f))).toEqual([]);
   });
 });
 

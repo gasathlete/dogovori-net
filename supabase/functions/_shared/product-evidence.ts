@@ -19,6 +19,11 @@ import type { SourceSpan } from "./product-result-contract.ts";
  * къси извадки продължават да падат по-долу като `excerpt_ambiguous`.
  */
 export const EVIDENCE_MIN_EXCERPT_CHARS = 4;
+/**
+ * Без подадено място минимумът е по-висок: къса дума без anchor не е
+ * доказателство, дори когато се среща само веднъж.
+ */
+export const EVIDENCE_MIN_UNANCHORED_EXCERPT_CHARS = 5;
 export const EVIDENCE_MAX_EXCERPT_CHARS = 1200;
 
 
@@ -65,7 +70,10 @@ export function resolveEvidence(sourceText: string, input: EvidenceInput): Evide
   const cps = Array.from(sourceText);
   const wanted = foldExcerpt(input.excerpt);
   const hasAnchor = typeof input.start === "number" && typeof input.end === "number";
-  if (wanted.length < EVIDENCE_MIN_EXCERPT_CHARS) {
+  const minChars = hasAnchor
+    ? EVIDENCE_MIN_EXCERPT_CHARS
+    : EVIDENCE_MIN_UNANCHORED_EXCERPT_CHARS;
+  if (wanted.length < minChars) {
     return { ok: false, reason: "excerpt_too_short" };
   }
 

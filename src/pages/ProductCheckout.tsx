@@ -43,6 +43,7 @@ import {
   type PreparedProductDocument,
 } from "@/lib/productUpload";
 import { DocumentFilePicker } from "@/components/products/DocumentFilePicker";
+import { PRODUCT_ACCEPTED_INPUT } from "@/lib/productSource";
 import { CheckCircle2, FileUp } from "@/icons";
 
 type Position = "conservative" | "balanced" | "assertive";
@@ -358,6 +359,7 @@ export default function ProductCheckout() {
               </div>
             ) : (
               <div className="mt-3 space-y-3">
+                <p className="text-sm text-muted-foreground">{PRODUCT_ACCEPTED_INPUT}</p>
                 <DocumentFilePicker file={file} onSelect={setFile} disabled={busy} />
                 <div>
                   <Label htmlFor="product-title">Заглавие (по избор)</Label>

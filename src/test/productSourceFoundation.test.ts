@@ -213,10 +213,17 @@ describe("Съпоставяне на доказателство", () => {
       ok: false,
       reason: "excerpt_missing",
     });
+    // Без подадено място къса дума не е доказателство…
     expect(resolveEvidence(source, { excerpt: "цена" })).toEqual({
       ok: false,
       reason: "excerpt_too_short",
     });
+    // …а със точно място 4 знака се приемат.
+    const at = source.indexOf("цена");
+    if (at >= 0) {
+      const anchored = resolveEvidence(source, { excerpt: "цена", start: at, end: at + 4 });
+      expect(anchored.ok).toBe(true);
+    }
   });
 
   it("работи вярно с кирилица, съчетаващи знаци и емоджи", () => {

@@ -191,9 +191,14 @@ describe("мобилни наслоявания и профил", () => {
   const app = read("src/App.tsx");
   const mobileOverlays = app.slice(app.indexOf("if (isMobile) {"), app.indexOf("  return (\n    <Suspense fallback={null}>"));
 
-  it("на телефон се монтират точно три компонента", () => {
+  it("на телефон се монтират точно четири компонента", () => {
     const mounted = [...mobileOverlays.matchAll(/<([A-Z][A-Za-z]+) \/>/g)].map((m) => m[1]);
-    expect(mounted).toEqual(["PaymentTestModeBanner", "CookieBanner", "MobileBottomNav"]);
+    expect(mounted).toEqual([
+      "PaymentTestModeBanner",
+      "CookieBanner",
+      "MobileBottomNav",
+      "MobileAssistantOpenBridge",
+    ]);
   });
 
   it("нито предупредителен модал, нито празнични/upgrade слушатели на телефон", () => {
