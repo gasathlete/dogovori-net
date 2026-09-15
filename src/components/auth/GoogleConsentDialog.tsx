@@ -15,7 +15,7 @@ import { Loader2 } from "@/icons";
 interface GoogleConsentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (marketing: boolean) => void;
+  onConfirm: (marketing: boolean, marketingRefused: boolean) => void;
   busy?: boolean;
 }
 
@@ -23,19 +23,24 @@ export function GoogleConsentDialog({ open, onOpenChange, onConfirm, busy }: Goo
   const [age, setAge] = useState(true);
   const [terms, setTerms] = useState(true);
   const [privacy, setPrivacy] = useState(true);
+  // Задължително: име и имейл за вътрешни известия и проверката при подпис.
+  const [notifications, setNotifications] = useState(false);
   // По желание — не блокира влизането с Google.
   const [marketing, setMarketing] = useState(false);
+  const [marketingRefused, setMarketingRefused] = useState(false);
 
   useEffect(() => {
     if (open) {
       setAge(true);
       setTerms(true);
       setPrivacy(true);
+      setNotifications(false);
       setMarketing(false);
+      setMarketingRefused(false);
     }
   }, [open]);
 
-  const ready = age && terms && privacy;
+  const ready = age && terms && privacy && notifications;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
