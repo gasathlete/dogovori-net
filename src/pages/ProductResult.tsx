@@ -23,6 +23,7 @@ import {
   readPaidResult,
   sha256Hex,
   type PaidAccessRequest,
+  type PaidEntitlementRow,
   type PaidPurchase,
 } from "@/lib/productPaidResult";
 import {
@@ -57,6 +58,7 @@ import {
   ProcessingProgress,
   type FulfillmentStage,
 } from "@/components/product-result/ProcessingProgress";
+import { PurchaseBreakdown } from "@/components/product-result/PurchaseBreakdown";
 import {
   trackCorrectedPreviewOpened,
   trackCorrectionSelected,
@@ -94,6 +96,7 @@ type Phase =
   | {
       readonly kind: "processing";
       readonly productId: string;
+      readonly entitlement: PaidEntitlementRow;
       readonly stage: FulfillmentStage | null;
       readonly resuming: boolean;
     }
@@ -176,6 +179,7 @@ export default function ProductResult() {
       setPhase({
         kind: "processing",
         productId: row.product_id,
+        entitlement: row,
         stage: stageRef.current,
         resuming: resumingRef.current,
       });
@@ -208,6 +212,7 @@ export default function ProductResult() {
       setPhase({
         kind: "processing",
         productId: row.product_id,
+        entitlement: row,
         stage: stageRef.current,
         resuming: resumingRef.current,
       });
@@ -466,6 +471,7 @@ export default function ProductResult() {
     return frame(
       <>
         <h1 className="text-2xl font-semibold md:text-3xl">{name}</h1>
+        <PurchaseBreakdown entitlement={phase.entitlement} />
         <ProcessingProgress
           productId={phase.productId}
           stage={phase.stage}

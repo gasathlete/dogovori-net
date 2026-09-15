@@ -84,8 +84,42 @@ export function NegotiationWorkspace({
     }
   };
 
+  const materialCorrections = payload.corrections.length;
+  const findingsCount = payload.findings.length;
+
   return (
-    <Tabs defaultValue="document" className="mt-8">
+    <>
+    <Card className="mt-6 border-gold/40 p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-base font-semibold">Документът е готов за преговори</h2>
+        <Badge variant="outline">Готово</Badge>
+      </div>
+      <ul className="mt-3 space-y-1 text-sm">
+        <li>
+          Открити находки по клаузите: <strong>{findingsCount}</strong>
+        </li>
+        <li>
+          Поправки с три варианта: <strong>{materialCorrections}</strong>
+        </li>
+        <li>
+          Действия със срокове: <strong>{payload.actions.length}</strong>
+        </li>
+        <li>
+          Готови писма: <strong>{payload.messages.length}</strong>
+        </li>
+      </ul>
+      <h3 className="mt-4 text-sm font-semibold">Какво да направите сега</h3>
+      <ol className="mt-2 list-inside list-decimal space-y-1 text-sm text-muted-foreground">
+        <li>В „Документ“ прегледайте находките и изберете вариант за всяка поправка.</li>
+        <li>В „Преговори“ вижте целите, червените линии и действията със срокове.</li>
+        <li>В „Съобщения“ копирайте писмото, което отговаря на тона на разговора.</li>
+        <li>При нужда поискайте включеното уточнение в „Уточнение“.</li>
+      </ol>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Резултатът е автоматичен и не е правен съвет. Нищо не се изпраща без Вас.
+      </p>
+    </Card>
+    <Tabs defaultValue="document" className="mt-6">
       <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
         <TabsTrigger value="document" className="min-h-11">
           Документ
@@ -200,5 +234,6 @@ export function NegotiationWorkspace({
         </Card>
       </TabsContent>
     </Tabs>
+    </>
   );
 }
