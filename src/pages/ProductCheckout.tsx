@@ -43,6 +43,7 @@ import {
   type PreparedProductDocument,
 } from "@/lib/productUpload";
 import { DocumentFilePicker } from "@/components/products/DocumentFilePicker";
+import { PRODUCT_ACCEPTED_INPUT } from "@/lib/productSource";
 import { CheckCircle2, FileUp } from "@/icons";
 
 type Position = "conservative" | "balanced" | "assertive";
