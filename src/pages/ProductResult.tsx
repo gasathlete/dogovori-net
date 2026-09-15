@@ -471,6 +471,11 @@ export default function ProductResult() {
       <>
         <h1 className="text-2xl font-semibold md:text-3xl">{name}</h1>
         <PurchaseBreakdown entitlement={phase.entitlement} />
+        <ProcessingProgress
+          productId={phase.productId}
+          stage={phase.stage}
+          resuming={phase.resuming}
+        />
       </>,
     );
   }
