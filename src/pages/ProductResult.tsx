@@ -94,6 +94,7 @@ type Phase =
   | {
       readonly kind: "processing";
       readonly productId: string;
+      readonly entitlement: PaidEntitlementRow;
       readonly stage: FulfillmentStage | null;
       readonly resuming: boolean;
     }
