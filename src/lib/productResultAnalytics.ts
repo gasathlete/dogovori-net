@@ -12,7 +12,8 @@ export type ResultExportKind =
   | "corrected_docx"
   | "corrected_pdf"
   | "change_report_pdf"
-  | "negotiation_brief_pdf";
+  | "negotiation_brief_pdf"
+  | "manual_clauses_pdf";
 
 const sent = new Set<string>();
 
