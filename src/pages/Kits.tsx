@@ -9,6 +9,23 @@ import { breadcrumbSchema } from "@/lib/jsonLd";
 import { DOCUMENT_KITS, KIT_GROUPS, type DocumentKit } from "@/data/documentKits";
 import { useAuth } from "@/hooks/useAuth";
 import { listMyKits, type UserKit } from "@/lib/kits";
+import corporateCover from "@/assets/kits/kit-corporate.jpg";
+import realEstateCover from "@/assets/kits/kit-real-estate.jpg";
+import employmentCover from "@/assets/kits/kit-employment.jpg";
+import digitalCover from "@/assets/kits/kit-digital.jpg";
+import ipCover from "@/assets/kits/kit-ip.jpg";
+import familyCover from "@/assets/kits/kit-family.jpg";
+import otherCover from "@/assets/kits/kit-other.jpg";
+
+const KIT_COVERS: Record<DocumentKit["group"], string> = {
+  corporate: corporateCover,
+  real_estate: realEstateCover,
+  employment: employmentCover,
+  digital: digitalCover,
+  ip: ipCover,
+  family: familyCover,
+  other: otherCover,
+};
 
 export default function KitsPage() {
   const [group, setGroup] = useState<DocumentKit["group"] | "all">("all");
@@ -175,47 +192,62 @@ function FilterPill({
 
 function KitCard({ kit }: { kit: DocumentKit }) {
   const Icon = (Icons as any)[kit.icon] ?? Icons.Package;
+  const cover = KIT_COVERS[kit.group];
   return (
     <Link
       to={`/komplekti/${kit.id}`}
-      className="group relative isolate flex h-full flex-col overflow-hidden rounded-xl surface-elevated p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/45"
+      className="group relative isolate flex h-full flex-col overflow-hidden rounded-xl surface-elevated transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/45"
     >
+      <div className="relative aspect-[16/9] overflow-hidden border-b border-border/50 bg-muted">
+        <img
+          src={cover}
+          alt={`Корица на комплект „${kit.title}“`}
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-cover transition-transform duration-700 ease-out motion-safe:group-hover:scale-[1.035]"
+        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/55 via-transparent to-transparent" />
+      </div>
       {kit.featured && (
-        <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-gold">
+        <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-gold/50 bg-background/85 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-gold shadow-sm backdrop-blur-sm">
           <Sparkles className="h-2.5 w-2.5" /> ТОП
         </span>
       )}
-      <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg border border-gold/25 bg-gold/5 text-gold transition-all duration-200 group-hover:border-gold/50 group-hover:bg-gold/10">
-        <Icon className="h-5 w-5" strokeWidth={1.6} />
-      </div>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/80">
-        {kit.groupLabel}
-      </p>
-      <h3 className="mt-1 font-serif text-lg font-bold leading-snug text-foreground sm:text-xl">
-        {kit.title}
-      </h3>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-        {kit.shortDescription}
-      </p>
-      <div className="mt-4 flex flex-wrap gap-1.5">
-        {kit.items.slice(0, 3).map((it) => (
-          <span
-            key={it.docName}
-            className="rounded-full border border-border/60 bg-card/60 px-2 py-0.5 text-[10px] text-muted-foreground"
-          >
-            {it.docName.length > 32 ? it.docName.slice(0, 30) + "…" : it.docName}
-          </span>
-        ))}
-        {kit.items.length > 3 && (
-          <span className="rounded-full border border-gold/30 bg-gold/5 px-2 py-0.5 text-[10px] text-gold">
-            +{kit.items.length - 3}
-          </span>
-        )}
-      </div>
-      <div className="mt-auto pt-5">
-        <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-gold opacity-80 transition-opacity group-hover:opacity-100">
-          Виж комплекта
-          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+      <div className="flex flex-1 flex-col p-5 sm:p-6">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gold/25 bg-gold/5 text-gold transition-all duration-200 group-hover:border-gold/50 group-hover:bg-gold/10">
+            <Icon className="h-5 w-5" strokeWidth={1.6} />
+          </div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/80">
+            {kit.groupLabel}
+          </p>
+        </div>
+        <h3 className="font-serif text-lg font-bold leading-snug text-foreground sm:text-xl">
+          {kit.title}
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          {kit.shortDescription}
+        </p>
+        <div className="mt-4 flex flex-wrap gap-1.5">
+          {kit.items.slice(0, 3).map((it) => (
+            <span
+              key={it.docName}
+              className="rounded-full border border-border/60 bg-card/60 px-2 py-0.5 text-[10px] text-muted-foreground"
+            >
+              {it.docName.length > 32 ? it.docName.slice(0, 30) + "…" : it.docName}
+            </span>
+          ))}
+          {kit.items.length > 3 && (
+            <span className="rounded-full border border-gold/30 bg-gold/5 px-2 py-0.5 text-[10px] text-gold">
+              +{kit.items.length - 3}
+            </span>
+          )}
+        </div>
+        <div className="mt-auto pt-5">
+          <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-gold opacity-80 transition-opacity group-hover:opacity-100">
+            Виж комплекта
+            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+          </div>
         </div>
       </div>
     </Link>
