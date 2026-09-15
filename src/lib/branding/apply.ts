@@ -44,7 +44,7 @@ export function brandingLayout(b: ResolvedBranding | undefined): BrandingLayout 
       titleSize: 16,
       lineHeight: 1.4,
       paragraphSpacing: 8,
-      accent: hexToRgb("#C9A84C"),
+      accent: hexToRgb("#B69A58"),
       text: [0, 0, 0],
       background: "#FFFFFF",
       bodyAlign: "justify",

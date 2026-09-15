@@ -4,7 +4,7 @@ import {
 } from "./types";
 
 export const ACCENT_PALETTE = [
-  { label: "Злато", value: "#C9A84C" },
+  { label: "Злато", value: "#B69A58" },
   { label: "Графит", value: "#2D3748" },
   { label: "Тъмносиньо", value: "#1E3A5F" },
   { label: "Смарагд", value: "#0D7A5F" },
@@ -64,7 +64,7 @@ export const DEFAULT_BRANDING: BrandingSettings = {
     showCityDate: true,
   },
   theme: {
-    accent: "#C9A84C",
+    accent: "#B69A58",
     text: "#111111",
     background: "white",
   },
