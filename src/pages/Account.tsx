@@ -235,6 +235,9 @@ export default function AccountPage() {
             <Button asChild variant="outline" size="sm" className="border-gold/60 text-gold hover:bg-gold/10">
               <Link to="/team"><Users className="mr-2 h-4 w-4" /> Екип</Link>
             </Button>
+            <Button asChild variant="outline" size="sm" className="border-gold/60 text-gold hover:bg-gold/10">
+              <Link to="/produkti/moite-pokupki">Моите покупки</Link>
+            </Button>
             {isStaff && (
               <Button asChild variant="outline" size="sm" className="border-gold/60 text-gold hover:bg-gold/10">
                 <Link to="/admin"><ShieldCheck className="mr-2 h-4 w-4" /> Модераторски панел</Link>

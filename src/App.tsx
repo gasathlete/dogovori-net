@@ -100,6 +100,7 @@ const Products = lazy(() => import("./pages/Products.tsx"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail.tsx"));
 const ProductCheckout = lazy(() => import("./pages/ProductCheckout.tsx"));
 const ProductResult = lazy(() => import("./pages/ProductResult.tsx"));
+const MyPurchases = lazy(() => import("./pages/MyPurchases.tsx"));
 const Analyze = lazy(() => import("./pages/Analyze.tsx"));
 const ProcessStep = lazy(() => import("./pages/ProcessStep.tsx"));
 const Tools = lazy(() => import("./pages/Tools.tsx"));
@@ -356,6 +357,7 @@ const AnimatedRoutes = () => {
         {/* Самостоятелните продуктови страници — стабилни ASCII slug-ове. */}
         {/* Покупката и състоянието на поръчката — само за влезли потребители. */}
         <Route path="/produkti/rezultat" element={<ProtectedRoute><ProductResult /></ProtectedRoute>} />
+        <Route path="/produkti/moite-pokupki" element={<ProtectedRoute><MyPurchases /></ProtectedRoute>} />
         <Route
           path="/produkti/:slug/start"
           element={<ProtectedRoute><ProductCheckout /></ProtectedRoute>}
