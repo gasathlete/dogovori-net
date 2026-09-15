@@ -177,6 +177,7 @@ export default function ProductResult() {
       setPhase({
         kind: "processing",
         productId: row.product_id,
+        entitlement: row,
         stage: stageRef.current,
         resuming: resumingRef.current,
       });
