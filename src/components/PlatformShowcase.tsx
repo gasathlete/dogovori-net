@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { BrandLogo } from "@/components/BrandLogo";
 import {
   Briefcase,
   Sparkles,
@@ -507,9 +508,7 @@ export function PlatformShowcase() {
 
       <div className="container relative">
         <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-8">
-          <div className="mb-3 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-gold">
-            DOGOVORI.NET
-          </div>
+          <BrandLogo compact className="mb-4 justify-center" />
           <h2
             id="platform-showcase-heading"
             className="font-serif text-3xl font-bold leading-tight text-foreground sm:text-4xl md:text-5xl"

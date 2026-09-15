@@ -234,7 +234,7 @@ export default function TemplatePage() {
     publisher: {
       "@type": "Organization",
       name: "Dogovori.net",
-      logo: { "@type": "ImageObject", url: "https://dogovori.net/favicon.png" },
+      logo: { "@type": "ImageObject", url: "https://dogovori.net/icon-512.png", width: 512, height: 512 },
     },
     mainEntityOfPage: `https://dogovori.net${canonical}`,
   };

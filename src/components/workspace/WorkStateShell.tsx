@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { Loader2 } from "@/icons";
 import { cn } from "@/lib/utils";
+import { BrandMark } from "@/components/BrandLogo";
 
 export type WorkStateTone = "loading" | "empty" | "problem";
 
@@ -59,10 +60,11 @@ export function WorkStateShell({
     >
       <div className="flex justify-center text-gold" aria-hidden="true">
         {tone === "loading" ? (
-          <Loader2 className="size-6 animate-spin motion-reduce:animate-none" />
-        ) : (
-          icon
-        )}
+          <span className="relative flex h-10 w-12 items-center justify-center">
+            <BrandMark decorative className="h-8 w-9 opacity-70" />
+            <Loader2 className="absolute size-10 animate-spin opacity-45 motion-reduce:animate-none" />
+          </span>
+        ) : (icon ?? <BrandMark decorative className="h-9 w-10 opacity-75" />)}
       </div>
       {eyebrow && (
         <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">

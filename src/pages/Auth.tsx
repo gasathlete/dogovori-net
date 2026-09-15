@@ -18,6 +18,7 @@ import { GoogleConsentDialog } from "@/components/auth/GoogleConsentDialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "@/icons";
 import { buildAuthRedirectUrl, safeReturnPath } from "@/lib/safeRoute";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const RISKY_BG_EMAIL_DOMAINS = ["abv.bg", "mail.bg", "dir.bg"];
 function isRiskyBgEmail(value: string): boolean {
@@ -241,10 +242,7 @@ export default function AuthPage() {
       <Header />
       <main className="container max-w-md py-12 md:py-20">
         <div className="rounded-2xl border border-gold/20 bg-gradient-card p-8 shadow-elegant anim-rise">
-          <div className="eyebrow mb-3">
-            <span className="h-1 w-1 rounded-full bg-gold" />
-            dogovori.net
-          </div>
+          <BrandLogo className="mb-5" />
           <h1 className="font-serif text-3xl font-bold text-balance">
             {tab === "login" ? "Добре дошли отново" : "Създайте профил"}
           </h1>

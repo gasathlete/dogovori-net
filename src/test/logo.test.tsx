@@ -6,6 +6,6 @@ import { Logo } from "@/components/Logo";
 describe("Logo", () => {
   it("renders brand name", () => {
     render(<MemoryRouter><Logo /></MemoryRouter>);
-    expect(screen.getByText(/dogovori/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Договори.нет")).toBeInTheDocument();
   });
 });

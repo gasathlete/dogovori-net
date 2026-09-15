@@ -3,7 +3,7 @@ import { markFunnelStep, trackFunnelEvent } from "@/lib/funnel";
 import { Link } from "react-router-dom";
 import { prefetchHandlers } from "@/components/PrefetchLink";
 import { Search, ArrowRight, FileUp } from "@/icons";
-const logoImg = "/logo-dogovori-hero.webp";
+import { BrandMark } from "@/components/BrandLogo";
 import { HeroVideoBackdrop } from "@/components/HeroVideoBackdrop";
 import { FREE_OFFER_RULE } from "@/lib/pricing";
 import { HeroProductRail } from "@/components/products/HeroProductRail";
@@ -52,17 +52,8 @@ export function Hero() {
         <div className="relative mx-auto max-w-3xl text-center">
           {/* Clean logo — no rotating rings or tick marks */}
           <div className="mb-4 hidden justify-center sm:flex">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full border border-gold/40 bg-card/60 md:h-16 md:w-16">
-              <img
-                src={logoImg}
-                alt="Dogovori.net лого"
-                width={96}
-                height={96}
-                loading="eager"
-                {...({ fetchpriority: "high" } as any)}
-                decoding="async"
-                className="h-[64%] w-[64%] object-contain"
-              />
+            <div className="flex h-16 w-[74px] items-center justify-center md:h-[72px] md:w-[82px]">
+              <BrandMark className="h-full w-full" />
             </div>
           </div>
 

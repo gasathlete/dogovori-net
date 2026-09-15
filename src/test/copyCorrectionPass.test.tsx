@@ -65,7 +65,7 @@ describe("клиентският текст е учтив и без AI жарг�
 
   it("логото е само Dogovori.net, без слоган и партньорски надпис", () => {
     const src = read("src/components/Logo.tsx");
-    expect(src).toContain("Dogovori");
+    expect(src).toContain("BrandLogo");
     expect(src).not.toMatch(/Архитект|IM Development/i);
   });
 
