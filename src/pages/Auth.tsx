@@ -395,6 +395,18 @@ export default function AuthPage() {
                   </div>
                   <div className="flex items-start gap-2">
                     <Checkbox
+                      id="c-mkt"
+                      checked={acceptMarketing}
+                      disabled={refuseMarketing}
+                      onCheckedChange={(v) => setAcceptMarketing(!!v)}
+                      className="mt-0.5"
+                    />
+                    <Label htmlFor="c-mkt" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
+                      Съгласявам се да получавам имейл съобщения за новости, бонуси и награди. <span className="text-muted-foreground">(по желание)</span>
+                    </Label>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Checkbox
                       id="c-mkt-refuse"
                       checked={refuseMarketing}
                       onCheckedChange={(v) => {
@@ -405,18 +417,6 @@ export default function AuthPage() {
                     />
                     <Label htmlFor="c-mkt-refuse" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
                       Изрично отказвам да получавам имейл маркетинг. <span className="text-muted-foreground">(по желание)</span>
-                    </Label>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Checkbox
-                      id="c-mkt"
-                      checked={acceptMarketing}
-                      disabled={refuseMarketing}
-                      onCheckedChange={(v) => setAcceptMarketing(!!v)}
-                      className="mt-0.5"
-                    />
-                    <Label htmlFor="c-mkt" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
-                      Съгласявам се да получавам имейл съобщения за новости, бонуси и награди. <span className="text-muted-foreground">(по желание)</span>
                     </Label>
                   </div>
                 </div>
