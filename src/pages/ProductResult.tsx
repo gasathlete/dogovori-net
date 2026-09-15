@@ -470,11 +470,7 @@ export default function ProductResult() {
     return frame(
       <>
         <h1 className="text-2xl font-semibold md:text-3xl">{name}</h1>
-        <ProcessingProgress
-          productId={phase.productId}
-          stage={phase.stage}
-          resuming={phase.resuming}
-        />
+        <PurchaseBreakdown entitlement={phase.entitlement} />
       </>,
     );
   }
