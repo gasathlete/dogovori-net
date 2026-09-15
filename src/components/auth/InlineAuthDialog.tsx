@@ -240,6 +240,18 @@ export function InlineAuthDialog() {
                 </div>
                 <div className="flex items-start gap-2">
                   <Checkbox
+                    id="inline-c-mkt"
+                    checked={marketing}
+                    disabled={marketingRefused}
+                    onCheckedChange={(v) => setMarketing(!!v)}
+                    className="mt-0.5"
+                  />
+                  <Label htmlFor="inline-c-mkt" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
+                    Съгласявам се да получавам имейл съобщения за новости, бонуси и награди. <span className="text-muted-foreground">(по желание)</span>
+                  </Label>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Checkbox
                     id="inline-c-mkt-refuse"
                     checked={marketingRefused}
                     onCheckedChange={(v) => {
@@ -250,18 +262,6 @@ export function InlineAuthDialog() {
                   />
                   <Label htmlFor="inline-c-mkt-refuse" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
                     Изрично отказвам да получавам имейл маркетинг. <span className="text-muted-foreground">(по желание)</span>
-                  </Label>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Checkbox
-                    id="inline-c-mkt"
-                    checked={marketing}
-                    disabled={marketingRefused}
-                    onCheckedChange={(v) => setMarketing(!!v)}
-                    className="mt-0.5"
-                  />
-                  <Label htmlFor="inline-c-mkt" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
-                    Съгласявам се да получавам имейл съобщения за новости, бонуси и награди. <span className="text-muted-foreground">(по желание)</span>
                   </Label>
                 </div>
               </div>
