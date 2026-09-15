@@ -61,7 +61,7 @@ export default function AuthPage() {
   // в готовността за регистрация (GDPR: свободно, конкретно съгласие).
   const [acceptMarketing, setAcceptMarketing] = useState(false);
   // Задължително: име и имейл се пазят за вътрешни известия и проверката при подпис.
-  const [acceptNotifications, setAcceptNotifications] = useState(false);
+  const [acceptNotifications, setAcceptNotifications] = useState(true);
   // Отделно, изрично заявен отказ от имейл маркетинг.
   const [refuseMarketing, setRefuseMarketing] = useState(false);
   const [tab, setTab] = useState<"login" | "signup">(
