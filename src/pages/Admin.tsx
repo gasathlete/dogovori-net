@@ -16,6 +16,7 @@ import { AdminBlanksPanel } from "@/components/AdminBlanksPanel";
 import { AdminUserArticlesPanel } from "@/components/AdminUserArticlesPanel";
 import { AdminGscPanel } from "@/components/AdminGscPanel";
 import { AdminNotificationsPanel } from "@/components/AdminNotificationsPanel";
+import { AdminEmailCampaignsPanel } from "@/components/admin/AdminEmailCampaignsPanel";
 import { BlankCacheWarmer } from "@/components/admin/BlankCacheWarmer";
 import { AdminMFAGuard } from "@/components/admin/AdminMFAGuard";
 
@@ -236,6 +237,7 @@ export default function AdminPage() {
         </div>
 
         <AdminNotificationsPanel />
+        <AdminEmailCampaignsPanel />
         <AdminPartnersPanel />
         <AdminBlanksPanel />
         <AdminUserArticlesPanel />
