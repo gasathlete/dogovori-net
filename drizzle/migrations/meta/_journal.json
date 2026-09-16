@@ -134,6 +134,13 @@
       "when": 1789504102768,
       "tag": "0018_admin_list_users_marketing_opt_out",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1789537038570,
+      "tag": "0019_email_campaign_topics",
+      "breakpoints": true
     }
   ]
 }
