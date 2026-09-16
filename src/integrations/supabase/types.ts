@@ -1702,6 +1702,42 @@ export type Database = {
         }
         Relationships: []
       }
+      email_campaign_topics: {
+        Row: {
+          body: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          last_sent_at: string | null
+          last_sent_count: number
+          link: string | null
+          title: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          last_sent_at?: string | null
+          last_sent_count?: number
+          link?: string | null
+          title: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          last_sent_at?: string | null
+          last_sent_count?: number
+          link?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -5928,6 +5964,15 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_list_marketing_recipients: {
+        Args: { _limit?: number; _search?: string }
+        Returns: {
+          created_at: string
+          display_name: string
+          email: string
+          user_id: string
+        }[]
+      }
       admin_list_subscriptions: {
         Args: {
           _env?: string
@@ -6031,6 +6076,10 @@ export type Database = {
         }[]
       }
       admin_revoke_pro: { Args: { _user_id: string }; Returns: undefined }
+      admin_send_campaign_topic: {
+        Args: { _topic_id: string }
+        Returns: number
+      }
       admin_set_pro: {
         Args: { _months: number; _user_id: string }
         Returns: undefined
