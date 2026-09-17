@@ -59,6 +59,7 @@ export function AdminAdsPanel() {
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
   const [link, setLink] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [badge, setBadge] = useState("");
   const [hours, setHours] = useState<number>(24 * 7);
 
@@ -91,6 +92,7 @@ export function AdminAdsPanel() {
       title: title.trim(),
       excerpt: excerpt.trim() || null,
       link: link.trim(),
+      image_url: imageUrl.trim() || null,
       badge: badge.trim() || null,
       ends_at: ends,
       created_by: user?.id ?? null,
@@ -101,6 +103,7 @@ export function AdminAdsPanel() {
     setTitle("");
     setExcerpt("");
     setLink("");
+    setImageUrl("");
     setBadge("");
     load();
   };
@@ -170,6 +173,15 @@ export function AdminAdsPanel() {
           <div>
             <Label htmlFor="ad-link">Адрес</Label>
             <Input id="ad-link" value={link} onChange={(e) => setLink(e.target.value)} placeholder="/blog/dogovor-za-darenie" />
+          </div>
+          <div>
+            <Label htmlFor="ad-image">Адрес на изображение</Label>
+            <Input
+              id="ad-image"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="/blog/dogovor-za-darenie.webp"
+            />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>

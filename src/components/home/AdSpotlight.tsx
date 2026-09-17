@@ -152,7 +152,7 @@ export function AdSpotlight() {
               Реклама
             </span>
             <h2 id="ad-spotlight-heading" className="mt-3 font-serif text-xl font-bold sm:text-2xl">
-              Избрано от блога
+              Подбрано за Вас
             </h2>
           </div>
 
@@ -178,8 +178,24 @@ export function AdSpotlight() {
           )}
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-          <div>
+        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(220px,36%)] sm:items-center">
+          {current.image ? (
+            <img
+              src={current.image}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              width={440}
+              height={280}
+              className="aspect-[11/7] w-full rounded-xl object-cover shadow-sm sm:order-2"
+            />
+          ) : (
+            <div className="flex aspect-[11/7] w-full items-center justify-center rounded-xl border border-border/60 bg-muted/30 sm:order-2">
+              <BookOpen className="h-8 w-8 text-muted-foreground" />
+            </div>
+          )}
+
+          <div className="sm:order-1">
             {current.meta && (
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {current.meta}
@@ -215,21 +231,6 @@ export function AdSpotlight() {
             </div>
           </div>
 
-          {current.image ? (
-            <img
-              src={current.image}
-              alt=""
-              loading="lazy"
-              decoding="async"
-              width={220}
-              height={140}
-              className="hidden h-[140px] w-[220px] rounded-xl object-cover sm:block"
-            />
-          ) : (
-            <div className="hidden h-[140px] w-[220px] items-center justify-center rounded-xl border border-border/60 sm:flex">
-              <BookOpen className="h-8 w-8 text-muted-foreground" />
-            </div>
-          )}
         </div>
       </div>
     </section>
