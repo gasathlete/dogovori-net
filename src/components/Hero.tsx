@@ -100,7 +100,7 @@ export function Hero() {
                   Започнете безплатно
                   <ArrowRight className="h-[18px] w-[18px]" />
                 </span>
-                <span className="text-[11.5px] font-medium leading-none opacity-80">
+                <span className="text-[11.5px] font-medium normal-case leading-none tracking-normal opacity-80">
                   {FREE_OFFER_RULE} · без карта
                 </span>
               </Link>
