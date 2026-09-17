@@ -19,17 +19,18 @@ import negotiationStillLife from "@/assets/product-negotiation-still-life.jpg";
 const PRODUCT_IMAGE: Record<OneTimeProductId, { src: string; alt: string }> = {
   contract_check: {
     src: checkStillLife,
-    alt: "Документ с лупа върху тъмносиньо бюро",
+    alt: "Човек чете разпечатан документ до прозорец в офис",
   },
   contract_improve: {
     src: improveStillLife,
-    alt: "Два документа с поправки и златна писалка върху тъмносиньо бюро",
+    alt: "Две версии на документ с ръчни бележки върху дървено бюро",
   },
   negotiation_package: {
     src: negotiationStillLife,
-    alt: "Писмо с златен печат между две тъмносини папки",
+    alt: "Двама души разговарят над документи на маса в офис",
   },
 };
+
 
 const PRODUCT_ICON: Record<OneTimeProductId, LucideIcon> = {
   contract_check: FileSearch,

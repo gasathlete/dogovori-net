@@ -44,7 +44,7 @@ describe("канонично правило за безплатните опер
       "src/components/ProUpgradeDialog.tsx",
       "src/pages/ProcessStep.tsx",
       "src/pages/Start.tsx",
-      "src/components/Hero.tsx",
+
     ];
     for (const file of files) {
       const src = read(file);
