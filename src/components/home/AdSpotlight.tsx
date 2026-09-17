@@ -102,30 +102,32 @@ export function AdSpotlight() {
     };
   }, []);
 
-  // Двете най-посещавани статии — точен ред по реални посещения.
+  // Подбрани статии за различни групи читатели; най-посещаваните са напред.
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data, error } = await supabase.rpc("top_blog_articles", { _limit: 6 });
-      if (error || !Array.isArray(data)) return;
-      const slugs = (data as { path: string }[])
-        .map((r) => r.path.replace(/^\/blog\//, "").replace(/\/$/, ""))
-        .filter(Boolean);
-      if (slugs.length === 0) return;
+      const { data } = await supabase.rpc("top_blog_articles", { _limit: 12 });
+      const topSlugs = Array.isArray(data)
+        ? (data as { path: string }[])
+            .map((r) => r.path.replace(/^\/blog\//, "").replace(/\/$/, ""))
+            .filter((s) => s && CURATED_IMAGES[s])
+        : [];
+      const order = [...topSlugs, ...CURATED.map((c) => c.slug)].filter(
+        (slug, i, arr) => arr.indexOf(slug) === i,
+      );
       const { ALL_POSTS } = await import("@/lib/blog");
       const picked: PostMeta[] = [];
-      for (const slug of slugs) {
+      for (const slug of order) {
         const post = ALL_POSTS.find((p) => p.slug === slug);
-        if (post) {
-          picked.push({
-            slug: post.slug,
-            title: post.title,
-            summary: post.summary,
-            category: post.category,
-            image: (post as { image?: string }).image,
-          });
-        }
-        if (picked.length === 2) break;
+        if (!post) continue;
+        picked.push({
+          slug: post.slug,
+          title: post.title,
+          summary: post.summary,
+          category: post.category,
+          image: CURATED_IMAGES[post.slug],
+        });
+        if (picked.length === 5) break;
       }
       if (!cancelled) setTopPosts(picked);
     })();
@@ -133,6 +135,7 @@ export function AdSpotlight() {
       cancelled = true;
     };
   }, []);
+
 
   // Тиктакащ таймер само докато има реклама с краен срок.
   const hasDeadline = ads.some((a) => a.ends_at);
