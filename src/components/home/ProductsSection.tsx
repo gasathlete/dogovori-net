@@ -41,8 +41,8 @@ export function ProductsSection() {
       <h2
         id="home-products-title"
         className="mb-2 max-w-md text-left font-serif text-3xl font-bold leading-tight text-foreground sm:mx-auto sm:text-center sm:text-4xl"
-      >
-        {business ? "Изберете абонамент за фирмата" : "Разгледайте нашите продукти"}
+       >
+         {business ? "Изберете абонамент за фирмата" : "Разгледайте нашите услуги"}
       </h2>
       <p className="mb-5 max-w-xl text-left text-base text-muted-foreground sm:mx-auto sm:text-center">
         {business
