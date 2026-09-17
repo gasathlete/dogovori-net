@@ -140,7 +140,7 @@ export function AdSpotlight() {
       href: `/blog/${p.slug}`,
       badge: p.category,
       image: p.image,
-      meta: i === 0 ? "Най-четено" : "Популярно",
+      meta: i === 0 ? undefined : "Популярно",
     }));
     return [...adCards, ...postCards];
   }, [ads, topPosts, now]);
@@ -187,6 +187,18 @@ export function AdSpotlight() {
 
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/10 sm:bg-gradient-to-r sm:from-background sm:via-background/80 sm:to-transparent" />
           <div className="absolute inset-x-0 top-0 h-1 bg-gold" />
+
+          {current.excerpt && (
+            <aside
+              aria-hidden="false"
+              className="absolute right-5 top-1/2 hidden max-w-[28%] -translate-y-1/2 rounded-xl border border-gold/30 bg-background/80 p-4 backdrop-blur-sm lg:right-8 lg:block"
+            >
+              <span aria-hidden="true" className="mb-2 block h-0.5 w-8 bg-gold" />
+              <p className="line-clamp-5 text-sm leading-relaxed text-foreground/90">
+                {current.excerpt}
+              </p>
+            </aside>
+          )}
 
           <div key={current.key} className="relative flex min-h-[360px] animate-in fade-in slide-in-from-bottom-2 flex-col justify-end p-5 duration-500 sm:min-h-[420px] sm:max-w-[64%] sm:justify-center sm:p-10 lg:p-12">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-widest">
