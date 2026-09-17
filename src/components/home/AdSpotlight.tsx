@@ -157,15 +157,15 @@ export function AdSpotlight() {
         image: imageForAd(a),
         endsAt: a.ends_at,
       }));
-    const postCards: Card[] = topPosts.map((p, i) => ({
+    const postCards: Card[] = topPosts.map((p) => ({
       key: `post-${p.slug}`,
       title: p.title,
       excerpt: p.summary,
       href: `/blog/${p.slug}`,
       badge: p.category,
       image: p.image,
-      meta: i === 0 ? undefined : "Популярно",
     }));
+
     return [...adCards, ...postCards];
   }, [ads, topPosts, now]);
 
