@@ -121,7 +121,7 @@ describe("ранен продуктов ред в hero-а", () => {
     const src = read("src/components/products/HeroProductRail.tsx");
     expect(src).not.toMatch(/setInterval|setTimeout|autoplay|Dialog/);
     expect(src.toLowerCase()).not.toMatch(/остават само|последен шанс/);
-    expect(src).toContain("min-h-[92px]");
+    expect(src).toContain("min-h-[168px]");
   });
 
   it("е вграден в hero-а, а не в отделен мобилен екран", () => {
