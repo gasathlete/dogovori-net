@@ -72,11 +72,12 @@ describe("hero — безплатното начало е водещо", () => {
     expect(hero.indexOf("Започнете безплатно")).toBeLessThan(
       hero.indexOf("<HeroProductRail />"),
     );
-    expect(hero).toMatch(/min-h-\[56px\][^"]*text-\[18px\]/);
+    expect(hero).toMatch(/min-h-\[60px\]/);
   });
 
   it("не обещава неограничено безплатно ползване", () => {
-    expect(hero).toContain("FREE_OFFER_RULE");
+    // Каноничното правило вече живее на страницата „Започнете безплатно“, не в херото.
+    expect(hero).not.toContain("FREE_OFFER_RULE");
     expect(hero.toLowerCase()).not.toContain("неограничен");
   });
 });

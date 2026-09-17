@@ -68,6 +68,6 @@ describe("каталожна продуктова витрина", () => {
       "col-span-2",
     );
     expect(screen.getAllByRole("img")).toHaveLength(3);
-    expect(screen.getByAltText(/лупа/)).toBeInTheDocument();
+    expect(screen.getByAltText(/разпечатан документ/)).toBeInTheDocument();
   });
 });
