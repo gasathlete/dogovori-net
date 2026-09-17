@@ -13,6 +13,11 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, BookOpen, Megaphone } from "@/icons";
 import { Button } from "@/components/ui/button";
+import adNaem from "@/assets/ads/ad-naem.jpg";
+import adTrudov from "@/assets/ads/ad-trudov.jpg";
+import adFrilans from "@/assets/ads/ad-frilans.jpg";
+import adFirma from "@/assets/ads/ad-firma.jpg";
+import adAvtomobil from "@/assets/ads/ad-avtomobil.jpg";
 
 type AdRow = {
   id: string;
@@ -34,8 +39,23 @@ type Card = {
   badge: string;
   image?: string | null;
   endsAt?: string | null;
-  meta?: string;
 };
+
+/**
+ * Подбрани статии за различни групи читатели, с изображения без текст —
+ * ползваме само тези изображения, за да няма нечетливи надписи в кадъра.
+ */
+const CURATED: { slug: string; image: string }[] = [
+  { slug: "kak-da-napravim-dogovor-za-naem", image: adNaem },
+  { slug: "trudov-dogovor-osnovni-elementi", image: adTrudov },
+  { slug: "grazhdanski-dogovor-vs-trudov-dogovor", image: adFrilans },
+  { slug: "gdpr-za-malki-firmi", image: adFirma },
+  { slug: "dogovor-za-prodazhba-na-avtomobil", image: adAvtomobil },
+];
+
+const CURATED_IMAGES: Record<string, string> = Object.fromEntries(
+  CURATED.map((c) => [c.slug, c.image]),
+);
 
 /** Оставащо време до края на рекламата, изписано на български. */
 function remainingLabel(endsAt: string, now: number): string | null {
@@ -55,8 +75,9 @@ function remainingLabel(endsAt: string, now: number): string | null {
 function imageForAd(ad: AdRow): string | null {
   if (ad.image_url?.trim()) return ad.image_url.trim();
   const match = ad.link.match(/^\/blog\/([^/?#]+)\/?(?:[?#].*)?$/);
-  return match?.[1] ? `/blog/${match[1]}.webp` : null;
+  return match?.[1] ? (CURATED_IMAGES[match[1]] ?? null) : null;
 }
+
 
 export function AdSpotlight() {
   const [ads, setAds] = useState<AdRow[]>([]);
@@ -81,30 +102,32 @@ export function AdSpotlight() {
     };
   }, []);
 
-  // Двете най-посещавани статии — точен ред по реални посещения.
+  // Подбрани статии за различни групи читатели; най-посещаваните са напред.
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data, error } = await supabase.rpc("top_blog_articles", { _limit: 6 });
-      if (error || !Array.isArray(data)) return;
-      const slugs = (data as { path: string }[])
-        .map((r) => r.path.replace(/^\/blog\//, "").replace(/\/$/, ""))
-        .filter(Boolean);
-      if (slugs.length === 0) return;
+      const { data } = await supabase.rpc("top_blog_articles", { _limit: 12 });
+      const topSlugs = Array.isArray(data)
+        ? (data as { path: string }[])
+            .map((r) => r.path.replace(/^\/blog\//, "").replace(/\/$/, ""))
+            .filter((s) => s && CURATED_IMAGES[s])
+        : [];
+      const order = [...topSlugs, ...CURATED.map((c) => c.slug)].filter(
+        (slug, i, arr) => arr.indexOf(slug) === i,
+      );
       const { ALL_POSTS } = await import("@/lib/blog");
       const picked: PostMeta[] = [];
-      for (const slug of slugs) {
+      for (const slug of order) {
         const post = ALL_POSTS.find((p) => p.slug === slug);
-        if (post) {
-          picked.push({
-            slug: post.slug,
-            title: post.title,
-            summary: post.summary,
-            category: post.category,
-            image: (post as { image?: string }).image,
-          });
-        }
-        if (picked.length === 2) break;
+        if (!post) continue;
+        picked.push({
+          slug: post.slug,
+          title: post.title,
+          summary: post.summary,
+          category: post.category,
+          image: CURATED_IMAGES[post.slug],
+        });
+        if (picked.length === 5) break;
       }
       if (!cancelled) setTopPosts(picked);
     })();
@@ -112,6 +135,7 @@ export function AdSpotlight() {
       cancelled = true;
     };
   }, []);
+
 
   // Тиктакащ таймер само докато има реклама с краен срок.
   const hasDeadline = ads.some((a) => a.ends_at);
@@ -133,15 +157,15 @@ export function AdSpotlight() {
         image: imageForAd(a),
         endsAt: a.ends_at,
       }));
-    const postCards: Card[] = topPosts.map((p, i) => ({
+    const postCards: Card[] = topPosts.map((p) => ({
       key: `post-${p.slug}`,
       title: p.title,
       excerpt: p.summary,
       href: `/blog/${p.slug}`,
       badge: p.category,
       image: p.image,
-      meta: i === 0 ? undefined : "Популярно",
     }));
+
     return [...adCards, ...postCards];
   }, [ads, topPosts, now]);
 
@@ -191,7 +215,7 @@ export function AdSpotlight() {
           {current.excerpt && (
             <aside
               aria-hidden="false"
-              className="absolute right-5 top-1/2 hidden max-w-[28%] -translate-y-1/2 rounded-xl border border-gold/30 bg-background/80 p-4 backdrop-blur-sm lg:right-8 lg:block"
+              className="absolute right-4 top-1/2 hidden w-[34%] max-w-xs -translate-y-1/2 rounded-xl border border-gold/30 bg-background/80 p-4 backdrop-blur-sm sm:block lg:right-8"
             >
               <span aria-hidden="true" className="mb-2 block h-0.5 w-8 bg-gold" />
               <p className="line-clamp-5 text-sm leading-relaxed text-foreground/90">
@@ -203,8 +227,8 @@ export function AdSpotlight() {
           <div key={current.key} className="relative flex min-h-[360px] animate-in fade-in slide-in-from-bottom-2 flex-col justify-end p-5 duration-500 sm:min-h-[420px] sm:max-w-[64%] sm:justify-center sm:p-10 lg:p-12">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-widest">
               <span className="rounded-full bg-gold px-3 py-1.5 text-primary-foreground">{current.badge}</span>
-              {current.meta && <span className="text-muted-foreground">{current.meta}</span>}
             </div>
+
 
             <h3 className="mt-4 max-w-2xl text-balance font-serif text-2xl font-bold leading-tight sm:text-4xl">
               {current.title}
