@@ -227,8 +227,8 @@ export function AdSpotlight() {
           <div key={current.key} className="relative flex min-h-[360px] animate-in fade-in slide-in-from-bottom-2 flex-col justify-end p-5 duration-500 sm:min-h-[420px] sm:max-w-[64%] sm:justify-center sm:p-10 lg:p-12">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-widest">
               <span className="rounded-full bg-gold px-3 py-1.5 text-primary-foreground">{current.badge}</span>
-              {current.meta && <span className="text-muted-foreground">{current.meta}</span>}
             </div>
+
 
             <h3 className="mt-4 max-w-2xl text-balance font-serif text-2xl font-bold leading-tight sm:text-4xl">
               {current.title}
