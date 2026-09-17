@@ -102,20 +102,20 @@ export function AdSpotlight() {
     };
   }, []);
 
-  // Подбрани статии за различни групи читатели; най-посещаваните са напред.
+  // Двете най-посещавани статии са напред, след тях подбраните за различни групи читатели.
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      const { ALL_POSTS } = await import("@/lib/blog");
       const { data } = await supabase.rpc("top_blog_articles", { _limit: 12 });
       const topSlugs = Array.isArray(data)
         ? (data as { path: string }[])
             .map((r) => r.path.replace(/^\/blog\//, "").replace(/\/$/, ""))
-            .filter((s) => s && CURATED_IMAGES[s])
+            .filter(Boolean)
         : [];
-      const order = [...topSlugs, ...CURATED.map((c) => c.slug)].filter(
+      const order = [...topSlugs.slice(0, 2), ...CURATED.map((c) => c.slug)].filter(
         (slug, i, arr) => arr.indexOf(slug) === i,
       );
-      const { ALL_POSTS } = await import("@/lib/blog");
       const picked: PostMeta[] = [];
       for (const slug of order) {
         const post = ALL_POSTS.find((p) => p.slug === slug);
@@ -125,9 +125,9 @@ export function AdSpotlight() {
           title: post.title,
           summary: post.summary,
           category: post.category,
-          image: CURATED_IMAGES[post.slug],
+          image: CURATED_IMAGES[post.slug] ?? post.image,
         });
-        if (picked.length === 5) break;
+        if (picked.length === 7) break;
       }
       if (!cancelled) setTopPosts(picked);
     })();
@@ -168,6 +168,15 @@ export function AdSpotlight() {
 
     return [...adCards, ...postCards];
   }, [ads, topPosts, now]);
+
+  // Тихо автоматично превключване на всеки 4,7 секунди; без видим таймер.
+  const count = cards.length;
+  useEffect(() => {
+    if (count < 2) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = window.setInterval(() => setActive((i) => (i + 1) % count), 4700);
+    return () => window.clearInterval(id);
+  }, [count]);
 
   if (cards.length === 0) return null;
   const current = cards[Math.min(active, cards.length - 1)];
