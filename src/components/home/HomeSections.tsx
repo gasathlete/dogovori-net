@@ -36,6 +36,14 @@ export function HomeSections() {
         <SocialProofStrip />
       </Suspense>
 
+      {/* „Реклама“ — извадки от блога веднага под лентата с партньори */}
+      <LazyOnVisible minHeight={260}>
+        <Suspense fallback={<SectionSkeleton />}>
+          <AdSpotlight />
+        </Suspense>
+      </LazyOnVisible>
+
+
       {/* Продуктите са първата съдържателна секция след social proof */}
       <LazyOnVisible minHeight={520}>
         <Suspense fallback={<SectionSkeleton />}>
