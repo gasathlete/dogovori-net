@@ -139,7 +139,7 @@ export function AdSpotlight() {
       href: `/blog/${p.slug}`,
       badge: p.category,
       image: p.image,
-      meta: i === 0 ? "Най-четена статия" : "Втора най-четена статия",
+      meta: i === 0 ? "Най-четено" : "Популярно",
     }));
     return [...adCards, ...postCards];
   }, [ads, topPosts, now]);
