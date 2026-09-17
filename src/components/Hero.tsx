@@ -94,14 +94,16 @@ export function Hero() {
                     authenticated: Boolean(user),
                   });
                 }}
-                className="btn-gold btn-press inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-xl px-8 py-4 text-[18px] font-bold normal-case tracking-normal shadow-elegant sm:w-auto sm:px-12 sm:text-[20px]"
+                className="btn-gold btn-press inline-flex min-h-[64px] w-full flex-col items-center justify-center gap-0.5 rounded-xl px-8 py-3 shadow-elegant sm:w-auto sm:px-12"
               >
-                Започнете безплатно
-                <ArrowRight className="h-[18px] w-[18px]" />
+                <span className="inline-flex items-center gap-2 text-[18px] font-bold normal-case tracking-normal sm:text-[20px]">
+                  Започнете безплатно
+                  <ArrowRight className="h-[18px] w-[18px]" />
+                </span>
+                <span className="text-[11.5px] font-medium leading-none opacity-80">
+                  {FREE_OFFER_RULE} · без карта
+                </span>
               </Link>
-              <p className="text-[12px] font-medium text-muted-foreground">
-                {FREE_OFFER_RULE} · без карта
-              </p>
               <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[12.5px] text-muted-foreground">
                 <Link to="/build" {...prefetchHandlers("/build")} className="inline-flex min-h-[44px] items-center gap-1.5 hover:text-gold">
                   <Search className="h-3.5 w-3.5" /> Създайте документ
