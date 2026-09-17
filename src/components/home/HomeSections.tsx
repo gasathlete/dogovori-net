@@ -16,6 +16,7 @@ const PlatformCapabilities = lazy(() => import("@/components/PlatformCapabilitie
 const BrandedDocumentShowcase = lazy(() => import("@/components/home/BrandedDocumentShowcase").then((m) => ({ default: m.BrandedDocumentShowcase })));
 const DogovaryAIShowcase = lazy(() => import("@/components/home/DogovaryAIShowcase").then((m) => ({ default: m.DogovaryAIShowcase })));
 const SocialProofStrip = lazy(() => import("@/components/SocialProofStrip").then((m) => ({ default: m.SocialProofStrip })));
+const AdSpotlight = lazy(() => import("@/components/home/AdSpotlight").then((m) => ({ default: m.AdSpotlight })));
 const PainSolution = lazy(() => import("@/components/PainSolution").then((m) => ({ default: m.PainSolution })));
 const FeaturedBlanks = lazy(() => import("@/components/FeaturedBlanks").then((m) => ({ default: m.FeaturedBlanks })));
 const LifeScenarios = lazy(() => import("@/components/LifeScenarios").then((m) => ({ default: m.LifeScenarios })));
@@ -34,6 +35,14 @@ export function HomeSections() {
       <Suspense fallback={<SectionSkeleton />}>
         <SocialProofStrip />
       </Suspense>
+
+      {/* „Реклама“ — извадки от блога веднага под лентата с партньори */}
+      <LazyOnVisible minHeight={260}>
+        <Suspense fallback={<SectionSkeleton />}>
+          <AdSpotlight />
+        </Suspense>
+      </LazyOnVisible>
+
 
       {/* Продуктите са първата съдържателна секция след social proof */}
       <LazyOnVisible minHeight={520}>

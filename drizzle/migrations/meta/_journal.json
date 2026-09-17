@@ -141,6 +141,13 @@
       "when": 1789537038570,
       "tag": "0019_email_campaign_topics",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1789628303761,
+      "tag": "0020_home_ad_slots",
+      "breakpoints": true
     }
   ]
 }

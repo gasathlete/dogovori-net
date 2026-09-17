@@ -2068,6 +2068,51 @@ export type Database = {
         }
         Relationships: []
       }
+      home_ad_slots: {
+        Row: {
+          badge: string | null
+          created_at: string
+          created_by: string | null
+          display_order: number
+          ends_at: string | null
+          excerpt: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          link: string
+          starts_at: string
+          title: string
+        }
+        Insert: {
+          badge?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          ends_at?: string | null
+          excerpt?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          link: string
+          starts_at?: string
+          title: string
+        }
+        Update: {
+          badge?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          ends_at?: string | null
+          excerpt?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          link?: string
+          starts_at?: string
+          title?: string
+        }
+        Relationships: []
+      }
       home_testimonials: {
         Row: {
           about: string | null
@@ -6674,6 +6719,13 @@ export type Database = {
         Returns: boolean
       }
       sync_plans_into_prompts: { Args: never; Returns: undefined }
+      top_blog_articles: {
+        Args: { _limit?: number }
+        Returns: {
+          path: string
+          views: number
+        }[]
+      }
       unaccent: { Args: { "": string }; Returns: string }
       unaccent_or_lower: { Args: { _t: string }; Returns: string }
       unread_notifications_count: { Args: never; Returns: number }
