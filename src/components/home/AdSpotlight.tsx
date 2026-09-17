@@ -215,7 +215,7 @@ export function AdSpotlight() {
           {current.excerpt && (
             <aside
               aria-hidden="false"
-              className="absolute right-5 top-1/2 hidden max-w-[28%] -translate-y-1/2 rounded-xl border border-gold/30 bg-background/80 p-4 backdrop-blur-sm lg:right-8 lg:block"
+              className="absolute right-4 top-1/2 hidden w-[34%] max-w-xs -translate-y-1/2 rounded-xl border border-gold/30 bg-background/80 p-4 backdrop-blur-sm sm:block lg:right-8"
             >
               <span aria-hidden="true" className="mb-2 block h-0.5 w-8 bg-gold" />
               <p className="line-clamp-5 text-sm leading-relaxed text-foreground/90">
