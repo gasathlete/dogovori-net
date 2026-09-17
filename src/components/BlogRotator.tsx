@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, BookOpen } from "@/icons";
-import { ALL_POSTS } from "@/lib/blog";
+import { BLOG_POST_META } from "@/lib/blogMeta.generated";
 
 const ROTATE_MS = 10_000;
 
 export function BlogRotator() {
-  const posts = useMemo(() => ALL_POSTS.slice(0, 6), []);
+  const posts = useMemo(() => BLOG_POST_META.slice(0, 6), []);
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
   const [dragDx, setDragDx] = useState(0);

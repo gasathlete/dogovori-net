@@ -1,10 +1,9 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { prefetchOnIdle, shouldPrefetch } from "@/lib/routePrefetch";
+import { shouldPrefetch } from "@/lib/routePrefetch";
 import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
 import { SectionSkeleton } from "@/components/SectionSkeleton";
-import { useIsMobileViewport } from "@/hooks/useMediaQuery";
 import { buildFaqJsonLd } from "@/data/faqItems";
 
 // Една и съща подредба на телефон и десктоп — богатият hero, социалното
@@ -14,7 +13,6 @@ const HomeSections = lazy(() => import("@/components/home/HomeSections").then((m
 
 const Index = () => {
   const location = useLocation();
-  const isMobile = useIsMobileViewport();
   useEffect(() => {
     if (location.hash) {
       const id = location.hash.replace("#", "");
@@ -22,12 +20,9 @@ const Index = () => {
     }
   }, [location]);
 
-  // Warm the most likely next route when the main thread is idle. На телефон
-  // това се пропуска — мобилният път води към /produkti, не към каталога.
-  useEffect(() => {
-    if (isMobile) return;
-    return prefetchOnIdle(["/catalog"]);
-  }, [isMobile]);
+  // Каталогът вече не се зарежда предварително от началната страница — това
+  // теглеше около 1 MB код за страница, която част от посетителите не отварят.
+  // Връзките към каталога го зареждат при посочване/докосване (PrefetchLink).
 
   // Bridge legacy event name to the global DogovAI bubble
   useEffect(() => {

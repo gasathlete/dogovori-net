@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 // Леки константи вместо целия CATALOG/SECTORS (~1 MB JSON) — виж src/data/catalogCounts.ts
 import { TEMPLATES_COUNT, SECTORS_COUNT } from "@/data/catalogCounts";
 import { useCountUp } from "@/hooks/useCountUp";
+import { storageThumb } from "@/lib/imageThumb";
 
 
 type Partner = { id: string; name: string; logo_url: string; website_url?: string | null };
@@ -140,12 +141,12 @@ export function SocialProofStrip() {
                 const card = (
                   <div className="proof-logo-card flex h-44 w-44 items-center justify-center rounded-2xl p-3 sm:h-56 sm:w-56 sm:p-4 lg:h-72 lg:w-80 lg:p-5">
                     <img
-                      src={p.logo_url}
+                      src={storageThumb(p.logo_url, 640, 576, { fit: "cover", quality: 62 })}
                       alt={p.name}
                       loading="lazy"
                       decoding="async"
-                      width={200}
-                      height={200}
+                      width={320}
+                      height={288}
                       {...({ fetchpriority: "low" } as any)}
                       className="proof-logo-img h-full w-full rounded-xl object-cover"
                     />

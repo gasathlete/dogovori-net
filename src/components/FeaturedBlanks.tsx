@@ -1,7 +1,7 @@
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { Sparkles, ArrowRight, Download, FileText, TrendingUp, CheckCircle2 } from "@/icons";
 import { FEATURED_BLANKS } from "@/data/featuredBlanks";
-import { allTemplates } from "@/lib/templateIndex";
+import FOOTER_ANCHOR_SLUGS from "@/data/footerAnchors.generated.json";
 import { useMemo } from "react";
 import { ExpandableCard } from "@/components/ui/ExpandableCard";
 import { CATALOG_DOCUMENT_COUNT } from "@/lib/catalogStats";
@@ -40,7 +40,7 @@ const BLANK_DETAILS: Record<string, { when: string; signer: string; term: string
 
 export function FeaturedBlanks() {
   const items = useMemo(() => {
-    const index = new Map(allTemplates().map((t) => [t.doc.name, t.slug]));
+    const index = new Map(Object.entries(FOOTER_ANCHOR_SLUGS as Record<string, string>));
     return FEATURED_BLANKS.map((b) => ({
       ...b,
       slug: index.get(b.docName) ?? null,

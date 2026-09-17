@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PartnerSubmitDialog } from "./PartnerSubmitDialog";
+import { storageThumb } from "@/lib/imageThumb";
 import { Handshake } from "@/icons";
 
 type Partner = {
@@ -61,7 +62,7 @@ export function PartnersBoard() {
               const inner = (
                 <div className="flex h-40 items-center justify-center rounded-2xl border border-border bg-card p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-soft sm:h-44 sm:p-7 md:h-48 md:p-8">
                   <img
-                    src={p.logo_url}
+                    src={storageThumb(p.logo_url, 480, 200, { fit: "contain", quality: 62 })}
                     alt={p.name}
                     loading="lazy"
                     decoding="async"
