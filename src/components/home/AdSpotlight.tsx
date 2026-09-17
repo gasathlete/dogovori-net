@@ -13,6 +13,11 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, BookOpen, Megaphone } from "@/icons";
 import { Button } from "@/components/ui/button";
+import adNaem from "@/assets/ads/ad-naem.jpg";
+import adTrudov from "@/assets/ads/ad-trudov.jpg";
+import adFrilans from "@/assets/ads/ad-frilans.jpg";
+import adFirma from "@/assets/ads/ad-firma.jpg";
+import adAvtomobil from "@/assets/ads/ad-avtomobil.jpg";
 
 type AdRow = {
   id: string;
@@ -34,8 +39,23 @@ type Card = {
   badge: string;
   image?: string | null;
   endsAt?: string | null;
-  meta?: string;
 };
+
+/**
+ * Подбрани статии за различни групи читатели, с изображения без текст —
+ * ползваме само тези изображения, за да няма нечетливи надписи в кадъра.
+ */
+const CURATED: { slug: string; image: string }[] = [
+  { slug: "kak-da-napravim-dogovor-za-naem", image: adNaem },
+  { slug: "trudov-dogovor-osnovni-elementi", image: adTrudov },
+  { slug: "grazhdanski-dogovor-vs-trudov-dogovor", image: adFrilans },
+  { slug: "gdpr-za-malki-firmi", image: adFirma },
+  { slug: "dogovor-za-prodazhba-na-avtomobil", image: adAvtomobil },
+];
+
+const CURATED_IMAGES: Record<string, string> = Object.fromEntries(
+  CURATED.map((c) => [c.slug, c.image]),
+);
 
 /** Оставащо време до края на рекламата, изписано на български. */
 function remainingLabel(endsAt: string, now: number): string | null {
@@ -55,8 +75,9 @@ function remainingLabel(endsAt: string, now: number): string | null {
 function imageForAd(ad: AdRow): string | null {
   if (ad.image_url?.trim()) return ad.image_url.trim();
   const match = ad.link.match(/^\/blog\/([^/?#]+)\/?(?:[?#].*)?$/);
-  return match?.[1] ? `/blog/${match[1]}.webp` : null;
+  return match?.[1] ? (CURATED_IMAGES[match[1]] ?? null) : null;
 }
+
 
 export function AdSpotlight() {
   const [ads, setAds] = useState<AdRow[]>([]);
