@@ -36,7 +36,8 @@ describe("build без мрежови известявания", () => {
 
   it("build съдържа само познатите стъпки за строене и проверка", () => {
     expect(pkg.scripts.build).toBe(
-      "bun run scripts/build-sitemap.ts && vite build && bun run scripts/prerender.ts" +
+      "bun scripts/generate-blog-meta.ts && bun scripts/generate-footer-anchors.ts" +
+        " && bun run scripts/build-sitemap.ts && vite build && bun run scripts/prerender.ts" +
         " && bun run scripts/verify-build.ts && bun run scripts/verify-seo-urls.ts",
     );
   });

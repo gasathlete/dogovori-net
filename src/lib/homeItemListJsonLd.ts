@@ -6,11 +6,11 @@
  * Данните са верни или липсват — никога не се измисля списък.
  */
 export async function buildHomeItemListJsonLd(): Promise<Record<string, unknown> | null> {
-  const [{ FEATURED_BLANKS }, { allTemplates }] = await Promise.all([
+  const [{ FEATURED_BLANKS }, { default: slugs }] = await Promise.all([
     import("@/data/featuredBlanks"),
-    import("@/lib/templateIndex"),
+    import("@/data/footerAnchors.generated.json"),
   ]);
-  const slugMap = new Map(allTemplates().map((t) => [t.doc.name, t.slug]));
+  const slugMap = new Map(Object.entries(slugs as Record<string, string>));
   const itemListElement = FEATURED_BLANKS.map((b, i) => {
     const slug = slugMap.get(b.docName);
     if (!slug) return null;

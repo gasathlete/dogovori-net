@@ -13,6 +13,8 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, BookOpen, Megaphone } from "@/icons";
 import { Button } from "@/components/ui/button";
+import { BLOG_POST_META } from "@/lib/blogMeta.generated";
+import { storageThumb } from "@/lib/imageThumb";
 import adNaem from "@/assets/ads/ad-naem.jpg";
 import adTrudov from "@/assets/ads/ad-trudov.jpg";
 import adFrilans from "@/assets/ads/ad-frilans.jpg";
@@ -73,7 +75,11 @@ function remainingLabel(endsAt: string, now: number): string | null {
 }
 
 function imageForAd(ad: AdRow): string | null {
-  if (ad.image_url?.trim()) return ad.image_url.trim();
+  if (ad.image_url?.trim()) {
+    // Качените в хранилището изображения се доставят в размера на банера,
+    // а не в оригиналния (често многократно по-голям) файл.
+    return storageThumb(ad.image_url, 1200, 630, { fit: "cover", quality: 68 });
+  }
   const match = ad.link.match(/^\/blog\/([^/?#]+)\/?(?:[?#].*)?$/);
   return match?.[1] ? (CURATED_IMAGES[match[1]] ?? null) : null;
 }
@@ -106,7 +112,6 @@ export function AdSpotlight() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { ALL_POSTS } = await import("@/lib/blog");
       const { data } = await supabase.rpc("top_blog_articles", { _limit: 12 });
       const topSlugs = Array.isArray(data)
         ? (data as { path: string }[])
@@ -118,7 +123,7 @@ export function AdSpotlight() {
       );
       const picked: PostMeta[] = [];
       for (const slug of order) {
-        const post = ALL_POSTS.find((p) => p.slug === slug);
+        const post = BLOG_POST_META.find((p) => p.slug === slug);
         if (!post) continue;
         picked.push({
           slug: post.slug,
@@ -281,9 +286,11 @@ export function AdSpotlight() {
                     : "border-border/60 text-muted-foreground hover:border-gold/50 hover:text-foreground"
                 }`}
               >
-                {card.image && (
-                  <img src={card.image} alt="" loading="lazy" className="h-9 w-12 shrink-0 rounded object-cover" />
-                )}
+                <span
+                  aria-hidden="true"
+                  className={`mr-2 h-2 w-2 shrink-0 rounded-full ${index === active ? "bg-gold" : "bg-border"}`}
+                />
+
                 <span className="min-w-0 truncate">{card.title}</span>
               </Button>
             ))}

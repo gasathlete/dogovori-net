@@ -20,6 +20,7 @@ import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { useIsMobileViewport } from "@/hooks/useMediaQuery";
+import { LazyOnSignal } from "@/components/LazyOnSignal";
 
 import Index from "./pages/Index.tsx";
 const PaymentTestModeBanner = reactLazy(() =>
@@ -209,33 +210,9 @@ if (typeof window !== "undefined") {
   }
 }
 
-// Warm the route chunks for /ai and /karta on idle. These are GEO-targeted SEO
-// landing pages — users frequently arrive via SERP/AI-search and follow the
-// internal links from the homepage. Triggering the dynamic imports during idle
-// time turns the navigation into an instant transition without bloating the
-// initial entry chunk (each page is still its own lazy chunk).
-// JSON-LD dedup remains handled in main.tsx, so prefetching doesn't re-inject
-// structured data — only the JS chunk is fetched and cached by the browser.
-// NOTE: /karta (SiteMap) is deliberately NOT warmed — it statically pulls the
-// sectors + blog data chunks (~340KB transferred), which dominated the landing
-// page network budget for a page most visitors never open. It is still lazy on
-// hover/click via PrefetchLink.
-if (typeof window !== "undefined" && location.pathname !== "/ai") {
-  const prefetchRoutes = () => {
-    void import("@/lib/routePrefetch").then((m) => {
-      if (m.shouldPrefetch()) void import("./pages/AIFeatures.tsx");
-    });
-  };
-  const start = () => {
-    if ("requestIdleCallback" in window) {
-      (window as any).requestIdleCallback(prefetchRoutes, { timeout: 6000 });
-    } else {
-      setTimeout(prefetchRoutes, 4000);
-    }
-  };
-  if (document.readyState === "complete") setTimeout(start, 3000);
-  else window.addEventListener("load", () => setTimeout(start, 3000), { once: true });
-}
+// Никакви предварителни зареждания на цели страници при отваряне на сайта.
+// Всяка страница се зарежда при посочване/докосване на връзката (PrefetchLink)
+// или при самото отваряне — така първото зареждане остава леко.
 
 
 // The QueryClient is the shared cache for React Query. It lives in a
@@ -287,16 +264,25 @@ function DeferredOverlays() {
       <PaymentTestModeBanner />
       <CookieBanner />
       <BetaDisclaimerModal />
-      <ExitIntentLeadMagnet />
       <UsernamePrompt />
       <GlobalProUpgradeListener />
-      <CommandPalette />
       {/* Only one floating helper — the DogovAI bubble. */}
       <DogovAIBubble />
       <MobileBottomNav />
-      <ActionCelebrationHost />
-      <EntrepreneurAdPopup />
-      <FreeWelcomeDialog />
+      {/* Всичко по-долу се зарежда само при реален сигнал от посетителя. */}
+      <LazyOnSignal commandKey="k" events={["dogovori:open-command"]}>
+        <CommandPalette />
+      </LazyOnSignal>
+      <LazyOnSignal onMouseLeave delayMs={20000}>
+        <ExitIntentLeadMagnet />
+      </LazyOnSignal>
+      <LazyOnSignal events={["dogovari:op-completed", "dogovori:free-op-success"]}>
+        <ActionCelebrationHost />
+        <EntrepreneurAdPopup />
+      </LazyOnSignal>
+      <LazyOnSignal delayMs={5000}>
+        <FreeWelcomeDialog />
+      </LazyOnSignal>
     </Suspense>
   );
 }

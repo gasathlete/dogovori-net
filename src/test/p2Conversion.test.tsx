@@ -54,8 +54,8 @@ describe("Hero — едно основно действие към безпла�
 
   it("под бутона стои само каноничното правило, без GDPR обещание", async () => {
     const { FREE_OFFER_RULE } = await import("@/lib/pricing");
-    expect(src).toContain("FREE_OFFER_RULE");
     expect(FREE_OFFER_RULE.length).toBeGreaterThan(10);
+    expect(src).not.toContain("FREE_OFFER_RULE");
     expect(src).not.toContain("Старт без регистрация");
     expect(src).not.toContain("GDPR");
     expect(src).not.toContain("5 безплатни операции");

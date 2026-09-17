@@ -131,7 +131,7 @@ describe("витрина — паритет между началната стр
   it("началната секция носи точното заглавие и витрината с трите продукта", () => {
     render(wrap(<ProductsSection />));
     expect(
-      screen.getByRole("heading", { name: "Разгледайте нашите продукти" }),
+      screen.getByRole("heading", { name: "Разгледайте нашите услуги" }),
     ).toBeInTheDocument();
     for (const p of ONE_TIME_PRODUCTS) {
       expect(screen.getByTestId(`catalog-product-${p.id}`)).toBeInTheDocument();

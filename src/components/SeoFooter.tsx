@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Logo } from "./Logo";
 import { ONE_TIME_PRODUCTS, productPath } from "@/lib/products";
 import { CATALOG_DOCUMENT_COUNT } from "@/lib/catalogStats";
+import FOOTER_ANCHOR_SLUGS from "@/data/footerAnchors.generated.json";
 
 
 // Top 8 categories inlined to avoid pulling the full CATALOG (166KB) into the
@@ -61,23 +61,14 @@ const ANCHOR_BLOCKS: AnchorBlock[] = [
 ];
 
 export function SeoFooter() {
-  // Lazy-load the catalog index (~166KB) off the critical path. The footer
-  // sits below the fold on every page; resolving anchors after first paint
-  // keeps initial JS small without hurting SEO (Googlebot executes JS).
-  const [byName, setByName] = useState<Map<string, string>>(() => new Map());
-  useEffect(() => {
-    let cancelled = false;
-    import("@/lib/templateIndex").then((m) => {
-      if (cancelled) return;
-      setByName(new Map(m.allTemplates().map((t) => [t.doc.name, t.slug])));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // Адресите на връзките се готвят при сглобяване (scripts/generate-footer-anchors.ts),
+  // затова футърът не зарежда целия каталог (~160 KB) при всяко отваряне на страница.
   const resolveBlock = (block: AnchorBlock) =>
     block.links
-      .map((l) => ({ anchor: l.anchor, slug: byName.get(l.docName) }))
+      .map((l) => ({
+        anchor: l.anchor,
+        slug: (FOOTER_ANCHOR_SLUGS as Record<string, string>)[l.docName],
+      }))
       .filter((l): l is { anchor: string; slug: string } => Boolean(l.slug));
 
 
