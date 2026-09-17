@@ -51,6 +51,12 @@ function remainingLabel(endsAt: string, now: number): string | null {
   return `Остават ${sec} сек.`;
 }
 
+function imageForAd(ad: AdRow): string | null {
+  if (ad.image_url?.trim()) return ad.image_url.trim();
+  const match = ad.link.match(/^\/blog\/([^/?#]+)\/?(?:[?#].*)?$/);
+  return match?.[1] ? `/blog/${match[1]}.webp` : null;
+}
+
 export function AdSpotlight() {
   const [ads, setAds] = useState<AdRow[]>([]);
   const [topPosts, setTopPosts] = useState<PostMeta[]>([]);
@@ -123,7 +129,7 @@ export function AdSpotlight() {
         excerpt: a.excerpt ?? "",
         href: a.link,
         badge: a.badge?.trim() || "Реклама",
-        image: a.image_url,
+        image: imageForAd(a),
         endsAt: a.ends_at,
       }));
     const postCards: Card[] = topPosts.map((p, i) => ({
