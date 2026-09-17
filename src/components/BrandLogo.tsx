@@ -58,7 +58,7 @@ export function BrandLogo({ className, variant = "auto", compact = false }: Bran
       height="280"
       role="img"
       aria-label="Договори.нет"
-      className={cn("block shrink-0", compact ? "h-8 w-[161px]" : "h-10 w-[201px]", variantClass[variant], className)}
+      className={cn("block shrink-0", compact ? "h-9 w-[181px]" : "h-10 w-[201px]", variantClass[variant], className)}
     >
       <g className="text-gold">
         {BRAND_FRAME_PATHS.map((path) => <path key={path} fill="currentColor" d={path} />)}
