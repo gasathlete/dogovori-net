@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, BookOpen, Megaphone } from "@/icons";
+import { Button } from "@/components/ui/button";
 
 type AdRow = {
   id: string;
@@ -149,95 +150,100 @@ export function AdSpotlight() {
   const isExternal = /^https?:\/\//i.test(current.href);
 
   return (
-    <section aria-labelledby="ad-spotlight-heading" className="container py-10 sm:py-12">
-      <div className="mx-auto max-w-5xl rounded-2xl border border-border/60 bg-card/60 p-5 backdrop-blur-sm sm:p-7">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+    <section aria-labelledby="ad-spotlight-heading" className="container py-8 sm:py-10">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-4 flex items-end justify-between gap-4">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-gold/40 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-gold">
-              <Megaphone className="h-3 w-3" />
+            <span className="inline-flex min-h-7 items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 text-xs font-semibold uppercase tracking-widest text-gold">
+              <Megaphone className="h-3.5 w-3.5" />
               Реклама
             </span>
-            <h2 id="ad-spotlight-heading" className="mt-3 font-serif text-xl font-bold sm:text-2xl">
+            <h2 id="ad-spotlight-heading" className="mt-2 font-serif text-xl font-bold sm:text-2xl">
               Подбрано за Вас
             </h2>
           </div>
-
-          {cards.length > 1 && (
-            <div className="flex flex-wrap gap-2" role="tablist" aria-label="Избрани публикации">
-              {cards.map((c, i) => (
-                <button
-                  key={c.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={i === active}
-                  onClick={() => setActive(i)}
-                  className={`min-h-[44px] rounded-full border px-4 text-sm transition-colors ${
-                    i === active
-                      ? "border-gold/60 bg-gold/10 text-foreground"
-                      : "border-border/60 text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {c.badge}
-                </button>
-              ))}
-            </div>
-          )}
+          <p className="hidden text-sm text-muted-foreground sm:block">
+            {active + 1} / {cards.length}
+          </p>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(220px,36%)] sm:items-center">
+        <div className="group relative isolate min-h-[360px] overflow-hidden rounded-2xl border border-gold/30 bg-card shadow-xl sm:min-h-[420px]">
           {current.image ? (
             <img
+              key={current.image}
               src={current.image}
               alt=""
               loading="lazy"
               decoding="async"
-              width={440}
-              height={280}
-              className="aspect-[11/7] w-full rounded-xl object-cover shadow-sm sm:order-2"
+              width={1200}
+              height={630}
+              className="absolute inset-0 h-full w-full animate-in fade-in duration-500 object-cover transition-transform motion-safe:group-hover:scale-[1.025] motion-reduce:transition-none"
             />
           ) : (
-            <div className="flex aspect-[11/7] w-full items-center justify-center rounded-xl border border-border/60 bg-muted/30 sm:order-2">
-              <BookOpen className="h-8 w-8 text-muted-foreground" />
+            <div className="absolute inset-0 flex items-center justify-center bg-muted">
+              <BookOpen className="h-12 w-12 text-muted-foreground" />
             </div>
           )}
 
-          <div className="sm:order-1">
-            {current.meta && (
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {current.meta}
-              </p>
-            )}
-            <h3 className="text-lg font-semibold leading-snug text-balance sm:text-xl">{current.title}</h3>
-            {current.excerpt && (
-              <p className="mt-2 text-base leading-relaxed text-muted-foreground">{current.excerpt}</p>
-            )}
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/10 sm:bg-gradient-to-r sm:from-background sm:via-background/80 sm:to-transparent" />
+          <div className="absolute inset-x-0 top-0 h-1 bg-gold" />
+
+          <div key={current.key} className="relative flex min-h-[360px] animate-in fade-in slide-in-from-bottom-2 flex-col justify-end p-5 duration-500 sm:min-h-[420px] sm:max-w-[64%] sm:justify-center sm:p-10 lg:p-12">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-widest">
+              <span className="rounded-full bg-gold px-3 py-1.5 text-primary-foreground">{current.badge}</span>
+              {current.meta && <span className="text-muted-foreground">{current.meta}</span>}
+            </div>
+
+            <h3 className="mt-4 max-w-2xl text-balance font-serif text-2xl font-bold leading-tight sm:text-4xl">
+              {current.title}
+            </h3>
+
             {current.endsAt && remainingLabel(current.endsAt, now) && (
-              <p className="mt-3 text-sm text-muted-foreground" aria-live="off">
+              <p className="mt-3 text-sm font-medium text-muted-foreground" aria-live="off">
                 {remainingLabel(current.endsAt, now)}
               </p>
             )}
-            <div className="mt-4">
-              {isExternal ? (
-                <a
-                  href={current.href}
-                  target="_blank"
-                  rel="noopener noreferrer nofollow sponsored"
-                  className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-gold/50 px-4 text-base font-medium text-foreground transition-colors hover:bg-gold/10"
-                >
-                  Отворете <ArrowRight className="h-4 w-4" />
-                </a>
-              ) : (
-                <Link
-                  to={current.href}
-                  className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-gold/50 px-4 text-base font-medium text-foreground transition-colors hover:bg-gold/10"
-                >
-                  Прочетете <ArrowRight className="h-4 w-4" />
-                </Link>
-              )}
+
+            <div className="mt-6">
+              <Button asChild size="lg" className="min-h-[48px] gap-2 bg-gold text-primary-foreground shadow-lg transition-transform motion-safe:hover:-translate-y-0.5">
+                {isExternal ? (
+                  <a href={current.href} target="_blank" rel="noopener noreferrer nofollow sponsored">
+                    Отворете <ArrowRight className="h-4 w-4" />
+                  </a>
+                ) : (
+                  <Link to={current.href}>
+                    Прочетете <ArrowRight className="h-4 w-4" />
+                  </Link>
+                )}
+              </Button>
             </div>
           </div>
-
         </div>
+
+        {cards.length > 1 && (
+          <div className="mt-4 grid gap-2 sm:grid-cols-2" role="tablist" aria-label="Избрани публикации">
+            {cards.map((card, index) => (
+              <Button
+                key={card.key}
+                type="button"
+                role="tab"
+                aria-selected={index === active}
+                variant="outline"
+                onClick={() => setActive(index)}
+                className={`h-auto min-h-[52px] justify-start overflow-hidden px-3 py-2 text-left transition-all ${
+                  index === active
+                    ? "border-gold bg-gold/10 shadow-sm"
+                    : "border-border/60 text-muted-foreground hover:border-gold/50 hover:text-foreground"
+                }`}
+              >
+                {card.image && (
+                  <img src={card.image} alt="" loading="lazy" className="h-9 w-12 shrink-0 rounded object-cover" />
+                )}
+                <span className="min-w-0 truncate">{card.title}</span>
+              </Button>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
