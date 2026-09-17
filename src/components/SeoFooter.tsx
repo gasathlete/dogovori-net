@@ -94,9 +94,9 @@ export function SeoFooter() {
               href="https://im-development.imot.bg"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold py-[40px] my-0"
+              className="mt-4 inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold"
             >
-              Powered by <span className="font-semibold text-gold/90">IM Development</span>
+              Powered by <span className="whitespace-nowrap font-semibold text-gold/90">IM Development</span>
             </a>
           </div>
 
