@@ -169,6 +169,15 @@ export function AdSpotlight() {
     return [...adCards, ...postCards];
   }, [ads, topPosts, now]);
 
+  // Тихо автоматично превключване на всеки 4,7 секунди; без видим таймер.
+  const count = cards.length;
+  useEffect(() => {
+    if (count < 2) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = window.setInterval(() => setActive((i) => (i + 1) % count), 4700);
+    return () => window.clearInterval(id);
+  }, [count]);
+
   if (cards.length === 0) return null;
   const current = cards[Math.min(active, cards.length - 1)];
   const isExternal = /^https?:\/\//i.test(current.href);
