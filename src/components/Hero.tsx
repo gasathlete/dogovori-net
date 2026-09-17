@@ -5,7 +5,6 @@ import { prefetchHandlers } from "@/components/PrefetchLink";
 import { Search, ArrowRight, FileUp } from "@/icons";
 import { BrandMark } from "@/components/BrandLogo";
 import { HeroVideoBackdrop } from "@/components/HeroVideoBackdrop";
-import { FREE_OFFER_RULE } from "@/lib/pricing";
 import { HeroProductRail } from "@/components/products/HeroProductRail";
 import { useAuth } from "@/hooks/useAuth";
 import { useAudience } from "@/hooks/useAudience";
