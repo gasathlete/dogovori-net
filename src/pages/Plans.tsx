@@ -52,6 +52,7 @@ import { usePlans, type Billing, type PlanId } from "@/hooks/usePlans";
 import { trackEvent } from "@/lib/analytics";
 import { trackPlansView } from "@/lib/metrics";
 import { CATALOG_DOCUMENT_COUNT } from "@/lib/catalogStats";
+import { CheckoutResumeCard } from "@/components/plans/CheckoutResumeCard";
 
 
 const PLAN_ICON: Record<PlanId, React.ComponentType<{ className?: string }>> = {
@@ -228,6 +229,7 @@ export default function Plans() {
         />
 
         <section className="relative z-10 mx-auto max-w-6xl px-4 pt-2 pb-3 sm:pt-4 sm:pb-6">
+          <CheckoutResumeCard className="mb-4" />
           <SoftCapPanel />
           <AnalysisRecommendationBanner />
 

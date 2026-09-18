@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { ClassificationSummary } from "@/lib/aiSensitiveData";
 import { trackMetric } from "@/lib/metrics";
+import { outlineCompletion, type DraftOutlineLine } from "@/lib/draftOutline";
 
 const REASON_LABELS: Record<string, string> = {
   egn: "ЕГН",
@@ -44,6 +45,8 @@ interface SensitiveDataNoticeProps {
   busy?: boolean;
   onConfirm?: () => void;
   onDismiss?: () => void;
+  /** Скрит преглед на попълненото — показва се вместо празна спирачка. */
+  preview?: readonly DraftOutlineLine[];
 }
 
 export function SensitiveDataNotice({
@@ -53,6 +56,7 @@ export function SensitiveDataNotice({
   busy = false,
   onConfirm,
   onDismiss,
+  preview,
 }: SensitiveDataNoticeProps) {
   const [accepted, setAccepted] = useState(false);
   const noticeRef = useRef<HTMLDivElement>(null);
@@ -95,6 +99,27 @@ export function SensitiveDataNotice({
             <ul className="mt-3 space-y-1 rounded-md border border-border/60 bg-background/60 p-3 text-sm text-foreground">
               {labels.map((label) => <li key={label}>• {label}</li>)}
             </ul>
+          )}
+          {preview && preview.length > 0 && (
+            <div data-testid="draft-outline" className="mt-3 rounded-md border border-border/60 bg-background/60 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Какво ще влезе в документа
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Попълнени са {outlineCompletion(preview).filled} от {outlineCompletion(preview).total} показани полета.
+                Личните данни са скрити тук и остават само във Вашия документ.
+              </p>
+              <dl className="mt-2 space-y-1.5 text-sm">
+                {preview.map((line) => (
+                  <div key={line.label} className="flex flex-wrap items-baseline gap-x-2">
+                    <dt className="text-muted-foreground">{line.label}:</dt>
+                    <dd className={line.empty ? "italic text-amber-500" : "font-medium text-foreground"}>
+                      {line.value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
           )}
           {!blocked && onConfirm && (
             <>

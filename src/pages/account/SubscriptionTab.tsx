@@ -53,6 +53,7 @@ import { Seo } from "@/components/Seo";
 import { TopupHistoryPanel } from "@/components/account/TopupHistoryPanel";
 import { ActivationFunnelPanel } from "@/components/account/ActivationFunnelPanel";
 import { getUnlockedTiers, getNextTier, REWARD_TIERS } from "@/lib/rewards";
+import { CheckoutResumeCard } from "@/components/plans/CheckoutResumeCard";
 
 type Contact = {
   id: string; name: string; type: "individual" | "legal";
@@ -501,6 +502,12 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
 
       {(!isPro || showAllPlans) && (
         <>
+          <CheckoutResumeCard
+            onResume={(priceId) => {
+              if (isAllowedCheckoutPrice(priceId)) setCheckoutPrice(priceId);
+            }}
+          />
+
           {/* Pricing header */}
           <div className="text-center">
             <h2 className="font-serif text-2xl font-bold tracking-tight sm:text-3xl">Изберете правилния план за Вас</h2>
