@@ -80,7 +80,6 @@ export function StripeEmbeddedCheckout({
         trackCheckoutAbandoned(plan, "closed_without_payment");
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plan]);
 
   const valueNote = checkoutValueNote(plan, billing);
