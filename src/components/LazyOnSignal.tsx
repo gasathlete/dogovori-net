@@ -7,7 +7,7 @@
  * конкретно събитие — клавиш, движение на мишката извън страницата, скрол или
  * изтекло време — и едва тогава зареждаме съответния код.
  */
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 
 type Props = {
   children: ReactNode;
@@ -32,6 +32,9 @@ export function LazyOnSignal({
   delayMs = 0,
 }: Props) {
   const [mounted, setMounted] = useState(false);
+  // Сигналът, който е монтирал съдържанието, се препредава след монтирането,
+  // защото децата закачат своите слушатели едва след зареждане на кода си.
+  const pendingRef = useRef<{ type: string; detail: unknown } | null>(null);
 
   useEffect(() => {
     if (mounted) return;
@@ -39,8 +42,12 @@ export function LazyOnSignal({
     const arm = () => setMounted(true);
 
     for (const name of events ?? []) {
-      window.addEventListener(name, arm as EventListener);
-      cleanups.push(() => window.removeEventListener(name, arm as EventListener));
+      const onEvent = (e: Event) => {
+        pendingRef.current = { type: e.type, detail: (e as CustomEvent).detail };
+        arm();
+      };
+      window.addEventListener(name, onEvent as EventListener);
+      cleanups.push(() => window.removeEventListener(name, onEvent as EventListener));
     }
 
     if (commandKey) {
@@ -73,6 +80,26 @@ export function LazyOnSignal({
 
     return () => cleanups.forEach((fn) => fn());
   }, [mounted, events, commandKey, onMouseLeave, onScroll, delayMs]);
+
+  // След монтирането препредаваме задържания сигнал няколко пъти, докато
+  // отложеният код на децата се зареди. Повторенията носят един и същ
+  // идентификатор, за да не се брои като ново действие.
+  useEffect(() => {
+    if (!mounted || !pendingRef.current) return;
+    const { type, detail } = pendingRef.current;
+    pendingRef.current = null;
+    const signalId = `${type}:${Date.now()}`;
+    const timers = [80, 400, 1200].map((ms) =>
+      window.setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent(type, {
+            detail: { ...(typeof detail === "object" && detail ? detail : {}), __signalId: signalId },
+          }),
+        );
+      }, ms),
+    );
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, [mounted]);
 
   return mounted ? <>{children}</> : null;
 }

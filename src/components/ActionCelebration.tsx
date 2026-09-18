@@ -67,8 +67,14 @@ export function ActionCelebrationHost() {
 
   useEffect(() => {
     setStateExternal = setState;
+    let lastSignalId: string | null = null;
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail || {};
+      // Повторно препредаден сигнал (същият __signalId) не се показва втори път.
+      if (detail.__signalId) {
+        if (detail.__signalId === lastSignalId) return;
+        lastSignalId = detail.__signalId;
+      }
       setStateExternal?.({
         open: true,
         variant: (detail.variant as CelebrationVariant) || "download",
