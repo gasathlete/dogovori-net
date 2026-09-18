@@ -63,7 +63,7 @@ export function SubscriptionStatusPanel({
   onResume,
 }: {
   sub: SubscriptionStatusInput | null;
-  /** „12,90 € · месечно“ — форматирано от единствения източник за цените. */
+  /** Етикет на плана, форматиран от единствения източник за цените (@/lib/pricing). */
   priceLabel?: string;
   onResume?: (priceId: string) => void;
 }) {
