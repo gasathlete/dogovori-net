@@ -54,6 +54,7 @@ import { TopupHistoryPanel } from "@/components/account/TopupHistoryPanel";
 import { ActivationFunnelPanel } from "@/components/account/ActivationFunnelPanel";
 import { getUnlockedTiers, getNextTier, REWARD_TIERS } from "@/lib/rewards";
 import { CheckoutResumeCard } from "@/components/plans/CheckoutResumeCard";
+import { SubscriptionStatusPanel } from "@/components/account/SubscriptionStatusPanel";
 
 type Contact = {
   id: string; name: string; type: "individual" | "legal";
@@ -476,6 +477,24 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
       <TopupHistoryPanel />
 
       <ActivationFunnelPanel />
+
+      <SubscriptionStatusPanel
+        sub={
+          sub
+            ? {
+                status: sub.status ?? null,
+                price_id: sub.price_id ?? null,
+                current_period_end: sub.current_period_end ?? null,
+                cancel_at_period_end: sub.cancel_at_period_end ?? null,
+                environment: (sub.environment as "sandbox" | "live") ?? "live",
+              }
+            : null
+        }
+        priceLabel={planMeta ? `${planMeta.price} · ${planMeta.cycle}` : undefined}
+        onResume={(priceId) => {
+          if (isAllowedCheckoutPrice(priceId)) setCheckoutPrice(priceId);
+        }}
+      />
 
 
       {/* Manual-activation notice when isPro but no Stripe sub */}
