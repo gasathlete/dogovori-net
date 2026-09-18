@@ -81,6 +81,26 @@ export function LazyOnSignal({
     return () => cleanups.forEach((fn) => fn());
   }, [mounted, events, commandKey, onMouseLeave, onScroll, delayMs]);
 
+  // След монтирането препредаваме задържания сигнал няколко пъти, докато
+  // отложеният код на децата се зареди. Повторенията носят един и същ
+  // идентификатор, за да не се брои като ново действие.
+  useEffect(() => {
+    if (!mounted || !pendingRef.current) return;
+    const { type, detail } = pendingRef.current;
+    pendingRef.current = null;
+    const signalId = `${type}:${Date.now()}`;
+    const timers = [80, 400, 1200].map((ms) =>
+      window.setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent(type, {
+            detail: { ...(typeof detail === "object" && detail ? detail : {}), __signalId: signalId },
+          }),
+        );
+      }, ms),
+    );
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, [mounted]);
+
   return mounted ? <>{children}</> : null;
 }
 
