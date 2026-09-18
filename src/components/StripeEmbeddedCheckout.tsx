@@ -1,11 +1,12 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
-import { AlertTriangle, RefreshCw, Lock, Check } from "@/icons";
+import { AlertTriangle, RefreshCw, Lock, Check, Sparkles } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { getStripe, getStripeEnvironment } from "@/lib/stripe";
 import { supabase } from "@/integrations/supabase/client";
-import { trackCheckoutFailed, trackCheckoutStarted } from "@/lib/metrics";
+import { trackCheckoutAbandoned, trackCheckoutFailed, trackCheckoutStarted } from "@/lib/metrics";
 import { categorizeCheckoutError, describePriceId } from "@/lib/checkoutAnalytics";
+import { checkoutValueNote, saveCheckoutIntent } from "@/lib/checkoutIntent";
 
 interface Props {
   /** When provided, used directly instead of calling create-checkout. */
@@ -52,7 +53,37 @@ export function StripeEmbeddedCheckout({
     if (trackedRef.current) return;
     trackedRef.current = true;
     trackCheckoutStarted(plan, billing, analyticsSource ?? "embedded");
+    // Запазваме САМО избора (план, период). Така, ако прозорецът се затвори
+    // без плащане, човекът може да продължи оттам, където е спрял.
+    if (priceId) {
+      saveCheckoutIntent({
+        priceId,
+        plan,
+        billing,
+        source: analyticsSource ?? "embedded",
+      });
+    }
   };
+
+  // Затваряне без плащане: отчита се като изоставен checkout (продуктова
+  // преграда, не техническа грешка). Излизането към Stripe/return страницата
+  // не се брои за изоставяне.
+  const leavingRef = useRef(false);
+  useEffect(() => {
+    const onHide = () => {
+      leavingRef.current = true;
+    };
+    window.addEventListener("pagehide", onHide);
+    return () => {
+      window.removeEventListener("pagehide", onHide);
+      if (trackedRef.current && !leavingRef.current) {
+        trackCheckoutAbandoned(plan, "closed_without_payment");
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan]);
+
+  const valueNote = checkoutValueNote(plan, billing);
 
   const fetchClientSecret = useCallback(async (): Promise<string> => {
     try {
@@ -112,6 +143,15 @@ export function StripeEmbeddedCheckout({
 
   return (
     <div id="checkout">
+      {valueNote && (
+        <div
+          data-testid="checkout-value-note"
+          className="mb-3 flex items-start gap-3 rounded-lg border border-gold/30 bg-gold/5 p-3 text-xs leading-relaxed text-foreground"
+        >
+          <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-gold" aria-hidden />
+          <span>{valueNote}</span>
+        </div>
+      )}
       <div className="mb-4 grid gap-2 rounded-lg border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground sm:grid-cols-3">
         <span className="flex min-h-11 items-center gap-2"><Lock className="h-4 w-4 text-gold" />Сигурно плащане</span>
         <span className="flex min-h-11 items-center gap-2"><Check className="h-4 w-4 text-success" />ДДС включено</span>

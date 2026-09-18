@@ -46,6 +46,7 @@ import { generateContractJob } from "@/lib/generateContractJob";
 import { classifyGenerationError, errorClassOf, type GenerationError } from "@/lib/generationErrors";
 
 import { SensitiveDataNotice } from "@/components/wizard/SensitiveDataNotice";
+import { buildDraftOutline } from "@/lib/draftOutline";
 import {
   parseSensitiveResponse,
   isConfirmationRequired,
@@ -336,6 +337,22 @@ export default function WizardPage() {
     if (decisions.length === 0) return null;
     return { decisions };
   }, [sector, visibleQuestions, answers]);
+
+  /**
+   * Скрит преглед за екрана за потвърждение: показваме какво човекът вече е
+   * попълнил (с маскирани лични данни) и какво липсва, вместо празна спирачка.
+   */
+  const draftOutline = useMemo(
+    () =>
+      buildDraftOutline(
+        flattenQuestions(visibleQuestions).map((q) => ({
+          id: q.id,
+          label: q.label ?? q.id,
+          value: answers[q.id] ?? "",
+        })),
+      ),
+    [visibleQuestions, answers],
+  );
 
   /**
    * Ревизията получава контекста, с който документът е РЕАЛНО генериран.
@@ -1404,6 +1421,7 @@ export default function WizardPage() {
               <div ref={consentRef}>
                 <SensitiveDataNotice
                   classification={sensitiveClass}
+                  preview={draftOutline}
                   busy={generating}
                   operationLabel="изготвяне на документа"
                   onDismiss={() => setConsentRequired(false)}
@@ -1416,6 +1434,7 @@ export default function WizardPage() {
               <SensitiveDataNotice
                 classification={sensitiveClass}
                 blocked={sensitiveBlocked}
+                preview={draftOutline}
                 busy={applyingCorrections}
                 operationLabel={correctionsPending ? "корекция на документа" : "изготвяне на документа"}
                 onDismiss={() => {

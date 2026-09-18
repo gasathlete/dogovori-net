@@ -26,6 +26,7 @@ import { FinalizePane } from "./buildContract/FinalizePane";
 
 import { Header } from "@/components/Header";
 import { SensitiveDataNotice } from "@/components/wizard/SensitiveDataNotice";
+import { buildDraftOutline } from "@/lib/draftOutline";
 import {
   parseSensitiveResponse,
   isConfirmationRequired,
@@ -427,6 +428,15 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   const goSubscription = () => navigate(`/account?tab=subscription`);
 
   const schema = useMemo(() => getBuildSchema(documentType), [documentType]);
+
+  /** Скрит преглед на попълненото за екрана за потвърждение. */
+  const draftOutline = useMemo(
+    () =>
+      buildDraftOutline(
+        schema.fields.map((f) => ({ id: f.key, label: f.label, value: fieldValues[f.key] ?? "" })),
+      ),
+    [schema, fieldValues],
+  );
 
   // ----- Step-by-step wizard structure -----
   const STEPS = useMemo(
@@ -975,6 +985,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
               <SensitiveDataNotice
                 classification={sensitiveClass}
                 blocked={sensitiveBlocked}
+                preview={draftOutline}
                 busy={generating || applyingCorrections}
                 operationLabel={correctionsPending ? "корекция на документа" : "изготвяне на документа"}
                 onDismiss={() => {

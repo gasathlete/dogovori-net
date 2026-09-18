@@ -49,6 +49,8 @@ import {
   type CorrectionResult,
 } from "@/lib/uploadedContractOps";
 import { SensitiveDataWarning } from "@/components/SensitiveDataWarning";
+import { AnalysisUpgradeCta } from "@/components/analysis/AnalysisUpgradeCta";
+import { useIsPro } from "@/hooks/useIsPro";
 import { trackGenerate } from "@/lib/docFunnel";
 import {
   parseSensitiveResponse,
@@ -69,6 +71,7 @@ const sevLabel = (s: Issue["severity"]) => s === "high" ? "ВИСОК" : s === "
 export default function UploadedContractPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { isPro } = useIsPro();
   const navigate = useNavigate();
 
   const [analyzing, setAnalyzing] = useState(false);
@@ -916,6 +919,10 @@ export default function UploadedContractPage() {
                   </ul>
                 )}
               </section>
+
+              {!isPro && (
+                <AnalysisUpgradeCta issuesCount={analysis.issues.length} docKey={analysis.contract_type ?? undefined} />
+              )}
 
               {/* MISSING */}
               <section className="rounded-xl border border-border/60 bg-gradient-card p-6">

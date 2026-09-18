@@ -11,6 +11,7 @@ import { describeCheckoutReturn, type PurchaseKind } from "@/lib/checkoutAnalyti
 import { sanitizeReturnPath } from "@/lib/safeRoute";
 import { fetchEntitlementBySession } from "@/lib/productEntitlements";
 import { PRODUCT_RESULT_PATH, isOneTimeProductId } from "@/lib/products";
+import { clearCheckoutIntent } from "@/lib/checkoutIntent";
 
 /**
  * Връщането от Stripe само по себе си НЕ е доказателство за плащане. Затова
@@ -162,6 +163,8 @@ export default function CheckoutReturn() {
     if (readyAt !== "ready") return;
     if (!completedRef.current) {
       completedRef.current = true;
+      // Плащането е доказано — запазеното намерение вече не е нужно.
+      clearCheckoutIntent();
       trackCheckoutCompleted(sessionId, {
         kind: descriptor.kind,
         plan: descriptor.plan,
