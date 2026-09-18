@@ -45,7 +45,12 @@ const { trackCheckoutStartedMock, fetchers } = vi.hoisted(() => ({
   fetchers: [] as Array<() => Promise<string>>,
 }));
 
-vi.mock("@/lib/metrics", () => ({ trackCheckoutStarted: trackCheckoutStartedMock }));
+vi.mock("@/lib/metrics", () => ({
+  trackCheckoutStarted: trackCheckoutStartedMock,
+  trackCheckoutFailed: vi.fn(),
+  trackCheckoutAbandoned: vi.fn(),
+  trackMetric: vi.fn(),
+}));
 vi.mock("@/lib/stripe", () => ({ getStripe: () => null, getStripeEnvironment: () => "test" }));
 vi.mock("@stripe/react-stripe-js", () => ({
   EmbeddedCheckoutProvider: ({ options, children }: { options: { fetchClientSecret: () => Promise<string> }; children: React.ReactNode }) => {

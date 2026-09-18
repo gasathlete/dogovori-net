@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, ShieldCheck, Wand2 } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { PRICING_PLANS, fmtEur, opsLabel } from "@/lib/pricing";
+import { productPriceLabel } from "@/lib/products";
 import { trackMetric } from "@/lib/metrics";
 import { useEffect } from "react";
 
@@ -42,7 +43,8 @@ export function AnalysisUpgradeCta({ issuesCount, docKey }: Props) {
         <li className="flex items-start gap-2">
           <Wand2 className="mt-0.5 h-4 w-4 shrink-0 text-gold" aria-hidden />
           <span>
-            Еднократно за този документ: подробна поправка — 3,99 €, пълен пакет за преговори — 7,99 €.
+            Еднократно за този документ: подробна поправка — {productPriceLabel("contract_improve")}, пълен пакет за преговори —{" "}
+            {productPriceLabel("negotiation_package")}.
           </span>
         </li>
         <li className="flex items-start gap-2">
@@ -59,7 +61,7 @@ export function AnalysisUpgradeCta({ issuesCount, docKey }: Props) {
             to="/produkti/popravi-dokument"
             onClick={() => trackMetric("analysis_upgrade_cta_click", { target: "product_improve", doc_key: docKey })}
           >
-            Поправка на този документ — 3,99 €
+            Поправка на този документ — {productPriceLabel("contract_improve")}
           </Link>
         </Button>
         <Button asChild variant="outline" className="min-h-11 gap-2 border-gold/40 text-gold hover:bg-gold/10">
