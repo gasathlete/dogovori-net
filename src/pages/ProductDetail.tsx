@@ -14,6 +14,7 @@ import { SeoFooter } from "@/components/SeoFooter";
 import { ProductResultPreview } from "@/components/products/ProductResultPreview";
 import { ProductPrice } from "@/components/products/ProductPrice";
 import { PlanAlternativeNote } from "@/components/products/PlanAlternativeNote";
+import { ReviewerContentHub } from "@/components/analysis/ReviewerContentHub";
 import { trackFunnelEvent } from "@/lib/funnel";
 import {
   PRODUCT_ACCEPTED_INPUT,
@@ -271,6 +272,10 @@ export default function ProductDetail() {
           </div>
         </section>
 
+
+        {product.slug === "proverka-predi-podpis" && (
+          <ReviewerContentHub className="mt-14" />
+        )}
 
         <section className="container mt-10" aria-labelledby="product-faq">
           <h2
