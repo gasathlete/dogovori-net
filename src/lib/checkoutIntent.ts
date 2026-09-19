@@ -62,10 +62,30 @@ export function clearCheckoutIntent(): void {
 
 /** Четим етикет на плана за панела „Продължете, откъдето спряхте“. */
 export function intentPlanLabel(intent: CheckoutIntent): string {
+  // Еднократните избори нямат план в PRICING_PLANS — етикетът идва от
+  // съответната конфигурация, никога суровият priceId (напр. „topup_50“).
+  if (intent.priceId === ENTRY_PACK_CONFIG.priceId) {
+    return `Входен пакет · ${ENTRY_PACK_CONFIG.ops} действия`;
+  }
+  const topup = TOPUP_PACK_CONFIG.find((p) => p.priceId === intent.priceId);
+  if (topup) return `Пакет +${topup.ops} действия`;
+  if (intent.priceId === "branding_unlock_once") return "Отключване на фирмен бранд";
   const name = knownPlan(intent.plan)?.name ?? intent.plan;
   if (intent.billing === "yearly") return `${name} · годишно`;
   if (intent.billing === "monthly") return `${name} · месечно`;
   return name;
+}
+
+/**
+ * Кои запазени намерения могат да бъдат довършени от панела в профила.
+ * По-широко от URL allowlist-а: включва абонаменти, входния пакет, top-up
+ * пакетите и бранд отключването. Всичко извън списъка се игнорира.
+ */
+export function isResumableCheckoutPrice(priceId: string | null | undefined): boolean {
+  if (!priceId) return false;
+  if (priceId === "branding_unlock_once") return true;
+  if (TOPUP_PACK_CONFIG.some((p) => p.priceId === priceId)) return true;
+  return isAllowedCheckoutPrice(priceId);
 }
 
 /**
