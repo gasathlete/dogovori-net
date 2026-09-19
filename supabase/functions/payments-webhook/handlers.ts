@@ -52,7 +52,7 @@ export function tierFromPriceId(priceId: string | null | undefined): { plan: "pr
   if (!priceId) return { plan: "pro", opsCap: null };
   if (priceId.startsWith("entrepreneur")) return { plan: "pro", opsCap: 100 };
   if (priceId.startsWith("professional")) return { plan: "pro", opsCap: 50 };
-  if (priceId.startsWith("pro_")) return { plan: "pro", opsCap: 100 }; // legacy grandfathered
+  if (priceId.startsWith("pro_")) return { plan: "pro", opsCap: 50 }; // legacy Pro се третира като Професионалист
   return { plan: "pro", opsCap: null };
 }
 
