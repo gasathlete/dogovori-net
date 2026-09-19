@@ -206,9 +206,20 @@ export default function ProductCheckout() {
           withdrawalLossAcknowledged: purchaseTerms,
         },
       });
-      if (error || !data?.clientSecret) throw new Error(error?.message ?? "checkout_failed");
+      if (error || !data?.clientSecret) {
+        // Сървърът връща обезопасено съобщение при спряна продажба или
+        // непозволена покупка. Показваме точно него, а не общо изречение.
+        const reason = await readBlockedReason(error);
+        if (reason) {
+          setBlocked(reason);
+          toast.error(reason);
+          return;
+        }
+        throw new Error(error?.message ?? "checkout_failed");
+      }
       setClientSecret(data.clientSecret as string);
     } catch (e) {
+      setBlocked(null);
       toast.error("Не успяхме да отворим плащането. Плащане не е извършено.");
       console.error(e);
     } finally {
