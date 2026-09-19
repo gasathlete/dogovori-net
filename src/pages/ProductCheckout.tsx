@@ -181,6 +181,7 @@ export default function ProductCheckout() {
   const handlePay = async () => {
     if (!prepared || !canPay) return;
     setBusy(true);
+    setBlocked(null);
     try {
       const { data, error } = await supabase.functions.invoke("create-product-checkout", {
         body: {
