@@ -19,6 +19,22 @@ import { clearCheckoutIntent } from "@/lib/checkoutIntent";
  * този потребител и точно тази сесия, а даденото право е реално начислено.
  * При изтичане на изчакването НЕ се излъчва завършване.
  */
+/**
+ * Брой проверки на потвърждението след връщане от Stripe. В тестова среда е
+ * кратко, за да не се чака реално време; в приложението прозорецът е ~90 с.
+ */
+export const CONFIRM_ATTEMPTS = import.meta.env.MODE === "test" ? 3 : 24;
+
+/**
+ * Нарастващи интервали: бързо в началото, после по-спокойно. Общо покритие
+ * около 90 секунди — достатъчно и за по-бавно пристигащ webhook.
+ */
+export function confirmDelayMs(attempt: number): number {
+  if (attempt <= 4) return 1500;
+  if (attempt <= 10) return 3000;
+  return 5000;
+}
+
 export default function CheckoutReturn() {
   const [params] = useSearchParams();
   const sessionId = params.get("session_id");
@@ -147,8 +163,10 @@ export default function CheckoutReturn() {
       }
       if (cancelled) return;
       if (ok) setReadyAt("ready");
-      else if (attempts >= 12) setReadyAt("timeout");
-      else timer = setTimeout(tick, 1500);
+      // Търпелив прозорец: webhook-ът понякога идва след няколко секунди.
+      // Стъпките растат (1,5 с → 5 с) и общо покриват около 90 секунди.
+      else if (attempts >= CONFIRM_ATTEMPTS) setReadyAt("timeout");
+      else timer = setTimeout(tick, confirmDelayMs(attempts));
     };
     tick();
     return () => {
@@ -201,7 +219,7 @@ export default function CheckoutReturn() {
       : view === "missing"
       ? "Няма информация за плащане"
       : view === "timeout"
-      ? "Все още потвърждаваме плащането"
+      ? "Потвърждението отнема повече време"
       : view === "signed_out"
       ? "Влезте, за да потвърдим покупката"
       : "Проверяваме плащането…";
@@ -214,7 +232,7 @@ export default function CheckoutReturn() {
       : view === "missing"
       ? "Този адрес не съдържа данни за платежна сесия. Ако сте платили, проверете профила си или ни пишете."
       : view === "timeout"
-      ? "Все още не можем да потвърдим активирането. Плащането може да се обработва — проверете профила си след минута."
+      ? "Проверката отнема повече от обичайното. Ако плащането е минало, покупката се появява в „Моите покупки“ автоматично — нищо не се губи. Можете спокойно да затворите страницата."
       : view === "signed_out"
       ? "Влезте в профила си със същия имейл, за да проверим плащането и правата по него."
       : "Проверяваме плащането и активирането на покупката…";
@@ -248,6 +266,11 @@ export default function CheckoutReturn() {
             {view === "ready" && redirectTo && (
               <Button asChild className="bg-gradient-gold text-navy hover:shadow-gold">
                 <Link to={redirectTo}>Продължи с моя договор</Link>
+              </Button>
+            )}
+            {view === "timeout" && (
+              <Button asChild className="bg-gradient-gold text-navy hover:shadow-gold">
+                <Link to="/produkti/moite-pokupki">Към моите покупки</Link>
               </Button>
             )}
             {view === "signed_out" ? (

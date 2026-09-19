@@ -61,6 +61,25 @@ const STEPS: readonly CheckoutStep[] = [
   { id: "payment", label: "Плащане" },
 ];
 
+/**
+ * Чете обезопасеното съобщение от отговора на функцията (спряна продажба,
+ * непозволена покупка). Връща null, ако няма такова — тогава показваме общото
+ * изречение. Никакви технически детайли не стигат до човека.
+ */
+async function readBlockedReason(error: unknown): Promise<string | null> {
+  const res = (error as { context?: unknown } | null)?.context;
+  if (!(res instanceof Response)) return null;
+  try {
+    const body = await res.clone().json();
+    const message = (body as { message?: unknown })?.message;
+    return typeof message === "string" && message.trim().length > 0
+      ? message.trim().slice(0, 300)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function ProductCheckout() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -90,6 +109,11 @@ export default function ProductCheckout() {
   const [purchaseTerms, setPurchaseTerms] = useState(false);
 
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  /**
+   * Видима, постоянна причина, когато плащането не може да се отвори (напр.
+   * временно спряна продажба). Toast изчезва — това остава на екрана.
+   */
+  const [blocked, setBlocked] = useState<string | null>(null);
   /** Отворена стъпка по избор на човека; иначе следва естествения ред. */
   const [openStep, setOpenStep] = useState<StepId | null>(null);
 
@@ -181,6 +205,7 @@ export default function ProductCheckout() {
   const handlePay = async () => {
     if (!prepared || !canPay) return;
     setBusy(true);
+    setBlocked(null);
     try {
       const { data, error } = await supabase.functions.invoke("create-product-checkout", {
         body: {
@@ -200,9 +225,20 @@ export default function ProductCheckout() {
           withdrawalLossAcknowledged: purchaseTerms,
         },
       });
-      if (error || !data?.clientSecret) throw new Error(error?.message ?? "checkout_failed");
+      if (error || !data?.clientSecret) {
+        // Сървърът връща обезопасено съобщение при спряна продажба или
+        // непозволена покупка. Показваме точно него, а не общо изречение.
+        const reason = await readBlockedReason(error);
+        if (reason) {
+          setBlocked(reason);
+          toast.error(reason);
+          return;
+        }
+        throw new Error(error?.message ?? "checkout_failed");
+      }
       setClientSecret(data.clientSecret as string);
     } catch (e) {
+      setBlocked(null);
       toast.error("Не успяхме да отворим плащането. Плащане не е извършено.");
       console.error(e);
     } finally {
@@ -289,6 +325,39 @@ export default function ProductCheckout() {
           Купувате: {product.name}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">{ONE_TIME_TERMS}</p>
+
+        {!user && (
+          <div
+            data-testid="product-checkout-auth-notice"
+            role="status"
+            className="mt-4 rounded-xl border border-gold/40 bg-gold/5 p-3 text-sm"
+          >
+            <p className="font-semibold">Влезте в профила си, за да продължите</p>
+            <p className="mt-1 text-muted-foreground">
+              Покупката се свързва с профила Ви, за да откриете резултата по всяко
+              време в „Моите покупки“.
+            </p>
+            <Button asChild className="mt-3 min-h-11">
+              <Link
+                to={`/auth?tab=signup&redirect=${encodeURIComponent(`${productPath(product)}/start`)}`}
+              >
+                Вход или безплатна регистрация
+              </Link>
+            </Button>
+          </div>
+        )}
+
+        {blocked && (
+          <div
+            data-testid="product-checkout-blocked"
+            role="alert"
+            className="mt-4 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm"
+          >
+            <p className="font-semibold text-foreground">Плащането не е извършено</p>
+            <p className="mt-1 text-muted-foreground">{blocked}</p>
+          </div>
+        )}
+
 
         <section
           aria-label="Резюме на покупката"
