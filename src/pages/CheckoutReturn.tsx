@@ -19,6 +19,19 @@ import { clearCheckoutIntent } from "@/lib/checkoutIntent";
  * този потребител и точно тази сесия, а даденото право е реално начислено.
  * При изтичане на изчакването НЕ се излъчва завършване.
  */
+/** Брой проверки на потвърждението след връщане от Stripe. */
+export const CONFIRM_ATTEMPTS = 24;
+
+/**
+ * Нарастващи интервали: бързо в началото, после по-спокойно. Общо покритие
+ * около 90 секунди — достатъчно и за по-бавно пристигащ webhook.
+ */
+export function confirmDelayMs(attempt: number): number {
+  if (attempt <= 4) return 1500;
+  if (attempt <= 10) return 3000;
+  return 5000;
+}
+
 export default function CheckoutReturn() {
   const [params] = useSearchParams();
   const sessionId = params.get("session_id");
