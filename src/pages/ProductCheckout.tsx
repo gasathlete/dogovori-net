@@ -61,6 +61,25 @@ const STEPS: readonly CheckoutStep[] = [
   { id: "payment", label: "Плащане" },
 ];
 
+/**
+ * Чете обезопасеното съобщение от отговора на функцията (спряна продажба,
+ * непозволена покупка). Връща null, ако няма такова — тогава показваме общото
+ * изречение. Никакви технически детайли не стигат до човека.
+ */
+async function readBlockedReason(error: unknown): Promise<string | null> {
+  const res = (error as { context?: unknown } | null)?.context;
+  if (!(res instanceof Response)) return null;
+  try {
+    const body = await res.clone().json();
+    const message = (body as { message?: unknown })?.message;
+    return typeof message === "string" && message.trim().length > 0
+      ? message.trim().slice(0, 300)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function ProductCheckout() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
