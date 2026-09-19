@@ -8,6 +8,7 @@
  * след проверено плащане.
  */
 import { ENTRY_PACK_CONFIG, PRICING_PLANS, TOPUP_PACK_CONFIG, fmtEur, type PricingPlanId } from "@/lib/pricing";
+import { isAllowedCheckoutPrice } from "@/lib/entryPack";
 
 function knownPlan(plan: string) {
   return (PRICING_PLANS as Record<string, (typeof PRICING_PLANS)[PricingPlanId] | undefined>)[plan] ?? null;
