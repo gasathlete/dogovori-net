@@ -90,6 +90,11 @@ export default function ProductCheckout() {
   const [purchaseTerms, setPurchaseTerms] = useState(false);
 
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  /**
+   * Видима, постоянна причина, когато плащането не може да се отвори (напр.
+   * временно спряна продажба). Toast изчезва — това остава на екрана.
+   */
+  const [blocked, setBlocked] = useState<string | null>(null);
   /** Отворена стъпка по избор на човека; иначе следва естествения ред. */
   const [openStep, setOpenStep] = useState<StepId | null>(null);
 
