@@ -265,6 +265,11 @@ export default function CheckoutReturn() {
                 <Link to={redirectTo}>Продължи с моя договор</Link>
               </Button>
             )}
+            {view === "timeout" && (
+              <Button asChild className="bg-gradient-gold text-navy hover:shadow-gold">
+                <Link to="/produkti/moite-pokupki">Към моите покупки</Link>
+              </Button>
+            )}
             {view === "signed_out" ? (
               <Button asChild className="bg-gradient-gold text-navy hover:shadow-gold">
                 <Link to="/auth">Вход в профила</Link>
