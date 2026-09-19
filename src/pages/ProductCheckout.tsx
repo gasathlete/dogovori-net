@@ -326,6 +326,39 @@ export default function ProductCheckout() {
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">{ONE_TIME_TERMS}</p>
 
+        {!user && (
+          <div
+            data-testid="product-checkout-auth-notice"
+            role="status"
+            className="mt-4 rounded-xl border border-gold/40 bg-gold/5 p-3 text-sm"
+          >
+            <p className="font-semibold">Влезте в профила си, за да продължите</p>
+            <p className="mt-1 text-muted-foreground">
+              Покупката се свързва с профила Ви, за да откриете резултата по всяко
+              време в „Моите покупки“.
+            </p>
+            <Button asChild className="mt-3 min-h-11">
+              <Link
+                to={`/auth?tab=signup&redirect=${encodeURIComponent(`${productPath(product)}/start`)}`}
+              >
+                Вход или безплатна регистрация
+              </Link>
+            </Button>
+          </div>
+        )}
+
+        {blocked && (
+          <div
+            data-testid="product-checkout-blocked"
+            role="alert"
+            className="mt-4 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm"
+          >
+            <p className="font-semibold text-foreground">Плащането не е извършено</p>
+            <p className="mt-1 text-muted-foreground">{blocked}</p>
+          </div>
+        )}
+
+
         <section
           aria-label="Резюме на покупката"
           className="mt-4 grid gap-3 border-y border-border/70 py-4 sm:grid-cols-2"
