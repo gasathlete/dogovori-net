@@ -147,8 +147,10 @@ export default function CheckoutReturn() {
       }
       if (cancelled) return;
       if (ok) setReadyAt("ready");
-      else if (attempts >= 12) setReadyAt("timeout");
-      else timer = setTimeout(tick, 1500);
+      // Търпелив прозорец: webhook-ът понякога идва след няколко секунди.
+      // Стъпките растат (1,5 с → 5 с) и общо покриват около 90 секунди.
+      else if (attempts >= CONFIRM_ATTEMPTS) setReadyAt("timeout");
+      else timer = setTimeout(tick, confirmDelayMs(attempts));
     };
     tick();
     return () => {
