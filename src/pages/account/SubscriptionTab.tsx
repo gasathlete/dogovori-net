@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import { downloadDocument } from "@/lib/downloadDocument";
 import { sanitizeReturnPath } from "@/lib/safeRoute";
 import { isAllowedCheckoutPrice } from "@/lib/entryPack";
+import { isResumableCheckoutPrice } from "@/lib/checkoutIntent";
 import { buildCheckoutReturnUrl } from "@/lib/checkoutAnalytics";
 
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
@@ -492,7 +493,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
         }
         priceLabel={planMeta ? `${planMeta.price} · ${planMeta.cycle}` : undefined}
         onResume={(priceId) => {
-          if (isAllowedCheckoutPrice(priceId)) setCheckoutPrice(priceId);
+          if (isResumableCheckoutPrice(priceId)) setCheckoutPrice(priceId);
         }}
       />
 
@@ -523,7 +524,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
         <>
           <CheckoutResumeCard
             onResume={(priceId) => {
-              if (isAllowedCheckoutPrice(priceId)) setCheckoutPrice(priceId);
+              if (isResumableCheckoutPrice(priceId)) setCheckoutPrice(priceId);
             }}
           />
 
