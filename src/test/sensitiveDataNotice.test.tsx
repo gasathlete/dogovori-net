@@ -16,12 +16,11 @@ describe("SensitiveDataNotice", () => {
     expect(screen.queryByText(/example-value/)).not.toBeInTheDocument();
   });
 
-  it("изисква отделно изрично потвърждение", () => {
+  it("иска едно изрично действие и обяснява за какво е съгласието", () => {
     const onConfirm = vi.fn();
     render(<SensitiveDataNotice classification={null} onConfirm={onConfirm} />);
-    const action = screen.getByRole("button", { name: "Потвърждавам данните и продължавам" });
-    expect(action).toBeDisabled();
-    fireEvent.click(screen.getByRole("checkbox"));
+    expect(screen.getByText(/давате съгласие тези данни да бъдат обработени/)).toBeInTheDocument();
+    const action = screen.getByRole("button", { name: "Съгласявам се и продължавам" });
     expect(action).toBeEnabled();
     fireEvent.click(action);
     expect(onConfirm).toHaveBeenCalledTimes(1);
@@ -31,6 +30,6 @@ describe("SensitiveDataNotice", () => {
     render(<SensitiveDataNotice classification={{ risk_level: "blocked", reasons: ["special:health_diagnosis"] }} blocked />);
     expect(screen.getByText(/Здравна информация или диагноза/)).toBeInTheDocument();
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
-    expect(screen.queryByText("Потвърждавам данните и продължавам")).not.toBeInTheDocument();
+    expect(screen.queryByText("Съгласявам се и продължавам")).not.toBeInTheDocument();
   });
 });
