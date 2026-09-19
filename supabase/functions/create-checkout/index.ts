@@ -139,7 +139,10 @@ Deno.serve(async (req) => {
     if (isRecurring) {
       const productId = typeof price.product === "string" ? price.product : (price.product as any)?.id;
       try {
-        const couponId = "sept20_20off_v1";
+        // Купонът е ограничен до конкретния продукт, затова идентификаторът е
+        // per-product: така намалението важи и за Професионалист, и за
+        // Предприемач, а не само за първия продукт, за който е създаден.
+        const couponId = `sept20_20off_${String(productId ?? "all").replace(/[^a-zA-Z0-9_]/g, "")}`;
         try {
           await stripe.coupons.retrieve(couponId);
         } catch {
@@ -150,31 +153,27 @@ Deno.serve(async (req) => {
             name: "SEPT20 — 20% септемврийска промоция",
             percent_off: 20,
             duration: "forever",
-            applies_to: { products: [productId] },
+            ...(productId ? { applies_to: { products: [productId] } } : {}),
             redeem_by: Math.floor(Date.parse("2026-10-01T00:00:00+03:00") / 1000),
           });
         }
         if (promoActive) promoCouponId = couponId;
-        // Ensure a single public promotion code "SEPT20" points at this coupon.
-        const existing = await stripe.promotionCodes.list({ coupon: couponId, code: "SEPT20", limit: 1 });
-        if (!existing.data.length) {
-          await stripe.promotionCodes.create({
-            coupon: couponId,
-            code: "SEPT20",
-            expires_at: Math.floor(Date.parse("2026-10-01T00:00:00+03:00") / 1000),
-          });
-        }
-        // Deactivate the retired FIRST100 codes so they can no longer be used.
-        try {
-          const legacy = await stripe.promotionCodes.list({ code: "FIRST100", limit: 20, active: true });
-          for (const pc of legacy.data) {
-            await stripe.promotionCodes.update(pc.id, { active: false });
-          }
-        } catch (deactivateErr) {
-          console.error("FIRST100 legacy deactivation failed (non-fatal):", deactivateErr);
-        }
       } catch (couponErr) {
-        console.error("SEPT20 setup failed (non-fatal):", couponErr);
+        console.error("SEPT20 coupon setup failed (non-fatal):", couponErr);
+      }
+
+      // Няма публичен код за въвеждане: намалението от −20% се прилага
+      // автоматично към сметката, така че цената, която човекът е видял в
+      // „Планове“, е и сумата, която плаща.
+
+      // Deactivate the retired FIRST100 codes so they can no longer be used.
+      try {
+        const legacy = await stripe.promotionCodes.list({ code: "FIRST100", limit: 20, active: true });
+        for (const pc of legacy.data) {
+          await stripe.promotionCodes.update(pc.id, { active: false });
+        }
+      } catch (deactivateErr) {
+        console.error("FIRST100 legacy deactivation failed (non-fatal):", deactivateErr);
       }
     }
 

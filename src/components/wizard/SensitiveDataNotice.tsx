@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { AlertTriangle, ShieldAlert } from "@/icons";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import type { ClassificationSummary } from "@/lib/aiSensitiveData";
 import { trackMetric } from "@/lib/metrics";
 import { outlineCompletion, type DraftOutlineLine } from "@/lib/draftOutline";
@@ -58,13 +57,11 @@ export function SensitiveDataNotice({
   onDismiss,
   preview,
 }: SensitiveDataNoticeProps) {
-  const [accepted, setAccepted] = useState(false);
   const noticeRef = useRef<HTMLDivElement>(null);
   const labels = sensitiveDataLabels(classification);
   const Icon = blocked ? ShieldAlert : AlertTriangle;
 
   useEffect(() => {
-    setAccepted(false);
     trackMetric("sensitive_notice_shown", { state: blocked ? "sensitive_blocked" : "needs_confirmation" });
     noticeRef.current?.focus({ preventScroll: true });
     if (typeof noticeRef.current?.scrollIntoView === "function") {
@@ -123,13 +120,13 @@ export function SensitiveDataNotice({
           )}
           {!blocked && onConfirm && (
             <>
-              <label className="mt-3 flex min-h-11 cursor-pointer items-start gap-3 py-2 text-sm text-foreground">
-                <Checkbox checked={accepted} onCheckedChange={(value) => setAccepted(value === true)} className="mt-0.5 h-5 w-5" />
-                <span>Съгласен/на съм тези данни да бъдат обработени само за {operationLabel}.</span>
-              </label>
+              <p className="mt-3 text-sm text-foreground">
+                С натискане на бутона по-долу давате съгласие тези данни да бъдат обработени само за{" "}
+                {operationLabel}. Отговорите и черновата остават на екрана.
+              </p>
               <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                <Button className="min-h-11" disabled={!accepted || busy} onClick={confirm}>
-                  Потвърждавам данните и продължавам
+                <Button className="min-h-11" disabled={busy} onClick={confirm}>
+                  Съгласявам се и продължавам
                 </Button>
                 {onDismiss && <Button className="min-h-11" variant="outline" onClick={onDismiss}>Назад към редакция</Button>}
               </div>

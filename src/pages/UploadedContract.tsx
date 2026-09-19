@@ -921,7 +921,11 @@ export default function UploadedContractPage() {
               </section>
 
               {!isPro && (
-                <AnalysisUpgradeCta issuesCount={analysis.issues.length} docKey={analysis.contract_type ?? undefined} />
+                <AnalysisUpgradeCta
+                  issuesCount={analysis.issues.length}
+                  docKey={analysis.contract_type ?? undefined}
+                  signedIn={!!user}
+                />
               )}
 
               {/* MISSING */}
