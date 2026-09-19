@@ -7,7 +7,7 @@
  * намерението само по себе си не дава никакво право — правото възниква само
  * след проверено плащане.
  */
-import { PRICING_PLANS, fmtEur, type PricingPlanId } from "@/lib/pricing";
+import { ENTRY_PACK_CONFIG, PRICING_PLANS, TOPUP_PACK_CONFIG, fmtEur, type PricingPlanId } from "@/lib/pricing";
 
 function knownPlan(plan: string) {
   return (PRICING_PLANS as Record<string, (typeof PRICING_PLANS)[PricingPlanId] | undefined>)[plan] ?? null;

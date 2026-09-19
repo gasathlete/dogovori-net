@@ -145,7 +145,9 @@ Deno.serve(async (req) => {
         } catch {
           await stripe.coupons.create({
             id: couponId,
-            name: "SEPT20 — 20% off (септемврийска промоция)",
+            // Stripe ограничава name до 40 знака — над това coupons.create
+            // хвърля и цялата промо-настройка тихо се пропуска.
+            name: "SEPT20 — 20% септемврийска промоция",
             percent_off: 20,
             duration: "forever",
             applies_to: { products: [productId] },
