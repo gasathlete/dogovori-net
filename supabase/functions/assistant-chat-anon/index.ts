@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
           JSON.stringify({
             error: "too_many_attempts",
             message: "Твърде много заявки за кратко време. Опитайте отново по-късно.",
-            retry_after_s: rl.retryAfter ?? 86400,
+            retry_after_s: rl.retry_after_s ?? 86400,
           }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
