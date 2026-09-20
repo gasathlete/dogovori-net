@@ -352,6 +352,9 @@ Deno.serve(async (req) => {
 
   // Ключът на доставчика СЕ ЧЕТЕ по-късно: удостоверяване, валидация на тялото,
   // собственост и само-четящо търсене трябва да работят и без него.
+  // Ако моделът вече е стартиран, НИКАКВА неочаквана грешка не бива да остави
+  // хода „в процес“ завинаги. Този пазач нанася доказуем преход към изравняване.
+  let reconcileOnUnexpected: ((reason: string) => Promise<void>) | null = null;
   try {
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -944,6 +947,9 @@ Deno.serve(async (req) => {
       );
       return ledgerStateResponse("reconciliation");
     }
+    reconcileOnUnexpected = async (reason: string) => {
+      await markTurnReconciliation(admin, operationId, userId, reason);
+    };
 
     let providerRequests = 0;
     let fullAssistantText = "";
@@ -1231,8 +1237,13 @@ Deno.serve(async (req) => {
     if (committed.kind !== "committed" && committed.kind !== "replay") {
       if (committed.kind === "conflict") return ledgerStateResponse("conflict");
       if (committed.kind === "response_expired") return ledgerStateResponse("response_expired");
-      return ledgerStateResponse("unavailable");
+      // Неясно потвърждаване СЛЕД стартиран модел: доказуемо изравняване.
+      await markTurnReconciliation(admin, operationId, userId, "commit_unavailable");
+      return ledgerStateResponse("reconciliation");
     }
+    // Потвърденото е неприкосновено: пазачът вече не бива да го пипа.
+    reconcileOnUnexpected = null;
+
 
     await logAiAudit({
       user_id: userId, operation: "assistant-chat", model: chatModel,
@@ -1253,6 +1264,10 @@ Deno.serve(async (req) => {
     return replayResponse(committed.result);
   } catch (_err) {
     console.error("assistant-chat failed", corr);
+    if (reconcileOnUnexpected) {
+      await reconcileOnUnexpected("unexpected_after_model").catch(() => {});
+      return ledgerStateResponse("reconciliation");
+    }
     return json({ error: "Сървърна грешка", code: "assistant_chat_failed" }, 500);
   }
 });
