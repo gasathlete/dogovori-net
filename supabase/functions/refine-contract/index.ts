@@ -236,8 +236,6 @@ ${answersStr}
       throw new Error("AI грешка");
     }
 
-    await admin.from("ai_usage").insert({ user_id: userId, function_name: "refine-contract" });
-
     const raw = await aiResp.json();
     const content: string = raw.choices?.[0]?.message?.content ?? "";
     if (!content.trim()) throw new Error("Празен AI отговор");
