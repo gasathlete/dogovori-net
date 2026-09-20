@@ -6,6 +6,7 @@ import {
   needsLegalClarification,
   platformHelpAnswer,
   sanitizeChatPath,
+  TURN_BINDING_PURPOSE,
 } from "./turn-binding.ts";
 import { buildVerifiedIndex, noVerifiedAnswerText, validateAnswerCitations } from "./citation-integrity.ts";
 

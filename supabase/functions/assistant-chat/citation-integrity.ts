@@ -117,11 +117,29 @@ export type CitationCheck =
     token?: string;
   };
 
+/**
+ * Съкращения, чиято точка НЕ е край на изречение. Без това „чл. 143 ЗЗП [S1]“
+ * би се разделило на две „изречения“ и твърдението щеше да излезе извън обхвата
+ * на цитата — точно дупката, която проверката трябва да затвори.
+ */
+const ABBREV_BEFORE_DOT_RE =
+  /(?:^|[^А-Яа-яЁёA-Za-z])(чл|ал|т|изр|б|бук|пр|вр|ср|стр|реш|опр|тр|вкс|вас|осгтк|г|вкл|напр)$/i;
+
 /** Началото на изречението, в което стои даден индекс. */
 function sentenceStart(text: string, at: number): number {
   const before = text.slice(0, at);
-  const marks = [before.lastIndexOf("."), before.lastIndexOf("\n"), before.lastIndexOf(";")];
-  return Math.max(0, ...marks.map((m) => (m < 0 ? 0 : m + 1)));
+  let start = 0;
+  const re = /[.;\n]/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(before)) !== null) {
+    if (m[0] === ".") {
+      if (ABBREV_BEFORE_DOT_RE.test(before.slice(0, m.index))) continue;
+      const next = before[m.index + 1];
+      if (next !== undefined && !/\s/.test(next)) continue;
+    }
+    start = m.index + 1;
+  }
+  return start;
 }
 
 /** Твърдение за член в даден отрязък: `чл. 79 ЗЗД` или `чл. 79, ал. 1 ЗЗД`. */
