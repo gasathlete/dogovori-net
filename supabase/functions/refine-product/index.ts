@@ -27,12 +27,8 @@ import {
   type ResidencyDbClient,
 } from "../_shared/product-integration.ts";
 import type { LegalDbClient } from "../_shared/product-legal-basis.ts";
+import { createProductModelPort } from "../_shared/product-model-gateway.ts";
 import {
-  createProductModelPort,
-  ProductModelGatewayError,
-} from "../_shared/product-model-gateway.ts";
-import {
-  ProductRedactionError,
   redactProductBundle,
   rehydrateProductOutput,
 } from "../_shared/product-secure-redaction.ts";
