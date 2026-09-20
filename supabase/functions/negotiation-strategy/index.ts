@@ -95,12 +95,9 @@ Deno.serve(async (req) => {
         headers: { ...cors, "Content-Type": "application/json" },
       });
     }
-    if (!body.force && (a as any).negotiation_strategy) {
-      return new Response(
-        JSON.stringify({ ok: true, cached: true, strategy: (a as any).negotiation_strategy }),
-        { headers: { ...cors, "Content-Type": "application/json" } },
-      );
-    }
+    // СТАР КЕШ НЕ СЕ ПОДНАСЯ: съществуващите записи в negotiation_strategy са
+    // създадени без сървърно доказуем правен манифест и не могат да бъдат
+    // проверени отново спрямо текущите версии на източниците.
 
     let contractText = "";
     if ((a as any).uploaded_contract_id) {
@@ -111,6 +108,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
       contractText = ((u as any)?.text_content ?? "").slice(0, 12000);
     }
+
 
     const sys = `Ти си опитен правен стратег за преговори по български договори. Връщаш САМО валиден JSON със следната структура:
 {
@@ -126,11 +124,34 @@ Deno.serve(async (req) => {
 
     const issuesStr = JSON.stringify((a as any).issues ?? []).slice(0, 4000);
     const missingStr = JSON.stringify((a as any).missing_clauses ?? []).slice(0, 2000);
-    const userMsg = `Тип договор: ${(a as any).contract_type || "—"}
+    const rawCorpus = `Тип договор: ${(a as any).contract_type || "—"}
 Резюме на анализа: ${(a as any).summary || "—"}
 Открити проблеми: ${issuesStr}
 Липсващи клаузи: ${missingStr}
 ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${contractText}` : ""}`;
+
+    // КЛАСИФИКАЦИЯ + РЕДАКЦИЯ на ЦЯЛОТО изходящо съдържание преди всяка
+    // външна заявка (включително извличането на правния контекст).
+    const classification = classifyDocumentBeforeAI(rawCorpus);
+    if (classification.risk_level === "blocked") {
+      return new Response(
+        JSON.stringify({ error: "content_blocked", code: "content_blocked", charged: false }),
+        { status: 422, headers: { ...cors, "Content-Type": "application/json" } },
+      );
+    }
+    const redaction = redactForAI(rawCorpus);
+    const userMsg = redaction.redacted;
+
+    // СТРОГО ЗАЗЕМЯВАНЕ за точно тази (редактирана) заявка — преди модела.
+    const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
+    const legal = await retrieveLegalContext(admin, apiKey, userMsg.slice(0, 4000), {
+      matchCount: 6,
+    });
+    if (!legal.hasMatches) {
+      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
+      return legalVerificationUnavailableResponse({ headers: cors });
+    }
+
 
     const callModel = async (model: string) => {
       const r = await fetch(GATEWAY_URL, {
