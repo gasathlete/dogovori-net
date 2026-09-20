@@ -306,7 +306,11 @@ Deno.serve(async (req: Request) => {
 
     const CACHE_VERSION = isBilingual ? "v6-bilingual" : "v6";
 
-    // ---- Idempotent skip ----
+    // ---- СТАРИТЕ ПУБЛИЧНИ БЛАНКИ НЕ СЕ СЧИТАТ ЗА ПРОВЕРЕНИ ----
+    // Наличието на стар обект в document_blanks вече НЕ прекратява работата с
+    // „skipped": този запис е създаден без проверим правен манифест, клиентът
+    // не го получава и той не може да бъде удостоверен наново. Отчита се само
+    // като игнориран и се изготвя нова ЧЕРНОВА след строго заземяване.
     const { data: existing } = await admin
       .from("document_blanks")
       .select("id, storage_path")
@@ -314,17 +318,7 @@ Deno.serve(async (req: Request) => {
       .eq("document_name", documentName)
       .maybeSingle();
 
-    const existingPath = existing?.storage_path as string | undefined;
-    if (existingPath && existingPath.startsWith(`${CACHE_VERSION}/`)) {
-      // Verify the object actually exists in Storage; if not, regenerate.
-      const { data: signed } = await admin.storage.from("document-blanks").createSignedUrl(existingPath, 30);
-      if (signed?.signedUrl) {
-        return new Response(
-          JSON.stringify({ status: "skipped", storage_path: existingPath, bilingual: isBilingual }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-    }
+    const legacyUnverifiedIgnored = !!existing?.storage_path;
 
     // ---- Generate (background task to avoid 150s edge timeout) ----
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
