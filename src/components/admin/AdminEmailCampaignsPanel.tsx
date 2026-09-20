@@ -113,7 +113,7 @@ export function AdminEmailCampaignsPanel() {
         Имейл кампании
       </h2>
       <p className="mb-4 text-xs text-muted-foreground">
-        Изпраща се само до потребители с „+“ (без изричен отказ от имейл маркетинг). Потребителите с „−“ се изключват автоматично.
+        Изпраща се само до потребители с изрично съгласие за имейл маркетинг („+“). Липсата на избор („?“) и изричният отказ („−“) не са съгласие и се изключват.
       </p>
 
       <form onSubmit={createTopic} className="grid gap-3">
@@ -160,7 +160,7 @@ export function AdminEmailCampaignsPanel() {
                       </div>
                     </div>
                     <div className="flex shrink-0 gap-1">
-                      <Button size="sm" onClick={() => sendTopic(t)} disabled={busyId === t.id} className="bg-gradient-gold text-navy">
+                      <Button size="sm" onClick={() => sendTopic(t)} disabled={busyId === t.id || recipients.length === 0} className="bg-gradient-gold text-navy">
                         {busyId === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
                       </Button>
                       <Button size="sm" variant="ghost" onClick={() => removeTopic(t.id)}><Trash2 className="h-3 w-3" /></Button>
@@ -195,7 +195,7 @@ export function AdminEmailCampaignsPanel() {
           {loadingRecipients ? (
             <div className="flex justify-center py-4"><Loader2 className="h-4 w-4 animate-spin text-gold" /></div>
           ) : recipients.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Няма потребители с „+“.</p>
+            <p className="text-xs text-muted-foreground">Няма потребители с изрично съгласие за имейл маркетинг.</p>
           ) : (
             <ul className="max-h-80 space-y-1 overflow-y-auto rounded-md border border-border/40 p-2">
               {recipients.map((r) => (
