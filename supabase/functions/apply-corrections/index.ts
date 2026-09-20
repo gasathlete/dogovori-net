@@ -379,22 +379,33 @@ ${answersRedacted}
     const activeSystemPrompt = `${baseSystem}\n\n${legal.promptBlock}`;
 
     // ТАКСУВАНЕ: след всички непарични проверки. ЕДИН леджър, идемпотентен по
-    // ключа на операцията и обвързан със съдържанието на заявката.
+    // ключа на операцията, но ЦЯЛАТА вълна поправки трябва да удържи РЕАЛНАТА
+    // стъпаловидна цена ceil(corrections_count/5) (минимум 1) — НЕ винаги 1.
     //
-    // ВАЖНО ЗА ЦЕНАТА НА ВЪЛНАТА: леджърът (quota_reserve/quota_commit) пази и
-    // резервира ТОЧНО ЕДНА единица („operation") за ЕДИН operation_id — той
-    // НЯМА понятие за „N единици в една резервация". Стъпаловидната цена
-    // ceil(corrections_count/5) (минимум 1) на вълна от поправки затова се
-    // ТАКСУВА КАТО ЕДНА-ЕДИНСТВЕНА леджър-операция за ЦЯЛАТА вълна (batch_id),
-    // а изчислената реална цена (opsForWave) се пази САМО информативно в
-        // result_ref.ops_charged — тя НЕ води до допълнителни резервации/такси
-    // към леджъра. С други думи: ГАРАНТИРАНО се удържа РОВНО 1 операция от
-    // леджъра на потребител за цялата вълна, дори когато бизнес логиката смята
-    // „истинската" цена за по-висока (напр. 12 поправки = 3 конкретни "units").
-    // Ако занапред е нужно леджърът реално да удържа N единици за една вълна,
-    // това изисква разширение на quota_reserve (параметър p_units) — извън
-    // обхвата на тази смяна. Идемпотентността по batch_id (повторен opit по
-    // същия batch_id е безплатен) се запазва изцяло чрез самия operation_id.
+    // Постигаме това с `opsForWave` ДЕТЕРМИНИРАНИ единици в леджъра:
+    //  - Единица 0 е САМИЯТ operation_id (ПЪРВИЧНАТА операция). Тя пази
+    //    ТОЧНИЯ отговор (result_ref) — именно нея чете lookupCommittedOperation
+    //    по-горе за целите на точния replay.
+    //  - Единици 1..opsForWave-1 са ЧИСТИ такса-единици, изведени детерминирано
+    //    от operation_id (виж deriveCorrectionsUnitOperationId) и обвързани със
+    //    СЪЩИЯ каноничен отпечатък (requestDigest) и batch_id — те НЕ носят
+    //    съдържание на договора, само {wave_unit, primary_operation_id}.
+    // Резултатът: за вълна от 12 поправки (opsForWave=3) леджърът РЕАЛНО удържа
+    // 3 операции, а не 1 — цената вече НЕ е мълчаливо занижена.
+    const opsUnitIds: string[] = [operationId];
+    for (let i = 1; i < opsForWave; i++) {
+      opsUnitIds.push(await deriveCorrectionsUnitOperationId(operationId, i));
+    }
+    const unitLedgerBinding = (unitOperationId: string) => ({
+      operationId: unitOperationId,
+      userId,
+      kind: "analysis" as const,
+      purpose: "apply_corrections",
+      sessionId: asUuidOrNull(sessionId),
+      batchId,
+      requestDigest,
+    });
+
     const reservation = await reserveQuota(ledgerDb, ledgerBinding);
     if (reservation.status === "conflict") return conflictResponse();
     if (reservation.status === "reconciliation") {
@@ -432,27 +443,98 @@ ${answersRedacted}
 
     const batchCharged = reservation.charged === true;
 
+    // Единиците, РЕЗЕРВИРАНИ (не потвърдени) в ТОЗИ опит — точно тях отменяме
+    // при провал. Първичната единица вече е резервирана по-горе.
+    const reservedUnitIds: string[] = [operationId];
+    // Единици, вече ПОТВЪРДЕНИ от предходен (частично успешен) опит — не се
+    // таксуват повторно и НЕ подлежат на отмяна (потвърдено е окончателно).
+    const alreadyCommittedUnitIds: string[] = [];
+
     /**
-     * ЕДИНСТВЕН КОМПЕНСИРАЩ ПАЗИТЕЛ през леджъра. „charged: false" се твърди
-     * САМО при доказана отмяна; иначе типизиран billing_reconciliation_required
-     * и траен запис за изравняване.
+     * ЕДИНСТВЕН КОМПЕНСИРАЩ ПАЗИТЕЛ през леджъра — отменя ВСИЧКИ единици,
+     * резервирани в ТОЗИ опит (първичната + всички допълнителни такса-единици).
+     * „charged: false" се твърди САМО когато ВСИЧКИ отмени са доказани; иначе
+     * типизиран billing_reconciliation_required и траен запис за изравняване.
+     * Никога не оставяме частично таксувана вълна, която е произвела документ.
      */
     let compensated = false;
     const cancelOrReport = async (reason: string): Promise<Response | null> => {
       if (compensated) return null;
-      const outcome = await cancelQuota(ledgerDb, operationId, reason);
-      if (outcome.status !== "settled") {
-        await recordReconciliation(
-          ledgerDb,
-          operationId,
-          `apply_corrections_cancel_failed:${outcome.reason}`,
-          { user_id: userId, kind: "analysis" },
-        );
+      let allProven = true;
+      for (const unitId of reservedUnitIds) {
+        const outcome = await cancelQuota(ledgerDb, unitId, reason);
+        if (outcome.status !== "settled") {
+          allProven = false;
+          await recordReconciliation(
+            ledgerDb,
+            operationId,
+            `apply_corrections_cancel_failed:${outcome.reason}`,
+            { user_id: userId, kind: "analysis", unit_operation_id: unitId },
+          );
+        }
+      }
+      if (!allProven) {
         return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
       }
       compensated = true;
       return null;
     };
+
+    // Резервираме ОСТАНАЛИТЕ такса-единици на вълната (i = 1..opsForWave-1)
+    // ПРЕДИ повикването към модела — ЕДНО-ЕДИНСТВЕНО извикване на модела за
+    // ЦЯЛАТА вълна, но пълната ѝ РЕАЛНА цена трябва да е удържана преди него.
+    // Ако която и да е допълнителна единица не може да се резервира (изчерпана
+    // квота), ОТМЕНЯМЕ всичко резервирано дотук в този опит и връщаме типизиран
+    // отговор „изчерпана квота" — никога частично таксувана вълна.
+    for (let i = 1; i < opsForWave; i++) {
+      const unitId = opsUnitIds[i];
+      const unitReservation = await reserveQuota(ledgerDb, unitLedgerBinding(unitId));
+      if (unitReservation.status === "conflict") {
+        const unresolved = await cancelOrReport("apply_corrections_extra_unit_conflict");
+        return unresolved ?? conflictResponse();
+      }
+      if (unitReservation.status === "reconciliation") {
+        await recordReconciliation(ledgerDb, operationId, `apply_corrections_extra_reserve:${unitReservation.reason}`, {
+          user_id: userId,
+          kind: "analysis",
+          unit_operation_id: unitId,
+        });
+        await cancelOrReport(`apply_corrections_extra_unit_reconciliation:${unitReservation.reason}`);
+        return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+      }
+      if (unitReservation.status === "unavailable") {
+        const unresolved = await cancelOrReport("apply_corrections_extra_unit_unavailable");
+        return unresolved ?? quotaUnavailableResponse();
+      }
+      if (unitReservation.status === "denied") {
+        // Изчерпана квота за допълнителна единица: отменяме ЦЕЛИЯ опит (вкл.
+        // първичната единица) — не съществува „частична" вълна поправки.
+        const unresolved = await cancelOrReport(`apply_corrections_extra_unit_denied:${unitReservation.reason}`);
+        if (unresolved) return unresolved;
+        return new Response(
+          JSON.stringify({ error: "quota_exceeded", reason: unitReservation.reason, charge_state: "not_charged" }),
+          { status: 402, headers: jsonHeaders },
+        );
+      }
+      if (isOperationInProgress(unitReservation)) {
+        // Едновременно изпълнение по ключа на ТАЗИ такса-единица: отменяме
+        // всичко резервирано в ТОЗИ опит и връщаме типизиран „в ход".
+        const unresolved = await cancelOrReport("apply_corrections_extra_unit_in_progress_abort");
+        if (unresolved) return unresolved;
+        return operationInProgressResponse(
+          { ...corsHeaders, ...correlationHeaders(correlationId) },
+          4,
+        );
+      }
+      if (unitReservation.ledgerState === "committed") {
+        // Идемпотентно повторение: тази такса-единица вече е потвърдена от
+        // предходен (частично успешен) опит по СЪЩИЯ operation_id — не се
+        // таксува повторно и НЕ се добавя към списъка за отмяна.
+        alreadyCommittedUnitIds.push(unitId);
+      } else {
+        reservedUnitIds.push(unitId);
+      }
+    }
 
     try {
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

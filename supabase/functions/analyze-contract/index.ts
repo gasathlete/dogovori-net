@@ -510,328 +510,413 @@ ${payloadText}
     }
     const groundedSystemPrompt = `${baseSystemPrompt}\n\n${legal.promptBlock}`;
 
-    // Use session-aware consume when the client supplied session_id + a stable
-    // doc key (we use the uploaded contract id or a client-provided slug).
-    const docKey = docKeyClient || `upload:${uploadedContractId}`;
-    const useSession = !!sessionId && !!docKey;
-    const { data: consumed, error: consumeErr } = useSession
-      ? await userClient.rpc("consume_quota_session", {
-          _kind: "analysis",
-          _doc_key: docKey,
-          _session_id: sessionId,
-        })
-      : await userClient.rpc("consume_quota", { _kind: "analysis" });
-    if (consumeErr) {
-      console.error("consume_quota error:", consumeErr);
-      throw new Error("Грешка при проверка на квотата");
+    // ТАКСУВАНЕ: след всички непарични проверки (валидация, незаконно
+    // съдържание, класификация/маршрутизация, редакция, промпт от базата,
+    // правно заземяване). ЕДИН леджър, идемпотентен по ключа на операцията и
+    // обвързан със съдържанието на заявката.
+    const reservation = await reserveQuota(ledgerDb, ledgerBinding);
+    if (reservation.status === "conflict") return conflictResponse();
+    if (reservation.status === "reconciliation") {
+      await recordReconciliation(ledgerDb, operationId, `analyze_contract_reserve:${reservation.reason}`, {
+        user_id: userId,
+        kind: "analysis",
+      });
+      return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
     }
-    const quotaResult = consumed as {
-      ok: boolean;
-      reason?: string;
-      is_pro: boolean;
-      charged?: boolean;
-    };
-    const isPro = !!quotaResult?.is_pro;
-    if (!quotaResult?.ok) {
+    if (reservation.status === "unavailable") return quotaUnavailableResponse();
+    if (reservation.status === "denied") {
       return new Response(
         JSON.stringify({
           error: "Изчерпали сте безплатния си анализ. Активирайте Pro за неограничени риск-анализи.",
           code: "quota_exceeded",
+          reason: reservation.reason,
+          charge_state: "not_charged",
         }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 402, headers: jsonHeaders },
       );
     }
 
+    // ТОЧНО ПОВТОРЕНИЕ, ако операцията е завършила между четенето и
+    // резервацията: връща се точно записаният резултат, без ново генериране и
+    // без второ таксуване.
+    const priorRef = reservation.resultRef;
+    if (priorRef && priorRef.analysis && isOwnedStoredAnalysis(priorRef)) {
+      return exactReplayResponse(priorRef);
+    }
 
-    // Суфиксът се добавя ПОСЛЕДЕН, за да важи и когато активният промпт от
-    // базата е заменил вградения fallback.
-    const activeSystemPrompt = `${groundedSystemPrompt}${EVIDENCE_RULES_SUFFIX}`;
+    // ЕДНОВРЕМЕННО ИЗПЪЛНЕНИЕ ПО СЪЩИЯ КЛЮЧ: повторение на още незавършена
+    // резервация БЕЗ записан резултат НИКОГА не стартира второ повикване към
+    // модела. Доказано отменена резервация (retry) е нормален нов опит.
+    if (isOperationInProgress(reservation)) {
+      return operationInProgressResponse(
+        { ...corsHeaders, ...correlationHeaders(correlationId) },
+        4,
+      );
+    }
 
-    const callAi = async (modelName: string) => {
-      return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Lovable-API-Key": LOVABLE_API_KEY,
-          "Content-Type": "application/json",
-          "X-Lovable-AIG-SDK": "edge-function",
-        },
-        body: JSON.stringify({
-          model: modelName,
-          messages: [
-            { role: "system", content: activeSystemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          response_format: { type: "json_object" },
-        }),
-      });
+    /**
+     * ЕДИНСТВЕН КОМПЕНСИРАЩ ПАЗИТЕЛ през леджъра. „charged: false" се твърди
+     * САМО при доказана отмяна; иначе типизиран billing_reconciliation_required
+     * и траен запис за изравняване — никога „not_charged" за неясен изход.
+     */
+    let compensated = false;
+    const cancelOrReport = async (reason: string): Promise<Response | null> => {
+      if (compensated) return null;
+      const outcome = await cancelQuota(ledgerDb, operationId, reason);
+      if (outcome.status !== "settled") {
+        await recordReconciliation(
+          ledgerDb,
+          operationId,
+          `analyze_contract_cancel_failed:${outcome.reason}`,
+          { user_id: userId, kind: "analysis" },
+        );
+        return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+      }
+      compensated = true;
+      return null;
     };
 
-    // Tiered routing for cost/quality balance:
-    //   - Short contracts (<6000 chars)  -> flash-lite (cheapest, sufficient for simple texts)
-    //   - Medium/long contracts          -> flash (default, good reasoning)
-    //   - Unparsable response            -> pro (fallback below)
-    // Verification layer filters any hallucinated quotes regardless of tier.
-    let model = text.length < 6000 ? "google/gemini-2.5-flash-lite" : "google/gemini-2.5-flash";
-    let aiResp = await callAi(model);
+    try {
+      // Суфиксът се добавя ПОСЛЕДЕН, за да важи и когато активният промпт от
+      // базата е заменил вградения fallback.
+      const activeSystemPrompt = `${groundedSystemPrompt}${EVIDENCE_RULES_SUFFIX}`;
 
-    // If flash-lite returns non-OK, retry once with flash before refunding.
-    if (!aiResp.ok && model === "google/gemini-2.5-flash-lite" && aiResp.status >= 500) {
-      model = "google/gemini-2.5-flash";
-      aiResp = await callAi(model);
-    }
-
-    if (!aiResp.ok) {
-      if (!isPro && quotaResult.charged !== false) await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
-      if (aiResp.status === 429) {
-        return new Response(JSON.stringify({ error: "Достигнат е лимитът. Моля опитайте след малко." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+      const callAi = async (modelName: string) => {
+        return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Lovable-API-Key": LOVABLE_API_KEY,
+            "Content-Type": "application/json",
+            "X-Lovable-AIG-SDK": "edge-function",
+          },
+          body: JSON.stringify({
+            model: modelName,
+            messages: [
+              { role: "system", content: activeSystemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+            response_format: { type: "json_object" },
+          }),
         });
-      }
-      if (aiResp.status === 402) {
-        return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const t = await aiResp.text();
-      console.error("AI gateway:", aiResp.status, t);
-      throw new Error("AI грешка");
-    }
+      };
 
+      // ЕДИНЕН ГАРАНТИРАН ПАЗИТЕЛ (cancelOrReport) обхваща целия модeлен опит:
+      // тиерираната ескалация по-долу (lite → flash → pro) е ЕДНА логическа
+      // операция към модела с точно ЕДНА компенсация при пълен неуспех —
+      // никога не се резервира или отменя повторно в рамките ѝ.
+      //   - Short contracts (<6000 chars)  -> flash-lite (cheapest, sufficient)
+      //   - Medium/long contracts          -> flash (default, good reasoning)
+      //   - Unparsable response            -> pro (fallback below)
+      let model = text.length < 6000 ? "google/gemini-2.5-flash-lite" : "google/gemini-2.5-flash";
+      let aiResp = await callAi(model);
 
-    const data = await aiResp.json();
-    const content: string = data.choices?.[0]?.message?.content ?? "";
-    let parsed: any = null;
-    try { parsed = content.trim() ? extractJson(content, { fn: "analyze-contract" }) : null; } catch { parsed = null; }
-
-    // Quality safeguard: if flash-lite returned suspiciously empty results
-    // (no issues AND no missing clauses) on a non-trivial contract, escalate
-    // to flash before falling back to pro. Prevents lite model from silently
-    // under-reporting risks on edge cases.
-    if (parsed && model === "google/gemini-2.5-flash-lite") {
-      const noIssues = !Array.isArray(parsed?.issues) || parsed.issues.length === 0;
-      const noMissing = !Array.isArray(parsed?.missing_clauses) || parsed.missing_clauses.length === 0;
-      if (noIssues && noMissing && text.length > 1500) {
-        console.warn("Flash-lite returned empty analysis, escalating to flash");
+      // If flash-lite returns non-OK, retry once with flash before failing.
+      if (!aiResp.ok && model === "google/gemini-2.5-flash-lite" && aiResp.status >= 500) {
         model = "google/gemini-2.5-flash";
-        const flashResp = await callAi(model);
-        if (flashResp.ok) {
-          const fData = await flashResp.json();
-          const fContent: string = fData.choices?.[0]?.message?.content ?? "";
-          try {
-            const reparsed = fContent.trim() ? extractJson(fContent, { fn: "analyze-contract", stage: "fallback" }) : null;
-            if (reparsed) parsed = reparsed;
-          } catch { /* keep lite result */ }
+        aiResp = await callAi(model);
+      }
+
+      if (!aiResp.ok) {
+        const status = aiResp.status;
+        const unresolved = await cancelOrReport(`ai_gateway_${status}`);
+        await logAiAudit({
+          user_id: userId, operation: "analyze-contract", model,
+          classification, redaction_applied: route.redactionRequired,
+          status: "error", error_code: `http_${status}`,
+        });
+        if (unresolved) return unresolved;
+        // Тялото на шлюза НЕ се връща и НЕ се логва: може да носи части от
+        // документа на потребителя.
+        const { normalizeGatewayStatus, gatewayErrorResponse } = await import(
+          "../_shared/gateway-error.ts"
+        );
+        console.error("AI gateway status:", status);
+        return gatewayErrorResponse(
+          normalizeGatewayStatus(status),
+          { ...corsHeaders, ...correlationHeaders(correlationId) },
+          { charged: false, charge_state: "cancelled" },
+        );
+      }
+
+      const data = await aiResp.json();
+      const content: string = data.choices?.[0]?.message?.content ?? "";
+      let parsed: any = null;
+      try { parsed = content.trim() ? extractJson(content, { fn: "analyze-contract" }) : null; } catch { parsed = null; }
+
+      // Quality safeguard: if flash-lite returned suspiciously empty results
+      // (no issues AND no missing clauses) on a non-trivial contract, escalate
+      // to flash before falling back to pro. Prevents lite model from silently
+      // under-reporting risks on edge cases.
+      if (parsed && model === "google/gemini-2.5-flash-lite") {
+        const noIssues = !Array.isArray(parsed?.issues) || parsed.issues.length === 0;
+        const noMissing = !Array.isArray(parsed?.missing_clauses) || parsed.missing_clauses.length === 0;
+        if (noIssues && noMissing && text.length > 1500) {
+          console.warn("Flash-lite returned empty analysis, escalating to flash");
+          model = "google/gemini-2.5-flash";
+          const flashResp = await callAi(model);
+          if (flashResp.ok) {
+            const fData = await flashResp.json();
+            const fContent: string = fData.choices?.[0]?.message?.content ?? "";
+            try {
+              const reparsed = fContent.trim() ? extractJson(fContent, { fn: "analyze-contract", stage: "fallback" }) : null;
+              if (reparsed) parsed = reparsed;
+            } catch { /* keep lite result */ }
+          }
         }
       }
-    }
 
-    // Fallback to Pro for higher accuracy if everything above failed to parse.
-    if (!parsed) {
-      console.warn("Flash returned unparsable content, falling back to Pro");
-      model = "google/gemini-2.5-pro";
-      const proResp = await callAi(model);
-      if (proResp.ok) {
-        const proData = await proResp.json();
-        const proContent: string = proData.choices?.[0]?.message?.content ?? "";
-        try { parsed = proContent.trim() ? extractJson(proContent, { fn: "analyze-contract", stage: "pro" }) : null; } catch { parsed = null; }
+      // Fallback to Pro for higher accuracy if everything above failed to parse.
+      if (!parsed) {
+        console.warn("Flash returned unparsable content, falling back to Pro");
+        model = "google/gemini-2.5-pro";
+        const proResp = await callAi(model);
+        if (proResp.ok) {
+          const proData = await proResp.json();
+          const proContent: string = proData.choices?.[0]?.message?.content ?? "";
+          try { parsed = proContent.trim() ? extractJson(proContent, { fn: "analyze-contract", stage: "pro" }) : null; } catch { parsed = null; }
+        }
       }
-    }
 
-    if (!parsed) throw new Error("AI не върна валиден отговор");
+      if (!parsed) throw new Error("AI не върна валиден отговор");
 
-    // Unredact text fields in AI output before verification (so clause matching
-    // works against the original source text).
-    if (Object.keys(redaction.mapping).length > 0) {
-      const unmap = redaction.mapping;
-      const un = (v: unknown) => (typeof v === "string" ? unredact(v, unmap) : v);
-      if (typeof parsed?.summary === "string") parsed.summary = unredact(parsed.summary, unmap);
-      if (typeof parsed?.contract_type === "string") parsed.contract_type = unredact(parsed.contract_type, unmap);
-      // Пазим се ПРЕДИ четене на полета: null / число / масив не се докосва и не
-      // хвърля — схемната валидация по-долу ще го отчете като невалиден елемент.
-      const isObj = (v: unknown): v is Record<string, unknown> =>
-        !!v && typeof v === "object" && !Array.isArray(v);
-      if (Array.isArray(parsed?.issues)) {
-        parsed.issues = parsed.issues.map((it: unknown) =>
-          isObj(it)
-            ? { ...it, title: un(it.title), clause: un(it.clause), explanation: un(it.explanation), suggestion: un(it.suggestion) }
-            : it
+      // Unredact text fields in AI output before verification (so clause matching
+      // works against the original source text).
+      if (Object.keys(redaction.mapping).length > 0) {
+        const unmap = redaction.mapping;
+        const un = (v: unknown) => (typeof v === "string" ? unredact(v, unmap) : v);
+        if (typeof parsed?.summary === "string") parsed.summary = unredact(parsed.summary, unmap);
+        if (typeof parsed?.contract_type === "string") parsed.contract_type = unredact(parsed.contract_type, unmap);
+        // Пазим се ПРЕДИ четене на полета: null / число / масив не се докосва и не
+        // хвърля — схемната валидация по-долу ще го отчете като невалиден елемент.
+        const isObj = (v: unknown): v is Record<string, unknown> =>
+          !!v && typeof v === "object" && !Array.isArray(v);
+        if (Array.isArray(parsed?.issues)) {
+          parsed.issues = parsed.issues.map((it: unknown) =>
+            isObj(it)
+              ? { ...it, title: un(it.title), clause: un(it.clause), explanation: un(it.explanation), suggestion: un(it.suggestion) }
+              : it
+          );
+        }
+        if (Array.isArray(parsed?.missing_clauses)) {
+          parsed.missing_clauses = parsed.missing_clauses.map((m: unknown) =>
+            isObj(m) ? { ...m, name: un(m.name), why: un(m.why) } : m
+          );
+        }
+      }
+
+      // === Доказателствена проверка (Q2a) ===
+      // Обосноваваме САМО срещу оригиналния текст, изпратен на модела — без
+      // служебния маркер за съкращаване, който не е част от документа.
+      const wasTruncated = compacted.length > MAX_CHARS;
+      const evidenceSource = wasTruncated ? compacted.slice(0, MAX_CHARS) : compacted;
+
+      const pipeline = runAnalysisEvidencePipeline({
+        parsed,
+        sentText: evidenceSource,
+        normalizedSource: normalizeForMatch(text),
+        inputTruncated: wasTruncated,
+        isClauseActuallyMissing,
+      });
+      const verification = pipeline.verification;
+      // Само кодове в лога — без заглавия, цитати и идентификатори.
+      if (verification.status === "incomplete") {
+        console.warn("Непълна доказателствена проверка:", verification.reason_codes.join(","));
+      }
+
+      const deferPersonal =
+        trust.trusted &&
+        (trust.manifest.decisions.includes("local_completion_of_personal_data") ||
+          trust.manifest.decisions.includes("placeholders_for_personal_data"));
+
+      // Q4a — ЕДИН fail-closed филтър за ВСИЧКИ умишлени решения от ДОВЕРЕН
+      // подписан манифест, не само за личните данни. Прилага се СЛЕД
+      // доказателствения конвейер, така че проверката по цитат не се отслабва.
+      const issuePartition = partitionLaterFindings(pipeline.issues, {
+        textOf: (i) => `${i?.title ?? ""} ${i?.explanation ?? ""}`.trim(),
+        quoteOf: (i) => i?.clause,
+        documentText: text,
+        trust,
+      });
+      const missingPartition = partitionLaterFindings(pipeline.missingClauses, {
+        textOf: (m) => `${m?.name ?? ""} ${m?.why ?? ""}`.trim(),
+        documentText: text,
+        trust,
+      });
+
+      // Личните плейсхолдъри отпадат от находките САМО през съществуващия,
+      // тесен позитивен предикат — запазено поведение, без разширяване.
+      const optionalIssueSet = new Set(issuePartition.optional);
+      const optionalMissingSet = new Set(missingPartition.optional);
+      const gatedIssues = pipeline.issues.filter(
+        (i) =>
+          !optionalIssueSet.has(i) &&
+          !shouldDeferItem(deferPersonal, `${i?.title ?? ""} ${i?.explanation ?? ""}`, text),
+      );
+      const gatedMissing = pipeline.missingClauses.filter(
+        (m) =>
+          !optionalMissingSet.has(m) &&
+          !shouldDeferItem(deferPersonal, `${m?.name ?? ""} ${m?.why ?? ""}`, text),
+      );
+
+      // Умишлено опционалното (приложения/детайли, избран набор клаузи) става
+      // ОПЦИОНАЛНА ПРЕПОРЪКА и НЕ се брои като дефект — не е провал.
+      const optionalRecommendations = [
+        ...issuePartition.optional.map((i) => String(i?.title ?? "").trim()),
+        ...missingPartition.optional.map((m) => String(m?.name ?? "").trim()),
+      ].filter((t) => t.length > 0);
+
+      // Q4b — ДЕТЕРМИНИРАНА проверка на явното намерение. Твърденията се вземат
+      // САМО от ДОВЕРЕН манифест (валиден подпис + точно обвързване с ТОЗИ текст).
+      // Очакваните стойности НЕ съществуват в явен вид тук и НИКОГА не тръгват към
+      // модела — сравняват се HMAC commitment-и срещу кандидати, извлечени от
+      // подадения текст. Сливането е СЛЕД нормализацията на AI отговора, за да не
+      // може моделът да махне или свали доказано несъответствие.
+      // Q4b(2): наблюдаемият факт за арбитраж се извежда от ТОЧНО подадения текст.
+      // Двуезичността не е изводима от обикновен текст → остава НЕПРОВЕРИМА, а не
+      // невярно „изпълнена".
+      const intentReport = await verifyIntentAssertions({
+        assertions: trust.trusted ? trust.manifest.intents : [],
+        documentText: text,
+        serverSecret: qualitySigningSecretFromEnv(),
+        structuralFlags: { arbitration: detectArbitrationInText(text) ?? undefined },
+      });
+
+      const intentIssues = intentMismatchIssues(intentReport).map((i) => ({
+        severity: i.severity,
+        title: i.title,
+        explanation: i.detail,
+      }));
+      const finalIssues = [
+        ...gatedIssues,
+        ...intentIssues.filter(
+          (n) => !gatedIssues.some((g: { title?: unknown }) => String(g?.title ?? "") === n.title),
+        ),
+      ];
+
+      // Преизчисляване на видимата оценка СЛЕД филтрирането — премахната находка
+      // не оставя остаряла лоша оценка. Никога над базовата оценка на модела.
+      // Изключение: ДОКАЗАНО несъответствие с явно избрана стойност НЕ може да
+      // бъде „изгладено" от базовата оценка на модела — то е факт, не преценка.
+      const filteredScore = Math.min(
+        pipeline.baseScore,
+        applySeverityCaps(pipeline.baseScore, gatedIssues),
+      );
+      const score = hasIntentMismatch(intentReport) ? Math.max(filteredScore, 70) : filteredScore;
+
+      const quality = {
+        trusted_manifest: trust.trusted,
+        manifest_reason: trust.trusted ? null : trust.reason,
+        deferred_personal_scope: deferPersonal,
+        removed_deferred_items:
+          (pipeline.issues.length - gatedIssues.length - issuePartition.optional.length) +
+          (pipeline.missingClauses.length - gatedMissing.length - missingPartition.optional.length),
+        optional_recommendations: optionalRecommendations,
+        score_recomputed: score !== pipeline.score,
+        intent: {
+          checked: intentReport.checked,
+          satisfied: intentReport.satisfied,
+          mismatched: intentReport.mismatched_required.length,
+        },
+        finding_reason_codes: [
+          ...new Set([...issuePartition.reason_codes, ...missingPartition.reason_codes]),
+        ].sort(),
+      };
+
+      const { data: inserted, error: insErr } = await admin
+        .from("risk_analyses")
+        .insert(
+          buildFreshAnalysisPayload({
+            uploadedContractId: contract.id as string,
+            userId,
+            model,
+            score,
+            contractType: pipeline.contractType,
+            summary: pipeline.summary,
+            issues: finalIssues,
+            missingClauses: gatedMissing,
+            cacheKey: normalizedHash,
+            verification,
+            binding: sourceBinding,
+          }),
+        )
+        .select()
+        .single();
+
+      if (insErr) {
+        console.error("insert risk_analysis:", insErr);
+        throw new Error("Грешка при запис на анализа");
+      }
+
+      // ЕДИН ТОЧЕН ОТГОВОР: сглобява се ВЕДНЪЖ и се записва ЦЯЛОСТНО при
+      // потвърждението. Така повторен опит връща същия отговор, без ново
+      // генериране и без ново таксуване.
+      const exactPayload: Record<string, unknown> = {
+        analysis: inserted,
+        quality,
+        charge_state: "charged",
+      };
+
+      // ПОТВЪРЖДЕНИЕ + ОБВЪРЗВАНЕ на резултата ПРЕДИ 200: повторен опит по
+      // същия ключ връща точно този резултат. Недоказано потвърждение НЕ дава 200.
+      const settlement = await commitQuota(ledgerDb, operationId, exactPayload);
+      if (settlement.status !== "settled") {
+        await recordReconciliation(
+          ledgerDb,
+          operationId,
+          `analyze_contract_commit_unresolved:${settlement.reason}`,
+          { user_id: userId, kind: "analysis" },
         );
+        await logAiAudit({
+          user_id: userId, operation: "analyze-contract", model,
+          classification, redaction_applied: route.redactionRequired,
+          status: "error", error_code: "commit_unresolved",
+        });
+        return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
       }
-      if (Array.isArray(parsed?.missing_clauses)) {
-        parsed.missing_clauses = parsed.missing_clauses.map((m: unknown) =>
-          isObj(m) ? { ...m, name: un(m.name), why: un(m.why) } : m
-        );
-      }
+      compensated = true;
+
+      await admin.from("ai_usage").insert({
+        user_id: userId,
+        function_name: "analyze-contract",
+      });
+
+      await logAiAudit({
+        user_id: userId,
+        operation: "analyze-contract",
+        model,
+        classification,
+        redaction_applied: route.redactionRequired,
+        status: "ok",
+      });
+
+      // Връща се ТОЧНО записаният отговор (ако леджърът го е върнал обратно).
+      const committedPayload = settlement.resultRef ?? exactPayload;
+      return new Response(JSON.stringify(committedPayload), {
+        headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
+      });
+    } catch (afterCharge) {
+      // Всеки неуспешен краен изход след резервацията отменя таксуването точно
+      // веднъж. Суровият текст на договора НИКОГА не влиза в тази причина.
+      const unresolved = await cancelOrReport(
+        `exception:${String((afterCharge as Error)?.message ?? "unknown").slice(0, 200)}`,
+      );
+      if (unresolved) return unresolved;
+      throw afterCharge;
     }
-
-    // === Доказателствена проверка (Q2a) ===
-    // Обосноваваме САМО срещу оригиналния текст, изпратен на модела — без
-    // служебния маркер за съкращаване, който не е част от документа.
-    const wasTruncated = compacted.length > MAX_CHARS;
-    const evidenceSource = wasTruncated ? compacted.slice(0, MAX_CHARS) : compacted;
-
-    const pipeline = runAnalysisEvidencePipeline({
-      parsed,
-      sentText: evidenceSource,
-      normalizedSource: normalizeForMatch(text),
-      inputTruncated: wasTruncated,
-      isClauseActuallyMissing,
-    });
-    const verification = pipeline.verification;
-    // Само кодове в лога — без заглавия, цитати и идентификатори.
-    if (verification.status === "incomplete") {
-      console.warn("Непълна доказателствена проверка:", verification.reason_codes.join(","));
-    }
-
-    const deferPersonal =
-      trust.trusted &&
-      (trust.manifest.decisions.includes("local_completion_of_personal_data") ||
-        trust.manifest.decisions.includes("placeholders_for_personal_data"));
-
-    // Q4a — ЕДИН fail-closed филтър за ВСИЧКИ умишлени решения от ДОВЕРЕН
-    // подписан манифест, не само за личните данни. Прилага се СЛЕД
-    // доказателствения конвейер, така че проверката по цитат не се отслабва.
-    const issuePartition = partitionLaterFindings(pipeline.issues, {
-      textOf: (i) => `${i?.title ?? ""} ${i?.explanation ?? ""}`.trim(),
-      quoteOf: (i) => i?.clause,
-      documentText: text,
-      trust,
-    });
-    const missingPartition = partitionLaterFindings(pipeline.missingClauses, {
-      textOf: (m) => `${m?.name ?? ""} ${m?.why ?? ""}`.trim(),
-      documentText: text,
-      trust,
-    });
-
-    // Личните плейсхолдъри отпадат от находките САМО през съществуващия,
-    // тесен позитивен предикат — запазено поведение, без разширяване.
-    const optionalIssueSet = new Set(issuePartition.optional);
-    const optionalMissingSet = new Set(missingPartition.optional);
-    const gatedIssues = pipeline.issues.filter(
-      (i) =>
-        !optionalIssueSet.has(i) &&
-        !shouldDeferItem(deferPersonal, `${i?.title ?? ""} ${i?.explanation ?? ""}`, text),
-    );
-    const gatedMissing = pipeline.missingClauses.filter(
-      (m) =>
-        !optionalMissingSet.has(m) &&
-        !shouldDeferItem(deferPersonal, `${m?.name ?? ""} ${m?.why ?? ""}`, text),
-    );
-
-    // Умишлено опционалното (приложения/детайли, избран набор клаузи) става
-    // ОПЦИОНАЛНА ПРЕПОРЪКА и НЕ се брои като дефект — не е провал.
-    const optionalRecommendations = [
-      ...issuePartition.optional.map((i) => String(i?.title ?? "").trim()),
-      ...missingPartition.optional.map((m) => String(m?.name ?? "").trim()),
-    ].filter((t) => t.length > 0);
-
-    // Q4b — ДЕТЕРМИНИРАНА проверка на явното намерение. Твърденията се вземат
-    // САМО от ДОВЕРЕН манифест (валиден подпис + точно обвързване с ТОЗИ текст).
-    // Очакваните стойности НЕ съществуват в явен вид тук и НИКОГА не тръгват към
-    // модела — сравняват се HMAC commitment-и срещу кандидати, извлечени от
-    // подадения текст. Сливането е СЛЕД нормализацията на AI отговора, за да не
-    // може моделът да махне или свали доказано несъответствие.
-    // Q4b(2): наблюдаемият факт за арбитраж се извежда от ТОЧНО подадения текст.
-    // Двуезичността не е изводима от обикновен текст → остава НЕПРОВЕРИМА, а не
-    // невярно „изпълнена".
-    const intentReport = await verifyIntentAssertions({
-      assertions: trust.trusted ? trust.manifest.intents : [],
-      documentText: text,
-      serverSecret: qualitySigningSecretFromEnv(),
-      structuralFlags: { arbitration: detectArbitrationInText(text) ?? undefined },
-    });
-
-    const intentIssues = intentMismatchIssues(intentReport).map((i) => ({
-      severity: i.severity,
-      title: i.title,
-      explanation: i.detail,
-    }));
-    const finalIssues = [
-      ...gatedIssues,
-      ...intentIssues.filter(
-        (n) => !gatedIssues.some((g: { title?: unknown }) => String(g?.title ?? "") === n.title),
-      ),
-    ];
-
-    // Преизчисляване на видимата оценка СЛЕД филтрирането — премахната находка
-    // не оставя остаряла лоша оценка. Никога над базовата оценка на модела.
-    // Изключение: ДОКАЗАНО несъответствие с явно избрана стойност НЕ може да
-    // бъде „изгладено" от базовата оценка на модела — то е факт, не преценка.
-    const filteredScore = Math.min(
-      pipeline.baseScore,
-      applySeverityCaps(pipeline.baseScore, gatedIssues),
-    );
-    const score = hasIntentMismatch(intentReport) ? Math.max(filteredScore, 70) : filteredScore;
-
-    const quality = {
-      trusted_manifest: trust.trusted,
-      manifest_reason: trust.trusted ? null : trust.reason,
-      deferred_personal_scope: deferPersonal,
-      removed_deferred_items:
-        (pipeline.issues.length - gatedIssues.length - issuePartition.optional.length) +
-        (pipeline.missingClauses.length - gatedMissing.length - missingPartition.optional.length),
-      optional_recommendations: optionalRecommendations,
-      score_recomputed: score !== pipeline.score,
-      intent: {
-        checked: intentReport.checked,
-        satisfied: intentReport.satisfied,
-        mismatched: intentReport.mismatched_required.length,
-      },
-      finding_reason_codes: [
-        ...new Set([...issuePartition.reason_codes, ...missingPartition.reason_codes]),
-      ].sort(),
-    };
-
-
-    const { data: inserted, error: insErr } = await admin
-      .from("risk_analyses")
-      .insert(
-        buildFreshAnalysisPayload({
-          uploadedContractId: contract.id as string,
-          userId,
-          model,
-          score,
-          contractType: pipeline.contractType,
-          summary: pipeline.summary,
-          issues: finalIssues,
-          missingClauses: gatedMissing,
-          cacheKey: normalizedHash,
-          verification,
-          binding: sourceBinding,
-        }),
-      )
-      .select()
-      .single();
-
-    if (insErr) {
-      console.error("insert risk_analysis:", insErr);
-      throw new Error("Грешка при запис на анализа");
-    }
-
-    await admin.from("ai_usage").insert({
-      user_id: userId,
-      function_name: "analyze-contract",
-    });
-
-    await logAiAudit({
-      user_id: userId,
-      operation: "analyze-contract",
-      model,
-      classification,
-      redaction_applied: route.redactionRequired,
-      status: "ok",
-    });
-
-    return new Response(JSON.stringify({ analysis: inserted, quality }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   } catch (e) {
-    console.error("analyze-contract error:", e);
+    // Нормализиран запис и отговор: без вътрешни съобщения, без сурово
+    // съдържание на документа.
+    console.error("analyze-contract error", {
+      cid: correlationId,
+      name: e instanceof Error ? e.name : "unknown",
+    });
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      JSON.stringify({
+        error: "Възникна вътрешна грешка. Опитайте отново.",
+        code: "internal_error",
+        correlation_id: correlationId,
+      }),
+      { status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
     );
   }
 });
