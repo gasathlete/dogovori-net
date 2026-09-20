@@ -392,32 +392,26 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // 2) Look for an existing blank.
-    const { data: existing } = await admin
-      .from("document_blanks")
-      .select("id, storage_path")
-      .eq("sector_id", sectorId)
-      .eq("document_name", documentName)
-      .maybeSingle();
+    // ЕДИНСТВЕН ВЪЗСТАНОВЯВАЩ ПАЗИТЕЛ след таксуване — най-много веднъж.
+    const chargedNow = quota.charged !== false && !quota.reused_session_charge;
+    let refunded = false;
+    const refundOnce = async () => {
+      if (!chargedNow || refunded) return;
+      refunded = true;
+      await admin.rpc("refund_quota", { _user_id: userId, _kind: "template", _used_bonus: false });
+    };
 
-    // Cache version prefix. `v6` fixes the safeKey collision bug — earlier
-    // versions stripped Cyrillic and mapped every blank in a sector to the
-    // same Storage object. `v6` uses BG→Latin transliteration + an 8-char
-    // SHA-1 suffix per (sector, document) to guarantee uniqueness.
-    // Bilingual blanks live under a separate namespace.
+    try {
+    // 2) СТАРИТЕ ГЛОБАЛНИ БЛАНКИ НЕ СЕ ПОДНАСЯТ: записите в document_blanks са
+    // създадени без сървърно доказуем правен манифест и не могат да бъдат
+    // проверени отново. Документът се изготвя наново за тази заявка и НЕ се
+    // записва като глобално преизползваема бланка.
     const CACHE_VERSION = isBilingual ? "v6-bilingual" : "v6";
-    const existingPath = existing?.storage_path as string | undefined;
-    let storagePath: string | undefined =
-      existingPath && existingPath.startsWith(`${CACHE_VERSION}/`) ? existingPath : undefined;
+    let storagePath: string | undefined;
 
-    // 3) If missing, generate via AI Gateway, upload, index.
-    if (!storagePath) {
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-      if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
-
-      // Match the document type so the AI doesn't render every blank as a contract.
-      const docTypeSpec = getDocumentTypeSpec(inferDocumentType(documentName));
-      const systemPrompt = `${SYSTEM_PROMPT}\n\n--- Специфика за този вид документ (${docTypeSpec.label}) ---\n${docTypeSpec.systemAddendum}${isBilingual ? BILINGUAL_ADDENDUM : ""}`;
+    // 3) Generate via AI Gateway with the grounded prompt.
+    {
+      const systemPrompt = `${SYSTEM_PROMPT}\n\n--- Специфика за този вид документ (${docTypeSpec.label}) ---\n${docTypeSpec.systemAddendum}${isBilingual ? BILINGUAL_ADDENDUM : ""}\n\n${legal.promptBlock}`;
 
       const userPrompt = `Сектор: ${sectorTitle || sectorId}\nВид документ: ${docTypeSpec.label}\nКонкретен документ: ${documentName}\n\nГенерирай професионална българска правна БЛАНКА (празен шаблон) за този КОНКРЕТЕН ВИД документ. Спазвай структурата за „${docTypeSpec.label}" — не я смесвай с друг вид документ.${isBilingual ? "\n\nЗАДЪЛЖИТЕЛНО: добави паралелен английски превод в полетата title_en, preamble_en, closing_en и в clauses[].title_en/body_en (виж системния промпт за билингвален режим)." : ""}`;
 
