@@ -215,7 +215,7 @@ Deno.serve(async (req: Request) => {
     };
 
     const aiResp = await callModel([
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: groundedSystem },
       { role: "user", content: userPrompt },
     ]);
 
@@ -244,7 +244,7 @@ Deno.serve(async (req: Request) => {
     const parsed = (await parseAiJsonWithRetry({
       content,
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: groundedSystem },
         { role: "user", content: userPrompt },
       ],
       model: route.model,
