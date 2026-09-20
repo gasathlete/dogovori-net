@@ -5,6 +5,12 @@
 // model answers ONLY from indexed normative sources with citations.
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import {
+  isStrictLegalKnowledgeBaseReady,
+  type StrictLegalDb,
+  verifyLegalChunk,
+  type VerifierDeps,
+} from "./legal-verification.ts";
 
 const EMBED_MODEL = "google/gemini-embedding-001";
 const EMBED_DIMS = 768;
@@ -33,6 +39,8 @@ export interface RetrieveOpts {
   sourceTypes?: string[];
   matchCount?: number;
   minSimilarity?: number;
+  /** Само за тестове: инжектиране на регистър/часовник. */
+  verifier?: VerifierDeps;
 }
 
 export async function embedText(
@@ -67,6 +75,13 @@ export async function embedText(
   }
 }
 
+/**
+ * Документирана, ненулева прагова стойност за семантично съвпадение.
+ * text_rank НЕ заобикаля прага — лексикално съвпадение само по себе си не е
+ * основание.
+ */
+export const DEFAULT_MIN_SIMILARITY = 0.35;
+
 export async function retrieveLegalContext(
   admin: SupabaseClient,
   apiKey: string,
@@ -79,6 +94,11 @@ export async function retrieveLegalContext(
     promptBlock: "",
     hasMatches: false,
   };
+
+  // Fail-closed ПРЕДИ всякаква мрежа: без строга готовност няма embedding,
+  // няма RPC, няма доставчик.
+  const strictDb = admin as unknown as StrictLegalDb;
+  if (!(await isStrictLegalKnowledgeBaseReady(strictDb, opts.verifier))) return empty;
 
   const vec = await embedText(apiKey, query);
   if (!vec) return empty;
@@ -96,24 +116,46 @@ export async function retrieveLegalContext(
     return empty;
   }
 
-  const minSim = opts.minSimilarity ?? 0;
+  const minSim = opts.minSimilarity ?? DEFAULT_MIN_SIMILARITY;
   const rows = (data as Array<Record<string, unknown>>) ?? [];
 
-  const enriched = rows
-    .filter((r) => Number(r.similarity) >= minSim || Number(r.text_rank) > 0)
-    .map((r, idx) => ({
-      _idx: idx + 1,
-      chunk_id: String(r.chunk_id),
-      citation_label: String(r.citation_label),
-      short_code: String(r.source_short_code ?? ""),
-      title: String(r.source_title ?? ""),
-      article_no: r.article_no ? String(r.article_no) : null,
-      paragraph_no: r.paragraph_no ? String(r.paragraph_no) : null,
-      official_url: r.official_url ? String(r.official_url) : null,
-      jurisdiction: (String(r.jurisdiction) === "EU" ? "EU" : "BG") as "BG" | "EU",
+  // Изходът на RPC е само СПИСЪК С КАНДИДАТИ. Всеки кандидат се препрочита и
+  // проверява; етикет, връзка и съдържание идват само от сървъра.
+  const enriched: Array<{
+    _idx: number;
+    chunk_id: string;
+    citation_label: string;
+    short_code: string;
+    title: string;
+    article_no: string | null;
+    paragraph_no: string | null;
+    official_url: string | null;
+    jurisdiction: "BG" | "EU";
+    similarity: number;
+    content: string;
+  }> = [];
+
+  for (const r of rows) {
+    if (!(Number(r.similarity) >= minSim)) continue;
+    const chunkId = typeof r.chunk_id === "string" ? r.chunk_id : null;
+    if (!chunkId) continue;
+    const verified = await verifyLegalChunk(strictDb, chunkId, opts.verifier);
+    if (!verified.ok) continue;
+    const v = verified.chunk;
+    enriched.push({
+      _idx: enriched.length + 1,
+      chunk_id: v.chunk_id,
+      citation_label: v.citation_label,
+      short_code: v.short_code,
+      title: v.title,
+      article_no: v.article_no,
+      paragraph_no: v.paragraph_no,
+      official_url: v.canonical_url,
+      jurisdiction: v.jurisdiction,
       similarity: Number(r.similarity) || 0,
-      content: String(r.content),
-    }));
+      content: v.content,
+    });
+  }
 
   if (enriched.length === 0) return empty;
 

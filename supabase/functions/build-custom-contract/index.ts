@@ -439,6 +439,17 @@ ${fieldsSection}
 
     const composedSystem = `${BASE_SYSTEM_PROMPT}\n\n=== СПЕЦИФИКА ЗА ВИД „${docSpec.label.toUpperCase()}" ===\n${docSpec.systemAddendum}\n\n=== ${modeSpec.label} ===\n${modeSpec.addendum}${safeBilingual ? BILINGUAL_ADDENDUM : ""}`;
     const baseSystem = await loadActivePrompt(admin, "build-custom-contract", composedSystem);
+    // Fail-closed правна проверка: ПРЕДИ основния модел и ПРЕДИ всякаква
+    // промяна на квотата. Без проверена правна основа не се изпълнява нищо.
+    {
+      const { isLegalKnowledgeBaseReady } = await import("../_shared/product-legal-basis.ts");
+      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
+      const legalDb = admin as unknown as Parameters<typeof isLegalKnowledgeBaseReady>[0];
+      if (!(await isLegalKnowledgeBaseReady(legalDb))) {
+        return legalVerificationUnavailableResponse({ headers: { ...corsHeaders, ...correlationHeaders(correlationId) } });
+      }
+    }
+
     const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
     const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, `${docSpec.label}\n${redacted.redacted}`.slice(0, 4000), { matchCount: 6 });
     const activeSystemPrompt = legal.hasMatches ? `${baseSystem}\n\n${legal.promptBlock}` : baseSystem;

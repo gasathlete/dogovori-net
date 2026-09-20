@@ -24,6 +24,7 @@ export type GenerationErrorCode =
   | "blocked_content"
   | "ai_parse_failed"
   | "ai_upstream"
+  | "legal_verification_unavailable"
   | "server_error"
   | "rejected"
   | "cancelled"
@@ -72,6 +73,8 @@ const USER_MESSAGES: Record<GenerationErrorCode, string> = {
   blocked_content: "Заявката съдържа съдържание, което не може да бъде обработено.",
   ai_parse_failed: "AI отговорът беше невалиден и не бе таксуван. Опитайте отново — обикновено вторият опит е успешен.",
   ai_upstream: "AI услугата е временно недостъпна. Не сте таксувани — опитайте отново след малко.",
+  legal_verification_unavailable:
+    "Проверката на правната основа е временно недостъпна. Въведеното и документът са запазени, не е удържана операция — опитайте отново.",
   server_error: "Възникна грешка на сървъра. Не сте таксувани — опитайте отново.",
   rejected: "Заявката бе отхвърлена от сървъра.",
   cancelled: "Генерирането бе прекратено.",
@@ -84,6 +87,7 @@ const RETRYABLE: ReadonlySet<GenerationErrorCode> = new Set<GenerationErrorCode>
   "rate_limited",
   "ai_parse_failed",
   "ai_upstream",
+  "legal_verification_unavailable",
   "server_error",
   "input_not_processable",
   "unknown",
@@ -125,6 +129,7 @@ const SERVER_CODE_MAP: Record<string, GenerationErrorCode> = {
   ai_empty_response: "ai_upstream",
   ai_upstream_error: "ai_upstream",
   ai_upstream: "ai_upstream",
+  legal_verification_unavailable: "legal_verification_unavailable",
   job_timeout: "timeout",
   timeout: "timeout",
   background_failure: "server_error",
@@ -189,6 +194,22 @@ export function classifyGenerationError(raw: RawGenerationOutcome): GenerationEr
     correlationId: err?.correlationId,
     raw: message ? String(message).slice(0, 200) : undefined,
   };
+}
+
+/** Кодът, който сървърът връща, когато строгата правна проверка липсва. */
+export const LEGAL_VERIFICATION_UNAVAILABLE = "legal_verification_unavailable";
+
+/**
+ * Едно място за разпознаване на ограничената правна грешка от всеки консуматор
+ * (503 + code). Състоянието на потребителя се запазва, действието е „опитайте
+ * отново“.
+ */
+export function isLegalVerificationUnavailable(raw: RawGenerationOutcome): boolean {
+  const data = raw.data as { code?: unknown } | null | undefined;
+  const err = raw.error as { code?: unknown; status?: number; message?: string } | null | undefined;
+  if (data?.code === LEGAL_VERIFICATION_UNAVAILABLE) return true;
+  if (err?.code === LEGAL_VERIFICATION_UNAVAILABLE) return true;
+  return typeof err?.message === "string" && err.message.includes(LEGAL_VERIFICATION_UNAVAILABLE);
 }
 
 /** Клас на грешката за таблата: network | server | ai | gate | app. */

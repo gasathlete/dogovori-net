@@ -307,6 +307,17 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Fail-closed правна проверка: ПРЕДИ основния модел и ПРЕДИ всякаква
+    // промяна на квотата. Без проверена правна основа не се изпълнява нищо.
+    {
+      const { isLegalKnowledgeBaseReady } = await import("../_shared/product-legal-basis.ts");
+      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
+      const legalDb = admin as unknown as Parameters<typeof isLegalKnowledgeBaseReady>[0];
+      if (!(await isLegalKnowledgeBaseReady(legalDb))) {
+        return legalVerificationUnavailableResponse({ headers: corsHeaders });
+      }
+    }
+
     // Use session-aware consume when the client supplied session_id + a stable
     // doc key (we use the uploaded contract id or a client-provided slug).
     const docKey = docKeyClient || `upload:${uploadedContractId}`;

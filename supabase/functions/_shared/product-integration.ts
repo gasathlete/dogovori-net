@@ -10,6 +10,7 @@
  */
 import { PRODUCT_GENERATION_POLICY_VERSION } from "./product-generation-policy.ts";
 import { isLegalKnowledgeBaseReady, type LegalDbClient } from "./product-legal-basis.ts";
+import type { VerifierDeps } from "./legal-verification.ts";
 
 export type EnvReader = (key: string) => string | undefined;
 
@@ -200,6 +201,8 @@ export interface ProductServiceGates {
   readonly rpc: ProductRpcProbeClient | null;
   readonly residencyDb: ResidencyDbClient | null;
   readonly userId: string | null;
+  /** Само за тестове: инжектиран регистър/часовник за строгата проверка. */
+  readonly legalVerifier?: VerifierDeps;
 }
 
 async function asyncBlockers(
@@ -209,7 +212,7 @@ async function asyncBlockers(
   if (!gates.rpc || !(await isProductMigrationApplied(gates.rpc))) {
     codes.push("migration_not_verified");
   }
-  if (!gates.legalDb || !(await isLegalKnowledgeBaseReady(gates.legalDb))) {
+  if (!gates.legalDb || !(await isLegalKnowledgeBaseReady(gates.legalDb, gates.legalVerifier))) {
     codes.push("legal_kb_not_ready");
   }
   if (
@@ -271,8 +274,9 @@ export async function productIntegrationReadiness(
   config: ProductIntegrationConfig,
   db: LegalDbClient | null,
   rpc: ProductRpcProbeClient | null = null,
+  legalVerifier?: VerifierDeps,
 ): Promise<ProductIntegrationReadiness> {
-  const legalReady = db ? await isLegalKnowledgeBaseReady(db) : false;
+  const legalReady = db ? await isLegalKnowledgeBaseReady(db, legalVerifier) : false;
   const migrationReady = rpc ? await isProductMigrationApplied(rpc) : false;
   const fulfillmentBlockers = [...productFulfillmentBlockers(config)];
   if (!migrationReady) fulfillmentBlockers.push("migration_not_verified");

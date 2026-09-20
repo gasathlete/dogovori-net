@@ -434,6 +434,17 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } },
     );
 
+    // Fail-closed правна проверка: ПРЕДИ основния модел и ПРЕДИ всякаква
+    // промяна на квотата. Без проверена правна основа не се изпълнява нищо.
+    {
+      const { isLegalKnowledgeBaseReady } = await import("../_shared/product-legal-basis.ts");
+      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
+      const legalDb = admin as unknown as Parameters<typeof isLegalKnowledgeBaseReady>[0];
+      if (!(await isLegalKnowledgeBaseReady(legalDb))) {
+        return legalVerificationUnavailableResponse({ headers: corsHeaders });
+      }
+    }
+
     // Paid individual / team gate
     const { data: quota } = await admin
       .from("download_quota")
