@@ -121,6 +121,9 @@ export async function reserveAnonDelivery(
     return { kind: "limit_reached", delivered: Math.max(0, Number(r.delivered ?? 0)) };
   }
   if (reason === "binding_conflict") return { kind: "conflict", reason };
+  // Изтекъл запазен отговор: същият ключ НИКОГА няма да върне резултат.
+  if (reason === "response_expired") return { kind: "expired", reason };
+
   if (reason === "reconciliation_required" || reason === "cancellation_unproven") {
     return { kind: "unavailable", reason };
   }
