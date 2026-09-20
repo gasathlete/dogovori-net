@@ -263,7 +263,14 @@ Deno.serve(async (req: Request) => {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    return new Response(JSON.stringify({ ok: true, id: created.id, slug: created.slug }), {
+    return new Response(JSON.stringify({
+      ok: true,
+      id: created.id,
+      slug: created.slug,
+      status: "pending",
+      requires_human_review: true,
+      citations: legal.citations,
+    }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
