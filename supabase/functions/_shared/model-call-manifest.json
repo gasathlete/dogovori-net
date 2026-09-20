@@ -1,62 +1,110 @@
 {
-  "description": "Машинно четим списък на ВСИЧКИ крайни точки, при които потребителско действие може да доведе до изходящо повикване към езиков модел, заедно с механизма за точно еднократно изпълнение. Поддържа се ръчно и се проверява от model-call-coverage.test.ts. Нова крайна точка с модел ТРЯБВА да бъде добавена тук. Полето „modelCallSites“ отчита реалния брой изходящи повиквания към шлюза (fetch към ai.gateway.lovable.dev/v1/chat/completions) в изходния код на всяка защитена крайна точка.",
-  "version": 1,
+  "description": "Машинно четим списък на ВСИЧКИ крайни точки, при които потребителско действие може да доведе до изходящо повикване към езиков модел, заедно с механизма за точно еднократно изпълнение. Поддържа се ръчно и се проверява от model-call-coverage.test.ts. Нова крайна точка с модел ТРЯБВА да бъде добавена тук. „directGatewayCallSites“ отчита буквалните fetch адреси към шлюза (ai.gateway.lovable.dev/v1/chat/completions) в изходния код. „maxChatRequestsPerOperation“ отчита РЕАЛНИЯ максимален брой заявки към доставчика в ЕДНА трайна операция — включва ограниченото поправяне на невалиден JSON (parseAiJsonWithRetry с regenerateAttempts). Поправянето е в СЪЩАТА резервация, не е второ право и не е второ таксуване.",
+  "version": 2,
   "ledgerEnforced": [
     {
       "function": "generate-contract",
       "trigger": "user",
       "mechanism": "quota_operations",
       "idempotency": "mandatory operation_id + canonical SHA-256 request digest, read-only committed lookup before mutable gates, reserve -> single model call -> commit",
-      "modelCallSites": 1
+      "directGatewayCallSites": 1,
+      "maxChatRequestsPerOperation": 2,
+      "repair": {
+        "policy": "bounded JSON repair in the same reservation",
+        "parseAiJsonWithRetry": true,
+        "regenerateAttempts": 1
+      }
     },
     {
       "function": "analyze-contract",
       "trigger": "user",
       "mechanism": "quota_operations",
       "idempotency": "mandatory operation_id + canonical SHA-256 digest with session_id/doc_key binding, read-only lookup, reserve -> single model call -> commit",
-      "modelCallSites": 1
+      "directGatewayCallSites": 1,
+      "maxChatRequestsPerOperation": 1,
+      "repair": {
+        "policy": "no JSON repair round",
+        "parseAiJsonWithRetry": false,
+        "regenerateAttempts": 0
+      }
     },
     {
       "function": "apply-corrections",
       "trigger": "user",
       "mechanism": "quota_wave_operations",
       "idempotency": "mandatory operation_id + batch_id binding + canonical SHA-256 digest, read-only lookup, single atomic wave reserve (ops_count = ceil(corrections/5)) -> single model call -> single atomic wave commit/cancel; expired lease or unproven restoration returns reconciliation, never a second reservation",
-      "modelCallSites": 1
+      "directGatewayCallSites": 1,
+      "maxChatRequestsPerOperation": 2,
+      "repair": {
+        "policy": "bounded JSON repair in the same reservation",
+        "parseAiJsonWithRetry": true,
+        "regenerateAttempts": 1
+      }
     },
     {
       "function": "build-custom-contract",
       "trigger": "user",
       "mechanism": "quota_operations",
       "idempotency": "mandatory operation_id + canonical SHA-256 digest, read-only lookup, reserve -> single model call -> commit, review grant minted once",
-      "modelCallSites": 1
+      "directGatewayCallSites": 1,
+      "maxChatRequestsPerOperation": 2,
+      "repair": {
+        "policy": "bounded JSON repair in the same reservation",
+        "parseAiJsonWithRetry": true,
+        "regenerateAttempts": 1
+      }
     },
     {
       "function": "refine-contract",
       "trigger": "user",
       "mechanism": "quota_operations",
       "idempotency": "mandatory operation_id + canonical SHA-256 digest, committed replay before rate limit/illegal/classification/redaction/provider/legal RAG, review grant minted once before commit",
-      "modelCallSites": 1
+      "directGatewayCallSites": 1,
+      "maxChatRequestsPerOperation": 2,
+      "repair": {
+        "policy": "bounded JSON repair in the same reservation",
+        "parseAiJsonWithRetry": true,
+        "regenerateAttempts": 1
+      }
     },
     {
       "function": "review-document",
       "trigger": "user",
       "mechanism": "review_operations",
       "idempotency": "server-issued single-use signed grant or persisted owner + read-only review_operation_lookup before abuse/classification/redaction/legal/provider, reserve -> single model call -> commit",
-      "modelCallSites": 1
+      "directGatewayCallSites": 1,
+      "maxChatRequestsPerOperation": 2,
+      "repair": {
+        "policy": "bounded JSON repair in the same reservation",
+        "parseAiJsonWithRetry": true,
+        "regenerateAttempts": 1
+      }
     },
     {
       "function": "download-blank",
       "trigger": "user",
       "mechanism": "quota_operations",
       "idempotency": "mandatory operation_id + canonical SHA-256 digest, committed replay verifies the bound artifact and re-signs only the proven path; immutable filename/citations/metadata come from result_ref",
-      "modelCallSites": 1
+      "directGatewayCallSites": 1,
+      "maxChatRequestsPerOperation": 1,
+      "repair": {
+        "policy": "no JSON repair round",
+        "parseAiJsonWithRetry": false,
+        "regenerateAttempts": 0
+      }
     },
     {
       "function": "assistant-chat-anon",
       "trigger": "anonymous user",
       "mechanism": "anon_delivery_operations",
       "idempotency": "server-derived opaque identity hash + mandatory operation_id + canonical SHA-256 digest, durable anonymous ledger with exact replay; provider key required only for a new reserved operation",
-      "modelCallSites": 1
+      "directGatewayCallSites": 1,
+      "maxChatRequestsPerOperation": 1,
+      "repair": {
+        "policy": "no JSON repair round",
+        "parseAiJsonWithRetry": false,
+        "regenerateAttempts": 0
+      }
     }
   ],
   "releaseBlockingInventory": [
@@ -64,7 +112,8 @@
       "function": "assistant-chat",
       "trigger": "user",
       "mechanism": "none",
-      "gap": "Няма трайна резервация и терминално уреждане за повикването към модела; повторното изпращане може да изпълни модела отново."
+      "gap": "Няма трайна резервация и терминално уреждане за повикването към модела; повторното изпращане може да изпълни модела отново. Освен това ходът може да направи НЯКОЛКО заявки към доставчика (инструментални итерации и поправяне на JSON) без деклариран и наложен горен предел в трайна операция.",
+      "maxChatRequestsPerOperation": "unbounded/undeclared"
     },
     {
       "function": "correct-uploaded",
