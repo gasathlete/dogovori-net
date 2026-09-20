@@ -123,7 +123,7 @@ function getActiveThreadStorageKey(userId: string) {
 }
 
 export function AssistantChat({ compact = false, embedded = false, threadId: threadIdProp, onThreadChange }: { compact?: boolean; embedded?: boolean; threadId?: string | null; onThreadChange?: (id: string | null) => void } = {}) {
-  const { user, session } = useAuth();
+  const { user, session, loading: authLoading } = useAuth();
   const requireAuth = useRequireAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -152,8 +152,12 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   /** Синхронна защита срещу две паралелни изпращания в един и същ tick. */
   const sendingRef = useRef(false);
   // Смяна на профил или изход: ключовете на ходове от други профили не остават
-  // в браузъра. При липса на профил хранилището се изчиства напълно.
+  // в браузъра. ВАЖНО: докато сесията се възстановява (`authLoading`), профилът
+  // още е `null` и изчистване тук би изтрило ключа на ход, който тепърва трябва
+  // да бъде възобновен след презареждане. Затова чистим САМО при потвърдено
+  // състояние: потвърден изход => всичко; потвърден профил => само неговите.
   useEffect(() => {
+    if (authLoading) return;
     const uid = user?.id ?? null;
     if (!uid) {
       clearTurnOperationsForOtherUsers(null);
@@ -164,7 +168,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
       if (!cancelled) clearTurnOperationsForOtherUsers(key);
     });
     return () => { cancelled = true; };
-  }, [user?.id]);
+  }, [authLoading, user?.id]);
   const [serverContext, setServerContext] = useState<
     { kind: string; title: string; truncated: boolean } | null
   >(null);
@@ -711,8 +715,13 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
             description: "Направете нов анализ, за да разговаряте по него.",
           });
         } else if (code === "assistant_turn_in_progress") {
-          // Същият въпрос вече се обработва: не изпращаме нищо повторно.
-          toast.info("Този въпрос вече се обработва. Изчакайте отговора.");
+          // Същият въпрос вече се обработва: НЕ изпращаме нищо автоматично.
+          // Ключът СЕ ЗАПАЗВА, а текстът се връща в полето, за да може същият
+          // ход да бъде опитан ръчно, без да се загуби написаното.
+          setInput(text);
+          toast.info("Този въпрос вече се обработва. Изчакайте отговора.", {
+            description: "Ако отговорът не се появи, изпратете същия въпрос отново.",
+          });
         } else if (code === "assistant_turn_reconciliation") {
           // Несигурно състояние: ключът СЕ ЗАПАЗВА, за да е същият ход при
           // повторен опит, но текстът се връща в полето, за да не се загуби.

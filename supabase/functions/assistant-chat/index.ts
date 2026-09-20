@@ -375,14 +375,28 @@ Deno.serve(async (req) => {
     if (!UUID_RE.test(operationId)) {
       return json({ error: "Липсва валиден идентификатор на заявката.", code: "operation_id_required" }, 400);
     }
+    // Идентичността на заявката е ТОЧНА: нищо не се отрязва тихо, за да не се
+    // обвърже и запише текст, различен от изпратения.
     const rawMessage = typeof body?.message === "string" ? body.message : "";
-    const newMessage = rawMessage.slice(0, HISTORY_CHARS_LIMIT).trim();
+    const newMessage = rawMessage.trim();
     if (!newMessage) {
       return json({ error: "Съобщението е задължително.", code: "message_required" }, 400);
     }
-    const requestedThreadId = typeof body?.threadId === "string" && UUID_RE.test(body.threadId)
-      ? body.threadId
-      : null;
+    if (rawMessage.length > HISTORY_CHARS_LIMIT) {
+      return json({
+        error: `Съобщението е твърде дълго. Максимум ${HISTORY_CHARS_LIMIT} знака.`,
+        code: "message_too_long",
+      }, 400);
+    }
+    // Подаден, но невалиден разговор НЕ се подменя тихо с нов.
+    const rawThreadId = body?.threadId;
+    let requestedThreadId: string | null = null;
+    if (rawThreadId !== undefined && rawThreadId !== null && rawThreadId !== "") {
+      if (typeof rawThreadId !== "string" || !UUID_RE.test(rawThreadId)) {
+        return json({ error: "Невалиден разговор.", code: "invalid_thread_id" }, 400);
+      }
+      requestedThreadId = rawThreadId;
+    }
     const currentPath = sanitizeChatPath(body?.currentPath);
 
     // ---- Безплатни проверки ПРЕДИ всяка резервация --------------------------
@@ -1173,7 +1187,7 @@ Deno.serve(async (req) => {
     });
 
     // Едно ОГРАНИЧЕНО поправяне в СЪЩАТА резервация (в декларирания таван).
-    let citationCheck = validateAnswerCitations(cleaned, verifiedLegal.citations as any, {
+    let citationCheck = validateAnswerCitations(cleaned, verifiedLegal.chunks as any, {
       requireCitation: needsStructuredLegalAnswer,
     });
     const structureBroken = needsStructuredLegalAnswer && needsLegalAnswerRepair(cleaned);
@@ -1192,7 +1206,7 @@ Deno.serve(async (req) => {
           citationCount: verifiedLegal.citations.length,
           injectRiskBanner: false,
         });
-        const recheck = validateAnswerCitations(candidate, verifiedLegal.citations as any, {
+        const recheck = validateAnswerCitations(candidate, verifiedLegal.chunks as any, {
           requireCitation: needsStructuredLegalAnswer,
         });
         if (recheck.ok) {

@@ -39,9 +39,13 @@ export function sanitizeChatPath(raw: unknown): string {
   return onlyPath.slice(0, 120);
 }
 
+/** Предназначението е ЧАСТ от обвързването: ключ от един поток не важи за друг. */
+export const TURN_BINDING_PURPOSE = "assistant_chat";
+
 function canonicalPayload(input: TurnBindingInput): string {
   return JSON.stringify([
     "assistant_turn_v1",
+    TURN_BINDING_PURPOSE,
     input.userId,
     input.requestedThreadId ?? "new_thread",
     input.actualThreadId ?? "new_thread",
