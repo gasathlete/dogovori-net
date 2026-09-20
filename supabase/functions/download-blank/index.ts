@@ -397,8 +397,7 @@ Deno.serve(async (req: Request) => {
       sectorTitle,
       isBilingual,
     });
-    const hasClientKey = Boolean(clientOperationId);
-    const operationId = clientOperationId ?? crypto.randomUUID();
+    const operationId = clientOperationId;
     const reservation = await reserveQuota(admin as unknown as Parameters<typeof reserveQuota>[0], {
       operationId,
       userId,
@@ -420,7 +419,9 @@ Deno.serve(async (req: Request) => {
     }
     // ТРАЙНО ПОВТОРЕНИЕ: същият ключ след загубен отговор връща СЪЩИЯ документ.
     // Подписва се нов адрес към вече записания файл — без ново генериране и
-    // без второ таксуване.
+    // без второ таксуване. Ако записаният обект вече не съществува, НЕ
+    // генерираме мълчаливо наново върху вече таксувана резервация: връщаме
+    // типизирано състояние за изравняване.
     if (reservation.status === "reserved" && reservation.replay && reservation.resultRef) {
       const ref = reservation.resultRef as { bucket?: unknown; path?: unknown; filename?: unknown };
       const bucket = typeof ref.bucket === "string" ? ref.bucket : "document-blanks";
@@ -437,13 +438,23 @@ Deno.serve(async (req: Request) => {
                 : `${documentName} - бланка.docx`,
               cached: false,
               replay: true,
+              operation_id: operationId,
+              retry_idempotent: true,
               citations: legal.citations,
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
       }
+      await recordReconciliation(
+        admin as unknown as Parameters<typeof recordReconciliation>[0],
+        operationId,
+        "replay_artifact_missing",
+        { purpose: "download_blank", bucket, path },
+      );
+      return billingReconciliationResponse(corsHeaders);
     }
+
     if (reservation.status === "unavailable") {
       return new Response(
         JSON.stringify({ error: "Квотата не може да бъде проверена в момента. Опитайте отново.", charge_state: "not_charged" }),
