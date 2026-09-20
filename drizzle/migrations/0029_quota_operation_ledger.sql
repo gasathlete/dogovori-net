@@ -457,3 +457,165 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.quota_cancel(uuid, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.quota_cancel(uuid, text) TO service_role;
+
+-- ---------------------------------------------------------------------------
+-- 6) Вълни поправки: точна, идемпотентна отмяна.
+--
+-- corrections_batch_charges пази само общия брой операции, затова досега
+-- отмяната гадаеше кошера. Добавяме точния разрез (план/topup) и функция за
+-- отмяна, идемпотентна по batch_id. Подписът и връщаните ключове на
+-- charge_corrections_wave се запазват (добавят се само нови ключове).
+-- ---------------------------------------------------------------------------
+ALTER TABLE public.corrections_batch_charges
+  ADD COLUMN IF NOT EXISTS from_plan integer,
+  ADD COLUMN IF NOT EXISTS from_topup integer,
+  ADD COLUMN IF NOT EXISTS was_pro boolean,
+  ADD COLUMN IF NOT EXISTS cancelled_at timestamptz;
+
+CREATE OR REPLACE FUNCTION public.cancel_corrections_wave(p_user_id uuid, p_batch_id uuid, p_reason text DEFAULT NULL)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  _row public.corrections_batch_charges%ROWTYPE;
+BEGIN
+  IF auth.role() <> 'service_role' AND NOT public.is_staff(auth.uid()) THEN
+    RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501';
+  END IF;
+
+  SELECT * INTO _row FROM public.corrections_batch_charges
+   WHERE user_id = p_user_id AND batch_id = p_batch_id
+   FOR UPDATE;
+
+  IF NOT FOUND THEN
+    -- Нямаше таксуване по този ключ — отмяната е безпредметна и безопасна.
+    RETURN jsonb_build_object('ok', true, 'replay', true, 'charged', false);
+  END IF;
+
+  IF _row.cancelled_at IS NOT NULL THEN
+    RETURN jsonb_build_object('ok', true, 'replay', true, 'charged', false);
+  END IF;
+
+  IF _row.from_plan IS NULL OR _row.from_topup IS NULL THEN
+    -- Стар запис без точен разрез: не гадаем, а искаме изравняване.
+    INSERT INTO public.billing_reconciliation_items (user_id, kind, reason, detail)
+      VALUES (p_user_id, 'analysis', 'corrections_wave_split_unknown',
+              jsonb_build_object('batch_id', p_batch_id, 'ops_charged', _row.ops_charged, 'cancel_reason', p_reason));
+    RETURN jsonb_build_object('ok', false, 'reason', 'reconciliation_required');
+  END IF;
+
+  IF COALESCE(_row.was_pro, false) THEN
+    UPDATE public.download_quota
+       SET pro_monthly_used = GREATEST(0, COALESCE(pro_monthly_used, 0) - _row.from_plan),
+           topup_ops_balance = COALESCE(topup_ops_balance, 0) + _row.from_topup,
+           updated_at = now()
+     WHERE user_id = p_user_id;
+  ELSE
+    UPDATE public.download_quota
+       SET monthly_total_used = GREATEST(0, COALESCE(monthly_total_used, 0) - _row.from_plan),
+           topup_ops_balance = COALESCE(topup_ops_balance, 0) + _row.from_topup,
+           updated_at = now()
+     WHERE user_id = p_user_id;
+  END IF;
+
+  UPDATE public.corrections_batch_charges
+     SET cancelled_at = now()
+   WHERE id = _row.id;
+
+  RETURN jsonb_build_object('ok', true, 'replay', false, 'charged', false);
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.cancel_corrections_wave(uuid, uuid, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.cancel_corrections_wave(uuid, uuid, text) TO service_role;
+
+-- Отменените вълни вече не блокират ново легитимно таксуване по същия ключ:
+-- charge_corrections_wave се допълва да игнорира отменените записи и да
+-- записва точния разрез. Подписът остава същият.
+CREATE OR REPLACE FUNCTION public.charge_corrections_wave(p_user_id uuid, p_batch_id uuid, p_count integer)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_ops integer;
+  v_quota record;
+  v_is_pro boolean;
+  v_cap integer;
+  v_used integer;
+  v_from_plan integer;
+  v_from_topup integer;
+  v_remaining_plan integer;
+  v_existing record;
+BEGIN
+  IF p_count IS NULL OR p_count < 1 THEN
+    p_count := 1;
+  END IF;
+
+  IF p_batch_id IS NOT NULL THEN
+    SELECT * INTO v_existing
+      FROM public.corrections_batch_charges
+      WHERE user_id = p_user_id AND batch_id = p_batch_id AND cancelled_at IS NULL
+      LIMIT 1;
+    IF FOUND THEN
+      RETURN jsonb_build_object('ok', true, 'ops_charged', v_existing.ops_charged, 'cached', true);
+    END IF;
+  END IF;
+
+  v_ops := GREATEST(1, CEIL(p_count::numeric / 5))::integer;
+
+  SELECT * INTO v_quota FROM public.download_quota
+    WHERE user_id = p_user_id FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'download_quota row missing for user %', p_user_id;
+  END IF;
+
+  v_is_pro := (v_quota.plan = 'pro') OR (v_quota.pro_until IS NOT NULL AND v_quota.pro_until > now());
+  v_cap := COALESCE(v_quota.plan_ops_cap, CASE WHEN v_is_pro THEN 100 ELSE 10 END);
+  v_used := CASE WHEN v_is_pro THEN COALESCE(v_quota.pro_monthly_used, 0)
+                 ELSE COALESCE(v_quota.monthly_total_used, 0) END;
+
+  v_remaining_plan := GREATEST(0, v_cap - v_used);
+  v_from_plan := LEAST(v_ops, v_remaining_plan);
+  v_from_topup := v_ops - v_from_plan;
+
+  IF v_from_topup > COALESCE(v_quota.topup_ops_balance, 0) THEN
+    RETURN jsonb_build_object(
+      'ok', false,
+      'reason', 'insufficient_quota',
+      'ops_needed', v_ops,
+      'remaining_plan', v_remaining_plan,
+      'topup_balance', COALESCE(v_quota.topup_ops_balance, 0)
+    );
+  END IF;
+
+  IF v_is_pro THEN
+    UPDATE public.download_quota
+      SET pro_monthly_used = COALESCE(pro_monthly_used, 0) + v_from_plan,
+          topup_ops_balance = COALESCE(topup_ops_balance, 0) - v_from_topup
+      WHERE user_id = p_user_id;
+  ELSE
+    UPDATE public.download_quota
+      SET monthly_total_used = COALESCE(monthly_total_used, 0) + v_from_plan,
+          topup_ops_balance = COALESCE(topup_ops_balance, 0) - v_from_topup
+      WHERE user_id = p_user_id;
+  END IF;
+
+  IF p_batch_id IS NOT NULL THEN
+    INSERT INTO public.corrections_batch_charges(user_id, batch_id, ops_charged, from_plan, from_topup, was_pro)
+      VALUES (p_user_id, p_batch_id, v_ops, v_from_plan, v_from_topup, v_is_pro);
+  END IF;
+
+  RETURN jsonb_build_object(
+    'ok', true,
+    'ops_charged', v_ops,
+    'from_plan', v_from_plan,
+    'from_topup', v_from_topup,
+    'cached', false
+  );
+END;
+$function$;
