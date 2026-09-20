@@ -225,7 +225,8 @@ export interface NonceDb {
   rpc(
     name: string,
     args: Record<string, unknown>,
-  ): Promise<{ data: unknown; error: { message: string } | null }>;
+    // deno-lint-ignore no-explicit-any
+  ): PromiseLike<{ data: any; error: { message: string } | null }>;
 }
 
 /**
