@@ -288,7 +288,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    }
 
     if (safe.length === 0 || safe[safe.length - 1].role !== "user") {
       return new Response(JSON.stringify({ error: "Последното съобщение трябва да е от потребителя" }), {
