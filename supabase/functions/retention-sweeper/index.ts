@@ -152,6 +152,33 @@ Deno.serve(async (req) => {
     stats.stale_operations_unresolved = stale.unresolved;
     if (stale.error) stats.errors.push(`quota_reconcile_stale: ${stale.error}`);
 
+    // 6. Изтекли ТОЧНИ отговори (24 ч прозорец за повторен опит): заличава се
+    //    САМО JSON товарът. Правата, квотите и anti-replay обвързването остават.
+    //    `count_only=true` дава статистика без запис.
+    {
+      let countOnly = false;
+      try {
+        const url = new URL(req.url);
+        countOnly = url.searchParams.get("count_only") === "1";
+      } catch {
+        countOnly = false;
+      }
+      const { data: sweepData, error: sweepErr } = await supabase.rpc(
+        "sweep_expired_exact_responses",
+        { p_limit: 500, p_dry_run: countOnly },
+      );
+      if (sweepErr) {
+        // Без суров текст в логовете — само кодът на грешката.
+        stats.errors.push(`exact_response_sweep: ${sweepErr.code ?? "rpc_error"}`);
+      } else {
+        const r = (sweepData ?? {}) as Record<string, unknown>;
+        stats.exact_responses_examined = Number(r.examined ?? 0);
+        stats.exact_responses_cleared_anon = Number(r.anon_cleared ?? 0);
+        stats.exact_responses_cleared_review = Number(r.review_cleared ?? 0);
+      }
+    }
+
+
     return new Response(JSON.stringify({ ok: true, stats }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
