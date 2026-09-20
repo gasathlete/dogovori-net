@@ -484,6 +484,7 @@ SET search_path TO 'public'
 AS $function$
 DECLARE
   _op public.quota_operations%ROWTYPE;
+  _updated integer := 0;
 BEGIN
   IF auth.role() <> 'service_role' AND NOT public.is_staff(auth.uid()) THEN
     RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501';
@@ -496,6 +497,8 @@ BEGIN
   IF NOT FOUND THEN
     RETURN jsonb_build_object('ok', false, 'reason', 'unknown_operation');
   END IF;
+  -- Вече доказано отменена: повторението е безопасно и НЕ таксува отново.
+  -- Ново таксуване е възможно само с НОВ operation_id (сесийният ред е паднал).
   IF _op.state = 'cancelled' THEN
     RETURN jsonb_build_object('ok', true, 'replay', true, 'state', 'cancelled', 'charged', false);
   END IF;
@@ -512,18 +515,21 @@ BEGIN
              total_used = GREATEST(0, total_used - 1),
              updated_at = now()
        WHERE user_id = _op.user_id;
+      GET DIAGNOSTICS _updated = ROW_COUNT;
     ELSIF _op.source = 'bonus' THEN
       UPDATE public.download_quota
          SET bonus_contracts = COALESCE(bonus_contracts, 0) + 1,
              total_used = GREATEST(0, total_used - 1),
              updated_at = now()
        WHERE user_id = _op.user_id;
+      GET DIAGNOSTICS _updated = ROW_COUNT;
     ELSIF _op.source = 'pro_plan' THEN
       UPDATE public.download_quota
          SET pro_monthly_used = GREATEST(0, COALESCE(pro_monthly_used, 0) - 1),
              total_used = GREATEST(0, total_used - 1),
              updated_at = now()
        WHERE user_id = _op.user_id;
+      GET DIAGNOSTICS _updated = ROW_COUNT;
     ELSIF _op.source = 'free_plan' THEN
       -- monthly_contracts_used / monthly_templates_used се увеличават САМО по
       -- безплатния план, затова САМО тук се намаляват.
@@ -538,6 +544,7 @@ BEGIN
              total_used = GREATEST(0, total_used - 1),
              updated_at = now()
        WHERE user_id = _op.user_id;
+      GET DIAGNOSTICS _updated = ROW_COUNT;
     ELSE
       -- Неизвестен източник: не гадаем. Операцията се маркира за изравняване.
       INSERT INTO public.billing_reconciliation_items (operation_id, user_id, kind, reason, detail)
@@ -549,6 +556,19 @@ BEGIN
              detail = detail || jsonb_build_object('reconciliation_required', true)
        WHERE operation_id = p_operation_id;
       RETURN jsonb_build_object('ok', false, 'reason', 'reconciliation_required', 'state', 'cancelled');
+    END IF;
+
+    -- Нула засегнати редове: няма доказателство, че връщането е станало.
+    IF _updated = 0 THEN
+      INSERT INTO public.billing_reconciliation_items (operation_id, user_id, kind, reason, detail)
+        VALUES (_op.operation_id, _op.user_id, _op.kind, 'reversal_affected_no_rows',
+                jsonb_build_object('source', _op.source, 'cancel_reason', p_reason));
+      UPDATE public.quota_operations
+         SET detail = detail || jsonb_build_object('reconciliation_required', true),
+             updated_at = now()
+       WHERE operation_id = p_operation_id;
+      RETURN jsonb_build_object('ok', false, 'reason', 'reconciliation_required',
+        'state', _op.state, 'charged', true);
     END IF;
 
     -- Пожизнените броячи по вид се увеличават при ВСЕКИ реално таксуван
