@@ -599,27 +599,8 @@ ${docTypeSpec.systemAddendum}
       compensated = false;
     }
 
-    /* legacy-marker-removed */
-    /**
-     * ЕДИНСТВЕН КОМПЕНСИРАЩ ПАЗИТЕЛ през леджъра. „charged: false" се твърди
-     * САМО при доказана отмяна; иначе типизиран billing_reconciliation_required
-     * и траен запис за изравняване. За анонимни заявки няма какво да се отменя.
-     */
-    const cancelOrReport = async (reason: string): Promise<Response | null> => {
-      if (compensated || !ledgerBinding) return null;
-      const outcome = await cancelQuota(ledgerDb, operationId, reason);
-      if (outcome.status !== "settled") {
-        await recordReconciliation(
-          ledgerDb,
-          operationId,
-          `generate_contract_cancel_failed:${outcome.reason}`,
-          { user_id: userId, kind: "analysis" },
-        );
-        return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
-      }
-      compensated = true;
-      return null;
-    };
+    // Компенсиращият пазител е дефиниран по-горе (единствен за целия обработчик).
+
 
     try {
 
