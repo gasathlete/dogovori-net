@@ -348,12 +348,22 @@ export default function ProductResult() {
       if (phase.kind !== "ready" || !access) {
         return { ok: false, message: "Страницата трябва да се презареди." };
       }
+      // Устойчив ключ: повторно щракване, презареждане или загубен отговор
+      // подават СЪЩАТА самоличност, затова сървърът повтаря записаното.
+      const expectedVersion = state?.selection_version ?? 0;
+      const selectionScope = await productOperationScope({
+        purpose: "product_selection",
+        entitlementId: phase.purchase.entitlement.id,
+        resultDigest: state?.result_digest ?? "",
+        version: expectedVersion,
+        input: decisions,
+      });
       const outcome = await saveProductSelection(
         accessFor(access, phase.purchase.entitlement.id),
         {
           decisions,
-          expectedVersion: state?.selection_version ?? 0,
-          idempotencyKey: crypto.randomUUID(),
+          expectedVersion,
+          idempotencyKey: getOrCreateProductOperationKey("product_selection", selectionScope),
         },
       );
       if (outcome.ok === false) {
@@ -408,17 +418,34 @@ export default function ProductResult() {
       if (phase.kind !== "ready" || !state) {
         return { ok: false, message: "Страницата трябва да се презареди." };
       }
+      const expectedRefinementVersion =
+        state.refinement?.current?.version ?? state.refinement?.used ?? 0;
+      // Точно ЕДНО включено уточнение: ключът е устойчив, за да не може повторна
+      // заявка след загубен отговор да поиска второ изпълнение.
+      const refineScope = await productOperationScope({
+        purpose: "product_refinement",
+        entitlementId: phase.purchase.entitlement.id,
+        resultDigest: state.result_digest,
+        version: expectedRefinementVersion,
+        input: instruction,
+      });
       const outcome = await refineProductResult({
         entitlementId: phase.purchase.entitlement.id,
         instruction,
         expectedResultDigest: state.result_digest,
-        expectedRefinementVersion: state.refinement?.current?.version ?? state.refinement?.used ?? 0,
-        idempotencyKey: crypto.randomUUID(),
+        expectedRefinementVersion,
+        idempotencyKey: getOrCreateProductOperationKey("product_refinement", refineScope),
       });
       if (outcome.ok === false) {
+        // Само доказан конфликт изчиства ключа. Временна грешка, изчакване и
+        // „за изясняване“ го запазват, за да няма второ платено изпълнение.
+        if (outcome.failure.error === "version_conflict") {
+          clearProductOperationKey("product_refinement", refineScope);
+        }
         trackRefinementFailed(outcome.failure.error);
         return { ok: false, message: outcome.failure.message };
       }
+      clearProductOperationKey("product_refinement", refineScope);
       trackRefinementCompleted();
       reload();
       return { ok: true };
