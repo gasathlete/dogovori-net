@@ -75,9 +75,14 @@ export default function DocumentWorkspacePage() {
         clearDocumentOperation, documentOperationScope, documentOperationUserKey, getOrCreateDocumentOperationId,
       } = await import("@/lib/documentOperationKey");
       const { data: sessionData } = await supabase.auth.getSession();
-      // Без профил операцията остава без траен ключ: сървърът я отказва с
-      // покана за вход, точно както досега.
-      const uid = sessionData.session?.user?.id ?? "anonymous";
+      // Създаването изисква профил: всяко изпълнение се води в трайния дневник
+      // на операциите. Без профил не се изпраща заявка.
+      const uid = sessionData.session?.user?.id;
+      if (!uid) {
+        toast.error("Влезте безплатно, за да създадете свързан документ.");
+        setTimeout(() => navigate("/auth"), 1000);
+        return;
+      }
       const userKey = await documentOperationUserKey(uid);
       const opScope = await documentOperationScope({
         purpose: "generate_linked_document",
@@ -117,6 +122,11 @@ export default function DocumentWorkspacePage() {
           () => { void handleGenerate(); },
         )
       ) {
+        return;
+      }
+      if (error && ledgerStatus === 401) {
+        toast.error("Влезте безплатно, за да създадете свързан документ.");
+        setTimeout(() => navigate("/auth"), 1000);
         return;
       }
       if (error) throw error;

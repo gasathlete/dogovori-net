@@ -129,6 +129,55 @@ Deno.test("OCR не записва и не журналира байтове и�
   assert(!/p_result:\s*\{[^}]*images/.test(s), "резултатът за повторение не съдържа изображения");
 });
 
+Deno.test("неочакваните изключения се обработват fail-closed във всяка крайна точка", async () => {
+  for (const { fn } of ENDPOINTS) {
+    const s = await src(fn);
+    assert(s.includes("reconcileUnexpectedFailure("), `${fn}: липсва изравняване при неочаквана грешка`);
+    assert(s.includes("cancelUnexpectedFailure("), `${fn}: липсва отмяна преди старта на модела`);
+    assert(s.includes("internalErrorResponse("), `${fn}: липсва нормализиран вътрешен отговор`);
+    assert(/postStart/.test(s), `${fn}: няма следене дали моделът е стартирал трайно`);
+  }
+});
+
+Deno.test("никъде не се връщат и не се журналират сурови съобщения за грешки", async () => {
+  for (const { fn } of ENDPOINTS) {
+    const s = await src(fn);
+    // Сурово съобщение на ПРИХВАНАТА грешка (e/err/caught), не структурирани
+    // полета като pre.error.message, които са наш собствен български текст.
+    assert(
+      !/(?<![.\w])(?:e|err|caught|ex)\.message/.test(s),
+      `${fn}: сурово съобщение за грешка`,
+    );
+    const logs = [...s.matchAll(/console\.(log|info|warn|error)\(([\s\S]{0,200}?)\);/g)];
+    for (const m of logs) {
+      const body = m[2];
+      assert(
+        !/,\s*(e|err|error)\s*\)?\s*$/.test(body.trim()),
+        `${fn}: журналира суров обект на грешка: ${body}`,
+      );
+    }
+  }
+});
+
+Deno.test("свързаният документ изисква вписан профил преди всеки модел и всяка операция", async () => {
+  const s = await src("generate-linked-document");
+  const login = at(s, "login_required");
+  const lookup = at(s, "lookupDocumentOperation(");
+  assert(login < lookup, "отказът за вписване е ПРЕДИ търсенето на операция");
+  assert(login < providerCallAt(s), "отказът е ПРЕДИ повикването към доставчика");
+  const key = s.indexOf('Deno.env.get("LOVABLE_API_KEY")');
+  assert(key < 0 || login < key, "отказът е преди четенето на ключа");
+  assert(!/ip_hash:\s*ipHash/.test(s), "анонимен ai_usage по IP не съществува");
+  assert(!/user_id:\s*(?:userId\s*)?\?\?\s*null/.test(s), "няма анонимен запис на употреба");
+});
+
+Deno.test("OCR не журналира тялото на отговора на доставчика", async () => {
+  const s = await src("ocr-contract");
+  assert(s.includes("runOcrBatch("), "партидата минава през общия безопасен помощник");
+  assert(!/body|text\(\)\s*\)/.test(s.match(/console\.(warn|error)\([\s\S]{0,160}?\);/g)?.join("") ?? ""),
+    "тялото на отговора не се журналира");
+});
+
 Deno.test("негоциацията чете запазена стратегия без модел и без операция", async () => {
   const s = await src("negotiation-strategy");
   const cached = at(s, "cached_only");

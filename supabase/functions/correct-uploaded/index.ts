@@ -20,9 +20,12 @@ import { canonicalize, sha256Hex } from "../_shared/canonical-digest.ts";
 import {
   asOperationId,
   type LedgerRpc,
+  type PostModelContext,
   cancelDocumentOperation,
+  cancelUnexpectedFailure,
   canonicalDocumentBinding,
   commitDocumentOperation,
+  internalErrorResponse,
   ledgerBlockResponse,
   ledgerUnavailableResponse,
   lookupDocumentOperation,
@@ -31,6 +34,7 @@ import {
   operationIdRequiredResponse,
   operationReconciliationResponse,
   ProviderCallBudget,
+  reconcileUnexpectedFailure,
   reserveDocumentOperation,
 } from "../_shared/ai-document-ledger.ts";
 
@@ -57,6 +61,11 @@ Deno.serve(async (req: Request) => {
   const correlationId = getCorrelationId(req);
   const corsHeaders = buildCors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Fail-closed контекст за НЕОЧАКВАНИ изключения: след трайното начало на
+  // модела — изравняване; преди него (с резервация) — отмяна.
+  let postStart: PostModelContext | null = null;
+  let preStart: PostModelContext | null = null;
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -175,6 +184,7 @@ Deno.serve(async (req: Request) => {
     if (reserved.kind !== "reserved") {
       return ledgerBlockResponse(reserved, ledgerHeaders) ?? ledgerUnavailableResponse(ledgerHeaders);
     }
+    preStart = { db: ledger, operationId, userId };
 
     /** Детерминиран провал ПРЕДИ модела — резервацията се отменя. */
     const cancelAndRespond = async (reason: string, response: Response): Promise<Response> => {
@@ -330,6 +340,10 @@ ${scopeNote}
     if (!started.ok) {
       return ledgerBlockResponse(started.outcome, ledgerHeaders) ?? ledgerUnavailableResponse(ledgerHeaders);
     }
+    // От тук нататък моделът може да е бил задействан: всяко неочаквано
+    // изключение отива в изравняване, никога в отмяна/възстановяване.
+    postStart = { db: ledger, operationId, userId };
+    preStart = null;
 
     budget.take();
     let aiResp: Response;
@@ -430,9 +444,14 @@ ${scopeNote}
     }
     return new Response(JSON.stringify(payload), { headers: jsonHeaders });
   } catch (e) {
-    console.error(`correct-uploaded error [cid=${correlationId}]:`, e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка", correlation_id: correlationId }), {
-      status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
+    // Нормализирано: без сурово съобщение, тяло от шлюза или текст на договор.
+    const headers = { ...corsHeaders, ...correlationHeaders(correlationId) };
+    if (postStart) return await reconcileUnexpectedFailure(postStart, headers, e);
+    if (preStart) return await cancelUnexpectedFailure(preStart, headers, e, correlationId);
+    console.error("correct-uploaded error", {
+      cid: correlationId,
+      name: e instanceof Error ? e.name : "unknown",
     });
+    return internalErrorResponse(headers, correlationId);
   }
 });

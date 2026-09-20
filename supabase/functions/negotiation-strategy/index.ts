@@ -17,9 +17,12 @@ import { canonicalize, sha256Hex } from "../_shared/canonical-digest.ts";
 import {
   asOperationId,
   type LedgerRpc,
+  type PostModelContext,
   cancelDocumentOperation,
+  cancelUnexpectedFailure,
   canonicalDocumentBinding,
   commitDocumentOperation,
+  internalErrorResponse,
   ledgerBlockResponse,
   lookupDocumentOperation,
   markDocumentModelStarted,
@@ -27,8 +30,10 @@ import {
   operationIdRequiredResponse,
   operationReconciliationResponse,
   ProviderCallBudget,
+  reconcileUnexpectedFailure,
   reserveDocumentOperation,
 } from "../_shared/ai-document-ledger.ts";
+import { callStrategyModelWithFallback } from "./model-call.ts";
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -71,6 +76,11 @@ Deno.serve(async (req) => {
       headers: { ...cors, "Content-Type": "application/json" },
     });
   }
+
+  // Fail-closed контекст за НЕОЧАКВАНИ изключения: след трайното начало на
+  // модела — изравняване; преди него (с резервация) — отмяна.
+  let postStart: PostModelContext | null = null;
+  let preStart: PostModelContext | null = null;
 
   try {
     const supaUrl = Deno.env.get("SUPABASE_URL")!;
@@ -268,6 +278,7 @@ Deno.serve(async (req) => {
     }
     const reserveBlock = ledgerBlockResponse(reserved, cors);
     if (reserveBlock) return reserveBlock;
+    preStart = { db: ledger, operationId, userId: user.id };
 
 
     const sys = `Ти си опитен правен стратег за преговори по български договори. Връщаш САМО валиден JSON със следната структура:
@@ -340,11 +351,26 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
       return ledgerBlockResponse(started.outcome, cors) ??
         operationReconciliationResponse(cors, "model_start_unproven");
     }
+    const post: PostModelContext = { db: ledger, operationId, userId: user.id };
+    postStart = post;
+    preStart = null;
+
+    // СЛЕД началото на модела няма автоматично връщане и няма трето повикване:
+    // всяка несигурност отива в изравняване. Дефинирано ПРЕДИ първото
+    // повикване, за да покрие и хвърлена грешка при заявката.
+    const reconcileAndRespond = async (reason: string): Promise<Response> => {
+      await markDocumentReconciliation(ledger, {
+        operationId,
+        userId: user.id,
+        reason,
+      });
+      return operationReconciliationResponse(cors, reason);
+    };
 
     // Твърд бюджет: 1 основен + най-много 1 резервен модел.
     const budget = new ProviderCallBudget("negotiation_strategy");
+    const takeProviderCall = () => budget.take();
     const callModel = async (model: string) => {
-      budget.take();
       const r = await fetch(GATEWAY_URL, {
         method: "POST",
         headers: {
@@ -364,22 +390,19 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
       return r;
     };
 
-    let resp = await callModel("openai/gpt-5");
-    let usedModel = "openai/gpt-5";
-    if (!resp.ok && (resp.status === 429 || resp.status >= 500)) {
-      resp = await callModel("google/gemini-2.5-pro");
-      usedModel = "google/gemini-2.5-pro";
-    }
-    // СЛЕД началото на модела няма автоматично връщане и няма трето повикване:
-    // всяка несигурност отива в изравняване.
-    const reconcileAndRespond = async (reason: string): Promise<Response> => {
-      await markDocumentReconciliation(ledger, {
-        operationId,
-        userId: user.id,
-        reason,
+    // Основно + най-много едно резервно повикване — заедно най-много 2.
+    let resp: Response;
+    let usedModel: string;
+    try {
+      const outcome = await callStrategyModelWithFallback({
+        take: takeProviderCall,
+        call: callModel,
       });
-      return operationReconciliationResponse(cors, reason);
-    };
+      resp = outcome.resp;
+      usedModel = outcome.model;
+    } catch (e) {
+      return await reconcileUnexpectedFailure(post, cors, e);
+    }
 
     if (!resp.ok) {
       // Нормализирана грешка: без тяло и подробности от доставчика.
@@ -459,10 +482,12 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
       { headers: { ...cors, "Content-Type": "application/json" } },
     );
   } catch (e) {
-    console.error("negotiation-strategy error:", e);
-    return new Response(JSON.stringify({ error: "internal" }), {
-      status: 500,
-      headers: { ...cors, "Content-Type": "application/json" },
+    // Никога сурово съобщение/тяло от доставчик в журнала или в отговора.
+    if (postStart) return await reconcileUnexpectedFailure(postStart, cors, e);
+    if (preStart) return await cancelUnexpectedFailure(preStart, cors, e);
+    console.error("negotiation-strategy error", {
+      name: e instanceof Error ? e.name : "unknown",
     });
+    return internalErrorResponse(cors);
   }
 });
