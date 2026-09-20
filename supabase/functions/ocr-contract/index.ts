@@ -52,11 +52,11 @@ Deno.serve(async (req: Request) => {
     // Verify the bearer token resolves to a real Supabase user. Without this
     // check anyone can burn AI OCR credits with an arbitrary "Bearer x" header.
     const admin = createClient(
-    // Леджърът е СТРОГО service_role RPC — отделен, тесен контракт за тестваемост.
-    const ledger = admin as unknown as LedgerRpc;
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+    // Леджърът е СТРОГО service_role RPC — отделен, тесен контракт за тестваемост.
+    const ledger = admin as unknown as LedgerRpc;
     const { data: userData, error: authErr } = await admin.auth.getUser(
       auth.replace("Bearer ", ""),
     );
