@@ -25,7 +25,14 @@ function fakeDb(initial?: { count: number; window_start: string }) {
             Promise.resolve({ data: rows.get(key) ?? null, error: null }),
         }),
       }),
+      delete: () => ({
+        eq: (_c: string, key: string) => {
+          rows.delete(key);
+          return Promise.resolve({ error: null });
+        },
+      }),
     }),
+
     rpc: (name: string, args: Record<string, unknown>) => {
       calls.push(name);
       const key = String(args._key);
