@@ -23,10 +23,14 @@ describe("платен износ", () => {
 
   it("чете готовото платено състояние от сървъра по право на притежателя", () => {
     expect(productResult).toContain("fetchProductResultState");
-    expect(resultState).toContain("supabase.functions.invoke");
-    // Самоличността е правото, не подаден от браузъра резултат.
-    expect(resultState).not.toContain("result_payload");
-    expect(resultState).not.toContain("result_digest");
+    expect(resultState).toContain('invokeEdgeFunction<ProductResultStateResponse>');
+    // Браузърът подава само самоличност; резултатът и подписът му идват обратно
+    // от сървъра, не се изпращат натам.
+    const bodies = resultState.match(/body:\s*\{[^}]*\}/g) ?? [];
+    expect(bodies.length).toBeGreaterThan(0);
+    for (const body of bodies) {
+      expect(body).not.toMatch(/result_payload|payload:|corrected_text/);
+    }
   });
 
   it("файловете се изграждат от заредения резултат, не от подадени данни", () => {
