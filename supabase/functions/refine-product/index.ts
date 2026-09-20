@@ -505,23 +505,14 @@ Deno.serve(async (req) => {
         headers,
       );
     } catch (error) {
-      // След докосване на доставчика включеното уточнение НЕ се освобождава —
-      // дори при негоден изход. Освобождаване е допустимо САМО при детерминиран
-      // провал ПРЕДИ доставчика (например редакция на личните данни).
-      if (providerAttempted) {
-        const code: ProductReconciliationCode = error instanceof ProductRefinementError
-          ? "output_unusable"
-          : "provider_outcome_unknown";
-        return await reconcileRefinement(code, `${refinementId}:refinement`);
+      // При трайно доказателство за извикване включеното уточнение НЕ се
+      // освобождава — дори при негоден изход. Освобождаване е допустимо САМО при
+      // детерминиран провал БЕЗ доказано извикване (например редакция на данни).
+      const outcome = decideRefinementOutcome({ providerEvidence, error });
+      if (outcome.action === "reconcile") {
+        return await reconcileRefinement(outcome.code, `${refinementId}:refinement`);
       }
-      const code = error instanceof ProductRefinementError
-        ? error.reason
-        : error instanceof ProductRedactionError
-          ? "redaction_failed"
-          : error instanceof ProductModelGatewayError
-            ? error.reason
-            : "refinement_failed";
-      await failRefinement(code);
+      await failRefinement(outcome.code);
       const message = error instanceof ProductRefinementError
         ? refinementMessage(error.reason)
         : MESSAGES.refinement_failed;
