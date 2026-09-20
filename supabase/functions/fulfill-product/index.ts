@@ -62,6 +62,8 @@ import {
 } from "../_shared/product-integration.ts";
 import {
   markProductJobReconciliation,
+  PRODUCT_LEDGER_UNAVAILABLE_CODE,
+  PRODUCT_LEDGER_UNAVAILABLE_MESSAGE,
   PRODUCT_RECONCILIATION_MESSAGE,
   ProductUncertainCallError,
   readProductReconciliationState,
