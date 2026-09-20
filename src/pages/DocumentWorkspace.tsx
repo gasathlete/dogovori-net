@@ -69,6 +69,29 @@ export default function DocumentWorkspacePage() {
     if (!spec || !parent) return;
     setGenerating(true);
     try {
+      // Устойчив идентификатор на операцията: същият при двойно натискане,
+      // повторно показване, презареждане, временна грешка и загубен отговор.
+      const {
+        clearDocumentOperation, documentOperationScope, documentOperationUserKey, getOrCreateDocumentOperationId,
+      } = await import("@/lib/documentOperationKey");
+      const { data: sessionData } = await supabase.auth.getSession();
+      // Без профил операцията остава без траен ключ: сървърът я отказва с
+      // покана за вход, точно както досега.
+      const uid = sessionData.session?.user?.id ?? "anonymous";
+      const userKey = await documentOperationUserKey(uid);
+      const opScope = await documentOperationScope({
+        purpose: "generate_linked_document",
+        userId: uid,
+        resourceId: slug,
+        resourceVersion: null,
+        options: {
+          kind: spec.kind,
+          number,
+          notes: notes.trim(),
+          parent: parent.contract as unknown as Record<string, unknown>,
+        },
+      });
+      const operationId = getOrCreateDocumentOperationId("generate_linked_document", userKey, opScope);
       const { data, error } = await supabase.functions.invoke(
         "generate-linked-document",
         {
@@ -78,9 +101,15 @@ export default function DocumentWorkspacePage() {
             notes: notes.trim(),
             parent_slug: slug,
             parent_contract: parent.contract,
+            operation_id: operationId,
           },
         },
       );
+      // Ключът пада САМО при доказан изход: успех, конфликт, изтекъл резултат.
+      const ledgerStatus = Number((error as { context?: { status?: number } } | null)?.context?.status ?? 0);
+      if (!error || ledgerStatus === 409 || ledgerStatus === 410) {
+        clearDocumentOperation("generate_linked_document", userKey, opScope);
+      }
       // Правна преграда: указанията и основният документ остават непокътнати.
       if (
         (await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable(

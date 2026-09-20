@@ -13,6 +13,22 @@ import {
   strategySigningKey,
   verifyStrategyEvidence,
 } from "../_shared/strategy-evidence.ts";
+import { canonicalize, sha256Hex } from "../_shared/canonical-digest.ts";
+import {
+  asOperationId,
+  type LedgerRpc,
+  cancelDocumentOperation,
+  canonicalDocumentBinding,
+  commitDocumentOperation,
+  ledgerBlockResponse,
+  lookupDocumentOperation,
+  markDocumentModelStarted,
+  markDocumentReconciliation,
+  operationIdRequiredResponse,
+  operationReconciliationResponse,
+  ProviderCallBudget,
+  reserveDocumentOperation,
+} from "../_shared/ai-document-ledger.ts";
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -60,19 +76,17 @@ Deno.serve(async (req) => {
     const supaUrl = Deno.env.get("SUPABASE_URL")!;
     const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
     const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: "ai_misconfigured" }), {
-        status: 500,
-        headers: { ...cors, "Content-Type": "application/json" },
-      });
-    }
+    // Ключът на доставчика се чете СЛЕД само-четящото търсене на завършена
+    // операция — повторението не зависи от достъпа до доставчика.
+
 
     const auth = req.headers.get("Authorization") || "";
     const userClient = createClient(supaUrl, anon, {
       global: { headers: { Authorization: auth } },
     });
     const admin = createClient(supaUrl, service, { auth: { persistSession: false } });
+    // Леджърът е СТРОГО service_role RPC — отделен, тесен контракт за тестваемост.
+    const ledger = admin as unknown as LedgerRpc;
 
     const { data: { user } } = await userClient.auth.getUser();
     if (!user) {
@@ -138,7 +152,7 @@ Deno.serve(async (req) => {
         ? ((stored as any).__evidence.sources as StrategySourceRef[])
         : [];
       const currentSources = await currentSourceVersions(
-        admin,
+        admin as unknown as Parameters<typeof currentSourceVersions>[0],
         storedSources.map((s) => String(s?.chunk_id ?? "")).filter(Boolean),
       );
       const verdict = await verifyStrategyEvidence({
@@ -186,6 +200,75 @@ Deno.serve(async (req) => {
       contractText = ((u as any)?.text_content ?? "").slice(0, 12000);
     }
 
+    // ---------------------------------------------------------------------
+    // GATE 2 — ТОЧНО ЕДНО ИЗПЪЛНЕНИЕ за генерирана стратегия.
+    // Само-четенето на запазен плик (cached_only) остава БЕЗ модел и БЕЗ
+    // операция. Оттук надолу заявката може да стигне до модел.
+    // ---------------------------------------------------------------------
+    const operationId = asOperationId((body as { operation_id?: unknown }).operation_id);
+    if (!operationId) return operationIdRequiredResponse(cors);
+
+    // Версията се извлича ИЗЦЯЛО на сървъра от собствения анализ — клиентът
+    // никога не носи истината за версията.
+    const sourceVersion = await sha256Hex(canonicalize([
+      "negotiation_source_v1",
+      String((a as any).contract_type ?? ""),
+      await sha256Hex(String((a as any).summary ?? "")),
+      await sha256Hex(JSON.stringify((a as any).issues ?? [])),
+      await sha256Hex(JSON.stringify((a as any).missing_clauses ?? [])),
+      await sha256Hex(contractText),
+    ]));
+    const binding = await canonicalDocumentBinding({
+      purpose: "negotiation_strategy",
+      userId: user.id,
+      resourceId: analysisId,
+      resourceVersion: sourceVersion,
+      options: { force: body.force === true },
+    });
+
+    const existing = await lookupDocumentOperation(ledger, {
+      operationId,
+      userId: user.id,
+      purpose: "negotiation_strategy",
+      binding,
+    });
+    if (existing.kind === "committed") {
+      return new Response(JSON.stringify({ ...existing.result, replay: true }), {
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+    const existingBlock = ledgerBlockResponse(existing, cors);
+    if (existingBlock) return existingBlock;
+
+    // Ключът на доставчика — след повторението и ПРЕДИ резервацията, за да
+    // няма резервирана квота при липсваща настройка.
+    const apiKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: "ai_misconfigured" }), {
+        status: 500,
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+
+
+    const reserved = await reserveDocumentOperation(ledger, {
+      operationId,
+      userId: user.id,
+      purpose: "negotiation_strategy",
+      binding,
+      inputDigest: sourceVersion,
+      resourceId: analysisId,
+      resourceVersion: sourceVersion,
+      leaseSeconds: 600,
+    });
+    if (reserved.kind === "committed") {
+      return new Response(JSON.stringify({ ...reserved.result, replay: true }), {
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+    const reserveBlock = ledgerBlockResponse(reserved, cors);
+    if (reserveBlock) return reserveBlock;
+
 
     const sys = `Ти си опитен правен стратег за преговори по български договори. Връщаш САМО валиден JSON със следната структура:
 {
@@ -211,6 +294,12 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
     // външна заявка (включително извличането на правния контекст).
     const classification = classifyDocumentBeforeAI(rawCorpus);
     if (classification.risk_level === "blocked") {
+      // Детерминистичен провал ПРЕДИ модела: отмяна, без такса.
+      await cancelDocumentOperation(ledger, {
+        operationId,
+        userId: user.id,
+        reason: "content_blocked",
+      });
       return new Response(
         JSON.stringify({ error: "content_blocked", code: "content_blocked", charged: false }),
         { status: 422, headers: { ...cors, "Content-Type": "application/json" } },
@@ -225,6 +314,12 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
       matchCount: 6,
     });
     if (!legal.hasMatches) {
+      // Правното заземяване се проваля ЗАТВОРЕНО и без такса, преди модела.
+      await cancelDocumentOperation(ledger, {
+        operationId,
+        userId: user.id,
+        reason: "legal_unavailable",
+      });
       const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
       return legalVerificationUnavailableResponse({ headers: cors });
     }
@@ -234,7 +329,22 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
     // повикване. Няма вариант без проверените извадки.
     const sysGrounded = `${sys}\n\n${legal.promptBlock}`;
 
+    // Трайно записано начало на модела ПРЕДИ първото повикване.
+    const started = await markDocumentModelStarted(ledger, {
+      operationId,
+      userId: user.id,
+      purpose: "negotiation_strategy",
+      binding,
+    });
+    if (!started.ok) {
+      return ledgerBlockResponse(started.outcome, cors) ??
+        operationReconciliationResponse(cors, "model_start_unproven");
+    }
+
+    // Твърд бюджет: 1 основен + най-много 1 резервен модел.
+    const budget = new ProviderCallBudget("negotiation_strategy");
     const callModel = async (model: string) => {
+      budget.take();
       const r = await fetch(GATEWAY_URL, {
         method: "POST",
         headers: {
@@ -260,22 +370,26 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
       resp = await callModel("google/gemini-2.5-pro");
       usedModel = "google/gemini-2.5-pro";
     }
+    // СЛЕД началото на модела няма автоматично връщане и няма трето повикване:
+    // всяка несигурност отива в изравняване.
+    const reconcileAndRespond = async (reason: string): Promise<Response> => {
+      await markDocumentReconciliation(ledger, {
+        operationId,
+        userId: user.id,
+        reason,
+      });
+      return operationReconciliationResponse(cors, reason);
+    };
+
     if (!resp.ok) {
       // Нормализирана грешка: без тяло и подробности от доставчика.
-      const status = resp.status === 429 ? 429 : 502;
-      return new Response(
-        JSON.stringify({ error: resp.status === 429 ? "ai_busy" : "ai_failed", charged: false }),
-        { status, headers: { ...cors, "Content-Type": "application/json" } },
-      );
+      return await reconcileAndRespond(resp.status === 429 ? "provider_busy" : "provider_failed");
     }
-    const data = await resp.json();
+    const data = await resp.json().catch(() => null);
     const raw = data?.choices?.[0]?.message?.content ?? "";
     const parsedStrategy = extractJson(raw, { fn: "negotiation-strategy" });
     if (!parsedStrategy || typeof parsedStrategy !== "object") {
-      return new Response(JSON.stringify({ error: "parse_failed" }), {
-        status: 502,
-        headers: { ...cors, "Content-Type": "application/json" },
-      });
+      return await reconcileAndRespond("malformed_response");
     }
     // Връщане на редактираните стойности само в текстовите полета.
     const strategy = JSON.parse(
@@ -285,12 +399,9 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
     // ПОДПИСАН ДОКАЗАТЕЛСТВЕН ПЛИК: обвързан със съдържанието, анализа,
     // потребителя и точните версии на цитираните източници.
     const citedIds = legal.citations.map((c) => c.chunk_id);
-    const versions = await currentSourceVersions(admin, citedIds);
+    const versions = await currentSourceVersions(admin as unknown as Parameters<typeof currentSourceVersions>[0], citedIds);
     if (!versions) {
-      return new Response(
-        JSON.stringify({ error: "evidence_unavailable", charged: false }),
-        { status: 503, headers: { ...cors, "Content-Type": "application/json" } },
-      );
+      return await reconcileAndRespond("evidence_unavailable");
     }
     const sources: StrategySourceRef[] = legal.citations
       .filter((c) => versions.get(c.chunk_id))
@@ -310,35 +421,41 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
       })
       : null;
     if (!evidence) {
-      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
-      return legalVerificationUnavailableResponse({ headers: cors });
+      return await reconcileAndRespond("evidence_unsigned");
     }
     const envelope = { ...strategy, __evidence: evidence };
 
-    const { error: upErr } = await admin
-      .from("risk_analyses")
-      .update({
-        negotiation_strategy: envelope,
-        negotiation_generated_at: evidence.generated_at,
-      })
-      .eq("id", analysisId);
-    if (upErr) {
-      console.error("negotiation-strategy persist error", upErr.message);
-      return new Response(
-        JSON.stringify({ error: "persist_failed", charged: false }),
-        { status: 503, headers: { ...cors, "Content-Type": "application/json" } },
-      );
+    // АТОМАРНО: подписаният плик върху собствения анализ, резултатът за точно
+    // повторение и счетоводството — заедно, най-много една бизнес промяна.
+    const payload = {
+      ok: true,
+      cached: false,
+      model: usedModel,
+      strategy: envelope,
+      citations: legal.citations,
+    };
+    const committed = await commitDocumentOperation(ledger, {
+      operationId,
+      userId: user.id,
+      purpose: "negotiation_strategy",
+      binding,
+      result: payload,
+      resultTtlSeconds: 86400,
+      usageFunction: "negotiation-strategy",
+      business: {
+        kind: "negotiation_strategy",
+        analysis_id: analysisId,
+        source_version: sourceVersion,
+        envelope,
+        generated_at: evidence.generated_at,
+      },
+    });
+    if (committed.kind !== "committed") {
+      return await reconcileAndRespond("commit_uncertain");
     }
 
-
     return new Response(
-      JSON.stringify({
-        ok: true,
-        cached: false,
-        model: usedModel,
-        strategy: envelope,
-        citations: legal.citations,
-      }),
+      JSON.stringify(payload),
       { headers: { ...cors, "Content-Type": "application/json" } },
     );
   } catch (e) {

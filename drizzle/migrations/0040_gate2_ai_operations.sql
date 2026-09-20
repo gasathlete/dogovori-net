@@ -303,14 +303,33 @@ BEGIN
       -- Доказано отменена И доказано възстановена: същият ключ може отново.
     END IF;
   ELSE
-    -- Нов ключ НЕ заобикаля неразрешено изравняване по същото обвързване.
+    -- Нов ключ НЕ заобикаля НЕРАЗРЕШЕНО състояние по същото обвързване. Това
+    -- включва и ИЗТЕКЛА резервация, която още не е обработена от метача: иначе
+    -- пресен operation_id би могъл да таксува втори път същия вход.
     SELECT count(*) INTO _blocked FROM public.ai_document_operations
      WHERE user_id = p_user_id
        AND purpose = p_purpose
        AND binding_digest = p_binding
-       AND (state = 'reconciliation' OR reconciliation_required);
+       AND (
+            state = 'reconciliation'
+         OR reconciliation_required
+         OR (state = 'reserved'
+             AND (lease_expires_at IS NULL OR lease_expires_at <= now()))
+       );
     IF _blocked > 0 THEN
       RETURN jsonb_build_object('status', 'reconciliation', 'reason', 'binding_unresolved');
+    END IF;
+    -- Жива резервация по СЪЩОТО обвързване с друг ключ: един победител.
+    SELECT count(*) INTO _blocked FROM public.ai_document_operations
+     WHERE user_id = p_user_id
+       AND purpose = p_purpose
+       AND binding_digest = p_binding
+       AND state = 'reserved'
+       AND lease_expires_at > now();
+    IF _blocked > 0 THEN
+      RETURN jsonb_build_object(
+        'status', 'in_progress', 'reason', 'binding_in_progress',
+        'model_started', true, 'retry_after_seconds', 5);
     END IF;
   END IF;
 
@@ -382,9 +401,10 @@ BEGIN
 
   GET DIAGNOSTICS _rows = ROW_COUNT;
   IF _rows <> 1 THEN
-    -- Състоянието се е променило между проверката и записа: не се твърди
-    -- резервация, която не е станала.
-    RETURN jsonb_build_object('status', 'reconciliation', 'reason', 'reserve_race');
+    -- Състоянието се е променило между проверката и записа. Тук ВЕЧЕ може да е
+    -- резервирана вълна, затова се отменя ЦЯЛАТА транзакция: никога не остава
+    -- резервирана вълна без ред в леджъра.
+    RAISE EXCEPTION 'ai_document_reserve_race' USING ERRCODE = '40001';
   END IF;
 
   RETURN jsonb_build_object(
@@ -406,7 +426,9 @@ GRANT EXECUTE ON FUNCTION public.ai_document_operation_reserve(uuid, uuid, text,
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.ai_document_operation_mark_model_started(
   p_operation_id uuid,
-  p_user_id uuid
+  p_user_id uuid,
+  p_purpose text,
+  p_binding text
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -419,13 +441,22 @@ BEGIN
   IF auth.role() IS NOT NULL AND auth.role() <> 'service_role' THEN
     RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501';
   END IF;
+  IF p_purpose IS NULL OR p_binding IS NULL OR p_binding !~ '^[0-9a-f]{64}$' THEN
+    RAISE EXCEPTION 'purpose_and_binding_required' USING ERRCODE = '22023';
+  END IF;
   SELECT * INTO _row FROM public.ai_document_operations
    WHERE operation_id = p_operation_id FOR UPDATE;
-  IF NOT FOUND OR _row.user_id <> p_user_id THEN
-    RETURN jsonb_build_object('status', 'conflict');
+  IF NOT FOUND OR _row.user_id <> p_user_id
+     OR _row.purpose <> p_purpose
+     OR _row.binding_digest <> p_binding THEN
+    RETURN jsonb_build_object('status', 'conflict', 'reason', 'binding_conflict');
   END IF;
   IF _row.state <> 'reserved' THEN
     RETURN jsonb_build_object('status', 'conflict', 'reason', 'not_reserved');
+  END IF;
+  -- Лизингът трябва да е СОБСТВЕН на тази операция.
+  IF _row.lease_owner IS DISTINCT FROM p_operation_id THEN
+    RETURN jsonb_build_object('status', 'conflict', 'reason', 'lease_not_owned');
   END IF;
   IF _row.model_started_at IS NOT NULL THEN
     RETURN jsonb_build_object('status', 'already_started');
@@ -445,10 +476,10 @@ BEGIN
 END;
 $function$;
 
-REVOKE ALL ON FUNCTION public.ai_document_operation_mark_model_started(uuid, uuid) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.ai_document_operation_mark_model_started(uuid, uuid) FROM anon;
-REVOKE ALL ON FUNCTION public.ai_document_operation_mark_model_started(uuid, uuid) FROM authenticated;
-GRANT EXECUTE ON FUNCTION public.ai_document_operation_mark_model_started(uuid, uuid) TO service_role;
+REVOKE ALL ON FUNCTION public.ai_document_operation_mark_model_started(uuid, uuid, text, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.ai_document_operation_mark_model_started(uuid, uuid, text, text) FROM anon;
+REVOKE ALL ON FUNCTION public.ai_document_operation_mark_model_started(uuid, uuid, text, text) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.ai_document_operation_mark_model_started(uuid, uuid, text, text) TO service_role;
 
 -- ---------------------------------------------------------------------------
 -- 6) Изравняване при несигурност СЛЕД стартиран модел.
@@ -513,6 +544,8 @@ GRANT EXECUTE ON FUNCTION public.ai_document_operation_mark_reconciliation(uuid,
 CREATE OR REPLACE FUNCTION public.ai_document_operation_commit(
   p_operation_id uuid,
   p_user_id uuid,
+  p_purpose text,
+  p_binding text,
   p_result jsonb,
   p_result_ttl_seconds integer,
   p_usage_function text,
@@ -530,6 +563,9 @@ DECLARE
   _kind text;
   _analysis_id uuid;
   _updated integer := 0;
+  _usage text;
+  _expected_usage text;
+  _envelope jsonb;
 BEGIN
   IF auth.role() IS NOT NULL AND auth.role() <> 'service_role' THEN
     RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501';
@@ -539,10 +575,16 @@ BEGIN
   END IF;
   _ttl := GREATEST(60, LEAST(COALESCE(p_result_ttl_seconds, 86400), 7 * 86400));
 
+  IF p_purpose IS NULL OR p_binding IS NULL OR p_binding !~ '^[0-9a-f]{64}$' THEN
+    RAISE EXCEPTION 'purpose_and_binding_required' USING ERRCODE = '22023';
+  END IF;
+
   SELECT * INTO _row FROM public.ai_document_operations
    WHERE operation_id = p_operation_id FOR UPDATE;
-  IF NOT FOUND OR _row.user_id <> p_user_id THEN
-    RETURN jsonb_build_object('status', 'conflict');
+  IF NOT FOUND OR _row.user_id <> p_user_id
+     OR _row.purpose <> p_purpose
+     OR _row.binding_digest <> p_binding THEN
+    RETURN jsonb_build_object('status', 'conflict', 'reason', 'binding_conflict');
   END IF;
   IF _row.state = 'committed' THEN
     RETURN jsonb_build_object('status', 'replay', 'result', _row.result);
@@ -550,31 +592,83 @@ BEGIN
   IF _row.state <> 'reserved' THEN
     RETURN jsonb_build_object('status', 'conflict', 'reason', 'not_reserved');
   END IF;
+  IF _row.lease_owner IS DISTINCT FROM p_operation_id THEN
+    RETURN jsonb_build_object('status', 'conflict', 'reason', 'lease_not_owned');
+  END IF;
+  -- Резултат от модел БЕЗ трайно записано начало на модела е невъзможен.
+  IF _row.model_started_at IS NULL THEN
+    RETURN jsonb_build_object('status', 'conflict', 'reason', 'model_not_started');
+  END IF;
 
-  -- Бизнес промяната е ЧАСТ от същата транзакция и се прилага НАЙ-МНОГО веднъж.
+  -- =========================================================================
+  -- ВСЯКА проверка, която може да се провали, е ПРЕДИ първия запис. След първия
+  -- запис всеки провал е RAISE (връщане назад), никога тихо RETURN.
+  -- =========================================================================
+
+  -- Името за ai_usage е СТРОГО определено от предназначението на реда.
+  _expected_usage := CASE _row.purpose
+    WHEN 'correct_uploaded' THEN 'correct-uploaded'
+    WHEN 'generate_linked_document' THEN 'generate-linked-document'
+    WHEN 'negotiation_strategy' THEN 'negotiation-strategy'
+    WHEN 'ocr_contract' THEN 'ocr-contract'
+    ELSE NULL
+  END;
+  _usage := NULLIF(btrim(COALESCE(p_usage_function, '')), '');
+  IF _usage IS NOT NULL AND (_expected_usage IS NULL OR _usage <> _expected_usage) THEN
+    RETURN jsonb_build_object('status', 'conflict', 'reason', 'usage_function_mismatch');
+  END IF;
+
+  -- Бизнес промяна: САМО за negotiation_strategy и САМО върху собствения,
+  -- обвързан анализ със същата версия на източника и подписан плик.
   _kind := COALESCE(p_business->>'kind', '');
   IF _kind = 'negotiation_strategy' THEN
+    IF _row.purpose <> 'negotiation_strategy' THEN
+      RETURN jsonb_build_object('status', 'conflict', 'reason', 'business_purpose_mismatch');
+    END IF;
     _analysis_id := NULLIF(p_business->>'analysis_id', '')::uuid;
     IF _analysis_id IS NULL OR _row.resource_id IS NULL OR _analysis_id <> _row.resource_id THEN
       RETURN jsonb_build_object('status', 'conflict', 'reason', 'business_resource_mismatch');
     END IF;
-    UPDATE public.risk_analyses
-       SET negotiation_strategy = p_business->'envelope',
-           negotiation_generated_at = COALESCE(
-             NULLIF(p_business->>'generated_at', '')::timestamptz, now())
-     WHERE id = _analysis_id AND user_id = p_user_id;
-    GET DIAGNOSTICS _updated = ROW_COUNT;
-    IF _updated <> 1 THEN
+    IF _row.resource_version IS NOT NULL
+       AND COALESCE(p_business->>'source_version', '') <> _row.resource_version THEN
+      RETURN jsonb_build_object('status', 'conflict', 'reason', 'business_version_mismatch');
+    END IF;
+    _envelope := p_business->'envelope';
+    -- Пликът е самата стратегия плюс подписаното доказателство `__evidence`.
+    IF _envelope IS NULL OR jsonb_typeof(_envelope) <> 'object'
+       OR jsonb_typeof(_envelope->'__evidence') <> 'object'
+       OR COALESCE(_envelope->'__evidence'->>'signature', '') !~ '^[0-9a-f]{64}$'
+       OR jsonb_typeof(_envelope->'__evidence'->'sources') <> 'array'
+       OR jsonb_array_length(_envelope->'__evidence'->'sources') < 1 THEN
+      RETURN jsonb_build_object('status', 'conflict', 'reason', 'business_envelope_invalid');
+    END IF;
+    IF NOT EXISTS (
+      SELECT 1 FROM public.risk_analyses
+       WHERE id = _analysis_id AND user_id = p_user_id
+    ) THEN
       RETURN jsonb_build_object('status', 'conflict', 'reason', 'business_not_owned');
     END IF;
   ELSIF _kind <> '' AND _kind <> 'none' THEN
     RETURN jsonb_build_object('status', 'conflict', 'reason', 'business_kind_unknown');
   END IF;
 
+  -- ------------------------- оттук НАДОЛУ са ЗАПИСИ -------------------------
+  IF _kind = 'negotiation_strategy' THEN
+    UPDATE public.risk_analyses
+       SET negotiation_strategy = _envelope,
+           negotiation_generated_at = COALESCE(
+             NULLIF(p_business->>'generated_at', '')::timestamptz, now())
+     WHERE id = _analysis_id AND user_id = p_user_id;
+    GET DIAGNOSTICS _updated = ROW_COUNT;
+    IF _updated <> 1 THEN
+      RAISE EXCEPTION 'ai_document_business_rowcount' USING ERRCODE = '40003';
+    END IF;
+  END IF;
+
   -- Точно-еднократно счетоводство: уникалният индекс прави повторението нулево.
-  IF COALESCE(NULLIF(btrim(COALESCE(p_usage_function, '')), ''), '') <> '' THEN
+  IF _usage IS NOT NULL THEN
     INSERT INTO public.ai_usage (user_id, function_name, operation_id)
-    VALUES (p_user_id, btrim(p_usage_function), p_operation_id)
+    VALUES (p_user_id, _usage, p_operation_id)
     ON CONFLICT (operation_id, function_name) DO NOTHING;
   END IF;
 
@@ -585,7 +679,9 @@ BEGIN
       p_result := jsonb_build_object('purpose', _row.purpose, 'ops', _row.wave_ops)
     );
     IF COALESCE(_wave->>'status', '') <> 'committed' THEN
-      RETURN jsonb_build_object('status', 'conflict', 'reason', 'wave_commit_failed');
+      -- Бизнес промяната вече е записана: единственият честен изход е връщане
+      -- назад на ЦЯЛАТА транзакция.
+      RAISE EXCEPTION 'ai_document_wave_commit_failed' USING ERRCODE = '40003';
     END IF;
   END IF;
 
@@ -598,15 +694,19 @@ BEGIN
          wave_state = CASE WHEN wave_ops > 0 THEN 'committed' ELSE wave_state END,
          updated_at = now()
    WHERE operation_id = p_operation_id;
+  GET DIAGNOSTICS _updated = ROW_COUNT;
+  IF _updated <> 1 THEN
+    RAISE EXCEPTION 'ai_document_commit_rowcount' USING ERRCODE = '40003';
+  END IF;
 
   RETURN jsonb_build_object('status', 'committed', 'result', p_result);
 END;
 $function$;
 
-REVOKE ALL ON FUNCTION public.ai_document_operation_commit(uuid, uuid, jsonb, integer, text, jsonb) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.ai_document_operation_commit(uuid, uuid, jsonb, integer, text, jsonb) FROM anon;
-REVOKE ALL ON FUNCTION public.ai_document_operation_commit(uuid, uuid, jsonb, integer, text, jsonb) FROM authenticated;
-GRANT EXECUTE ON FUNCTION public.ai_document_operation_commit(uuid, uuid, jsonb, integer, text, jsonb) TO service_role;
+REVOKE ALL ON FUNCTION public.ai_document_operation_commit(uuid, uuid, text, text, jsonb, integer, text, jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.ai_document_operation_commit(uuid, uuid, text, text, jsonb, integer, text, jsonb) FROM anon;
+REVOKE ALL ON FUNCTION public.ai_document_operation_commit(uuid, uuid, text, text, jsonb, integer, text, jsonb) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.ai_document_operation_commit(uuid, uuid, text, text, jsonb, integer, text, jsonb) TO service_role;
 
 -- ---------------------------------------------------------------------------
 -- 8) Отмяна САМО при доказан провал ПРЕДИ модела, с точно възстановяване.
@@ -626,6 +726,7 @@ DECLARE
   _row public.ai_document_operations%ROWTYPE;
   _reason text;
   _wave jsonb;
+  _rows integer := 0;
 BEGIN
   IF auth.role() IS NOT NULL AND auth.role() <> 'service_role' THEN
     RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501';
@@ -688,6 +789,11 @@ BEGIN
          detail = left(_reason, 64),
          updated_at = now()
    WHERE operation_id = p_operation_id;
+  GET DIAGNOSTICS _rows = ROW_COUNT;
+  IF _rows <> 1 THEN
+    -- Вълната вече е върната: без връщане назад бихме „забравили“ отмяната.
+    RAISE EXCEPTION 'ai_document_cancel_rowcount' USING ERRCODE = '40003';
+  END IF;
 
   RETURN jsonb_build_object('status', 'cancelled', 'replay', false, 'restored', true);
 END;

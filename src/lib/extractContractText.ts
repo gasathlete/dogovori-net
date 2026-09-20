@@ -3,6 +3,12 @@
 // DOCX -> mammoth.
 
 import { supabase } from "@/integrations/supabase/client";
+import {
+  clearDocumentOperation,
+  documentOperationScope,
+  documentOperationUserKey,
+  getOrCreateDocumentOperationId,
+} from "@/lib/documentOperationKey";
 
 export type ExtractSource = "pdf" | "docx" | "paste";
 
@@ -169,13 +175,37 @@ async function extractPdf(file: File, onProgress?: ExtractProgress): Promise<str
     : " (включено в анализа)";
   onProgress?.(`OCR на ${images.length} страници${priceNote} — може да отнеме до минута...`);
 
+  // Устойчив идентификатор на операцията: същият при двойно натискане, повторно
+  // показване, презареждане, временна грешка и загубен отговор. В хранилището
+  // влизат САМО отпечатъци — никакви изображения и никакъв текст.
+  const { data: sessionData } = await supabase.auth.getSession();
+  const uid = sessionData.session?.user?.id;
+  if (!uid) {
+    throw new Error("Влезте в профила си, за да продължите с разпознаването на сканирания документ.");
+  }
+  const pageDigests = await Promise.all(images.map((img) => sha256Hex(img)));
+  const userKey = await documentOperationUserKey(uid);
+  const scope = await documentOperationScope({
+    purpose: "ocr_contract",
+    userId: uid,
+    resourceVersion: await sha256Hex(pageDigests.join("|")),
+    options: { page_count: images.length, free_pages: 3 },
+  });
+  const operationId = getOrCreateDocumentOperationId("ocr_contract", userKey, scope);
+
   const { data, error } = await supabase.functions.invoke("ocr-contract", {
-    body: { images },
+    body: { images, operation_id: operationId },
   });
   if (error) {
+    const status = Number((error as { context?: { status?: number } })?.context?.status ?? 0);
+    // Доказан конфликт/изтекъл резултат: само тогава ключът се освобождава.
+    if (status === 409 || status === 410) {
+      clearDocumentOperation("ocr_contract", userKey, scope);
+    }
     console.error("ocr-contract invoke error:", error);
     throw new Error("OCR грешка: " + (error.message || "неуспешно разпознаване"));
   }
+  clearDocumentOperation("ocr_contract", userKey, scope);
   const ocrText = ((data as any)?.text ?? "").toString().trim();
   if (ocrText.length < 80) {
     throw new Error("OCR не успя да извлече достатъчно текст. Опитайте по-ясно сканиране, Word файл или ръчно поставяне.");

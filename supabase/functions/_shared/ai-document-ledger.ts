@@ -233,14 +233,49 @@ export async function reserveDocumentOperation(
   return mapError(error) ?? mapOutcome(data);
 }
 
+/**
+ * ТВЪРД БЮДЖЕТ за повиквания към доставчик в рамките на ЕДНА операция. Броят
+ * включва основното повикване, поправката на JSON и резервния модел — заедно.
+ * Превишаването е програмна грешка, не „временен проблем“.
+ */
+export class ProviderCallBudget {
+  #used = 0;
+  constructor(readonly purpose: AiDocumentPurpose) {}
+  get max(): number {
+    return PROVIDER_CALL_BUDGET[this.purpose];
+  }
+  get used(): number {
+    return this.#used;
+  }
+  get remaining(): number {
+    return Math.max(0, this.max - this.#used);
+  }
+  /** Извиква се НЕПОСРЕДСТВЕНО преди всяко повикване към доставчик. */
+  take(): void {
+    if (this.#used >= this.max) {
+      throw new Error(
+        `provider_call_budget_exceeded:${this.purpose}:${this.max}`,
+      );
+    }
+    this.#used += 1;
+  }
+}
+
 /** ТРАЙНО начало на модела. `false` → НЯМА право на повикване към доставчик. */
 export async function markDocumentModelStarted(
   db: LedgerRpc,
-  input: { operationId: string; userId: string },
+  input: {
+    operationId: string;
+    userId: string;
+    purpose: AiDocumentPurpose;
+    binding: string;
+  },
 ): Promise<{ ok: boolean; outcome: LedgerOutcome }> {
   const { data, error } = await db.rpc("ai_document_operation_mark_model_started", {
     p_operation_id: input.operationId,
     p_user_id: input.userId,
+    p_purpose: input.purpose,
+    p_binding: input.binding,
   });
   if (error) return { ok: false, outcome: { kind: "unavailable", reason: "ledger_unavailable" } };
   const status = String(asRecord(data).status ?? "");
@@ -255,6 +290,8 @@ export async function markDocumentModelStarted(
 export interface CommitDocumentInput {
   operationId: string;
   userId: string;
+  purpose: AiDocumentPurpose;
+  binding: string;
   /** Минималният товар за ТОЧНО повторение. Без излишно съдържание. */
   result: Record<string, unknown>;
   resultTtlSeconds?: number;
@@ -271,6 +308,8 @@ export async function commitDocumentOperation(
   const { data, error } = await db.rpc("ai_document_operation_commit", {
     p_operation_id: input.operationId,
     p_user_id: input.userId,
+    p_purpose: input.purpose,
+    p_binding: input.binding,
     p_result: input.result,
     p_result_ttl_seconds: Math.max(60, Math.min(input.resultTtlSeconds ?? 86400, 7 * 86400)),
     p_usage_function: input.usageFunction ?? null,

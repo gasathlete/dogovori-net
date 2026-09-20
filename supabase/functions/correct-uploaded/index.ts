@@ -16,6 +16,23 @@ import { logAiAudit } from "../_shared/ai-call.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
 import { CORRECTION_PRESERVATION_SUFFIX } from "./request.ts";
 import { runCorrectionPreflight, type AnalysisRow, type ContractRow } from "./preflight.ts";
+import { canonicalize, sha256Hex } from "../_shared/canonical-digest.ts";
+import {
+  asOperationId,
+  type LedgerRpc,
+  cancelDocumentOperation,
+  canonicalDocumentBinding,
+  commitDocumentOperation,
+  ledgerBlockResponse,
+  ledgerUnavailableResponse,
+  lookupDocumentOperation,
+  markDocumentModelStarted,
+  markDocumentReconciliation,
+  operationIdRequiredResponse,
+  operationReconciliationResponse,
+  ProviderCallBudget,
+  reserveDocumentOperation,
+} from "../_shared/ai-document-ledger.ts";
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект. Получаваш СУРОВ ТЕКСТ на договор и списък от установени правни проблеми и липсващи клаузи.
 
@@ -45,6 +62,8 @@ Deno.serve(async (req: Request) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+    // Леджърът е СТРОГО service_role RPC — отделен, тесен контракт за тестваемост.
+    const ledger = admin as unknown as LedgerRpc;
 
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace(/^Bearer\s+/i, "");
@@ -65,21 +84,8 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { count } = await admin
-      .from("ai_usage")
-      .select("id", { count: "exact", head: true })
-      .eq("function_name", "correct-uploaded")
-      .eq("user_id", userId)
-      .gte("created_at", since);
-    if ((count ?? 0) >= DAILY_LIMIT) {
-      return new Response(JSON.stringify({
-        error: `Достигнахте дневния лимит от ${DAILY_LIMIT} корекции. Опитайте отново след 24 часа.`,
-        code: "rate_limited",
-      }), { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
-    }
-
     const jsonHeaders = { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" };
+    const ledgerHeaders = { ...corsHeaders, ...correlationHeaders(correlationId) };
 
     let rawBody: unknown = null;
     try { rawBody = await req.json(); } catch { rawBody = null; }
@@ -113,8 +119,82 @@ Deno.serve(async (req: Request) => {
     const { userConfirmed } = pre.request;
     const selected = { issues: pre.issues, missing: pre.missing };
 
+    // === Точно едно изпълнение (Gate 2) ===
+    const operationId = asOperationId((rawBody as { operation_id?: unknown } | null)?.operation_id);
+    if (!operationId) return operationIdRequiredResponse(ledgerHeaders);
+
+    const bindingInput = {
+      purpose: "correct_uploaded" as const,
+      userId,
+      resourceId: contract.id,
+      resourceVersion: await sha256Hex(canonicalize(currentBinding)),
+      options: {
+        analysis_id: analysis.id,
+        issues: selected.issues.map((i) => i.title),
+        missing: selected.missing.map((m) => m.name),
+        user_confirmed: userConfirmed === true,
+      },
+    };
+    const binding = await canonicalDocumentBinding(bindingInput);
+
+    // САМО-ЧЕТЯЩО повторение — преди честотния лимит, ключа на доставчика,
+    // RAG и всяко счетоводно/бизнес записване.
+    const existing = await lookupDocumentOperation(ledger, {
+      operationId, userId, purpose: "correct_uploaded", binding,
+    });
+    if (existing.kind === "committed") {
+      return new Response(JSON.stringify(existing.result), { headers: jsonHeaders });
+    }
+    const blockedByLedger = ledgerBlockResponse(existing, ledgerHeaders);
+    if (blockedByLedger) return blockedByLedger;
+
+    // Дневният лимит е честотно ограничение — след повторението.
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count } = await admin
+      .from("ai_usage")
+      .select("id", { count: "exact", head: true })
+      .eq("function_name", "correct-uploaded")
+      .eq("user_id", userId)
+      .gte("created_at", since);
+    if ((count ?? 0) >= DAILY_LIMIT) {
+      return new Response(JSON.stringify({
+        error: `Достигнахте дневния лимит от ${DAILY_LIMIT} корекции. Опитайте отново след 24 часа.`,
+        code: "rate_limited",
+      }), { status: 429, headers: jsonHeaders });
+    }
+
+    const reserved = await reserveDocumentOperation(ledger, {
+      operationId, userId, purpose: "correct_uploaded", binding,
+      resourceId: contract.id,
+      resourceVersion: bindingInput.resourceVersion,
+      leaseSeconds: 600,
+    });
+    if (reserved.kind === "committed") {
+      return new Response(JSON.stringify(reserved.result), { headers: jsonHeaders });
+    }
+    if (reserved.kind !== "reserved") {
+      return ledgerBlockResponse(reserved, ledgerHeaders) ?? ledgerUnavailableResponse(ledgerHeaders);
+    }
+
+    /** Детерминиран провал ПРЕДИ модела — резервацията се отменя. */
+    const cancelAndRespond = async (reason: string, response: Response): Promise<Response> => {
+      await cancelDocumentOperation(ledger, { operationId, userId, reason });
+      return response;
+    };
+    /** Несигурност СЛЕД модела — без връщане и без второ повикване. */
+    const reconcileAndRespond = async (reason: string): Promise<Response> => {
+      await markDocumentReconciliation(ledger, { operationId, userId, reason });
+      return operationReconciliationResponse(ledgerHeaders, reason);
+    };
+    const budget = new ProviderCallBudget("correct_uploaded");
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
+    if (!LOVABLE_API_KEY) {
+      return await cancelAndRespond(
+        "provider_key_missing",
+        new Response(JSON.stringify({ error: "Обработката е временно недостъпна.", code: "provider_unavailable" }), { status: 503, headers: jsonHeaders }),
+      );
+    }
 
     // Illegal content guard — checks uploaded contract text + selections
     const guardText = [
@@ -128,7 +208,7 @@ Deno.serve(async (req: Request) => {
       userAgent: req.headers.get("user-agent"),
       corsHeaders,
     });
-    if (blocked) return blocked;
+    if (blocked) return await cancelAndRespond("content_blocked", blocked);
 
     // === GDPR/AI Act compliance layer ===
     // Класифицира се ЦЕЛИЯТ изходящ контекст: документът + запазените находки и
@@ -153,7 +233,7 @@ Deno.serve(async (req: Request) => {
         status: "blocked",
         error_code: route.blockedReason ?? "blocked",
       });
-      return new Response(
+      return await cancelAndRespond("special_category_blocked", new Response(
         JSON.stringify({
           error: "Документът съдържа специални категории лични данни (здравни, биометрични, синдикални, политически, религиозни) и не може да бъде коригиран автоматично.",
           code: route.blockedReason ?? "special_category_blocked",
@@ -163,12 +243,12 @@ Deno.serve(async (req: Request) => {
             reasons: classification.reasons,
           },
         }),
-        { status: 422, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
-      );
+        { status: 422, headers: jsonHeaders },
+      ));
     }
 
     if (route.requireConfirmation) {
-      return new Response(
+      return await cancelAndRespond("confirmation_required", new Response(
         JSON.stringify({
           error: "needs_confirmation",
           code: "sensitive_data_confirmation_required",
@@ -180,8 +260,8 @@ Deno.serve(async (req: Request) => {
             reasons: classification.reasons,
           },
         }),
-        { status: 200, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
-      );
+        { status: 200, headers: jsonHeaders },
+      ));
     }
 
     // Един общ мапинг за документа, резюмето, типа и текстовете на находките.
@@ -189,10 +269,10 @@ Deno.serve(async (req: Request) => {
       redactionRequired: route.redactionRequired,
     });
     if (!redaction.ok) {
-      return new Response(
+      return await cancelAndRespond("redaction_failed", new Response(
         JSON.stringify({ error: redaction.message, code: redaction.code }),
         { status: 409, headers: jsonHeaders },
-      );
+      ));
     }
     const safe = redaction.context;
 
@@ -234,27 +314,45 @@ ${scopeNote}
     // FAIL-CLOSED: без проверена норма за тази заявка няма повикване към модел.
     if (!legal.hasMatches) {
       const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
-      return legalVerificationUnavailableResponse({ headers: { ...corsHeaders, ...correlationHeaders(correlationId) } });
+      return await cancelAndRespond(
+        "legal_unavailable",
+        legalVerificationUnavailableResponse({ headers: ledgerHeaders }),
+      );
     }
     const withLegal = `${baseSystem}\n\n${legal.promptBlock}`;
     // Ограниченията са ПОСЛЕДНИ — след активния промпт и RAG блока.
     const activeSystemPrompt = `${withLegal}\n\n${CORRECTION_PRESERVATION_SUFFIX}`;
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Lovable-API-Key": LOVABLE_API_KEY,
-        "Content-Type": "application/json",
-        "X-Lovable-AIG-SDK": "edge-function",
-      },
-      body: JSON.stringify({
-        model: route.model,
-        messages: [
-          { role: "system", content: activeSystemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        response_format: { type: "json_object" },
-      }),
+
+    // ТРАЙНО начало на модела ПРЕДИ първото повикване към доставчик.
+    const started = await markDocumentModelStarted(ledger, {
+      operationId, userId, purpose: "correct_uploaded", binding,
     });
+    if (!started.ok) {
+      return ledgerBlockResponse(started.outcome, ledgerHeaders) ?? ledgerUnavailableResponse(ledgerHeaders);
+    }
+
+    budget.take();
+    let aiResp: Response;
+    try {
+      aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Lovable-API-Key": LOVABLE_API_KEY,
+          "Content-Type": "application/json",
+          "X-Lovable-AIG-SDK": "edge-function",
+        },
+        body: JSON.stringify({
+          model: route.model,
+          messages: [
+            { role: "system", content: activeSystemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          response_format: { type: "json_object" },
+        }),
+      });
+    } catch (_networkError) {
+      return await reconcileAndRespond("provider_uncertainty");
+    }
 
     if (!aiResp.ok) {
       await logAiAudit({
@@ -266,29 +364,34 @@ ${scopeNote}
         status: "error",
         error_code: `http_${aiResp.status}`,
       });
-      if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Лимитът е достигнат." }), { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
-      if (aiResp.status === 402) return new Response(JSON.stringify({ error: "Изчерпани кредити." }), { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
-      throw new Error("AI грешка");
+      // Моделът може да е бил задействан: изравняване, без връщане и без ново
+      // повикване към доставчика.
+      return await reconcileAndRespond(`provider_http_${aiResp.status}`);
     }
 
-    await admin.from("ai_usage").insert({ user_id: userId, function_name: "correct-uploaded" });
-
-    const raw = await aiResp.json();
-    const content: string = raw.choices?.[0]?.message?.content ?? "";
-    if (!content.trim()) throw new Error("Празен AI отговор");
+    const raw = await aiResp.json().catch(() => null);
+    const content: string = raw?.choices?.[0]?.message?.content ?? "";
+    if (!content.trim()) return await reconcileAndRespond("empty_response");
     const { parseAiJsonWithRetry } = await import("../_shared/ai-json-retry.ts");
-    const parsed = (await parseAiJsonWithRetry({
-      content,
-      messages: [
-        { role: "system", content: activeSystemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      model: route.model,
-      apiKey: LOVABLE_API_KEY,
-      fn: "correct-uploaded",
-      correlationId,
-      regenerateAttempts: 1,
-    })).parsed;
+    // Поправката на JSON е ВТОРОТО и последно повикване в бюджета (2).
+    let parsed: { corrected_text?: string; changes?: unknown[] } | null = null;
+    try {
+      budget.take();
+      parsed = (await parseAiJsonWithRetry({
+        content,
+        messages: [
+          { role: "system", content: activeSystemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        model: route.model,
+        apiKey: LOVABLE_API_KEY,
+        fn: "correct-uploaded",
+        correlationId,
+        regenerateAttempts: 1,
+      })).parsed;
+    } catch (_parseError) {
+      return await reconcileAndRespond("malformed_response");
+    }
 
     // Unredact AI output before returning to user.
     if (Object.keys(redaction.mapping).length > 0) {
@@ -314,10 +417,18 @@ ${scopeNote}
     });
 
     // Идентичност на източника, за да може закъснял отговор да бъде проверен.
-    return new Response(
-      JSON.stringify({ ...parsed, analysis_id: analysis.id, source: currentBinding }),
-      { headers: jsonHeaders },
-    );
+    const payload = { ...parsed, analysis_id: analysis.id, source: currentBinding };
+    // АТОМАРНО: резултатът за точно повторение + дневното счетоводство наведнъж.
+    const committed = await commitDocumentOperation(ledger, {
+      operationId, userId, purpose: "correct_uploaded", binding,
+      result: payload as Record<string, unknown>,
+      resultTtlSeconds: 86400,
+      usageFunction: "correct-uploaded",
+    });
+    if (committed.kind !== "committed") {
+      return await reconcileAndRespond("commit_uncertain");
+    }
+    return new Response(JSON.stringify(payload), { headers: jsonHeaders });
   } catch (e) {
     console.error(`correct-uploaded error [cid=${correlationId}]:`, e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка", correlation_id: correlationId }), {
