@@ -45,9 +45,9 @@ Deno.test("липсващ elapsedMs не е провал: заменя се с �
 Deno.test("при доказано извикване изходът е ВИНАГИ неизяснен, никога провал", () => {
   for (
     const error of [
-      new ProductRefinementError("output_invalid"),
+      new ProductRefinementError("not_refinable"),
       new StoredRefinementResponseError(),
-      new ProductRedactionError("redaction_failed"),
+      new ProductRedactionError("unknown_placeholder"),
       new TypeError("JSON"),
       new Error("boom"),
     ]
@@ -64,7 +64,7 @@ Deno.test("при доказано извикване изходът е ВИНА
 Deno.test("без доказано извикване детерминираният провал освобождава уточнението", () => {
   const redaction = decideRefinementOutcome({
     providerEvidence: false,
-    error: new ProductRedactionError("redaction_failed"),
+    error: new ProductRedactionError("unknown_placeholder"),
   });
   assertEquals(redaction, { action: "fail", code: "redaction_failed" });
   const unknown = decideRefinementOutcome({ providerEvidence: false, error: new Error("x") });
