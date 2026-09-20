@@ -369,6 +369,7 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
 
     // Твърд бюджет: 1 основен + най-много 1 резервен модел.
     const budget = new ProviderCallBudget("negotiation_strategy");
+    const takeProviderCall = () => budget.take();
     const callModel = async (model: string) => {
       const r = await fetch(GATEWAY_URL, {
         method: "POST",
@@ -394,7 +395,7 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
     let usedModel: string;
     try {
       const outcome = await callStrategyModelWithFallback({
-        take: () => budget.take(),
+        take: takeProviderCall,
         call: callModel,
       });
       resp = outcome.resp;
