@@ -22,7 +22,7 @@ function lookupDb(row: Record<string, unknown> | null, error?: { message: string
 const base = {
   operationId: OP,
   userId: "22222222-2222-4222-8222-222222222222",
-  kind: "download_contract" as const,
+  kind: "contract" as const,
   purpose: "download-blank",
   sessionId: null,
   docKey: "doc-1",
