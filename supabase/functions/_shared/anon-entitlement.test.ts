@@ -3,9 +3,13 @@ import {
   ANON_FREE_MESSAGES,
   ANON_ENTITLEMENT_WINDOW_S,
   anonEntitlementKey,
+  anonOperationKey,
   consumeAnonDelivered,
   readAnonEntitlement,
+  releaseAnonOperation,
+  reserveAnonOperation,
 } from "./anon-entitlement.ts";
+
 
 /** Минимален двойник на rate_limit_buckets + rate_limit_check (атомарен ред). */
 function fakeDb(initial?: { count: number; window_start: string }) {
