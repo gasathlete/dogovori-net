@@ -1187,7 +1187,7 @@ Deno.serve(async (req) => {
     });
 
     // Едно ОГРАНИЧЕНО поправяне в СЪЩАТА резервация (в декларирания таван).
-    let citationCheck = validateAnswerCitations(cleaned, verifiedLegal.citations as any, {
+    let citationCheck = validateAnswerCitations(cleaned, verifiedLegal.chunks as any, {
       requireCitation: needsStructuredLegalAnswer,
     });
     const structureBroken = needsStructuredLegalAnswer && needsLegalAnswerRepair(cleaned);
@@ -1206,7 +1206,7 @@ Deno.serve(async (req) => {
           citationCount: verifiedLegal.citations.length,
           injectRiskBanner: false,
         });
-        const recheck = validateAnswerCitations(candidate, verifiedLegal.citations as any, {
+        const recheck = validateAnswerCitations(candidate, verifiedLegal.chunks as any, {
           requireCitation: needsStructuredLegalAnswer,
         });
         if (recheck.ok) {
