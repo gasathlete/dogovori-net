@@ -634,10 +634,12 @@ BEGIN
       RETURN jsonb_build_object('status', 'conflict', 'reason', 'business_version_mismatch');
     END IF;
     _envelope := p_business->'envelope';
+    -- Пликът е самата стратегия плюс подписаното доказателство `__evidence`.
     IF _envelope IS NULL OR jsonb_typeof(_envelope) <> 'object'
-       OR COALESCE(_envelope->>'signature', '') !~ '^[0-9a-f]{64}$'
-       OR jsonb_typeof(_envelope->'strategy') IS NULL
-       OR jsonb_typeof(_envelope->'evidence') IS NULL THEN
+       OR jsonb_typeof(_envelope->'__evidence') <> 'object'
+       OR COALESCE(_envelope->'__evidence'->>'signature', '') !~ '^[0-9a-f]{64}$'
+       OR jsonb_typeof(_envelope->'__evidence'->'sources') <> 'array'
+       OR jsonb_array_length(_envelope->'__evidence'->'sources') < 1 THEN
       RETURN jsonb_build_object('status', 'conflict', 'reason', 'business_envelope_invalid');
     END IF;
     IF NOT EXISTS (
