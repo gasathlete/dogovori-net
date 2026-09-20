@@ -232,9 +232,14 @@ export async function reviewDocument(
   onRetry?: () => void,
 ): Promise<ReviewOutcome> {
   const requestedDigest = await computeReviewSourceDigest(input);
+  // СТАБИЛЕН КЛЮЧ на ТОЧНО тази заявка: същият при повторен опит, двойно
+  // натискане, загубена връзка и презареждане; различен при различен товар.
+  const { getStableOpKey, opaqueOpScope, releaseStableOpKey } = await import("@/lib/opSession");
+  const opScope = await opaqueOpScope("review", input);
+  const operationId = getStableOpKey(opScope);
   const { data, error } = await invokeEdgeFunction<Record<string, unknown>>(
     "review-document",
-    { body: input },
+    { body: { ...input, operation_id: operationId } },
   );
 
   // Правна преграда: документът остава запазен, няма такса, има ръчен опит.
