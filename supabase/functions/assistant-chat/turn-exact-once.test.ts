@@ -288,3 +288,95 @@ Deno.test("заличаването е fail-closed: без изчистен тр
   const erasure = DELETE_ACCOUNT.indexOf("erasure_incomplete");
   assert(purge > 0 && erasure > purge);
 });
+
+/* -------------------------------------------------------------------------
+ * P0-E2 финален корректив: точност по ПОСОЧЕНИЯ източник, точна идентичност на
+ * заявката и устойчив ключ при възстановяване на сесията.
+ * ------------------------------------------------------------------------- */
+
+const ZZD_79 = {
+  short_code: "ЗЗД",
+  article_no: "79",
+  paragraph_no: null,
+  citation_label: "[ЗЗД, чл. 79]",
+  content: "Чл. 79. Ако длъжникът не изпълни точно задължението си…",
+};
+const ZZP_143 = {
+  short_code: "ЗЗП",
+  article_no: "143",
+  paragraph_no: "1",
+  citation_label: "[ЗЗП, чл. 143, ал. 1]",
+  content: "Чл. 143, ал. 1. Неравноправна е клауза…",
+};
+
+Deno.test("цитатът се проверява срещу ПОСОЧЕНАТА извадка, не срещу целия набор", () => {
+  const sources = [ZZD_79, ZZP_143];
+  // Твърдението е за ЗЗП чл. 143 — то се намира в S2, но е цитирано като S1.
+  const wrong = validateAnswerCitations("Клаузата е неравноправна по чл. 143 ЗЗП [S1].", sources as never, {});
+  assertEquals(wrong.ok, false, "чужд източник не подкрепя твърдението");
+  if (!wrong.ok) assertEquals(wrong.reason, "source_claim_mismatch");
+
+  // Същото твърдение с ТОЧНИЯ източник минава.
+  assertEquals(
+    validateAnswerCitations("Клаузата е неравноправна по чл. 143 ЗЗП [S2].", sources as never, {}).ok,
+    true,
+  );
+  assertEquals(
+    validateAnswerCitations("Длъжникът отговаря по чл. 79 ЗЗД [S1].", sources as never, {}).ok,
+    true,
+  );
+});
+
+Deno.test("грешен член, грешна алинея и извън обхвата се отхвърлят", () => {
+  const sources = [ZZD_79, ZZP_143];
+  for (
+    const text of [
+      "Отговорността е по чл. 82 ЗЗД [S1].",
+      "Клаузата е неравноправна по чл. 143, ал. 4 ЗЗП [S2].",
+      "Отговорността е по чл. 79 ЗЗД [S3].",
+      "Според ТР № 4/2013 ОСГТК ВКС [S1] е така.",
+    ]
+  ) {
+    assertEquals(validateAnswerCitations(text, sources as never, {}).ok, false, text);
+  }
+  // Правилната алинея на правилния източник минава.
+  assertEquals(
+    validateAnswerCitations("По чл. 143, ал. 1 ЗЗП [S2] клаузата е неравноправна.", sources as never, {}).ok,
+    true,
+  );
+});
+
+Deno.test("обвързването носи изрично предназначение", async () => {
+  assertEquals(TURN_BINDING_PURPOSE, "assistant_chat");
+  const a = await canonicalTurnBinding(base);
+  const b = await canonicalTurnBinding({ ...base, mode: "clarification" });
+  assert(a !== b, "режимът уточняване има собствено обвързване");
+});
+
+Deno.test("източникът: идентичността на заявката е точна, без тихо отрязване", () => {
+  assert(/message_too_long/.test(SRC), "прекалено дълго съобщение е типизирана грешка");
+  assert(/invalid_thread_id/.test(SRC), "невалиден разговор е типизирана грешка");
+  assert(
+    !/rawMessage\.slice\(/.test(SRC),
+    "суровото съобщение НЕ се отрязва преди обвързване и запис",
+  );
+  assert(
+    /validateAnswerCitations\(cleaned, verifiedLegal\.chunks/.test(SRC),
+    "проверката на цитатите получава подредените проверени извадки",
+  );
+});
+
+Deno.test("клиентът: ключът на хода преживява възстановяването на сесията", () => {
+  assert(/loading: authLoading/.test(CLIENT), "клиентът чете състоянието на зареждане");
+  assert(/if \(authLoading\) return;/.test(CLIENT), "докато сесията се зарежда, нищо не се чисти");
+  const effect = CLIENT.slice(CLIENT.indexOf("if (authLoading) return;"));
+  assert(
+    /\[authLoading, user\?\.id\]/.test(effect.slice(0, 600)),
+    "изчистването зависи и от потвърденото състояние на сесията",
+  );
+  const inProgress = CLIENT.slice(CLIENT.indexOf('code === "assistant_turn_in_progress"'));
+  assert(
+    /setInput\(text\)/.test(inProgress.slice(0, 500)),
+    "при вече течащ ход текстът се връща в полето за ръчен повторен опит",
+  );
+});
