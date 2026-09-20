@@ -408,20 +408,30 @@ Deno.serve(async (req) => {
       );
       const reservation = (reservedRow ?? {}) as Record<string, unknown>;
       if (reserveErr || reservation.ok !== true) {
+        // Негоден ЗАПИСАН отговор значи, че извикването е приключило: това е
+        // неизяснено състояние, а не освобождаване на уточнението.
+        if (String(reservation.reason ?? "") === "stored_call_invalid") {
+          providerEvidence = true;
+          return await reconcileRefinement("output_unusable", callId);
+        }
         await failRefinement(String(reservation.reason ?? "call_reserve_failed"));
         return fail("refinement_failed", 409, headers, cid, MESSAGES.refinement_failed);
       }
-      let response: { output: unknown; inputTokens: number; outputTokens: number; elapsedMs: number };
+      let response: StoredRefinementResponse;
       if (reservation.status === "complete") {
-        response = reservation.response as typeof response;
+        // Трайно доказателство: извикването е приключило и е записано. Оттук
+        // нататък включеното уточнение НЕ може да бъде освободено.
+        providerEvidence = true;
+        response = validateStoredRefinementResponse(reservation.response);
       } else if (reservation.status === "pending") {
         // Заявено, но неприключено извикване: не се прави второ И включеното
         // уточнение НЕ се освобождава — изходът е неизяснен.
+        providerEvidence = true;
         return await reconcileRefinement("call_completion_unknown", callId);
       } else {
         const apiKey = Deno.env.get("LOVABLE_API_KEY") ?? "";
         const port = createProductModelPort({ apiKey, fetchImpl: fetch });
-        providerAttempted = true;
+        providerEvidence = true;
         response = await port.invoke(request);
         const responseCanonical = canonical({ output: response.output });
         const { data: recordedRow, error: recordErr } = await admin.rpc(
