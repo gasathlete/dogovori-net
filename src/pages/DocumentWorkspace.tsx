@@ -124,6 +124,11 @@ export default function DocumentWorkspacePage() {
       ) {
         return;
       }
+      if (error && ledgerStatus === 401) {
+        toast.error("Влезте безплатно, за да създадете свързан документ.");
+        setTimeout(() => navigate("/auth"), 1000);
+        return;
+      }
       if (error) throw error;
       if (!data || data.error) {
         if (data?.requires_login) {
