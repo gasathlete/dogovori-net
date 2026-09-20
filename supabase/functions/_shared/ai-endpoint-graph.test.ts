@@ -38,7 +38,8 @@ async function loadFiles(): Promise<Map<string, string>> {
         await walk(rel);
         continue;
       }
-      if (!entry.name.endsWith(".ts") || entry.name.endsWith(".test.ts")) continue;
+      const keep = /\.(ts|tsx|json)$/.test(entry.name);
+      if (!keep || entry.name.endsWith(".test.ts")) continue;
       const src = await readIfExists(`${FUNCTIONS_DIR}${rel}`);
       if (src !== null) files.set(rel, src);
     }
@@ -145,7 +146,9 @@ Deno.test("делегиране се открива и през внесен п�
   });
   const g = buildAiEndpointGraph({ files, seedMarkers: SEED_MARKERS });
   assertEquals(g.delegations.get("caller"), ["target"]);
-  assertEquals(g.aiEndpoints, ["target"]);
+  assertEquals(g.directAiEndpoints, ["target"]);
+  // Делегиращият също е AI вход: отговорът идва от AI модел.
+  assertEquals(g.aiEndpoints, ["caller", "target"]);
 });
 
 Deno.test("непознат достигнат файл не чупи обхождането", () => {
