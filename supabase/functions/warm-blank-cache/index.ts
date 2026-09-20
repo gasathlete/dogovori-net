@@ -336,9 +336,28 @@ Deno.serve(async (req: Request) => {
     }
 
     const docTypeSpec = getDocumentTypeSpec(inferDocumentType(documentName));
-    const systemPrompt = `${SYSTEM_PROMPT}\n\n--- Специфика за този вид документ (${docTypeSpec.label}) ---\n${docTypeSpec.systemAddendum}${isBilingual ? BILINGUAL_ADDENDUM : ""}`;
+
+    // СТРОГО ЗАЗЕМЯВАНЕ — без проверена норма не се генерира дори чернова.
+    const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
+    const legal = await retrieveLegalContext(
+      admin as unknown as Parameters<typeof retrieveLegalContext>[0],
+      LOVABLE_API_KEY,
+      `${documentName}\n${docTypeSpec.label}\n${sectorTitle || sectorId}`.slice(0, 4000),
+      { matchCount: 6 },
+    );
+    if (!legal.hasMatches) {
+      return new Response(
+        JSON.stringify({ status: "failed", error: "legal_verification_unavailable" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const systemPrompt = `${SYSTEM_PROMPT}\n\n--- Специфика за този вид документ (${docTypeSpec.label}) ---\n${docTypeSpec.systemAddendum}${isBilingual ? BILINGUAL_ADDENDUM : ""}\n\n${legal.promptBlock}`;
     const userPrompt = `Сектор: ${sectorTitle || sectorId}\nВид документ: ${docTypeSpec.label}\nКонкретен документ: ${documentName}\n\nГенерирай професионална българска правна БЛАНКА (празен шаблон) за този КОНКРЕТЕН ВИД документ. Спазвай структурата за „${docTypeSpec.label}" — не я смесвай с друг вид документ.${isBilingual ? "\n\nЗАДЪЛЖИТЕЛНО: добави паралелен английски превод в полетата title_en, preamble_en, closing_en и в clauses[].title_en/body_en (виж системния промпт за билингвален режим)." : ""}`;
-    const storagePath = await buildBlankStoragePath(CACHE_VERSION, sectorId, documentName);
+    // САМО ЧЕРНОВА: предварителното генериране не може да създава бланка, която
+    // се поднася на клиент. Пише се в отделно draft пространство и НЕ се вписва
+    // в document_blanks, докато няма проверим правен манифест и човешки преглед.
+    const storagePath = `draft/${await buildBlankStoragePath(CACHE_VERSION, sectorId, documentName)}`;
 
     const work = (async () => {
       try {
@@ -354,14 +373,9 @@ Deno.serve(async (req: Request) => {
           console.error(`[warm] upload failed ${storagePath}:`, upErr.message);
           return;
         }
-        const { error: insErr } = await admin
-          .from("document_blanks")
-          .upsert(
-            { sector_id: sectorId, document_name: documentName, storage_path: storagePath },
-            { onConflict: "sector_id,document_name" },
-          );
-        if (insErr) console.error(`[warm] index failed ${storagePath}:`, insErr.message);
-        else console.log(`[warm] generated ${storagePath}`);
+        // НЯМА вписване в document_blanks: черновата не става публична само
+        // защото съществува. Нужен е човешки преглед и проверим манифест.
+        console.log(`[warm] draft generated ${storagePath}`);
       } catch (e) {
         console.error(`[warm] generation failed ${storagePath}:`, (e as Error)?.message ?? e);
       }

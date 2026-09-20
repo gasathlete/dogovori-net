@@ -91,30 +91,9 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Charge exactly 1 op. count=1 → ceil(1/5)=1. Idempotent by batch_id.
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: batchCharge, error: batchErr } = await userClient.rpc(
-      "charge_corrections_wave",
-      { p_user_id: userId, p_batch_id: batchId, p_count: 1 },
-    );
-    if (batchErr) {
-      console.error("charge_corrections_wave error:", batchErr);
-      return new Response(JSON.stringify({ error: "Грешка при проверка на квотата" }), {
-        status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
-      });
-    }
-    const batchResult = batchCharge as { ok: boolean; reason?: string; cached?: boolean };
-    if (!batchResult?.ok) {
-      return new Response(
-        JSON.stringify({ error: "quota_exceeded", reason: batchResult?.reason }),
-        { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
-      );
-    }
-    const batchCharged = !batchResult.cached;
-
+    // ВСИЧКИ НЕТАКСУЕМИ ПРОВЕРКИ СЕ ИЗВЪРШВАТ ПРЕДИ ТАКСУВАНЕ.
     // Illegal content guard
+
     const guardText = [JSON.stringify(contract).slice(0, 8000), feedback].join("\n");
     const blocked = await guardIllegalContent({
       admin, text: guardText, functionName: "refine-contract",
@@ -131,9 +110,6 @@ Deno.serve(async (req: Request) => {
     const route = routeModel("refine-contract", classification, { userConfirmed });
 
     if (!route.allowed) {
-      if (batchCharged) {
-        await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
-      }
       await logAiAudit({
         user_id: userId, operation: "refine-contract", model: "",
         classification, redaction_applied: false, status: "blocked",
@@ -145,9 +121,6 @@ Deno.serve(async (req: Request) => {
       }), { status: 422, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
     }
     if (route.requireConfirmation) {
-      if (batchCharged) {
-        await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
-      }
       return new Response(JSON.stringify({
         error: "needs_confirmation",
         code: "sensitive_data_confirmation_required",
@@ -184,7 +157,58 @@ ${answersStr}
 
 Върни коригирания договор (или непроменен, ако обратната връзка не е основателна) в указания JSON формат.`;
 
-    const baseSystem = await loadActivePrompt(admin, "refine-contract", SYSTEM_PROMPT);
+    const rawSystem = await loadActivePrompt(admin, "refine-contract", SYSTEM_PROMPT);
+
+    // СТРОГО ЗАЗЕМЯВАНЕ за точно тази (редактирана) заявка — ПРЕДИ таксуване
+    // и преди всяко повикване към модела.
+    const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
+    const legal = await retrieveLegalContext(
+      admin,
+      LOVABLE_API_KEY,
+      `${feedbackRedacted}\n${redaction.redacted.slice(0, 3000)}`,
+      { matchCount: 6 },
+    );
+    if (!legal.hasMatches) {
+      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
+      return legalVerificationUnavailableResponse({
+        headers: { ...corsHeaders, ...correlationHeaders(correlationId) },
+      });
+    }
+    const baseSystem = `${rawSystem}\n\n${legal.promptBlock}`;
+
+    // ТАКСУВАНЕ: след всички непарични проверки. Идемпотентно по batch_id.
+    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: batchCharge, error: batchErr } = await userClient.rpc(
+      "charge_corrections_wave",
+      { p_user_id: userId, p_batch_id: batchId, p_count: 1 },
+    );
+    if (batchErr) {
+      console.error("charge_corrections_wave error:", batchErr);
+      return new Response(JSON.stringify({ error: "Грешка при проверка на квотата" }), {
+        status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
+      });
+    }
+    const batchResult = batchCharge as { ok: boolean; reason?: string; cached?: boolean };
+    if (!batchResult?.ok) {
+      return new Response(
+        JSON.stringify({ error: "quota_exceeded", reason: batchResult?.reason }),
+        { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+      );
+    }
+    const batchCharged = !batchResult.cached;
+
+    // ЕДИНСТВЕН ВЪЗСТАНОВЯВАЩ ПАЗИТЕЛ: изпълнява се най-много веднъж при всеки
+    // неуспешен краен изход след таксуване.
+    let refunded = false;
+    const refundOnce = async () => {
+      if (!batchCharged || refunded) return;
+      refunded = true;
+      await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
+    };
+
+    try {
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -199,9 +223,7 @@ ${answersStr}
     });
 
     if (!aiResp.ok) {
-      if (batchCharged) {
-        await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
-      }
+      await refundOnce();
       await logAiAudit({
         user_id: userId, operation: "refine-contract", model: route.model,
         classification, redaction_applied: route.redactionRequired,
@@ -213,8 +235,6 @@ ${answersStr}
       console.error("AI gateway:", aiResp.status, t);
       throw new Error("AI грешка");
     }
-
-    await admin.from("ai_usage").insert({ user_id: userId, function_name: "refine-contract" });
 
     const raw = await aiResp.json();
     const content: string = raw.choices?.[0]?.message?.content ?? "";
@@ -279,13 +299,22 @@ ${answersStr}
       tokens_out: raw?.usage?.completion_tokens,
     });
 
+    // ai_usage се записва САМО при успешен краен изход.
+    await admin.from("ai_usage").insert({ user_id: userId, function_name: "refine-contract" });
+
     return new Response(JSON.stringify({
       contract: parsed.contract,
       changed_clause_numbers: parsed.changed_clause_numbers ?? [],
       change_summary: parsed.change_summary ?? "",
+      citations: legal.citations,
     }), {
       headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
     });
+    } catch (afterCharge) {
+      // Всеки неуспешен краен изход след таксуване връща операцията точно веднъж.
+      await refundOnce();
+      throw afterCharge;
+    }
   } catch (e) {
 
     console.error(`refine-contract error [cid=${correlationId}]:`, e);

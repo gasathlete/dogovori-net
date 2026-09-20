@@ -81,6 +81,15 @@ export default function DocumentWorkspacePage() {
           },
         },
       );
+      // Правна преграда: указанията и основният документ остават непокътнати.
+      if (
+        (await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable(
+          { data, error },
+          () => { void handleGenerate(); },
+        )
+      ) {
+        return;
+      }
       if (error) throw error;
       if (!data || data.error) {
         if (data?.requires_login) {

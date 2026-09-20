@@ -177,7 +177,22 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const activeSystem = await loadActivePrompt(admin, "admin-generate-article", SYSTEM);
+    const rawSystem = await loadActivePrompt(admin, "admin-generate-article", SYSTEM);
+
+    // СТРОГО ЗАЗЕМЯВАНЕ: правните твърдения в редакционния текст се пишат само
+    // върху проверени норми. Без такива — не се генерира нищо.
+    const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
+    const legal = await retrieveLegalContext(
+      admin,
+      apiKey,
+      `${input.topic}\n${input.category}\n${input.mandatoryText}`.slice(0, 4000),
+      { matchCount: 8 },
+    );
+    if (!legal.hasMatches) {
+      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
+      return legalVerificationUnavailableResponse({ headers: corsHeaders });
+    }
+    const activeSystem = `${rawSystem}\n\n${legal.promptBlock}\n\nВАЖНО: Това е РЕДАКЦИОННА ЧЕРНОВА. Не си адвокат и не даваш правен съвет. Позовавай се само на нормите в проверения блок по-горе.`;
     const article = await generateText(input, apiKey, activeSystem);
     if (!article || !article.intro || !Array.isArray(article.sections) || article.sections.length < 3) {
       return new Response(JSON.stringify({ error: "ai_text_failed" }), {
@@ -235,10 +250,12 @@ Deno.serve(async (req: Request) => {
       takeaways: article.takeaways ?? [],
       word_count: wc,
       source: "admin",
-      status: "approved",
-      reviewed_by: userId,
-      reviewed_at: new Date().toISOString(),
-      published_at: new Date().toISOString(),
+      // AI-генерираното съдържание НИКОГА не се самоодобрява, самопрегледва или
+      // публикува. Създава се само чернова, която чака човешки преглед.
+      status: "pending",
+      reviewed_by: null,
+      reviewed_at: null,
+      published_at: null,
     }).select("id, slug").single();
 
     if (error) {
@@ -246,7 +263,14 @@ Deno.serve(async (req: Request) => {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    return new Response(JSON.stringify({ ok: true, id: created.id, slug: created.slug }), {
+    return new Response(JSON.stringify({
+      ok: true,
+      id: created.id,
+      slug: created.slug,
+      status: "pending",
+      requires_human_review: true,
+      citations: legal.citations,
+    }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

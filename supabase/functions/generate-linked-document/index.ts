@@ -4,6 +4,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, hashIp, clientIp } from "../_shared/cors.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
+import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
+import { redactForAI, unredact } from "../_shared/redact.ts";
 
 const KIND_SPECS: Record<string, { label: string; addendum: string }> = {
   appendix: {
@@ -138,15 +140,47 @@ Deno.serve(async (req: Request) => {
       `ЗАКЛЮЧЕНИЕ:\n${parentContract.closing ?? ""}`,
     ].join("\n\n").slice(0, 12000);
 
+    // КЛАСИФИКАЦИЯ + РЕДАКЦИЯ на ЦЯЛОТО изходящо съдържание (основен договор
+    // и указанията на потребителя) преди всяка външна заявка.
+    const outboundCorpus = `${notes}\n\n${parentText}`;
+    const classification = classifyDocumentBeforeAI(outboundCorpus);
+    if (classification.risk_level === "blocked") {
+      return new Response(
+        JSON.stringify({ error: "Съдържанието не може да бъде обработено.", code: "content_blocked", charged: false }),
+        { status: 422, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+      );
+    }
+    const redaction = redactForAI(outboundCorpus);
+    const [safeNotes, safeParentText] = (() => {
+      const parts = redaction.redacted.split("\n\n");
+      return [parts[0] ?? "", parts.slice(1).join("\n\n")];
+    })();
+
     const userPrompt = `ВИД НА СВЪРЗАНИЯ ДОКУМЕНТ: ${spec.label}${number ? ` №${number}` : ""}
-${notes ? `ДОПЪЛНИТЕЛНИ УКАЗАНИЯ ОТ ПОТРЕБИТЕЛЯ:\n${notes}\n` : ""}
+${safeNotes.trim() ? `ДОПЪЛНИТЕЛНИ УКАЗАНИЯ ОТ ПОТРЕБИТЕЛЯ:\n${safeNotes.trim()}\n` : ""}
 СПЕЦИФИКА ЗА ТОЗИ ВИД:
 ${spec.addendum}
 
 ОСНОВЕН ДОГОВОР (контекст — не преповтаряй, само реферирай):
-${parentText}
+${safeParentText}
 
 Задача: Изготви ПЪЛНИЯТ свързан документ на български според описаната по-горе структура. Върни СТРОГО валиден JSON по схемата.`;
+
+    // СТРОГО ЗАЗЕМЯВАНЕ преди модела и преди запис на ai_usage.
+    const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
+    const legal = await retrieveLegalContext(
+      admin,
+      LOVABLE_API_KEY,
+      `${spec.label} ${parentContract.title}\n${safeNotes}`.slice(0, 4000),
+      { matchCount: 6 },
+    );
+    if (!legal.hasMatches) {
+      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
+      return legalVerificationUnavailableResponse({
+        headers: { ...corsHeaders, ...correlationHeaders(correlationId) },
+      });
+    }
+    const groundedSystem = `${SYSTEM_PROMPT}\n\n${legal.promptBlock}`;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -154,12 +188,13 @@ ${parentText}
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: groundedSystem },
           { role: "user", content: userPrompt },
         ],
         response_format: { type: "json_object" },
       }),
     });
+
 
     if (!aiResp.ok) {
       if (aiResp.status === 429) {
@@ -179,21 +214,16 @@ ${parentText}
       throw new Error("AI грешка");
     }
 
-    await admin.from("ai_usage").insert({
-      user_id: userId,
-      ip_hash: userId ? null : ipHash,
-      function_name: "generate-linked-document",
-    });
-
     const rawJson = await aiResp.json();
     const content: string = rawJson?.choices?.[0]?.message?.content ?? "";
     if (!content.trim()) throw new Error("AI не върна съдържание");
 
     const { parseAiJsonWithRetry } = await import("../_shared/ai-json-retry.ts");
-    const parsed = (await parseAiJsonWithRetry({
+    const rawParsed = (await parseAiJsonWithRetry({
       content,
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        // И при повторния опит се ползва ЗАЗЕМЕНИЯТ системен промпт.
+        { role: "system", content: groundedSystem },
         { role: "user", content: userPrompt },
       ],
       model: "google/gemini-2.5-flash",
@@ -202,10 +232,19 @@ ${parentText}
       correlationId,
       regenerateAttempts: 1,
     })).parsed;
+    const parsed = JSON.parse(unredact(JSON.stringify(rawParsed), redaction.mapping));
+
+    // ai_usage се записва САМО при успех — не при преграда или грешка.
+    await admin.from("ai_usage").insert({
+      user_id: userId,
+      ip_hash: userId ? null : ipHash,
+      function_name: "generate-linked-document",
+    });
 
     return new Response(
       JSON.stringify({
         ...parsed,
+        citations: legal.citations,
         meta: { kind, parent_slug: parentSlug, number },
       }),
       { headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },

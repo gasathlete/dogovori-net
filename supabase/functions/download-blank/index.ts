@@ -339,7 +339,27 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // 1) Consume template quota first — fail fast if user has no allowance.
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
+
+    // Match the document type so the AI doesn't render every blank as a contract.
+    const docTypeSpec = getDocumentTypeSpec(inferDocumentType(documentName));
+
+    // СТРОГО ЗАЗЕМЯВАНЕ — ПРЕДИ таксуване и преди всяко повикване към модела.
+    const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
+    const legal = await retrieveLegalContext(
+      // Различна minor версия на клиента — структурно съвместим.
+      admin as unknown as Parameters<typeof retrieveLegalContext>[0],
+      LOVABLE_API_KEY,
+      `${documentName}\n${docTypeSpec.label}\n${sectorTitle || sectorId}`.slice(0, 4000),
+      { matchCount: 6 },
+    );
+    if (!legal.hasMatches) {
+      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
+      return legalVerificationUnavailableResponse({ headers: corsHeaders });
+    }
+
+    // 1) Consume template quota AFTER all non-billable checks and grounding.
     // Must be called with a user-scoped client so auth.uid() resolves inside the RPC.
     // If client provided session_id + doc_key, route through the session-aware
     // RPC so a blank download is free when the user has already paid for the
@@ -373,32 +393,26 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // 2) Look for an existing blank.
-    const { data: existing } = await admin
-      .from("document_blanks")
-      .select("id, storage_path")
-      .eq("sector_id", sectorId)
-      .eq("document_name", documentName)
-      .maybeSingle();
+    // ЕДИНСТВЕН ВЪЗСТАНОВЯВАЩ ПАЗИТЕЛ след таксуване — най-много веднъж.
+    const chargedNow = quota.charged !== false && !quota.reused_session_charge;
+    let refunded = false;
+    const refundOnce = async () => {
+      if (!chargedNow || refunded) return;
+      refunded = true;
+      await admin.rpc("refund_quota", { _user_id: userId, _kind: "template", _used_bonus: false });
+    };
 
-    // Cache version prefix. `v6` fixes the safeKey collision bug — earlier
-    // versions stripped Cyrillic and mapped every blank in a sector to the
-    // same Storage object. `v6` uses BG→Latin transliteration + an 8-char
-    // SHA-1 suffix per (sector, document) to guarantee uniqueness.
-    // Bilingual blanks live under a separate namespace.
+    try {
+    // 2) СТАРИТЕ ГЛОБАЛНИ БЛАНКИ НЕ СЕ ПОДНАСЯТ: записите в document_blanks са
+    // създадени без сървърно доказуем правен манифест и не могат да бъдат
+    // проверени отново. Документът се изготвя наново за тази заявка и НЕ се
+    // записва като глобално преизползваема бланка.
     const CACHE_VERSION = isBilingual ? "v6-bilingual" : "v6";
-    const existingPath = existing?.storage_path as string | undefined;
-    let storagePath: string | undefined =
-      existingPath && existingPath.startsWith(`${CACHE_VERSION}/`) ? existingPath : undefined;
+    let storagePath: string | undefined;
 
-    // 3) If missing, generate via AI Gateway, upload, index.
-    if (!storagePath) {
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-      if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
-
-      // Match the document type so the AI doesn't render every blank as a contract.
-      const docTypeSpec = getDocumentTypeSpec(inferDocumentType(documentName));
-      const systemPrompt = `${SYSTEM_PROMPT}\n\n--- Специфика за този вид документ (${docTypeSpec.label}) ---\n${docTypeSpec.systemAddendum}${isBilingual ? BILINGUAL_ADDENDUM : ""}`;
+    // 3) Generate via AI Gateway with the grounded prompt.
+    {
+      const systemPrompt = `${SYSTEM_PROMPT}\n\n--- Специфика за този вид документ (${docTypeSpec.label}) ---\n${docTypeSpec.systemAddendum}${isBilingual ? BILINGUAL_ADDENDUM : ""}\n\n${legal.promptBlock}`;
 
       const userPrompt = `Сектор: ${sectorTitle || sectorId}\nВид документ: ${docTypeSpec.label}\nКонкретен документ: ${documentName}\n\nГенерирай професионална българска правна БЛАНКА (празен шаблон) за този КОНКРЕТЕН ВИД документ. Спазвай структурата за „${docTypeSpec.label}" — не я смесвай с друг вид документ.${isBilingual ? "\n\nЗАДЪЛЖИТЕЛНО: добави паралелен английски превод в полетата title_en, preamble_en, closing_en и в clauses[].title_en/body_en (виж системния промпт за билингвален режим)." : ""}`;
 
@@ -422,14 +436,15 @@ Deno.serve(async (req: Request) => {
       });
 
       if (aiRes.status === 429) {
-
-        return new Response(JSON.stringify({ error: "AI лимитът е достигнат. Опитайте след малко." }), {
+        await refundOnce();
+        return new Response(JSON.stringify({ error: "AI лимитът е достигнат. Опитайте след малко.", charged: false }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (aiRes.status === 402) {
-        return new Response(JSON.stringify({ error: "Изчерпан AI кредит. Опитайте по-късно." }), {
+        await refundOnce();
+        return new Response(JSON.stringify({ error: "Изчерпан AI кредит. Опитайте по-късно.", charged: false }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -444,7 +459,10 @@ Deno.serve(async (req: Request) => {
       const blank = extractJson(raw);
 
       const docxBytes = await buildDocx(blank, isBilingual);
-      storagePath = await buildBlankStoragePath(CACHE_VERSION, sectorId, documentName);
+      // Не се записва глобално преизползваема бланка без проверим правен
+      // манифест — файлът е само за тази заявка.
+      const base = await buildBlankStoragePath(CACHE_VERSION, sectorId, documentName);
+      storagePath = `request/${crypto.randomUUID()}/${base}`;
 
       const { error: upErr } = await admin.storage
         .from("document-blanks")
@@ -453,14 +471,6 @@ Deno.serve(async (req: Request) => {
           upsert: true,
         });
       if (upErr) throw new Error(`upload: ${upErr.message}`);
-
-      const { error: insErr } = await admin
-        .from("document_blanks")
-        .upsert(
-          { sector_id: sectorId, document_name: documentName, storage_path: storagePath },
-          { onConflict: "sector_id,document_name" },
-        );
-      if (insErr) throw new Error(`index: ${insErr.message}`);
     }
 
     // 4) Sign and return.
@@ -476,11 +486,17 @@ Deno.serve(async (req: Request) => {
         filename: isBilingual
           ? `${documentName} - бланка (BG-EN).docx`
           : `${documentName} - бланка.docx`,
-        cached: !!existing,
+        cached: false,
         is_pro: !!quota.is_pro,
+        citations: legal.citations,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
+    } catch (afterCharge) {
+      // Всеки неуспешен краен изход след таксуване връща операцията точно веднъж.
+      await refundOnce();
+      throw afterCharge;
+    }
   } catch (e) {
     return new Response(JSON.stringify({ error: String((e as Error)?.message ?? e) }), {
       status: 500,
