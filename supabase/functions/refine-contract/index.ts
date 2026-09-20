@@ -423,8 +423,16 @@ ${answersStr}
     }
   } catch (e) {
 
-    console.error(`refine-contract error [cid=${correlationId}]:`, e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка", correlation_id: correlationId }), {
+    // Нормализиран запис и отговор: без вътрешни съобщения и тела от шлюза.
+    console.error("refine-contract error", {
+      cid: correlationId,
+      name: e instanceof Error ? e.name : "unknown",
+    });
+    return new Response(JSON.stringify({
+      error: "Възникна вътрешна грешка. Опитайте отново.",
+      code: "internal_error",
+      correlation_id: correlationId,
+    }), {
       status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
     });
   }
