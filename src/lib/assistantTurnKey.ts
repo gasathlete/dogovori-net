@@ -14,9 +14,24 @@ interface StoredTurn {
   /** Отпечатък на обхвата (SHA-256, малки букви). */
   scope: string;
   operationId: string;
-  /** Обхват по потребител — смяна на профил изчиства ключа. */
+  /**
+   * Обхват по потребител — смяна на профил изчиства ключа. Пази се САМО
+   * отпечатък (SHA-256), никога самият идентификатор на профила.
+   */
   user: string;
   createdAt: number;
+}
+
+async function sha256Hex(input: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/** Непрозрачен отпечатък на профила. В хранилището не влиза реален UUID. */
+export async function turnUserKey(userId: string): Promise<string> {
+  return await sha256Hex(`assistant_turn_user_v1:${userId}`);
 }
 
 function readAll(): StoredTurn[] {
@@ -60,28 +75,28 @@ export async function turnScopeHash(parts: {
     parts.path,
     parts.message,
   ]);
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(payload));
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  return await sha256Hex(payload);
 }
 
-/** Същият обхват връща СЪЩИЯ идентификатор — и след презареждане. */
-export function getOrCreateTurnOperationId(userId: string, scope: string): string {
+/**
+ * Същият обхват връща СЪЩИЯ идентификатор — и след презареждане.
+ * `userKey` е отпечатъкът от `turnUserKey`, не самият идентификатор на профила.
+ */
+export function getOrCreateTurnOperationId(userKey: string, scope: string): string {
   const rows = readAll();
-  const existing = rows.find((r) => r.user === userId && r.scope === scope);
+  const existing = rows.find((r) => r.user === userKey && r.scope === scope);
   if (existing) return existing.operationId;
   const operationId = crypto.randomUUID();
-  writeAll([...readAll(), { scope, operationId, user: userId, createdAt: Date.now() }]);
+  writeAll([...readAll(), { scope, operationId, user: userKey, createdAt: Date.now() }]);
   return operationId;
 }
 
 /** Изчистваме САМО при потвърден успех или доказан конфликт/изтекъл отговор. */
-export function clearTurnOperation(userId: string, scope: string): void {
-  writeAll(readAll().filter((r) => !(r.user === userId && r.scope === scope)));
+export function clearTurnOperation(userKey: string, scope: string): void {
+  writeAll(readAll().filter((r) => !(r.user === userKey && r.scope === scope)));
 }
 
 /** Смяна на профил/изход: нищо от предишния потребител не остава. */
-export function clearTurnOperationsForOtherUsers(userId: string | null): void {
-  writeAll(userId ? readAll().filter((r) => r.user === userId) : []);
+export function clearTurnOperationsForOtherUsers(userKey: string | null): void {
+  writeAll(userKey ? readAll().filter((r) => r.user === userKey) : []);
 }

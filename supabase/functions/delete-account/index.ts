@@ -54,21 +54,39 @@ Deno.serve(async (req) => {
     }
     try { await admin.from("profiles").delete().eq("id", user.id); } catch {/* ignore */}
 
+    // Съдържанието на ходовете към асистента се пази в леджъра на операциите,
+    // който НЕ е свързан с CASCADE по съобщения. Изтриването му е ЗАДЪЛЖИТЕЛНО
+    // и fail-closed: ако не успее, профилът НЕ се изтрива, за да не останат
+    // запазени текстове без собственик.
+    const { error: purgeErr } = await admin.rpc("purge_assistant_turn_payloads", {
+      p_user_id: user.id,
+    });
+    if (purgeErr) {
+      return new Response(
+        JSON.stringify({
+          error: "Изтриването не може да бъде завършено сигурно в момента. Опитайте отново.",
+          code: "erasure_incomplete",
+        }),
+        { status: 503, headers: { ...cors, "Content-Type": "application/json" } },
+      );
+    }
+
     const { error: delErr } = await admin.auth.admin.deleteUser(user.id);
     if (delErr) {
-      return new Response(JSON.stringify({ error: delErr.message }), {
-        status: 500,
-        headers: { ...cors, "Content-Type": "application/json" },
-      });
+      // Без сурово съобщение от базата към клиента.
+      return new Response(
+        JSON.stringify({ error: "Изтриването не беше завършено.", code: "account_delete_failed" }),
+        { status: 500, headers: { ...cors, "Content-Type": "application/json" } },
+      );
     }
 
     return new Response(JSON.stringify({ ok: true }), {
       headers: { ...cors, "Content-Type": "application/json" },
     });
-  } catch (e) {
-    return new Response(JSON.stringify({ error: String(e?.message ?? e) }), {
-      status: 500,
-      headers: { ...cors, "Content-Type": "application/json" },
-    });
+  } catch (_e) {
+    return new Response(
+      JSON.stringify({ error: "Изтриването не беше завършено.", code: "account_delete_failed" }),
+      { status: 500, headers: { ...cors, "Content-Type": "application/json" } },
+    );
   }
 });

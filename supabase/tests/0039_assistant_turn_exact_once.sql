@@ -15,7 +15,7 @@
 -- товара; retention_due_counts брои и асистентските редове, само-четящо.
 -- =============================================================================
 BEGIN;
-SELECT plan(76);
+SELECT plan(98);
 
 -- ---------------------------------------------------------------------------
 -- 0) Права: само service_role пипа леджъра на асистентския ход.
@@ -504,6 +504,130 @@ SELECT is(
   (SELECT md5(row_to_json(o)::text) FROM public.assistant_turn_operations o
     WHERE operation_id = 'a0000000-0000-4000-8000-000000000090'),
   'retention_due_counts не променя нито един ред');
+
+-- ---------------------------------------------------------------------------
+-- 17) ОТКАЗ => нула празни разговори и нула мутации (corrective P0-E2).
+--     U2 е на тавана от 3 безплатни AI съобщения.
+-- ---------------------------------------------------------------------------
+SELECT is(
+  (public.assistant_turn_reserve(
+    'a0000000-0000-4000-8000-0000000000a1', '22222222-2222-4222-8222-222222222222',
+    repeat('d', 64), NULL, 'legal_strict', true, 'free', NULL, 180, '{}'::jsonb, 3))->>'reason',
+  'ai_free_limit_reached', 'изчерпаният безплатен таван отказва');
+SELECT is(
+  (SELECT count(*) FROM public.assistant_threads
+    WHERE user_id = '22222222-2222-4222-8222-222222222222'), 0::bigint,
+  'отказът НЕ създава празен разговор');
+SELECT is(
+  (SELECT count(*) FROM public.assistant_turn_operations
+    WHERE operation_id = 'a0000000-0000-4000-8000-0000000000a1'), 0::bigint,
+  'отказът НЕ създава ред в леджъра');
+SELECT is(
+  (SELECT ai_messages_used FROM public.download_quota
+    WHERE user_id = '22222222-2222-4222-8222-222222222222'), 3,
+  'отказът НЕ изразходва право');
+
+-- ---------------------------------------------------------------------------
+-- 18) Отмененият ред ОСТАВА и същата операция може да се опита отново.
+-- ---------------------------------------------------------------------------
+SELECT is(
+  (public.assistant_turn_reserve(
+    'a0000000-0000-4000-8000-0000000000b1', '11111111-1111-4111-8111-111111111111',
+    repeat('e', 64), NULL, 'legal_strict', true, 'free', NULL, 180, '{}'::jsonb, 9))->>'status',
+  'reserved', 'резервация преди доставчика');
+SELECT is(
+  (public.assistant_turn_cancel(
+    'a0000000-0000-4000-8000-0000000000b1', '11111111-1111-4111-8111-111111111111',
+    'proven_preflight_failure'))->>'restored',
+  'true', 'доказаната отмяна преди доставчика възстановява правото');
+SELECT is(
+  (SELECT count(*) FROM public.assistant_turn_operations
+    WHERE operation_id = 'a0000000-0000-4000-8000-0000000000b1'), 1::bigint,
+  'трайният ред на отменената операция НЕ се трие');
+SELECT is(
+  (public.assistant_turn_reserve(
+    'a0000000-0000-4000-8000-0000000000b1', '11111111-1111-4111-8111-111111111111',
+    repeat('e', 64), NULL, 'legal_strict', true, 'free', NULL, 180, '{}'::jsonb, 9))->>'status',
+  'reserved', 'безопасният повторен опит преизползва СЪЩАТА операция');
+SELECT is(
+  (SELECT count(*) FROM public.assistant_turn_operations
+    WHERE user_id = '11111111-1111-4111-8111-111111111111'
+      AND operation_id = 'a0000000-0000-4000-8000-0000000000b1'), 1::bigint,
+  'повторният опит НЕ създава втори ред');
+SELECT is(
+  (public.assistant_turn_reserve(
+    'a0000000-0000-4000-8000-0000000000b1', '11111111-1111-4111-8111-111111111111',
+    repeat('e', 64), NULL, 'clarification', true, 'free', NULL, 180, '{}'::jsonb, 9))->>'status',
+  'in_progress', 'вече резервираният ход не се презаписва с друг режим');
+
+-- ---------------------------------------------------------------------------
+-- 19) Доказуем преход към изравняване при несигурност след стартиран модел.
+-- ---------------------------------------------------------------------------
+SELECT is(
+  (public.assistant_turn_mark_model_started(
+    'a0000000-0000-4000-8000-0000000000b1', '11111111-1111-4111-8111-111111111111'))->>'status',
+  'ok', 'моделът се маркира като стартиран');
+SELECT is(
+  (public.assistant_turn_mark_reconciliation(
+    'a0000000-0000-4000-8000-0000000000b1', '11111111-1111-4111-8111-111111111111',
+    'provider_failed'))->>'status',
+  'reconciliation', 'несигурността след старта нанася доказуем преход');
+SELECT is(
+  (SELECT state FROM public.assistant_turn_operations
+    WHERE operation_id = 'a0000000-0000-4000-8000-0000000000b1'), 'reconciliation',
+  'състоянието вече не изглежда „в процес“');
+SELECT ok(
+  (SELECT reconciliation_required FROM public.assistant_turn_operations
+    WHERE operation_id = 'a0000000-0000-4000-8000-0000000000b1'),
+  'ходът е видим за изравняване');
+SELECT is(
+  (public.assistant_turn_cancel(
+    'a0000000-0000-4000-8000-0000000000b1', '11111111-1111-4111-8111-111111111111',
+    'late_attempt'))->>'status',
+  'reconciliation', 'изравняването НЕ се превръща в отмяна и НЕ възстановява право');
+
+-- ---------------------------------------------------------------------------
+-- 20) Изтекъл лизинг НИКОГА не стартира модел.
+-- ---------------------------------------------------------------------------
+SELECT is(
+  (public.assistant_turn_reserve(
+    'a0000000-0000-4000-8000-0000000000c1', '11111111-1111-4111-8111-111111111111',
+    repeat('f', 64), NULL, 'legal_strict', true, 'free', NULL, 180, '{}'::jsonb, 9))->>'status',
+  'reserved', 'резервация за проверка на лизинга');
+UPDATE public.assistant_turn_operations
+   SET lease_expires_at = now() - interval '1 minute'
+ WHERE operation_id = 'a0000000-0000-4000-8000-0000000000c1';
+SELECT is(
+  (public.assistant_turn_mark_model_started(
+    'a0000000-0000-4000-8000-0000000000c1', '11111111-1111-4111-8111-111111111111'))->>'status',
+  'reconciliation', 'изтеклият лизинг не стартира модел');
+SELECT ok(
+  (SELECT model_started_at IS NULL FROM public.assistant_turn_operations
+    WHERE operation_id = 'a0000000-0000-4000-8000-0000000000c1'),
+  'при изтекъл лизинг НЕ се отбелязва стартиран модел');
+
+-- ---------------------------------------------------------------------------
+-- 21) Строга валидация на входа: нищо не се резервира при съмнение.
+-- ---------------------------------------------------------------------------
+SELECT is(
+  (public.assistant_turn_reserve(
+    'a0000000-0000-4000-8000-0000000000d1', '11111111-1111-4111-8111-111111111111',
+    'НЕ-Е-ХЕШ', NULL, 'legal_strict', false, NULL, NULL, 180, '{}'::jsonb, 9))->>'reason',
+  'invalid_binding', 'обвързване извън шестнайсетичния формат се отхвърля');
+SELECT is(
+  (public.assistant_turn_reserve(
+    'a0000000-0000-4000-8000-0000000000d1', '11111111-1111-4111-8111-111111111111',
+    repeat('1', 64), NULL, 'общ_режим', false, NULL, NULL, 180, '{}'::jsonb, 9))->>'reason',
+  'invalid_mode', 'непознат режим се отхвърля');
+SELECT is(
+  (public.assistant_turn_reserve(
+    'a0000000-0000-4000-8000-0000000000d1', '11111111-1111-4111-8111-111111111111',
+    repeat('1', 64), NULL, 'platform_help', false, 'free', NULL, 180, '{}'::jsonb, 9))->>'reason',
+  'allocation_without_charge', 'разпределение без такса се отхвърля');
+SELECT is(
+  (SELECT count(*) FROM public.assistant_turn_operations
+    WHERE operation_id = 'a0000000-0000-4000-8000-0000000000d1'), 0::bigint,
+  'невалидният вход НЕ оставя ред в леджъра');
 
 -- ЗАБЕЛЕЖКА: истинска паралелна конкурентност (две сесии едновременно на
 -- pg_advisory_xact_lock/FOR UPDATE) НЕ се доказва тук — няма dblink/паралелни

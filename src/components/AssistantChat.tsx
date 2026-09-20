@@ -13,8 +13,10 @@ import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { toast } from "sonner";
 import {
   clearTurnOperation,
+  clearTurnOperationsForOtherUsers,
   getOrCreateTurnOperationId,
   turnScopeHash,
+  turnUserKey as turnUserKeyOf,
 } from "@/lib/assistantTurnKey";
 import { cn } from "@/lib/utils";
 import { Crown } from "@/icons";
@@ -147,6 +149,22 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   const requestContext = toRequestContext(documentContext);
   const documentContextRef = useRef(documentContext);
   documentContextRef.current = documentContext;
+  /** Синхронна защита срещу две паралелни изпращания в един и същ tick. */
+  const sendingRef = useRef(false);
+  // Смяна на профил или изход: ключовете на ходове от други профили не остават
+  // в браузъра. При липса на профил хранилището се изчиства напълно.
+  useEffect(() => {
+    const uid = user?.id ?? null;
+    if (!uid) {
+      clearTurnOperationsForOtherUsers(null);
+      return;
+    }
+    let cancelled = false;
+    void turnUserKeyOf(uid).then((key) => {
+      if (!cancelled) clearTurnOperationsForOtherUsers(key);
+    });
+    return () => { cancelled = true; };
+  }, [user?.id]);
   const [serverContext, setServerContext] = useState<
     { kind: string; title: string; truncated: boolean } | null
   >(null);
@@ -576,16 +594,24 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   };
 
   const sendMessage = async (text: string) => {
-    if (!text.trim() || streaming) return;
+    if (!text.trim()) return;
+    // СИНХРОННА защита: `streaming` е състояние и се вижда едва след повторен
+    // render, затова двойно щракване или Enter+клик можеха да влязат два пъти в
+    // тази функция преди изграждането на ключа на хода. Реф-а се вдига веднага.
+    if (sendingRef.current || streaming) return;
+    sendingRef.current = true;
+    let sendingReleased = false;
+    const releaseSending = () => { sendingReleased = true; sendingRef.current = false; };
+    try {
     // Не изпращаме, преди обвързаният контекст на маршрутния разговор да е
     // прочетен от сървъра — иначе бихме пратили чужд или празен обхват.
-    if (routeHydrationPending) return;
+    if (routeHydrationPending) { releaseSending(); return; }
     // Нито преди обвързването И съобщенията на ТОЧНО този разговор да са
     // заредени: два общи разговора не се различават по сървърна проверка,
     // затова грешна клиентска история не бива да е възможна.
-    if (!threadReady || threadLoadFailed) return;
-    if (!requireAuth({ action: "Изпрати съобщение до DogovaryAI" })) return;
-    if (!session?.access_token) return;
+    if (!threadReady || threadLoadFailed) { releaseSending(); return; }
+    if (!requireAuth({ action: "Изпрати съобщение до DogovaryAI" })) { releaseSending(); return; }
+    if (!session?.access_token) { releaseSending(); return; }
 
     // Q2e/C: сървърът е ЕДИНСТВЕНАТА точка на резервация — клиентът вече не
     // извиква consume_ai_message (двойното таксуване е премахнато).
@@ -627,6 +653,8 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     // точното съобщение) → един и същ идентификатор при retry/презареждане.
     const turnPath = location.pathname.split("?")[0].split("#")[0];
     const turnUserId = session.user?.id ?? "";
+    // В хранилището влиза САМО отпечатък на профила, не самият идентификатор.
+    const turnUserKey = await turnUserKeyOf(turnUserId);
     const turnScope = await turnScopeHash({
       userId: turnUserId,
       threadId: activeThreadId,
@@ -635,7 +663,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
       contextEntityId: requestContext?.entityId ?? null,
       path: turnPath,
     });
-    const turnOperationId = getOrCreateTurnOperationId(turnUserId, turnScope);
+    const turnOperationId = getOrCreateTurnOperationId(turnUserKey, turnScope);
 
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistant-chat`;
     try {
@@ -686,19 +714,25 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
           // Същият въпрос вече се обработва: не изпращаме нищо повторно.
           toast.info("Този въпрос вече се обработва. Изчакайте отговора.");
         } else if (code === "assistant_turn_reconciliation") {
+          // Несигурно състояние: ключът СЕ ЗАПАЗВА, за да е същият ход при
+          // повторен опит, но текстът се връща в полето, за да не се загуби.
+          setInput(text);
           toast.error("Изясняваме състоянието на предишния Ви въпрос.", {
             description: "Опитайте отново след малко. Ако се повтори, свържете се с поддръжката.",
           });
         } else if (code === "assistant_turn_conflict" || code === "assistant_turn_response_expired") {
           // Доказан конфликт/изтекъл отговор: ключът пада, текстът се връща.
-          clearTurnOperation(turnUserId, turnScope);
+          clearTurnOperation(turnUserKey, turnScope);
           setInput(text);
           toast.error("Изпратете съобщението отново.");
         } else if (code === "thread_unavailable" || code === "message_persist_failed") {
+          setInput(text);
           toast.error((err as { error?: string }).error || "Услугата е временно недостъпна.");
         } else if (code === "document_not_found") {
           toast.error("Документът не е намерен или нямате достъп до него.");
         } else {
+          // Всяка друга неясна грешка: запазваме ключа и връщаме текста.
+          setInput(text);
           toast.error((err as { error?: string }).error || "Грешка при изпращане");
         }
         setMessages(messages);
@@ -837,17 +871,23 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
       }
 
       // Потвърден резултат: ключът вече не е нужен.
-      clearTurnOperation(turnUserId, turnScope);
+      clearTurnOperation(turnUserKey, turnScope);
       loadThreads();
       // Опресняваме показаното потребление след успешна заявка.
       void refreshPlan();
     } catch (err) {
       if ((err as { name?: string })?.name === "AbortError" || !isCurrent()) return;
       console.error(err);
+      // Прекъсната връзка е несигурност: ключът остава, текстът се връща, за да
+      // може безопасно да се опита СЪЩИЯТ ход отново.
+      setInput(text);
       toast.error("Грешка при връзка с асистента");
       setMessages(messages);
     } finally {
       if (isCurrent()) setStreaming(false);
+    }
+    } finally {
+      if (!sendingReleased) sendingRef.current = false;
     }
   };
 

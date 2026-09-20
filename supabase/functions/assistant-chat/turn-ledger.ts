@@ -204,6 +204,28 @@ export async function commitTurn(
   return { kind: "unavailable" };
 }
 
+/**
+ * ДОКАЗУЕМ преход към изравняване. Извиква се при ВСЯКА несигурност СЛЕД като
+ * моделът е стартиран: провал на доставчика, прекъсната мрежа, неочакван
+ * изключение, нечетим отговор. НЕ отменя, НЕ възстановява, НЕ пуска втори модел.
+ * Резултатът е трайно състояние, а не само HTTP отговор.
+ */
+export async function markTurnReconciliation(
+  client: LedgerClient,
+  operationId: string,
+  userId: string,
+  reason: string,
+): Promise<{ ok: boolean }> {
+  const { data, error } = await client.rpc("assistant_turn_mark_reconciliation", {
+    p_operation_id: operationId,
+    p_user_id: userId,
+    p_reason: reason.slice(0, 120),
+  });
+  if (error) return { ok: false };
+  const status = String(asObject(data)?.status ?? "");
+  return { ok: status === "reconciliation" || status === "already_reconciliation" };
+}
+
 export type TurnCancel =
   | { kind: "cancelled"; restored: boolean }
   | { kind: "reconciliation"; reason: string }
