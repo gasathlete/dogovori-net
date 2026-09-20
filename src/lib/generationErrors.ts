@@ -28,6 +28,11 @@ export type GenerationErrorCode =
   | "server_error"
   | "rejected"
   | "cancelled"
+  | "operation_in_progress"
+  | "quota_unavailable"
+  | "entitlement_unavailable"
+  | "reconciliation_required"
+  | "operation_conflict"
   | "unknown";
 
 export interface GenerationError {
@@ -78,6 +83,11 @@ const USER_MESSAGES: Record<GenerationErrorCode, string> = {
   server_error: "Възникна грешка на сървъра. Не сте таксувани — опитайте отново.",
   rejected: "Заявката бе отхвърлена от сървъра.",
   cancelled: "Генерирането бе прекратено.",
+  operation_in_progress: "Тази заявка вече се обработва. Изчакайте малко и опитайте отново.",
+  quota_unavailable: "Проверката на квотата е временно недостъпна. Опитайте отново след малко.",
+  entitlement_unavailable: "Проверката на правата Ви е временно недостъпна. Опитайте отново след малко.",
+  reconciliation_required: "Резултатът от предходния опит все още се изравнява. Изчакайте малко и опитайте отново.",
+  operation_conflict: "Заявката се промени. Изпратете отново.",
   unknown: "Възникна неочаквана грешка. Опитайте отново.",
 };
 
@@ -90,7 +100,36 @@ const RETRYABLE: ReadonlySet<GenerationErrorCode> = new Set<GenerationErrorCode>
   "legal_verification_unavailable",
   "server_error",
   "input_not_processable",
+  "operation_in_progress",
+  "quota_unavailable",
+  "entitlement_unavailable",
+  "reconciliation_required",
   "unknown",
+]);
+
+/**
+ * Кодове, при които операцията е ДОКАЗАНО в конфликт с ключа за
+ * идемпотентност (различен товар, изтекъл или невалиден ключ). Ключът се
+ * освобождава и следващото ИЗРИЧНО действие на потребителя създава нов.
+ */
+export const OPERATION_CONFLICT_CODES: ReadonlySet<string> = new Set([
+  "idempotency_key_conflict",
+  "invalid_operation_id",
+  "operation_id_required",
+  "response_expired",
+]);
+
+/**
+ * Кодове, при които операцията НЕ е приключила (все още се обработва,
+ * квотата/правата не могат да се проверят в момента, или се изравнява
+ * предходен резултат). Ключът за идемпотентност се ПАЗИ — същият повторен
+ * опит е безопасен и не таксува два пъти.
+ */
+export const OPERATION_KEEP_KEY_CODES: ReadonlySet<string> = new Set([
+  "operation_in_progress",
+  "quota_unavailable",
+  "entitlement_unavailable",
+  "reconciliation_required",
 ]);
 
 const GATES: ReadonlySet<GenerationErrorCode> = new Set<GenerationErrorCode>([
@@ -100,6 +139,7 @@ const GATES: ReadonlySet<GenerationErrorCode> = new Set<GenerationErrorCode>([
   "sensitive_blocked",
   "blocked_content",
   "cancelled",
+  "operation_conflict",
 ]);
 
 export function isRetryableCode(code: GenerationErrorCode): boolean {
@@ -134,6 +174,15 @@ const SERVER_CODE_MAP: Record<string, GenerationErrorCode> = {
   timeout: "timeout",
   background_failure: "server_error",
   internal_error: "server_error",
+  operation_in_progress: "operation_in_progress",
+  quota_unavailable: "quota_unavailable",
+  entitlement_unavailable: "entitlement_unavailable",
+  reconciliation_required: "reconciliation_required",
+  billing_reconciliation_required: "reconciliation_required",
+  idempotency_key_conflict: "operation_conflict",
+  invalid_operation_id: "operation_conflict",
+  operation_id_required: "operation_conflict",
+  response_expired: "operation_conflict",
 };
 
 function fromStatus(status: number | undefined): GenerationErrorCode | null {

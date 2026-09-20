@@ -44,6 +44,7 @@ import { parseExtraPartyTypes } from "@/components/wizard/liveDraft/clauseBuilde
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { generateContractJob } from "@/lib/generateContractJob";
 import { classifyGenerationError, errorClassOf, type GenerationError } from "@/lib/generationErrors";
+import { getOpSessionId, getStableOpKey, releaseStableOpKey, opaqueOpScope } from "@/lib/opSession";
 
 import { SensitiveDataNotice } from "@/components/wizard/SensitiveDataNotice";
 import { buildDraftOutline } from "@/lib/draftOutline";
