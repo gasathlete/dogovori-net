@@ -26,6 +26,13 @@ const manifest: Manifest = JSON.parse(
   await Deno.readTextFile(`${ROOT}_shared/model-call-manifest.json`),
 );
 
+/** Точният бюджет от кода — манифестът не може да декларира друго число. */
+function documentBudget(purpose: string): number {
+  const budget = PROVIDER_CALL_BUDGET[purpose as AiDocumentPurpose];
+  assert(typeof budget === "number", `непозната документна цел: ${purpose}`);
+  return budget;
+}
+
 const LEGACY_RPCS = [
   "consume_quota",
   "consume_quota_session",
