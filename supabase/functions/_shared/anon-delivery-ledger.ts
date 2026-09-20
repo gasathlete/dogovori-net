@@ -53,7 +53,10 @@ export type ReserveOutcome =
   | { readonly kind: "in_progress"; readonly retryAfterSeconds: number }
   | { readonly kind: "limit_reached"; readonly delivered: number }
   | { readonly kind: "conflict"; readonly reason: string }
+  /** Запазеният точен отговор е изтекъл: нужна е НОВА заявка с нов ключ. */
+  | { readonly kind: "expired"; readonly reason: string }
   | { readonly kind: "unavailable"; readonly reason: string };
+
 
 function row(data: unknown): Record<string, unknown> {
   return data && typeof data === "object" && !Array.isArray(data)
@@ -118,6 +121,9 @@ export async function reserveAnonDelivery(
     return { kind: "limit_reached", delivered: Math.max(0, Number(r.delivered ?? 0)) };
   }
   if (reason === "binding_conflict") return { kind: "conflict", reason };
+  // Изтекъл запазен отговор: същият ключ НИКОГА няма да върне резултат.
+  if (reason === "response_expired") return { kind: "expired", reason };
+
   if (reason === "reconciliation_required" || reason === "cancellation_unproven") {
     return { kind: "unavailable", reason };
   }

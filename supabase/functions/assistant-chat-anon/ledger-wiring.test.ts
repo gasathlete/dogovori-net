@@ -49,17 +49,19 @@ Deno.test("резервацията и потвърждаването са пр�
   assertEquals(reserve < commit, true);
   assertEquals(model > 0, true);
   // Потвърждаването е последната стъпка преди отговора към клиента.
-  assertEquals(commit < src.lastIndexOf("JSON.stringify(payload)"), true);
+  // Потвърждаването е преди връщането на точния отговор към клиента.
+  assertEquals(commit < src.lastIndexOf("JSON.stringify(committed.response)"), true);
 });
 
 Deno.test("точното повторение връща запазения отговор без нов модел", () => {
   assertStringIncludes(src, 'res.kind === "replay"');
-  assertStringIncludes(src, "JSON.stringify(res.response)");
+  assertStringIncludes(src, "json(res.response");
 });
 
 Deno.test("балонът пази ключа само за същия обхват на заявката", () => {
   assertStringIncludes(bubble, "pendingScopeRef");
-  assertStringIncludes(bubble, "pendingScopeRef.current !== scope");
+  assertStringIncludes(bubble, "pendingScopeRef.current = scope");
+  assertStringIncludes(bubble, "pendingScopeRef.current = null");
   assertStringIncludes(bubble, "operation_in_progress");
   assertStringIncludes(bubble, "request_binding_conflict");
 });

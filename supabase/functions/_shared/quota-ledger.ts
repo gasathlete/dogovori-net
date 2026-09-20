@@ -120,6 +120,86 @@ export interface ReserveInput {
 
 export const IDEMPOTENCY_KEY_CONFLICT = "idempotency_key_conflict";
 
+/**
+ * САМО-ЧЕТЯЩО състояние на операция по ЦЯЛОТО обвързване. Не резервира, не
+ * освобождава и не таксува. Използва се ПРЕДИ скъпите/чупливи стъпки (правно
+ * заземяване, модел), за да не бъде блокиран нормален повторен опит по вече
+ * завършена и вече таксувана операция.
+ */
+export type LookupOutcome =
+  /** Няма такава операция или е ДОКАЗАНО отменена — нормален нов опит. */
+  | { readonly status: "absent"; readonly reason?: string }
+  /** Ключът е ползван с ДРУГ товар. */
+  | { readonly status: "conflict"; readonly reason: string }
+  /** Завършена операция: връща се САМО трайно записаният резултат. */
+  | {
+      readonly status: "committed";
+      readonly resultRef: Record<string, unknown> | null;
+      readonly charged: boolean;
+      readonly source: string;
+    }
+  /** Активна резервация по същия ключ — никакво второ изпълнение. */
+  | { readonly status: "in_progress"; readonly retryAfterSeconds: number }
+  /** Недоказан изход: изравняване, не нов опит. */
+  | { readonly status: "reconciliation"; readonly reason: string }
+  | { readonly status: "unavailable"; readonly message: string };
+
+export async function lookupCommittedOperation(
+  db: Rpc,
+  input: ReserveInput,
+): Promise<LookupOutcome> {
+  if (typeof input.requestDigest !== "string" || !SHA256_HEX.test(input.requestDigest)) {
+    return { status: "conflict", reason: "request_digest_required" };
+  }
+  const { data, error } = await db.rpc("quota_operation_lookup", {
+    p_operation_id: input.operationId,
+    p_user_id: input.userId,
+    p_kind: input.kind,
+    p_purpose: input.purpose,
+    p_session_id: input.sessionId ?? null,
+    p_doc_key: input.docKey ?? null,
+    p_batch_id: input.batchId ?? null,
+    p_request_digest: input.requestDigest,
+  });
+  if (error) {
+    if (isConflict(error.message)) {
+      return { status: "conflict", reason: IDEMPOTENCY_KEY_CONFLICT };
+    }
+    return { status: "unavailable", message: error.message };
+  }
+  const row = (data ?? {}) as Record<string, unknown>;
+  const status = String(row.status ?? "");
+  if (status === "committed") {
+    return {
+      status: "committed",
+      resultRef: row.result_ref && typeof row.result_ref === "object"
+        ? (row.result_ref as Record<string, unknown>)
+        : null,
+      charged: row.charged === true,
+      source: String(row.source ?? "unknown"),
+    };
+  }
+  if (status === "conflict") {
+    return { status: "conflict", reason: String(row.reason ?? IDEMPOTENCY_KEY_CONFLICT) };
+  }
+  if (status === "in_progress") {
+    return {
+      status: "in_progress",
+      retryAfterSeconds: Math.max(1, Number(row.retry_after_seconds ?? 4)),
+    };
+  }
+  if (status === "reconciliation") {
+    return { status: "reconciliation", reason: String(row.reason ?? "reconciliation_required") };
+  }
+  if (status === "absent") {
+    return { status: "absent", reason: row.reason ? String(row.reason) : undefined };
+  }
+  // Непознат отговор НЕ се третира като „няма операция".
+  return { status: "unavailable", message: `unexpected_lookup_status:${status || "empty"}` };
+}
+
+
+
 /** Причини, при които НЕ се таксува и се иска изравняване, а не нов опит. */
 const RECONCILIATION_REASONS = new Set([
   "reconciliation_required",
