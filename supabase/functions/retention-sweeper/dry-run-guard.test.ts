@@ -7,12 +7,18 @@
  */
 import { assert } from "https://deno.land/std@0.224.0/assert/mod.ts";
 
-const src = await Deno.readTextFile(new URL("./index.ts", import.meta.url));
+const raw = await Deno.readTextFile(new URL("./index.ts", import.meta.url));
+// Коментарите не са изпълним код — сравнението е само върху кода.
+const src = raw
+  .split("\n")
+  .map((line) => (line.trimStart().startsWith("//") ? "" : line))
+  .join("\n");
 
 const MUTATIONS = [
   ".delete()",
   ".update(",
-  "storage",
+  'storage\n    .from("uploads")',
+  '.remove(storagePaths)',
   "sweepExpiredRequestArtifacts",
   "reconcileStaleOperations",
   "sweep_expired_exact_responses",
