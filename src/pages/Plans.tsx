@@ -754,7 +754,7 @@ export default function Plans() {
                 <Link
                   to={
                     isAuthed
-                      ? "/account?tab=subscription&plan=entrepreneur&billing=monthly&promo=SEPT20"
+                      ? "/account?tab=subscription&plan=entrepreneur&billing=monthly"
                       : "/auth?tab=signup&redirect=%2Fplans"
                   }
                   className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-3 text-sm font-semibold text-brand-dark shadow-brand transition-all hover:shadow-[0_20px_50px_-15px_hsl(var(--brand)/0.7)]"
