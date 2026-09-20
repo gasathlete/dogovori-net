@@ -352,10 +352,12 @@ Deno.serve(async (req) => {
       if (!res.ok) {
         // Тялото на gateway-а НЕ се връща и НЕ се логва — нормализирана грешка.
         // Неуспешен модел не изразходва безплатно съобщение.
+        await releaseAttempt();
         return gatewayErrorResponse(normalizeGatewayStatus(res.status), corsHeaders, {
           free_message_consumed: false,
         });
       }
+
       const data = await res.json();
       const candidate: string = data?.choices?.[0]?.message?.content ?? "";
       if (validateGroundedReply(candidate, citations).ok) {
