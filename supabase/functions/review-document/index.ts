@@ -96,6 +96,18 @@ Deno.serve(async (req: Request) => {
       );
     }
     const request = req0;
+    const { asUuidOrNull } = await import("../_shared/canonical-digest.ts");
+    const rawClientOpId = rawBody?.operation_id ?? rawBody?.client_operation_id;
+    const operationId = asUuidOrNull(rawClientOpId);
+    if (!operationId) {
+      return new Response(
+        JSON.stringify({
+          error: "Липсва или е невалиден идентификатор на операцията.",
+          code: rawClientOpId ? "invalid_operation_id" : "operation_id_required",
+        }),
+        { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+      );
+    }
     // Q4a — незадължителен манифест за качество от нашия генератор. Доверява се
     // САМО при точно съвпадение на отпечатъка със РЕВИЗИРАНИЯ текст; иначе
     // документът е външен/недоверен и нищо не се потиска.
@@ -135,6 +147,7 @@ Deno.serve(async (req: Request) => {
     const {
       authorizePersistedReview,
       reviewDenial,
+      normalizeDocumentRef,
     } = await import("./review-authorization.ts");
     const denied = (
       reason: Parameters<typeof reviewDenial>[0],
@@ -168,11 +181,16 @@ Deno.serve(async (req: Request) => {
       commitReviewOperation,
       reserveReviewOperation,
       lookupReviewOperation,
+      cancelOwnedReviewOperation,
+      commitOwnedReviewOperation,
+      reserveOwnedReviewOperation,
+      lookupOwnedReviewOperation,
       reviewContentDigest,
       reviewGrantSecret,
       REVIEW_GRANT_AUDIENCE,
       verifyReviewGrant,
     } = await import("../_shared/review-grant.ts");
+    type OwnedBinding = Parameters<typeof lookupOwnedReviewOperation>[1];
     const contentDigest = await reviewContentDigest(request.documentText);
     const submittedGrant = rawBody?.grant ?? rawBody?.review_grant ?? null;
     const submittedDocumentId = rawBody?.document_id ?? rawBody?.documentId ?? null;
@@ -180,6 +198,10 @@ Deno.serve(async (req: Request) => {
     // Пропускът се РЕЗЕРВИРА по-късно — непосредствено преди платеното повикване.
     let grantPayload: ReviewGrantPayload | null = null;
     let persistedDenial: Parameters<typeof reviewDenial>[0] | null = null;
+    // Трайното обвързване (owner/document/version/hash) за пътя на ПРОВЕРЕНИЯ
+    // собственик на запазения документ — без нито едно повикване към модела
+    // без ДОКАЗАНА резервация в this ledger (виж 0036).
+    let ownedBinding: OwnedBinding | null = null;
 
     // ПРЕДПОЧИТАНИЕ: проверен собственик на запазения документ. Така нормалният
     // собствен поток НЕ харчи пропуск и остарял пропуск не блокира ревизията.
@@ -232,6 +254,21 @@ Deno.serve(async (req: Request) => {
       });
       if (verdict.ok) {
         authorizedOwnerId = verdict.ownerId;
+        const ref = normalizeDocumentRef(
+          submittedDocumentId,
+          rawBody?.document_version_no ?? rawBody?.documentVersionNo ?? null,
+        );
+        if (ref) {
+          ownedBinding = {
+            operationId,
+            ownerId: verdict.ownerId,
+            documentId: ref.documentId,
+            documentVersion: ref.versionNo !== null ? String(ref.versionNo) : null,
+            documentHash: contentDigest,
+            contentDigest,
+            purpose: REVIEW_GRANT_AUDIENCE,
+          };
+        }
       } else if (verdict.reason === "unavailable") {
         // Недостъпна база НИКОГА не се компенсира с пропуск.
         return denied(verdict.reason);
@@ -338,6 +375,72 @@ Deno.serve(async (req: Request) => {
       }
       // absent (включително доказано отменена): продължава през ВСИЧКИ безплатни
       // проверки и чак тогава резервира.
+    }
+
+    // Същата САМО-ЧЕТЯЩА проверка, но за пътя на ПРОВЕРЕНИЯ собственик на
+    // запазен документ (grantPayload === null). Без нея моделът може да бъде
+    // повикан без никакъв траен запис — точно дефектът, който тук се поправя.
+    if (!grantPayload && ownedBinding) {
+      const existing = await lookupOwnedReviewOperation(admin, ownedBinding);
+      if (existing.kind === "committed") {
+        return new Response(JSON.stringify(existing.response), {
+          headers: {
+            ...corsHeaders,
+            ...correlationHeaders(correlationId),
+            "Content-Type": "application/json",
+            "X-Operation-Replay": "true",
+          },
+        });
+      }
+      if (existing.kind === "in_progress") {
+        return new Response(
+          JSON.stringify({
+            error: "Ревизията на този документ вече се обработва. Опитайте отново след малко.",
+            code: "review_in_progress",
+            retry_after_seconds: existing.retryAfterSeconds,
+          }),
+          { status: 409, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+        );
+      }
+      if (existing.kind === "conflict") {
+        return new Response(
+          JSON.stringify({
+            error: "Заявката за ревизия вече е обвързана с друг документ/версия. Изпратете отново.",
+            code: "operation_conflict",
+          }),
+          { status: 409, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+        );
+      }
+      if (existing.kind === "expired") {
+        return new Response(
+          JSON.stringify({
+            error: "Резултатът от предишната ревизия вече не е наличен. Стартирайте ревизията отново.",
+            code: "new_request_required",
+          }),
+          { status: 409, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+        );
+      }
+      if (existing.kind === "reconciliation") {
+        return new Response(
+          JSON.stringify({
+            error: "Проверяваме състоянието на предишната ревизия. Опитайте отново след малко.",
+            code: "reconciliation_required",
+            retry_after_seconds: 15,
+          }),
+          { status: 503, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+        );
+      }
+      if (existing.kind === "unavailable") {
+        return new Response(
+          JSON.stringify({
+            error: "Ревизията е временно недостъпна. Опитайте отново след малко.",
+            code: "review_unavailable",
+            retry_after_seconds: 10,
+          }),
+          { status: 503, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+        );
+      }
+      // absent: продължава през ВСИЧКИ безплатни проверки и чак тогава резервира.
     }
 
     // ЩАБНО ИЗКЛЮЧЕНИЕ: само проверена роля може ръчно да изключи проверката за
@@ -538,6 +641,68 @@ Deno.serve(async (req: Request) => {
       if (reserved.kind !== "reserved") return denied("grant_unavailable");
     }
 
+    // Собственият (owned) път резервира ПО СЪЩИЯ начин, непосредствено преди
+    // платеното повикване — без резервация НЕ се стига до модела.
+    if (!grantPayload && ownedBinding) {
+      const reserved = await reserveOwnedReviewOperation(admin, ownedBinding);
+      if (reserved.kind === "replay") {
+        return new Response(JSON.stringify(reserved.response), { headers: jsonHeaders });
+      }
+      if (reserved.kind === "in_progress") {
+        return new Response(
+          JSON.stringify({
+            error: "Ревизията на този документ вече се обработва. Опитайте отново след малко.",
+            code: "review_in_progress",
+            retry_after_seconds: reserved.retryAfterSeconds,
+            source,
+          }),
+          { status: 409, headers: jsonHeaders },
+        );
+      }
+      if (reserved.kind === "expired") {
+        return new Response(
+          JSON.stringify({
+            error: "Резултатът от предишната ревизия вече не е наличен. Стартирайте ревизията отново.",
+            code: "new_request_required",
+            source,
+          }),
+          { status: 409, headers: jsonHeaders },
+        );
+      }
+      if (reserved.kind === "conflict") {
+        return new Response(
+          JSON.stringify({
+            error: "Заявката за ревизия вече е обвързана с друг документ/версия. Изпратете отново.",
+            code: "operation_conflict",
+            source,
+          }),
+          { status: 409, headers: jsonHeaders },
+        );
+      }
+      if (reserved.kind === "reconciliation") {
+        return new Response(
+          JSON.stringify({
+            error: "Проверяваме състоянието на предишната ревизия. Опитайте отново след малко.",
+            code: "reconciliation_required",
+            retry_after_seconds: 15,
+            source,
+          }),
+          { status: 503, headers: jsonHeaders },
+        );
+      }
+      if (reserved.kind !== "reserved") {
+        return new Response(
+          JSON.stringify({
+            error: "Ревизията е временно недостъпна. Опитайте отново след малко.",
+            code: "review_unavailable",
+            retry_after_seconds: 10,
+            source,
+          }),
+          { status: 503, headers: jsonHeaders },
+        );
+      }
+    }
+
     /**
      * ДОКАЗАНА отмяна при провал преди резултат: същият пропуск може да опита
      * пак. Недоказана отмяна НЕ се представя като свободен пропуск.
@@ -545,9 +710,15 @@ Deno.serve(async (req: Request) => {
     const releaseReservation = async (
       reason: string,
     ): Promise<{ readonly reconcile: boolean }> => {
-      if (!grantPayload) return { reconcile: false };
-      const out = await cancelReviewOperation(admin, grantPayload, reason);
-      return { reconcile: out.kind === "uncertain" };
+      if (grantPayload) {
+        const out = await cancelReviewOperation(admin, grantPayload, reason);
+        return { reconcile: out.kind === "uncertain" };
+      }
+      if (ownedBinding) {
+        const out = await cancelOwnedReviewOperation(admin, ownedBinding, reason);
+        return { reconcile: out.kind === "uncertain" };
+      }
+      return { reconcile: false };
     };
     const reconciliationResponse = () =>
       new Response(
@@ -717,6 +888,15 @@ Deno.serve(async (req: Request) => {
       const committed = await commitReviewOperation(
         admin,
         grantPayload,
+        review as unknown as Record<string, unknown>,
+      );
+      if (committed.kind !== "committed") return reconciliationResponse();
+      return new Response(JSON.stringify(committed.response), { headers: jsonHeaders });
+    }
+    if (ownedBinding) {
+      const committed = await commitOwnedReviewOperation(
+        admin,
+        ownedBinding,
         review as unknown as Record<string, unknown>,
       );
       if (committed.kind !== "committed") return reconciliationResponse();

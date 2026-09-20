@@ -39,30 +39,6 @@ const SYSTEM_PROMPT = `Ти си водещ български правен ар
 
 const DAILY_CORRECTION_LIMIT = 50;
 
-/**
- * ДЕТЕРМИНИРАН UUID на "такса-единица" от вълната поправки, извеждан от
- * клиентския operation_id. Единица 0 е ПЪРВИЧНАТА операция (самият
- * operation_id) — тя носи точния отговор. Единици 1..N-1 са ЧИСТИ
- * такса-единици (без съдържание), обвързани със СЪЩИЯ каноничен отпечатък и
- * batch_id, нужни за да се удържат РЕАЛНО ceil(corrections_count/5) операции
- * от леджъра, вместо само една. UUID-ите са СТАБИЛНИ за дадена (operationId,
- * index) двойка — повторен опит по същия operation_id извежда СЪЩИТЕ ключове
- * на под-операциите, което пази идемпотентността на цялата вълна.
- */
-async function deriveCorrectionsUnitOperationId(operationId: string, index: number): Promise<string> {
-  const data = new TextEncoder().encode(`${operationId}:corrections-unit:${index}`);
-  const digestBuf = await crypto.subtle.digest("SHA-256", data);
-  const bytes = new Uint8Array(digestBuf).slice(0, 16);
-  // Версия 4 / вариант RFC4122 бита — само за валиден UUID формат, стойността
-  // остава ДЕТЕРМИНИРАНА (не е случайна).
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  const hex = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-}
-
-
-
 Deno.serve(async (req: Request) => {
   const correlationId = getCorrelationId(req);
   const corsHeaders = buildCors(req);
@@ -146,24 +122,22 @@ Deno.serve(async (req: Request) => {
     });
 
     const {
-      reserveQuota,
-      commitQuota,
-      cancelQuota,
+      reserveQuotaWave,
+      commitQuotaWave,
+      cancelQuotaWave,
+      lookupCommittedWave,
+      responseExpiredResponse,
       billingReconciliationResponse,
       recordReconciliation,
-      lookupCommittedOperation,
-      isOperationInProgress,
-      operationInProgressResponse,
-      responseExpiredResponse,
     } = await import("../_shared/quota-ledger.ts");
-    type LedgerDb = Parameters<typeof reserveQuota>[0];
-    const ledgerDb = admin as unknown as LedgerDb;
+    type WaveDb = Parameters<typeof reserveQuotaWave>[0];
+    const ledgerDb = admin as unknown as WaveDb;
     const jsonHeaders = {
       ...corsHeaders,
       ...correlationHeaders(correlationId),
       "Content-Type": "application/json",
     };
-    const ledgerBinding = {
+    const waveBinding = {
       operationId,
       userId,
       kind: "analysis" as const,
@@ -171,6 +145,7 @@ Deno.serve(async (req: Request) => {
       sessionId: asUuidOrNull(sessionId),
       batchId,
       requestDigest,
+      opsCount: opsForWave,
     };
     const conflictResponse = () =>
       new Response(
@@ -190,47 +165,55 @@ Deno.serve(async (req: Request) => {
         }),
         { status: 503, headers: jsonHeaders },
       );
+    const inProgressResponse = (retryAfterSeconds: number) =>
+      new Response(
+        JSON.stringify({
+          error: "Същата заявка вече се обработва. Изчакайте няколко секунди.",
+          code: "operation_in_progress",
+          retryable: true,
+          retry_after_seconds: Math.max(1, Math.floor(retryAfterSeconds)),
+          charge_state: "reserved",
+        }),
+        {
+          status: 409,
+          headers: { ...jsonHeaders, "Retry-After": String(Math.max(1, Math.floor(retryAfterSeconds))) },
+        },
+      );
     /** Точният записан отговор се връща такъв, какъвто е потвърден. */
-    // Товарът НЕ се мутира с нови полета: точно същият текст, същите източници
-    // и същата вълна. Маркерът за повторение е САМО хедър.
     const exactReplayResponse = (payload: Record<string, unknown>) =>
       new Response(
         JSON.stringify(payload),
         { headers: { ...jsonHeaders, "X-Operation-Replay": "true" } },
       );
 
-    // САМО-ЧЕТЯЩА проверка: без резервация, без освобождаване, без такса.
-    const lookup = await lookupCommittedOperation(ledgerDb, ledgerBinding);
+    // САМО-ЧЕТЯЩА проверка на ЦЯЛАТА вълна: без резервация, без такса, ПРЕДИ
+    // ВСЯКА безплатна проверка (Pro, дневен лимит, незаконно съдържание,
+    // класификация, редакция, правно заземяване).
+    const lookup = await lookupCommittedWave(ledgerDb, waveBinding);
     if (lookup.status === "conflict") return conflictResponse();
     if (lookup.status === "unavailable") return quotaUnavailableResponse();
-    if (lookup.status === "in_progress") {
-      return operationInProgressResponse(
-        { ...corsHeaders, ...correlationHeaders(correlationId) },
-        lookup.retryAfterSeconds,
-      );
-    }
-    if (lookup.status === "reconciliation") {
-      await recordReconciliation(ledgerDb, operationId, `apply_corrections_lookup:${lookup.reason}`, {
-        user_id: userId,
-        kind: "analysis",
-      });
-      return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
-    }
+    // Точният отговор се пази 24 часа; след това се изисква НОВА заявка, а не
+    // празен или различен резултат.
     if (lookup.status === "response_expired") {
-      // Операцията е платена, но товарът вече не се пази: изрична НОВА заявка.
       return responseExpiredResponse(
         { ...corsHeaders, ...correlationHeaders(correlationId) },
         lookup.charged,
       );
     }
+    if (lookup.status === "in_progress") return inProgressResponse(lookup.retryAfterSeconds);
+    if (lookup.status === "reconciliation") {
+      await recordReconciliation(ledgerDb, operationId, `apply_corrections_wave_lookup:${lookup.reason}`, {
+        user_id: userId,
+        kind: "analysis",
+      });
+      return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+    }
     if (lookup.status === "committed") {
-      const stored = lookup.resultRef;
+      const stored = lookup.result;
       if (stored && stored.contract) {
-        // Никакво заземяване, никакъв модел, никаква нова такса и НИКАКЪВ нов
-        // пропуск за ревизия: правото е издадено веднъж при потвърждението.
         return exactReplayResponse(stored);
       }
-      await recordReconciliation(ledgerDb, operationId, "apply_corrections_committed_without_result", {
+      await recordReconciliation(ledgerDb, operationId, "apply_corrections_wave_committed_without_result", {
         user_id: userId,
         kind: "analysis",
       });
@@ -378,42 +361,18 @@ ${answersRedacted}
     }
     const activeSystemPrompt = `${baseSystem}\n\n${legal.promptBlock}`;
 
-    // ТАКСУВАНЕ: след всички непарични проверки. ЕДИН леджър, идемпотентен по
-    // ключа на операцията, но ЦЯЛАТА вълна поправки трябва да удържи РЕАЛНАТА
-    // стъпаловидна цена ceil(corrections_count/5) (минимум 1) — НЕ винаги 1.
-    //
-    // Постигаме това с `opsForWave` ДЕТЕРМИНИРАНИ единици в леджъра:
-    //  - Единица 0 е САМИЯТ operation_id (ПЪРВИЧНАТА операция). Тя пази
-    //    ТОЧНИЯ отговор (result_ref) — именно нея чете lookupCommittedOperation
-    //    по-горе за целите на точния replay.
-    //  - Единици 1..opsForWave-1 са ЧИСТИ такса-единици, изведени детерминирано
-    //    от operation_id (виж deriveCorrectionsUnitOperationId) и обвързани със
-    //    СЪЩИЯ каноничен отпечатък (requestDigest) и batch_id — те НЕ носят
-    //    съдържание на договора, само {wave_unit, primary_operation_id}.
-    // Резултатът: за вълна от 12 поправки (opsForWave=3) леджърът РЕАЛНО удържа
-    // 3 операции, а не 1 — цената вече НЕ е мълчаливо занижена.
-    const opsUnitIds: string[] = [operationId];
-    for (let i = 1; i < opsForWave; i++) {
-      opsUnitIds.push(await deriveCorrectionsUnitOperationId(operationId, i));
-    }
-    const unitLedgerBinding = (unitOperationId: string) => ({
-      operationId: unitOperationId,
-      userId,
-      kind: "analysis" as const,
-      purpose: "apply_corrections",
-      sessionId: asUuidOrNull(sessionId),
-      batchId,
-      requestDigest,
-    });
-
-    const reservation = await reserveQuota(ledgerDb, ledgerBinding);
-    if (reservation.status === "conflict") return conflictResponse();
-    if (reservation.status === "reconciliation") {
-      await recordReconciliation(ledgerDb, operationId, `apply_corrections_reserve:${reservation.reason}`, {
-        user_id: userId,
-        kind: "analysis",
-      });
-      return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+    // ТАКСУВАНЕ: след всички непарични проверки. ЕДНА резервация за ЦЯЛАТА
+    // вълна поправки (0036) — атомарно всичко-или-нищо за opsForWave единици.
+    const reservation = await reserveQuotaWave(ledgerDb, waveBinding);
+    if (reservation.status === "conflict") {
+      if (reservation.reason === "cancellation_unproven") {
+        await recordReconciliation(ledgerDb, operationId, `apply_corrections_wave_reserve:${reservation.reason}`, {
+          user_id: userId,
+          kind: "analysis",
+        });
+        return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+      }
+      return conflictResponse();
     }
     if (reservation.status === "unavailable") return quotaUnavailableResponse();
     if (reservation.status === "denied") {
@@ -422,119 +381,36 @@ ${answersRedacted}
         { status: 402, headers: jsonHeaders },
       );
     }
-
-    // ТОЧНО ПОВТОРЕНИЕ, ако операцията е завършила между четенето и
-    // резервацията: връща се точно записаният отговор, без ново генериране,
-    // без второ таксуване.
-    const priorRef = reservation.resultRef;
-    if (priorRef && priorRef.contract) {
-      return exactReplayResponse(priorRef);
+    if (reservation.status === "in_progress") return inProgressResponse(reservation.retryAfterSeconds);
+    if (reservation.status === "replay") {
+      // ТОЧНО ПОВТОРЕНИЕ: вълната вече е потвърдена — връща се записаният
+      // отговор, без ново генериране и без второ таксуване.
+      const stored = reservation.result;
+      if (stored && stored.contract) return exactReplayResponse(stored);
+      await recordReconciliation(ledgerDb, operationId, "apply_corrections_wave_replay_without_result", {
+        user_id: userId,
+        kind: "analysis",
+      });
+      return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
     }
 
-    // ЕДНОВРЕМЕННО ИЗПЪЛНЕНИЕ ПО СЪЩИЯ КЛЮЧ: повторение на още незавършена
-    // резервация БЕЗ записан резултат НИКОГА не стартира второ повикване към
-    // модела. Доказано отменена резервация (retry) е нормален нов опит.
-    if (isOperationInProgress(reservation)) {
-      return operationInProgressResponse(
-        { ...corsHeaders, ...correlationHeaders(correlationId) },
-        4,
-      );
-    }
-
-    const batchCharged = reservation.charged === true;
-
-    // Единиците, РЕЗЕРВИРАНИ (не потвърдени) в ТОЗИ опит — точно тях отменяме
-    // при провал. Първичната единица вече е резервирана по-горе.
-    const reservedUnitIds: string[] = [operationId];
-    // Единици, вече ПОТВЪРДЕНИ от предходен (частично успешен) опит — не се
-    // таксуват повторно и НЕ подлежат на отмяна (потвърдено е окончателно).
-    const alreadyCommittedUnitIds: string[] = [];
+    const batchCharged = true;
 
     /**
-     * ЕДИНСТВЕН КОМПЕНСИРАЩ ПАЗИТЕЛ през леджъра — отменя ВСИЧКИ единици,
-     * резервирани в ТОЗИ опит (първичната + всички допълнителни такса-единици).
-     * „charged: false" се твърди САМО когато ВСИЧКИ отмени са доказани; иначе
-     * типизиран billing_reconciliation_required и траен запис за изравняване.
-     * Никога не оставяме частично таксувана вълна, която е произвела документ.
+     * ЕДИНСТВЕН КОМПЕНСИРАЩ ПАЗИТЕЛ — отменя ЦЯЛАТА резервирана вълна ТОЧНО
+     * ВЕДНЪЖ. „charge_state: not_charged" се твърди САМО при доказана отмяна;
+     * иначе типизиран billing_reconciliation_required и траен запис.
      */
     let compensated = false;
     const cancelOrReport = async (reason: string): Promise<Response | null> => {
       if (compensated) return null;
-      let allProven = true;
-      for (const unitId of reservedUnitIds) {
-        const outcome = await cancelQuota(ledgerDb, unitId, reason);
-        if (outcome.status !== "settled") {
-          allProven = false;
-          await recordReconciliation(
-            ledgerDb,
-            operationId,
-            `apply_corrections_cancel_failed:${outcome.reason}`,
-            { user_id: userId, kind: "analysis", unit_operation_id: unitId },
-          );
-        }
-      }
-      if (!allProven) {
+      const outcome = await cancelQuotaWave(ledgerDb, operationId, userId, reason);
+      if (outcome.status === "unresolved") {
         return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
       }
       compensated = true;
       return null;
     };
-
-    // Резервираме ОСТАНАЛИТЕ такса-единици на вълната (i = 1..opsForWave-1)
-    // ПРЕДИ повикването към модела — ЕДНО-ЕДИНСТВЕНО извикване на модела за
-    // ЦЯЛАТА вълна, но пълната ѝ РЕАЛНА цена трябва да е удържана преди него.
-    // Ако която и да е допълнителна единица не може да се резервира (изчерпана
-    // квота), ОТМЕНЯМЕ всичко резервирано дотук в този опит и връщаме типизиран
-    // отговор „изчерпана квота" — никога частично таксувана вълна.
-    for (let i = 1; i < opsForWave; i++) {
-      const unitId = opsUnitIds[i];
-      const unitReservation = await reserveQuota(ledgerDb, unitLedgerBinding(unitId));
-      if (unitReservation.status === "conflict") {
-        const unresolved = await cancelOrReport("apply_corrections_extra_unit_conflict");
-        return unresolved ?? conflictResponse();
-      }
-      if (unitReservation.status === "reconciliation") {
-        await recordReconciliation(ledgerDb, operationId, `apply_corrections_extra_reserve:${unitReservation.reason}`, {
-          user_id: userId,
-          kind: "analysis",
-          unit_operation_id: unitId,
-        });
-        await cancelOrReport(`apply_corrections_extra_unit_reconciliation:${unitReservation.reason}`);
-        return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
-      }
-      if (unitReservation.status === "unavailable") {
-        const unresolved = await cancelOrReport("apply_corrections_extra_unit_unavailable");
-        return unresolved ?? quotaUnavailableResponse();
-      }
-      if (unitReservation.status === "denied") {
-        // Изчерпана квота за допълнителна единица: отменяме ЦЕЛИЯ опит (вкл.
-        // първичната единица) — не съществува „частична" вълна поправки.
-        const unresolved = await cancelOrReport(`apply_corrections_extra_unit_denied:${unitReservation.reason}`);
-        if (unresolved) return unresolved;
-        return new Response(
-          JSON.stringify({ error: "quota_exceeded", reason: unitReservation.reason, charge_state: "not_charged" }),
-          { status: 402, headers: jsonHeaders },
-        );
-      }
-      if (isOperationInProgress(unitReservation)) {
-        // Едновременно изпълнение по ключа на ТАЗИ такса-единица: отменяме
-        // всичко резервирано в ТОЗИ опит и връщаме типизиран „в ход".
-        const unresolved = await cancelOrReport("apply_corrections_extra_unit_in_progress_abort");
-        if (unresolved) return unresolved;
-        return operationInProgressResponse(
-          { ...corsHeaders, ...correlationHeaders(correlationId) },
-          4,
-        );
-      }
-      if (unitReservation.ledgerState === "committed") {
-        // Идемпотентно повторение: тази такса-единица вече е потвърдена от
-        // предходен (частично успешен) опит по СЪЩИЯ operation_id — не се
-        // таксува повторно и НЕ се добавя към списъка за отмяна.
-        alreadyCommittedUnitIds.push(unitId);
-      } else {
-        reservedUnitIds.push(unitId);
-      }
-    }
 
     try {
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -700,47 +576,20 @@ ${answersRedacted}
       charge_state: "charged",
     };
 
-    // ПОТВЪРЖДЕНИЕ на ДОПЪЛНИТЕЛНИТЕ такса-единици ПЪРВО (без съдържание, само
-    // {wave_unit, primary_operation_id}) — те не носят точния отговор и НЕ е
-    // проблем да бъдат потвърдени преди първичната. Вече потвърдените от
-    // предходен опит единици се прескачат (идемпотентност).
-    for (let i = 1; i < opsForWave; i++) {
-      const unitId = opsUnitIds[i];
-      if (alreadyCommittedUnitIds.includes(unitId)) continue;
-      const unitSettlement = await commitQuota(ledgerDb, unitId, {
-        wave_unit: i,
-        primary_operation_id: operationId,
-      });
-      if (unitSettlement.status !== "settled") {
-        await recordReconciliation(
-          ledgerDb,
-          operationId,
-          `apply_corrections_unit_commit_unresolved:${unitSettlement.reason}`,
-          { user_id: userId, kind: "analysis", unit_operation_id: unitId },
-        );
-        await logAiAudit({
-          user_id: userId, operation: "apply-corrections", model: route.model,
-          classification, redaction_applied: route.redactionRequired,
-          status: "error", error_code: "unit_commit_unresolved",
-        });
-        return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
-      }
-    }
-
-    // ПОТВЪРЖДЕНИЕ + ОБВЪРЗВАНЕ на резултата ПРЕДИ 200: повторен опит по същия
-    // ключ връща точно този текст. Недоказано потвърждение НЕ дава 200.
-    const settlement = await commitQuota(ledgerDb, operationId, exactPayload);
+    // ПОТВЪРЖДЕНИЕ + ОБВЪРЗВАНЕ на резултата ЗА ЦЯЛАТА вълна В ЕДНО повикване,
+    // ПРЕДИ 200: повторен опит по същия ключ връща точно този текст.
+    const settlement = await commitQuotaWave(ledgerDb, operationId, userId, exactPayload);
     if (settlement.status !== "settled") {
       await recordReconciliation(
         ledgerDb,
         operationId,
-        `apply_corrections_commit_unresolved:${settlement.reason}`,
+        `apply_corrections_wave_commit_unresolved:${settlement.reason}`,
         { user_id: userId, kind: "analysis" },
       );
       await logAiAudit({
         user_id: userId, operation: "apply-corrections", model: route.model,
         classification, redaction_applied: route.redactionRequired,
-        status: "error", error_code: "commit_unresolved",
+        status: "error", error_code: "wave_commit_unresolved",
       });
       return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
     }
@@ -758,7 +607,7 @@ ${answersRedacted}
     await admin.from("ai_usage").insert({ user_id: userId, function_name: "apply-corrections" });
 
     // Връща се ТОЧНО записаният отговор (ако леджърът го е върнал обратно).
-    const committedPayload = settlement.resultRef ?? exactPayload;
+    const committedPayload = settlement.result ?? exactPayload;
     return new Response(JSON.stringify(committedPayload), {
       headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
     });

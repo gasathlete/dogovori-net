@@ -232,9 +232,14 @@ export async function reviewDocument(
   onRetry?: () => void,
 ): Promise<ReviewOutcome> {
   const requestedDigest = await computeReviewSourceDigest(input);
+  // СТАБИЛЕН КЛЮЧ на ТОЧНО тази заявка: същият при повторен опит, двойно
+  // натискане, загубена връзка и презареждане; различен при различен товар.
+  const { getStableOpKey, opaqueOpScope, releaseStableOpKey } = await import("@/lib/opSession");
+  const opScope = await opaqueOpScope("review", input);
+  const operationId = getStableOpKey(opScope);
   const { data, error } = await invokeEdgeFunction<Record<string, unknown>>(
     "review-document",
-    { body: input },
+    { body: { ...input, operation_id: operationId } },
   );
 
   // Правна преграда: документът остава запазен, няма такса, има ръчен опит.
@@ -255,15 +260,22 @@ export async function reviewDocument(
   if (error || !data || typeof data.error === "string") {
     const code = typeof data?.code === "string" ? data.code : "";
     // Тези две състояния НЕ са провал: проверката вече се прави или състоянието
-    // ѝ се изяснява. Същият опит по-късно е безплатен.
+    // ѝ се изяснява. Същият опит по-късно е безплатен — ключът се ПАЗИ.
     const retryable = code === "review_in_progress" || code === "reconciliation_required";
     const retryAfterSeconds = typeof data?.retry_after_seconds === "number"
       ? Math.max(1, Math.round(data.retry_after_seconds))
       : undefined;
+    // Доказан сблъсък или изтекъл запазен отговор: следващото ИЗРИЧНО
+    // изпращане трябва да е НОВА операция, затова ключът се освобождава.
+    if (code === "operation_conflict" || code === "new_request_required") {
+      releaseStableOpKey(opScope);
+    }
     const message = code === "review_in_progress"
       ? "Проверката на този документ вече се извършва. Опитайте отново след малко."
       : code === "reconciliation_required"
       ? "Изясняваме състоянието на предишната проверка. Опитайте отново след малко."
+      : code === "operation_conflict" || code === "new_request_required"
+      ? "Заявката се промени. Изпратете проверката отново."
       : (typeof data?.error === "string" ? data.error : null) || error?.message || "Ревизията не успя";
     return {
       review: null,
@@ -278,6 +290,8 @@ export async function reviewDocument(
   if (!review) {
     return { review: null, error: REVIEW_MALFORMED_MESSAGE, requestedDigest, confirmationRequired: false };
   }
+  // Доказан краен успех — ключът се освобождава.
+  releaseStableOpKey(opScope);
   return { review, error: null, requestedDigest, confirmationRequired: false };
 }
 

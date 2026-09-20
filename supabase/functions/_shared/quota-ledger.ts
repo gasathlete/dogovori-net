@@ -516,3 +516,261 @@ export function billingReconciliationResponse(headers: Record<string, string>): 
     { status: 503, headers: { ...headers, "Content-Type": "application/json" } },
   );
 }
+
+// =============================================================================
+// АТОМАРНА ВЪЛНА ПОПРАВКИ (0036, quota_wave_reserve/commit/cancel, НЕприложена).
+//
+// За разлика от `reserveQuota`/`commitQuota`/`cancelQuota` (по единица),
+// тези помощници обвързват ЦЯЛАТА вълна поправки (N единици) в ЕДНА
+// резервация/потвърждение/отмяна — атомарно, всичко-или-нищо, в самата база.
+// Няма повече „такса-единица по единица": леджърът пази ЕДИН ред за
+// operation_id с точния брой единици (ops_count) и точното разпределение
+// (allocation) план/topup, потвърдени или отменени заедно.
+// =============================================================================
+
+/** Разширение на {@link Rpc} със самостоятелна САМО-ЧЕТЯЩА заявка. */
+interface RpcWithSelect extends Rpc {
+  from(table: string): {
+    insert(rows: Record<string, unknown>): Promise<{ error: { message: string } | null }>;
+    select(columns: string): {
+      eq(column: string, value: unknown): {
+        maybeSingle(): Promise<{ data: Record<string, unknown> | null; error: { message: string } | null }>;
+      };
+    };
+  };
+}
+
+export interface WaveBinding {
+  readonly operationId: string;
+  readonly userId: string;
+  readonly kind: QuotaKind;
+  readonly purpose: string;
+  readonly sessionId?: string | null;
+  readonly docKey?: string | null;
+  readonly batchId?: string | null;
+  readonly requestDigest: string;
+  /** Точният брой единици за ЦЯЛАТА вълна (ceil(corrections_count/5), мин. 1). */
+  readonly opsCount: number;
+  readonly leaseSeconds?: number;
+}
+
+/**
+ * САМО-ЧЕТЯЩО състояние на цялата вълна по operation_id, ПРЕДИ скъпите/
+ * чупливи безплатни проверки (правно заземяване и т.н.) и ПРЕДИ резервацията.
+ * Проста директна селекция от таблицата — НЯМА отделен SQL RPC за това в
+ * 0036, затова логиката огледално повтаря проверките в `quota_wave_reserve`.
+ */
+export type WaveLookupOutcome =
+  | { readonly status: "absent" }
+  | { readonly status: "conflict"; readonly reason: string }
+  | { readonly status: "committed"; readonly result: Record<string, unknown> | null }
+  | { readonly status: "response_expired"; readonly charged: boolean }
+  | { readonly status: "in_progress"; readonly retryAfterSeconds: number }
+  | { readonly status: "reconciliation"; readonly reason: string }
+  | { readonly status: "unavailable"; readonly message: string };
+
+export async function lookupCommittedWave(
+  db: Rpc,
+  input: WaveBinding,
+): Promise<WaveLookupOutcome> {
+  if (typeof input.requestDigest !== "string" || !SHA256_HEX.test(input.requestDigest)) {
+    return { status: "conflict", reason: "request_digest_required" };
+  }
+  const { data, error } = await (db as RpcWithSelect)
+    .from("quota_wave_operations")
+    .select("*")
+    .eq("operation_id", input.operationId)
+    .maybeSingle();
+  if (error) return { status: "unavailable", message: error.message };
+  if (!data) return { status: "absent" };
+  const row = data;
+  const sameBinding =
+    row.user_id === input.userId &&
+    row.kind === input.kind &&
+    row.purpose === input.purpose &&
+    (row.session_id ?? null) === (input.sessionId ?? null) &&
+    (row.doc_key ?? null) === (input.docKey ?? null) &&
+    (row.batch_id ?? null) === (input.batchId ?? null) &&
+    row.request_digest === input.requestDigest &&
+    Number(row.ops_count) === input.opsCount;
+  if (!sameBinding) {
+    return { status: "conflict", reason: IDEMPOTENCY_KEY_CONFLICT };
+  }
+  const state = String(row.state ?? "");
+  if (state === "committed") {
+    const result = row.result && typeof row.result === "object"
+      ? (row.result as Record<string, unknown>)
+      : null;
+    // Точният отговор се пази ограничено (24 ч). След изтичане НИКОГА не се
+    // връща празен или друг резултат — изисква се нова заявка.
+    const expiresAtMs = row.result_expires_at
+      ? new Date(String(row.result_expires_at)).getTime()
+      : 0;
+    if (!result || (expiresAtMs > 0 && expiresAtMs <= Date.now())) {
+      return { status: "response_expired", charged: true };
+    }
+    return { status: "committed", result };
+  }
+  if (state === "reserved") {
+    const leaseExpiresAtMs = row.lease_expires_at ? new Date(String(row.lease_expires_at)).getTime() : 0;
+    if (leaseExpiresAtMs > Date.now()) {
+      return {
+        status: "in_progress",
+        retryAfterSeconds: Math.max(1, Math.ceil((leaseExpiresAtMs - Date.now()) / 1000)),
+      };
+    }
+    return { status: "reconciliation", reason: "lease_expired" };
+  }
+  if (state === "cancelled") {
+    if (!row.cancelled_at) return { status: "reconciliation", reason: "cancellation_unproven" };
+    return { status: "absent" };
+  }
+  return { status: "unavailable", message: `unexpected_wave_state:${state || "empty"}` };
+}
+
+export type ReserveWaveOutcome =
+  | {
+      readonly status: "reserved";
+      readonly allocation: unknown[];
+      readonly opsCount: number;
+      readonly raw: Record<string, unknown>;
+    }
+  /** Вълната вече е потвърдена — ТОЧНИЯТ пазен резултат, без ново таксуване. */
+  | {
+      readonly status: "replay";
+      readonly allocation: unknown[];
+      readonly result: Record<string, unknown> | null;
+    }
+  | { readonly status: "in_progress"; readonly retryAfterSeconds: number }
+  | { readonly status: "conflict"; readonly reason: string }
+  | { readonly status: "denied"; readonly reason: string; readonly raw: Record<string, unknown> }
+  | { readonly status: "unavailable"; readonly message: string };
+
+export async function reserveQuotaWave(
+  db: Rpc,
+  input: WaveBinding,
+): Promise<ReserveWaveOutcome> {
+  if (typeof input.requestDigest !== "string" || !SHA256_HEX.test(input.requestDigest)) {
+    return { status: "conflict", reason: "request_digest_required" };
+  }
+  const { data, error } = await db.rpc("quota_wave_reserve", {
+    p_operation_id: input.operationId,
+    p_user_id: input.userId,
+    p_kind: input.kind,
+    p_purpose: input.purpose,
+    p_session_id: input.sessionId ?? null,
+    p_doc_key: input.docKey ?? null,
+    p_batch_id: input.batchId ?? null,
+    p_request_digest: input.requestDigest,
+    p_ops_count: input.opsCount,
+    p_lease_seconds: input.leaseSeconds ?? 300,
+  });
+  if (error) {
+    if (isConflict(error.message)) {
+      return { status: "conflict", reason: IDEMPOTENCY_KEY_CONFLICT };
+    }
+    return { status: "unavailable", message: error.message };
+  }
+  const row = (data ?? {}) as Record<string, unknown>;
+  const status = String(row.status ?? "");
+  if (status === "reserved") {
+    return {
+      status: "reserved",
+      allocation: Array.isArray(row.allocation) ? row.allocation : [],
+      opsCount: Number(row.ops_count ?? input.opsCount),
+      raw: row,
+    };
+  }
+  if (status === "replay") {
+    return {
+      status: "replay",
+      allocation: Array.isArray(row.allocation) ? row.allocation : [],
+      result: row.response && typeof row.response === "object"
+        ? (row.response as Record<string, unknown>)
+        : null,
+    };
+  }
+  if (status === "in_progress") {
+    return {
+      status: "in_progress",
+      retryAfterSeconds: Math.max(1, Number(row.retry_after_seconds ?? 4)),
+    };
+  }
+  if (status === "conflict") {
+    return { status: "conflict", reason: String(row.reason ?? IDEMPOTENCY_KEY_CONFLICT) };
+  }
+  if (status === "denied") {
+    return { status: "denied", reason: String(row.reason ?? "quota_denied"), raw: row };
+  }
+  if (status === "unavailable") {
+    return { status: "unavailable", message: String(row.reason ?? "wave_reserve_unavailable") };
+  }
+  return { status: "unavailable", message: `unexpected_wave_reserve_status:${status || "empty"}` };
+}
+
+export type SettleWaveOutcome =
+  | { readonly status: "settled"; readonly replay: boolean; readonly result: Record<string, unknown> | null }
+  | { readonly status: "unresolved"; readonly reason: string };
+
+/**
+ * Потвърждение на ЦЯЛАТА вълна в ЕДНА транзакция. Без второ повикване към
+ * модела при повторение по същия ключ — точният резултат се връща обратно.
+ */
+export async function commitQuotaWave(
+  db: Rpc,
+  operationId: string,
+  userId: string,
+  result: Record<string, unknown>,
+): Promise<SettleWaveOutcome> {
+  const { data, error } = await db.rpc("quota_wave_commit", {
+    p_operation_id: operationId,
+    p_user_id: userId,
+    p_result: result,
+  });
+  if (error) return { status: "unresolved", reason: error.message };
+  const row = (data ?? {}) as Record<string, unknown>;
+  const status = String(row.status ?? "");
+  if (status === "committed") {
+    return {
+      status: "settled",
+      replay: row.replay === true,
+      result: row.result && typeof row.result === "object" ? (row.result as Record<string, unknown>) : null,
+    };
+  }
+  return { status: "unresolved", reason: String(row.reason ?? (status || "wave_commit_failed")) };
+}
+
+export type CancelWaveOutcome =
+  | { readonly status: "settled"; readonly replay: boolean; readonly restored: unknown }
+  /** Вече потвърдена преди отмяната — нищо за връщане, вълната Е таксувана. */
+  | { readonly status: "already_committed" }
+  | { readonly status: "unresolved"; readonly reason: string };
+
+/** Отмяна на ЦЯЛАТА вълна точно веднъж (всичко-или-нищо възстановяване). */
+export async function cancelQuotaWave(
+  db: Rpc,
+  operationId: string,
+  userId: string,
+  reason: string,
+): Promise<CancelWaveOutcome> {
+  const { data, error } = await db.rpc("quota_wave_cancel", {
+    p_operation_id: operationId,
+    p_user_id: userId,
+    p_reason: reason,
+  });
+  if (error) {
+    await recordReconciliation(db, operationId, `wave_cancel_rpc_error:${error.message}`);
+    return { status: "unresolved", reason: error.message };
+  }
+  const row = (data ?? {}) as Record<string, unknown>;
+  const status = String(row.status ?? "");
+  if (status === "cancelled") {
+    return { status: "settled", replay: row.replay === true, restored: row.restored ?? null };
+  }
+  if (status === "already_committed") {
+    return { status: "already_committed" };
+  }
+  const failReason = String(row.reason ?? (status || "wave_cancel_failed"));
+  await recordReconciliation(db, operationId, `wave_${failReason}`);
+  return { status: "unresolved", reason: failReason };
+}
