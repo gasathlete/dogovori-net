@@ -318,8 +318,10 @@ Deno.serve(async (req) => {
         }
       }
       if (!hasMatches) {
+        await releaseAttempt();
         return legalVerificationUnavailableResponse({ headers: corsHeaders });
       }
+
     }
 
     const systemFinal = `${SYSTEM_PROMPT}\n\n${promptBlock}`;
