@@ -38,6 +38,15 @@ export function NegotiationStrategyPanel({
       const { data, error } = await supabase.functions.invoke("negotiation-strategy", {
         body: { analysis_id: analysisId, force },
       });
+      // Правна преграда: анализът остава на екрана, няма такса, има ръчен опит.
+      if (
+        (await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable(
+          { data, error },
+          () => { void generate(force); },
+        )
+      ) {
+        return;
+      }
       if (error) {
         const ctx: any = (error as any).context;
         let body: any = null;
