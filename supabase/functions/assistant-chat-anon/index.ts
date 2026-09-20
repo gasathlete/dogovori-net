@@ -364,7 +364,9 @@ Deno.serve(async (req) => {
 
     if (!rawReply) {
       // Няма ръчно сглобен правен отговор: връщаме безопасна грешка без
-      // правно съдържание и без изразходвано безплатно съобщение.
+      // правно съдържание и без изразходвано безплатно съобщение. Опитът се
+      // освобождава, за да работи повторният опит със същия UUID.
+      await releaseAttempt();
       return new Response(
         JSON.stringify({
           error: ANON_LEGAL_ANSWER_UNAVAILABLE,
@@ -375,6 +377,7 @@ Deno.serve(async (req) => {
         { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
 
     let reply = rawReply;
     let followups: string[] = [];
