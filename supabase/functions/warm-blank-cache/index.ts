@@ -336,7 +336,23 @@ Deno.serve(async (req: Request) => {
     }
 
     const docTypeSpec = getDocumentTypeSpec(inferDocumentType(documentName));
-    const systemPrompt = `${SYSTEM_PROMPT}\n\n--- Специфика за този вид документ (${docTypeSpec.label}) ---\n${docTypeSpec.systemAddendum}${isBilingual ? BILINGUAL_ADDENDUM : ""}`;
+
+    // СТРОГО ЗАЗЕМЯВАНЕ — без проверена норма не се генерира дори чернова.
+    const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
+    const legal = await retrieveLegalContext(
+      admin as unknown as Parameters<typeof retrieveLegalContext>[0],
+      LOVABLE_API_KEY,
+      `${documentName}\n${docTypeSpec.label}\n${sectorTitle || sectorId}`.slice(0, 4000),
+      { matchCount: 6 },
+    );
+    if (!legal.hasMatches) {
+      return new Response(
+        JSON.stringify({ status: "failed", error: "legal_verification_unavailable" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const systemPrompt = `${SYSTEM_PROMPT}\n\n--- Специфика за този вид документ (${docTypeSpec.label}) ---\n${docTypeSpec.systemAddendum}${isBilingual ? BILINGUAL_ADDENDUM : ""}\n\n${legal.promptBlock}`;
     const userPrompt = `Сектор: ${sectorTitle || sectorId}\nВид документ: ${docTypeSpec.label}\nКонкретен документ: ${documentName}\n\nГенерирай професионална българска правна БЛАНКА (празен шаблон) за този КОНКРЕТЕН ВИД документ. Спазвай структурата за „${docTypeSpec.label}" — не я смесвай с друг вид документ.${isBilingual ? "\n\nЗАДЪЛЖИТЕЛНО: добави паралелен английски превод в полетата title_en, preamble_en, closing_en и в clauses[].title_en/body_en (виж системния промпт за билингвален режим)." : ""}`;
     const storagePath = await buildBlankStoragePath(CACHE_VERSION, sectorId, documentName);
 
