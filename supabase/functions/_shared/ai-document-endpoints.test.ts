@@ -142,7 +142,12 @@ Deno.test("неочакваните изключения се обработва
 Deno.test("никъде не се връщат и не се журналират сурови съобщения за грешки", async () => {
   for (const { fn } of ENDPOINTS) {
     const s = await src(fn);
-    assert(!/e\.message|err\.message|error\.message/.test(s), `${fn}: сурово съобщение за грешка`);
+    // Сурово съобщение на ПРИХВАНАТА грешка (e/err/caught), не структурирани
+    // полета като pre.error.message, които са наш собствен български текст.
+    assert(
+      !/(?<![.\w])(?:e|err|caught|ex)\.message/.test(s),
+      `${fn}: сурово съобщение за грешка`,
+    );
     const logs = [...s.matchAll(/console\.(log|info|warn|error)\(([\s\S]{0,200}?)\);/g)];
     for (const m of logs) {
       const body = m[2];
