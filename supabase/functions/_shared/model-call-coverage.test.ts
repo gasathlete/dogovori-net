@@ -101,15 +101,54 @@ Deno.test("празнините са изброени честно, а не об
 
 Deno.test("защитените крайни точки нямат повече изходящи повиквания към шлюза от декларираното в манифеста", async () => {
   const GATEWAY = "ai.gateway.lovable.dev/v1/chat/completions";
-  for (const entry of manifest.ledgerEnforced as (ManifestEntry & { modelCallSites?: number })[]) {
-    if (typeof entry.modelCallSites !== "number") continue;
+  type Entry = ManifestEntry & {
+    directGatewayCallSites?: number;
+    maxChatRequestsPerOperation?: number | string;
+    repair?: { parseAiJsonWithRetry?: boolean; regenerateAttempts?: number };
+  };
+  for (const entry of manifest.ledgerEnforced as Entry[]) {
     const src = await readHandler(entry.function);
-    const actual = src.split(GATEWAY).length - 1;
-    assert(
-      actual <= entry.modelCallSites,
-      `${entry.function} прави ${actual} изходящи повиквания към шлюза, но манифестът декларира само ${entry.modelCallSites}`,
+    if (typeof entry.directGatewayCallSites === "number") {
+      const actual = src.split(GATEWAY).length - 1;
+      assert(
+        actual <= entry.directGatewayCallSites,
+        `${entry.function} прави ${actual} буквални повиквания към шлюза, но манифестът декларира ${entry.directGatewayCallSites}`,
+      );
+    }
+
+    // ИСТИНСКИЯТ максимум: поправянето на невалиден JSON е допълнителна заявка
+    // към доставчика в СЪЩАТА операция и трябва да е декларирано.
+    const usesRepair = src.includes("parseAiJsonWithRetry");
+    const attemptsMatch = src.match(/regenerateAttempts:\s*(\d+)/);
+    const attempts = usesRepair ? Number(attemptsMatch?.[1] ?? 1) : 0;
+    const expectedMax = (typeof entry.directGatewayCallSites === "number"
+      ? entry.directGatewayCallSites
+      : 1) + attempts;
+    assertEquals(
+      entry.repair?.parseAiJsonWithRetry ?? false,
+      usesRepair,
+      `${entry.function}: декларираното поправяне на JSON не отговаря на кода`,
+    );
+    assertEquals(
+      entry.repair?.regenerateAttempts ?? 0,
+      attempts,
+      `${entry.function}: декларираните опити за поправяне не отговарят на кода`,
+    );
+    assertEquals(
+      entry.maxChatRequestsPerOperation,
+      expectedMax,
+      `${entry.function}: декларираният максимум заявки към доставчика не отговаря на кода`,
     );
   }
+});
+
+Deno.test("честност на манифеста: assistant-chat остава блокер с реален риск от няколко заявки", () => {
+  const entry = manifest.releaseBlockingInventory.find((e) => e.function === "assistant-chat");
+  assert(entry, "assistant-chat трябва да остане в списъка с блокери");
+  assert(
+    /няколко заявки|НЯКОЛКО заявки/.test(entry!.gap),
+    "празнината на assistant-chat трябва да описва реалните няколко заявки към доставчика",
+  );
 });
 
 Deno.test("защитените крайни точки не насрочват повикване към модел от waitUntil", async () => {
