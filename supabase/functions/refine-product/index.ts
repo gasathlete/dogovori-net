@@ -331,18 +331,28 @@ Deno.serve(async (req) => {
       callId: string | null,
     ): Promise<Response> => {
       console.error("refine-product provider outcome unknown", { cid, code });
-      await markProductRefinementReconciliation(
+      const marked = await markProductRefinementReconciliation(
         admin as unknown as ReconciliationRpcClient,
         refinementId,
         leaseToken,
         code,
         callId,
       );
+      // Ако самото вписване не успее, отговорът НЕ твърди, че състоянието е
+      // записано. Второ извикване остава невъзможно: базата пази висящото
+      // извикване и не допуска ново уточнение по същото право.
+      if (!marked) {
+        return fail(
+          PRODUCT_LEDGER_UNAVAILABLE_CODE,
+          503,
+          headers,
+          cid,
+          PRODUCT_LEDGER_UNAVAILABLE_MESSAGE,
+        );
+      }
       return fail("reconciliation_required", 409, headers, cid);
     };
-    // Истината „доставчикът е бил докоснат“ се пази явно: само преди това
-    // включеното уточнение може да бъде освободено.
-    let providerAttempted = false;
+
 
 
     try {
