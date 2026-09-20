@@ -1,70 +1,53 @@
-# Pre-launch hardening одит — Dogovori.net (HEAD c8b4ce20)
+# Source-only P0 repair: quota, recovery and review authorization
 
-Всичко по-долу е проверено в кода и в базата в този turn. Без редакции, миграции, deploy, live плащания и AI заявки.
+## Scope and boundaries
 
-## G. Заключение: NO-GO за реклама на 01.10.2026 към днешното състояние
+Work only from HEAD `3ee88499aadf1b2b37f055694603bd79d6f0af5b`. No deployment, publishing, migration application, production reads/writes, real AI/payment/email calls, secret/config changes, public-copy edits, or strategy/article-evidence work.
 
-Три блокера: (1) публикуваната версия не е текущият код; (2) платен резултат се проваля по-често, отколкото успява, и има платени поръчки без стартирана обработка; (3) правната база знания е от 11.06.2026, без действащи официални източници и без дати на влизане в сила, докато публичните текстове обещават валидност и съответствие.
+## Implementation
 
----
+1. **Quota ledger and migration parity**
+   - Update both unapplied 0029 migration copies identically.
+   - Bind operations to user, kind, purpose, session, document, batch and canonical SHA-256 digest.
+   - Under operation and session locks, allow only a proven, fully resolved cancelled operation with the exact same binding to reserve and charge again; unresolved cancellation remains a typed reconciliation failure.
+   - Tighten database digest constraints to 64 hexadecimal characters and keep canonical output lowercase.
+   - Extend the TypeScript state contract and regression tests for cancelled retry, mismatch, unresolved state and serialized same-session behavior.
 
-## A. Регистър на находките
+2. **Recoverable blank downloads**
+   - Require a valid client operation UUID before legal grounding, quota reservation or generation.
+   - Extend request artifacts with unique operation binding, purpose, digest and readiness metadata, with server-only mutation.
+   - Recover an already uploaded matching artifact before generation, verify it still exists, commit/bind it, and issue a fresh signed URL.
+   - Bind uploads durably before quota commit; synchronously remove failed bindings and record unresolved cleanup/commit outcomes for reconciliation.
+   - Update every real caller to retain one UUID across retry, network loss and double-click; add injectable behavior tests covering all required crash/replay paths.
 
-### P0 — блокират реклама
+3. **Unified refinement ledger**
+   - Remove the runtime correction-wave charging path from `refine-contract`; reserve/commit/cancel through `quota_operations` using a mandatory operation UUID, batch binding and canonical digest.
+   - Redact contract, feedback and answers together with one collision-safe mapping before retrieval/model use.
+   - Persist the exact inline result in `result_ref` before success; replay it exactly, and return reconciliation status for unknown commit outcomes.
+   - Update the refinement caller to preserve the operation UUID until terminal success or an explicit payload change.
+   - Add endpoint behavior tests and make the changed entrypoint pass explicit `deno check`.
 
-**P0-1. Публикуваният сайт показва прекратената промоция.**
-Доказателство: `https://dogovori.net/assets/Plans-CajS89_7.js` съдържа 4 пъти „SEPT20“, 3 пъти „30.09“ и „−20%“; `pricing-Bq-E8JS-.js` също. В кода (HEAD) няма нито едно от тях. Ефект: клиентът вижда намаление, което не се прилага при плащане — заблуждаваща цена. Acceptance: след публикуване нито един asset не връща „SEPT20“.
+4. **Durable anonymous entitlement**
+   - Add server-only anonymous delivery operations and atomic reserve/commit/cancel RPCs to both migration copies.
+   - Bind identity, mandatory request UUID and request digest; count only committed responses, cap atomically at five, replay committed responses exactly, and permit exact cancelled/expired retries.
+   - Fail closed on identity/database/read/reserve/commit errors; remove the request-key rate-limit pseudo-reservation while retaining separate abuse limiting.
+   - Keep the browser request UUID stable for the same message and replace it only for a new payload; add endpoint-level behavior tests including the concurrent sixth response contract.
 
-**P0-2. Платени поръчки без стартирана обработка.**
-Доказателство: `product_entitlements` — 3 реда `status='paid'` (contract_check, 14.09) с 0 реда в `product_fulfillment_jobs`. Обработката се задейства само от `src/pages/ProductResult.tsx` при отваряне на екрана; няма сървърна равносметка. Ефект: платил клиент, който е затворил таба, никога не получава резултат и не научава това. Acceptance: платена поръчка без задача се обработва или маркира без отваряне на страницата; тест на reconciliation с изкуствено изоставена поръчка.
+5. **Review authorization and reachable grants**
+   - Add a server-only grant issuer reachable from each legitimate generation/review flow, issued only after ownership/entitlement verification or for exact inline generated content.
+   - Require either verified ownership of the referenced document/version or a valid one-time signed grant; remove manifest-only paid-model authorization.
+   - Verify subject, owner, audience, operation, digest, expiry and nonce; consume nonce atomically and fail closed on storage errors.
+   - Update legitimate callers and add denial/no-model, owner, inline, replay, cross-user/content and audit-user tests.
 
-**P0-3. Провалите преобладават над успехите при платените продукти.**
-Доказателство: `product_fulfillment_jobs` — 6 `completed`, 8 `failed/generation_invalid`, 1 `failed/provider_contract`; последна активност 14.09.2026, няма по-нов E2E. Ефект: 60% от платените поръчки завършват с „Опитайте отново“. Acceptance: 10 последователни sandbox поръчки (по 3–4 на продукт, различни документи) без permanent failure; причината за `generation_invalid` документирана и покрита с тест.
+6. **Artifact sweep truthfulness**
+   - For every removal omission, perform a bounded exact existence check.
+   - Mark deleted only after confirmed removal/absence and successful database update; keep present/inconclusive rows pending with `delete_error`.
+   - Add truthful confirmed/marked/unresolved counters and regression tests for partial results, existence and database errors, mixed buckets, filtering, starvation and reruns.
 
-**P0-4. Правната база не е годна за категорични изводи.**
-Доказателство: `legal_source_registry` 5 реда, 0 с `enabled=true`; `legal_ingestion_runs` 0; `legal_source_snapshots` 0; `legal_sources` 21, всички `active=true`, `max(last_indexed_at)=11.06.2026`; `legal_documents` 21 реда, **0 с `effective_from`**. Следствия в кода: `isLegalKnowledgeBaseReady()` (`supabase/functions/_shared/product-legal-basis.ts:192`) връща true само защото има активен ред; `inForce()` (същият файл, ред 62) пропуска всеки документ, когато `effective_from` и `effective_to` са NULL — тоест няма реална проверка за действащо право; `resolve()` приема всеки HTTPS `official_url` без allowlist за официални домейни и без граница за давност. Ефект: платен правен извод може да сочи отменена или неактуална норма. Acceptance: fail-closed при липса на `effective_from`; allowlist на официални домейни; readiness проверява пресни snapshot-и, не само наличие на ред.
+## Validation and final filesystem action
 
-**P0-5. Публичните правни твърдения са по-силни от доказуемото.**
-Доказателство: `src/data/faqItems.ts:10` („всички шаблони … са валидни за подаване пред НАП, съд и нотариус“), ред 14 („всички шаблони са съобразени с действащото законодателство“ — при индекс от 11.06.2026), ред 18 (арбитраж при БТПП като част от подразбиращите се клаузи), ред 42 („прост, усъвършенстван и квалифициран … имат правна сила“ без изключенията по ЗЕДЕУУ/eIDAS), ред 26 („не споделяме съдържанието на договорите Ви с трети лица“) срещу `src/pages/legal/Privacy.tsx:86` (OpenAI Ireland като резервен доставчик) и ред 229. Ефект: подвеждащи обещания и вътрешно противоречие между FAQ и политиката за поверителност. Acceptance: redline набор (раздел D) приет от човек-юрист; тест, който отказва формулировки „всички“, „валидни пред“, „правно обвързващи“ без ограничение.
-
-### P1
-
-**P1-1. Счупена връзка в правна политика.** `src/pages/legal/AIProcessingPolicy.tsx:170` сочи `/legal/model-routing-policy`; регистрираният route е `/legal/model-routing` (`src/App.tsx:406`; същата страница на ред 100 ползва правилния адрес). Ефект: 404 в правен документ.
-
-**P1-2. Readiness отчетът е бинарен и не различава „има ред“ от „има пресен източник“.** `product-integration.ts:212,275`. Ефект: операторът вижда „готово“ при негодна база.
-
-**P1-3. Няма видима равносметка за оператора по платени поръчки.** Нужен е admin изглед „платено без резултат / провалено“ с ръчно преиздаване и възстановяване, за да не се разчита на клиента да презареди.
-
-### P2
-
-**P2-1.** `legal_sources` държи 21 активни реда без `current_version`/`published_at` — да се отбележат като legacy и да не служат като основание за платен извод.
-**P2-2.** Публичната страница на базата знания трябва да показва дата на последна актуализация и обхват, а не само списък източници.
-
----
-
-## B. Карта на потоците (обхват на проверката)
-
-anonymous начало → /start → регистрация/вход (съгласия) → каталог/шаблон → /build и /wizard → качване, анализ, корекции → три еднократни продукта (checkout, return success/cancel/дублиран клик, резултат, ръчно ревю) → абонамент месечен/годишен → отказ/подновяване → профил и „Моите покупки“ → асистент → подписване → експорти PDF/DOCX → правни/консент страници → admin възстановяване. За всеки поток: вход, състояние при прекъсване, съобщение, retry, следваща стъпка.
-
-## C. Инварианти на състоянията (backend)
-
-`intake → paid → awaiting_generation → ready | failed | refunded`. Правила: всеки преход е идемпотентен по `session_id`/`batch_id`; provider провал освобождава наема и оставя възстановим статус; никой провал не изтрива платеното право; `paid` без задача се подхваща от сървър, не от браузър; двойно плащане за същия intake се отказва с 409, а не се таксува.
-Класове откази и поведение: доставчик недостъпен → retry с граница, после възстановяване; невалиден JSON от модела → ремонт, после ръчно ревю; липсващо правно основание → отказ с обяснение и без такса; изтекъл/променен документ → спиране, не прилагане на стар резултат; webhook закъснял → екранът чака и се възстановява сам.
-
-## D. Правен launch gate
-
-Изисква се преди реклама: поне един официален източник с действащ ingestion и snapshot; `effective_from` за всяка версия, ползвана като основание; allowlist на официални домейни; fail-closed при липса на дата или източник; изрично поведение „няма проверена норма“ вместо категоричен извод. Public copy redlines: FAQ 9/13/17/21/25/41 се преформулират с обхват и ограничения (примерни образци, не правен съвет; арбитраж само при избор; SES/AES/QES с изключенията по закон; изрично посочване, че съдържанието се обработва от AI доставчици по DPA). Приемане: подпис на юрист върху финалния текст.
-
-## E. Тестова матрица
-
-Ширини 360/390/430/768/1280; клавиатура и екранен четец по основните потоци; reduced motion; чист профил без съгласия; бавна мрежа, offline, timeout; двоен клик по плащане; стар отворен таб след промяна на документа; повторно отваряне на checkout return.
-
-## F. Най-малък безопасен ред (следващи turn-ове, само source)
-
-1. P1-1 връзка + P0-5 redlines и тестове за формулировки.
-2. Fail-closed правна проверка: allowlist на домейни, задължителна `effective_from`, readiness по пресен snapshot (+ Deno тестове).
-3. Сървърна равносметка за платени поръчки без задача и admin изглед за възстановяване.
-4. Диагностика и покритие на `generation_invalid`, след това 10 sandbox поръчки.
-5. Отделно (не в този план): включване на официалните източници, миграции, deploy на функциите и публикуване; rollback = връщане на предишния deployment и изключване на продуктовите флагове.
-
-Всяка точка е отделен commit с тестове; без разхлабване на валидация.
+- Verify the two 0029 migration files are byte-identical.
+- Run focused behavior suites, the full Deno suite, explicit `deno check` for every changed edge entrypoint, full Vitest with zero unhandled errors, TypeScript check and production build.
+- Record SQL/pgTAP concurrency as **not executed** unless a local PostgreSQL test actually runs; keep that release gate open otherwise.
+- After every test/build completes, restore all seven `public/sitemap*.xml` files byte-for-byte from `0de2067bda4f978142ffa6ab7490d8bed434fa1b`, run no generator/build afterward, and compare each SHA-256 against `git show`.
+- Commit the source-only repair and report the actual commit SHA, exact changed files, exact commands/counts, seven sitemap hashes and residual blockers.
