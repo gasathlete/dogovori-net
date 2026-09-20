@@ -407,3 +407,169 @@ REVOKE ALL ON FUNCTION public.erase_quota_result_payloads(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.erase_quota_result_payloads(uuid) FROM anon;
 REVOKE ALL ON FUNCTION public.erase_quota_result_payloads(uuid) FROM authenticated;
 GRANT EXECUTE ON FUNCTION public.erase_quota_result_payloads(uuid) TO service_role;
+
+-- ---------------------------------------------------------------------------
+-- 5) quota_reserve_no_charge: резервация БЕЗ такса за build-custom-contract.
+--
+--    Генерирането на чернова остава безплатно (5/дневния ai_usage брояч не се
+--    променя тук); квотата „договор" се плаща по-късно, при изтегляне, чрез
+--    отделна резервация. Тази функция САМО записва точно-веднъж следа в
+--    леджъра — не консумира абонамент, топъп, бонус или сесийно право и не
+--    докосва download_quota. Идемпотентността е ПЪЛНА: същият operation_id
+--    със същото обвързване връща точно текущото състояние (reserved/
+--    committed/cancelled), различно обвързване е конфликт. Никога не превръща
+--    вече таксуван ред в безплатен и никога не превръща безплатен ред в
+--    таксуван — при съвпадение по operation_id просто се препредава
+--    записаното състояние, без пренаписване на charged/source.
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.quota_reserve_no_charge(
+  p_operation_id uuid,
+  p_user_id uuid,
+  p_kind text,
+  p_purpose text,
+  p_session_id text DEFAULT NULL,
+  p_doc_key text DEFAULT NULL,
+  p_batch_id uuid DEFAULT NULL,
+  p_request_digest text DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  _existing public.quota_operations%ROWTYPE;
+  _purpose text;
+  _doc_key text;
+  _session_id uuid;
+  _lease integer := 900;
+  _retry boolean := false;
+BEGIN
+  IF auth.role() <> 'service_role' AND NOT public.is_staff(auth.uid()) THEN
+    RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501';
+  END IF;
+  IF p_operation_id IS NULL OR p_user_id IS NULL THEN
+    RAISE EXCEPTION 'operation_id and user_id are required' USING ERRCODE = '22023';
+  END IF;
+  IF p_kind NOT IN ('contract','template','analysis') THEN
+    RAISE EXCEPTION 'invalid kind' USING ERRCODE = '22023';
+  END IF;
+  IF p_request_digest IS NULL
+     OR btrim(p_request_digest) = ''
+     OR p_request_digest !~ '^[0-9a-f]{64}$' THEN
+    RAISE EXCEPTION 'request_digest_required' USING ERRCODE = '22023';
+  END IF;
+
+  _purpose := COALESCE(NULLIF(btrim(p_purpose), ''), 'unspecified');
+  _doc_key := NULLIF(btrim(p_doc_key), '');
+  BEGIN
+    _session_id := NULLIF(btrim(p_session_id), '')::uuid;
+  EXCEPTION WHEN invalid_text_representation THEN
+    RAISE EXCEPTION 'invalid session_id' USING ERRCODE = '22023';
+  END;
+
+  PERFORM pg_advisory_xact_lock(hashtextextended(p_operation_id::text, 0));
+  IF _doc_key IS NOT NULL AND _session_id IS NOT NULL THEN
+    PERFORM pg_advisory_xact_lock(hashtextextended(
+      p_user_id::text || '|' || _session_id::text || '|' || _doc_key || '|' || p_kind, 0));
+  END IF;
+
+  SELECT * INTO _existing FROM public.quota_operations
+   WHERE operation_id = p_operation_id FOR UPDATE;
+  IF FOUND THEN
+    -- ПЪЛНО ОБВЪРЗВАНЕ: всяко разминаване е конфликт — без промяна на
+    -- вече записаното (таксувано или не) състояние.
+    IF _existing.user_id <> p_user_id
+       OR _existing.kind <> p_kind
+       OR _existing.purpose <> _purpose
+       OR _existing.session_id IS DISTINCT FROM _session_id
+       OR _existing.doc_key IS DISTINCT FROM _doc_key
+       OR _existing.batch_id IS DISTINCT FROM p_batch_id
+       OR _existing.request_digest IS DISTINCT FROM p_request_digest THEN
+      RAISE EXCEPTION 'idempotency_key_conflict' USING ERRCODE = '23505';
+    END IF;
+
+    IF _existing.state <> 'cancelled' THEN
+      -- Препредаване БЕЗ пренаписване: таксуван ред си остава таксуван,
+      -- безплатен ред си остава безплатен.
+      RETURN jsonb_build_object(
+        'ok', true,
+        'replay', true,
+        'state', _existing.state,
+        'charged', _existing.charged,
+        'source', _existing.source,
+        'used_bonus', _existing.used_bonus,
+        'result_ref', _existing.result_ref,
+        'operation_id', _existing.operation_id
+      );
+    END IF;
+
+    -- Отменена операция: нов опит по СЪЩИЯ ключ е легитимен САМО ако отмяната
+    -- е доказана (иначе чакаме изравняване, никога тихо повторно решение).
+    IF COALESCE((_existing.detail->>'reconciliation_required')::boolean, false) THEN
+      RETURN jsonb_build_object(
+        'ok', false,
+        'reason', 'reconciliation_required',
+        'state', 'cancelled',
+        'charged', _existing.charged,
+        'replay', true,
+        'operation_id', _existing.operation_id
+      );
+    END IF;
+    IF _existing.cancelled_at IS NULL THEN
+      RETURN jsonb_build_object(
+        'ok', false,
+        'reason', 'cancellation_unproven',
+        'state', 'cancelled',
+        'replay', true,
+        'operation_id', _existing.operation_id
+      );
+    END IF;
+    _retry := true;
+  END IF;
+
+  IF _retry THEN
+    -- Пълно пренаписване на реда: НОВАТА резервация е отново безплатна —
+    -- никакво предишно таксуване не се възстановява тук (charged вече беше
+    -- false за 'no_charge' операции по конструкция).
+    UPDATE public.quota_operations
+       SET state = 'reserved',
+           charged = false,
+           source = 'no_charge',
+           used_bonus = false,
+           result_ref = NULL,
+           lease_expires_at = now() + make_interval(secs => _lease),
+           cancelled_at = NULL,
+           committed_at = NULL,
+           updated_at = now(),
+           detail = (_existing.detail - 'cancel_reason')
+                    || jsonb_build_object('retried_at', to_jsonb(now()))
+     WHERE operation_id = p_operation_id;
+  ELSE
+    INSERT INTO public.quota_operations (
+      operation_id, user_id, kind, purpose, state, charged, source,
+      used_bonus, session_id, doc_key, batch_id, request_digest, lease_expires_at
+    ) VALUES (
+      p_operation_id, p_user_id, p_kind, _purpose, 'reserved', false, 'no_charge',
+      false, _session_id, _doc_key, p_batch_id, p_request_digest,
+      now() + make_interval(secs => _lease)
+    );
+  END IF;
+
+  RETURN jsonb_build_object(
+    'ok', true,
+    'replay', false,
+    'state', 'reserved',
+    'charged', false,
+    'source', 'no_charge',
+    'used_bonus', false,
+    'result_ref', NULL,
+    'operation_id', p_operation_id
+  );
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.quota_reserve_no_charge(uuid, uuid, text, text, text, text, uuid, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.quota_reserve_no_charge(uuid, uuid, text, text, text, text, uuid, text) FROM anon;
+REVOKE ALL ON FUNCTION public.quota_reserve_no_charge(uuid, uuid, text, text, text, text, uuid, text) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.quota_reserve_no_charge(uuid, uuid, text, text, text, text, uuid, text) TO service_role;

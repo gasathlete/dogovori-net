@@ -1,7 +1,7 @@
 // Edge function: AI generation of risk analysis & contract
 // Uses Lovable AI Gateway (Gemini) — no API key needed by user.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { buildCors, hashIp, clientIp } from "../_shared/cors.ts";
+import { buildCors, hashIp, hashAnonIdentity, clientIp, IdentityUnavailableError } from "../_shared/cors.ts";
 import { sha256Hex } from "../_shared/normalize.ts";
 import { extractJson } from "../_shared/json.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
@@ -9,6 +9,13 @@ import { guardIllegalContent } from "../_shared/illegal-content.ts";
 import { getDocumentTypeSpec, inferDocumentType } from "../_shared/document-types.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { unredact } from "../_shared/redact.ts";
+import {
+  anonRequestDigest as _unusedAnonRequestDigest,
+  cancelAnonDelivery,
+  commitAnonDelivery,
+  reserveAnonDelivery,
+} from "../_shared/anon-delivery-ledger.ts";
+import { checkRateLimitStrict } from "../_shared/rate-limit.ts";
 import {
   buildGeneratorCacheIdentity,
   buildGeneratorClassificationCorpus,
@@ -201,9 +208,10 @@ Deno.serve(async (req: Request) => {
         { headers: { ...jsonHeaders, "X-Operation-Replay": "true" } },
       );
 
-    // Анонимните заявки НИКОГА не се таксуват (безплатен „вкус" — 1/24ч по IP)
-    // и затова не минават през леджъра на операциите: липсва удостоверен
-    // потребител, с когото операцията да се обвърже трайно.
+    // Анонимните заявки НИКОГА не минават през платежния леджър на
+    // операциите (те не изразходват платена квота), но ВСЕКИ анонимен извиквач
+    // получава трайна опаковка идентичност + анти-повторна доставка през
+    // отделния анонимен леджър (виж assistant-chat-anon за същия модел).
     const useLedger = !!userId;
     const ledgerBinding = useLedger
       ? {
@@ -217,6 +225,50 @@ Deno.serve(async (req: Request) => {
           requestDigest,
         }
       : null;
+
+    // Единно състояние за компенсация — валидно и за платения леджър
+    // (удостоверени потребители), и за анонимния леджър за доставка.
+    let compensated = true;
+    let settleKind: "none" | "quota" | "anon" = "none";
+    let anonIdentityHash: string | null = null;
+
+    /**
+     * ЕДИНСТВЕН КОМПЕНСИРАЩ ПАЗИТЕЛ. „charged: false"/освобождаване се твърди
+     * САМО при доказана отмяна; иначе типизиран billing_reconciliation_required
+     * и траен запис за изравняване. Дефиниран рано, за да важи и за
+     * анонимната резервация, направена преди мутационните проверки по-долу.
+     */
+    const cancelOrReport = async (reason: string): Promise<Response | null> => {
+      if (compensated || settleKind === "none") return null;
+      if (settleKind === "quota") {
+        const outcome = await cancelQuota(ledgerDb, operationId, reason);
+        if (outcome.status !== "settled") {
+          await recordReconciliation(ledgerDb, operationId, `generate_contract_cancel_failed:${outcome.reason}`, {
+            user_id: userId,
+            kind: "analysis",
+          });
+          return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+        }
+        compensated = true;
+        return null;
+      }
+      // settleKind === "anon"
+      const cancelled = await cancelAnonDelivery(ledgerDb, {
+        operationId,
+        identityHash: anonIdentityHash!,
+        requestDigest,
+        reason,
+      });
+      if (cancelled.kind !== "cancelled") {
+        await recordReconciliation(ledgerDb, operationId, `generate_contract_anon_cancel_failed:${reason}`, {
+          user_id: null,
+          kind: "analysis",
+        });
+        return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+      }
+      compensated = true;
+      return null;
+    };
 
     if (ledgerBinding) {
       // САМО-ЧЕТЯЩА проверка: без резервация, без освобождаване, без такса.
@@ -257,29 +309,111 @@ Deno.serve(async (req: Request) => {
       // status === "absent" → нормален нов опит, продължаваме надолу.
     }
 
-    // Rate limits: anonymous 1/24h per IP, authenticated 5/24h per user.
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { count } = await admin
-      .from("ai_usage")
-      .select("id", { count: "exact", head: true })
-      .eq("function_name", "generate-contract")
-      .gte("created_at", since)
-      .filter(userId ? "user_id" : "ip_hash", "eq", userId ?? ipHash);
+    if (userId) {
+      // Удостоверени потребители: непроменен дневен лимит от 5 генерации
+      // (отделен от платената квота в леджъра).
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { count } = await admin
+        .from("ai_usage")
+        .select("id", { count: "exact", head: true })
+        .eq("function_name", "generate-contract")
+        .gte("created_at", since)
+        .eq("user_id", userId);
+      if ((count ?? 0) >= 5) {
+        return new Response(
+          JSON.stringify({
+            error: "Достигнахте дневния лимит от 5 генерации. Опитайте утре или вземете Pro.",
+            code: "rate_limited",
+            requires_login: false,
+            charge_state: "not_charged",
+          }),
+          { status: 429, headers: jsonHeaders },
+        );
+      }
+    } else {
+      // -----------------------------------------------------------------------
+      // АНОНИМЕН ПЪТ: сървърно-извлечена опаковата идентичност (БЕЗ IP навън),
+      // ЗАДЪЛЖИТЕЛЕН operation_id (вече проверен по-горе), същият каноничен
+      // отпечатък на заявката, и ТРАЕН анонимен леджър за доставка (reserve →
+      // точно едно повикване към модела → commit; типизирана отмяна при
+      // доказан провал; изравняване при неясен изход). Fail-closed при липсващ
+      // сървърен идентичност-ключ.
+      // -----------------------------------------------------------------------
+      try {
+        anonIdentityHash = await hashAnonIdentity(clientIp(req));
+      } catch (e) {
+        if (e instanceof IdentityUnavailableError) {
+          return new Response(
+            JSON.stringify({
+              error: "identity_unavailable",
+              code: "identity_unavailable",
+              message: "Услугата е временно недостъпна. Опитайте отново след минута.",
+              charge_state: "not_charged",
+            }),
+            { status: 503, headers: { ...jsonHeaders, "Retry-After": "60" } },
+          );
+        }
+        throw e;
+      }
 
-    // Free-tier rate limits: anonymous get 1/24h (taste), logged-in free 5/24h.
-    const limit = userId ? 5 : 1;
-    if ((count ?? 0) >= limit) {
-      return new Response(
-        JSON.stringify({
-          error: userId
-            ? "Достигнахте дневния лимит от 5 генерации. Опитайте утре или вземете Pro."
-            : "За да генерирате договор, влезте безплатно с email или Google.",
-          code: "rate_limited",
-          requires_login: !userId,
-          charge_state: "not_charged",
-        }),
-        { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+      const anonRes = await reserveAnonDelivery(ledgerDb, {
+        operationId,
+        identityHash: anonIdentityHash,
+        requestDigest,
+        purpose: "generate_contract_anon",
+        cap: 1,
+        windowSeconds: 24 * 3600,
+      });
+      if (anonRes.kind === "replay") {
+        return exactReplayResponse(anonRes.response);
+      }
+      if (anonRes.kind === "in_progress") {
+        return operationInProgressResponse(
+          { ...corsHeaders, ...correlationHeaders(correlationId) },
+          anonRes.retryAfterSeconds,
+        );
+      }
+      if (anonRes.kind === "limit_reached") {
+        return new Response(
+          JSON.stringify({
+            error: "За да генерирате договор, влезте безплатно с email или Google.",
+            code: "rate_limited",
+            requires_login: true,
+            charge_state: "not_charged",
+          }),
+          { status: 429, headers: jsonHeaders },
+        );
+      }
+      if (anonRes.kind === "conflict") return conflictResponse();
+      if (anonRes.kind === "expired") {
+        return responseExpiredResponse({ ...corsHeaders, ...correlationHeaders(correlationId) }, false);
+      }
+      if (anonRes.kind !== "reserved") return quotaUnavailableResponse();
+
+      settleKind = "anon";
+      compensated = false;
+
+      // Отделен анти-абюз лимит — НЕ е правото за доставка, а защита срещу
+      // прекомерни опити/атака по същата идентичност. Fail-closed.
+      const abuse = await checkRateLimitStrict(
+        `generate-contract-anon-abuse:${anonIdentityHash}`,
+        15,
+        86400,
       );
+      if (!abuse.ok) {
+        const unresolved = await cancelOrReport(abuse.unavailable ? "limiter_unavailable" : "rate_limited");
+        if (unresolved) return unresolved;
+        return new Response(
+          JSON.stringify({
+            error: abuse.unavailable
+              ? "Услугата е временно недостъпна. Опитайте отново по-късно."
+              : "Твърде много опити. Опитайте отново по-късно.",
+            code: abuse.unavailable ? "entitlement_unavailable" : "too_many_attempts",
+            charge_state: "not_charged",
+          }),
+          { status: abuse.unavailable ? 503 : 429, headers: jsonHeaders },
+        );
+      }
     }
 
     // Illegal content guard — block before AI call, log + alert admin.
@@ -290,10 +424,20 @@ Deno.serve(async (req: Request) => {
       userAgent: req.headers.get("user-agent"),
       corsHeaders,
     });
-    if (blocked) return blocked;
+    if (blocked) {
+      const unresolved = await cancelOrReport("illegal_content_blocked");
+      if (unresolved) return unresolved;
+      return blocked;
+    }
 
+    // Ключът на доставчика се изисква САМО за НОВА резервирана операция —
+    // точно повторение вече върна отговор по-горе, преди тази проверка.
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
+    if (!LOVABLE_API_KEY) {
+      const unresolved = await cancelOrReport("lovable_api_key_missing");
+      if (unresolved) return unresolved;
+      throw new Error("LOVABLE_API_KEY липсва");
+    }
 
     // Detect the document type from the name so we don't render every output
     // as a "договор" (e.g. Разписка, Декларация, Пълномощно, Жалба, Искова молба).
@@ -320,6 +464,8 @@ Deno.serve(async (req: Request) => {
         classification, redaction_applied: false, status: "blocked",
         error_code: route.blockedReason ?? "blocked",
       });
+      const unresolved1 = await cancelOrReport(route.blockedReason ?? "special_category_blocked");
+      if (unresolved1) return unresolved1;
       return new Response(JSON.stringify({
         error: "Въведените данни съдържат специални категории лични данни и не могат да бъдат обработени автоматично.",
         code: route.blockedReason ?? "special_category_blocked",
@@ -332,6 +478,8 @@ Deno.serve(async (req: Request) => {
       }), { status: 422, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
     }
     if (route.requireConfirmation) {
+      const unresolved2 = await cancelOrReport("sensitive_data_confirmation_required");
+      if (unresolved2) return unresolved2;
       return new Response(JSON.stringify({
         error: "needs_confirmation",
         code: "sensitive_data_confirmation_required",
@@ -355,6 +503,8 @@ Deno.serve(async (req: Request) => {
         classification, redaction_applied: false, status: "blocked",
         error_code: safe.code,
       });
+      const unresolved = await cancelOrReport(safe.code);
+      if (unresolved) return unresolved;
       return new Response(JSON.stringify({ error: safe.message, code: safe.code, charge_state: "not_charged" }), {
         status: 422,
         headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
@@ -394,6 +544,8 @@ ${docTypeSpec.systemAddendum}
     const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, `${docTypeSpec.label} ${s.contractName}\n${userPrompt}`.slice(0, 4000), { matchCount: 6 });
     // FAIL-CLOSED: без проверена норма за тази заявка няма модел и няма квота.
     if (!legal.hasMatches) {
+      const unresolved = await cancelOrReport("legal_verification_unavailable");
+      if (unresolved) return unresolved;
       const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
       return legalVerificationUnavailableResponse({ headers: { ...corsHeaders, ...correlationHeaders(correlationId) } });
     }
@@ -402,7 +554,6 @@ ${docTypeSpec.systemAddendum}
     // ТАКСУВАНЕ: след всички непарични проверки. ЕДИН леджър, идемпотентен по
     // ключа на операцията и обвързан със съдържанието на заявката. Само за
     // удостоверени потребители — анонимните никога не се таксуват.
-    let compensated = !ledgerBinding;
     let priorRef: Record<string, unknown> | null = null;
     if (ledgerBinding) {
       const reservation = await reserveQuota(ledgerDb, ledgerBinding);
@@ -434,6 +585,7 @@ ${docTypeSpec.systemAddendum}
       if (priorRef && priorRef.contract) {
         return exactReplayResponse(priorRef);
       }
+      settleKind = "quota";
 
       // ЕДНОВРЕМЕННО ИЗПЪЛНЕНИЕ ПО СЪЩИЯ КЛЮЧ: повторение на още незавършена
       // резервация БЕЗ записан резултат НИКОГА не стартира второ повикване към
@@ -447,6 +599,7 @@ ${docTypeSpec.systemAddendum}
       compensated = false;
     }
 
+    /* legacy-marker-removed */
     /**
      * ЕДИНСТВЕН КОМПЕНСИРАЩ ПАЗИТЕЛ през леджъра. „charged: false" се твърди
      * САМО при доказана отмяна; иначе типизиран billing_reconciliation_required

@@ -272,115 +272,6 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-Deno.serve(async (req: Request) => {
-  const correlationId = getCorrelationId(req);
-  const corsHeaders = buildCors(req);
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
-  try {
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
-    const authHeader = req.headers.get("Authorization") ?? "";
-    let userId: string | null = null;
-    let authDiag: { kid?: string; alg?: string; method?: string; reason?: string } = {};
-
-    if (!authHeader.startsWith("Bearer ")) {
-      authDiag.reason = "missing_bearer";
-      console.warn("[build-custom-contract] auth fail:", authDiag);
-    } else {
-      const token = authHeader.replace("Bearer ", "").trim();
-
-      // Decode JWT header for diagnostics (kid/alg) — no verification here.
-      try {
-        const headerB64 = token.split(".")[0];
-        const padded = headerB64 + "=".repeat((4 - (headerB64.length % 4)) % 4);
-        const headerJson = JSON.parse(atob(padded.replace(/-/g, "+").replace(/_/g, "/")));
-        authDiag.kid = headerJson.kid;
-        authDiag.alg = headerJson.alg;
-      } catch (e) {
-        authDiag.reason = "header_decode_failed";
-        console.warn("[build-custom-contract] could not decode JWT header:", e);
-      }
-
-      // Prefer getClaims() — works with the signing-keys (ES256) auth system.
-      try {
-        const { data: claimsData, error: claimsErr } = await admin.auth.getClaims(token);
-        if (claimsErr) {
-          authDiag.reason = "getClaims:" + String(claimsErr.message);
-        } else if (claimsData?.claims?.sub) {
-          userId = claimsData.claims.sub as string;
-          authDiag.method = "getClaims";
-        }
-      } catch (e) {
-        authDiag.reason = "getClaims_threw:" + (e instanceof Error ? e.message : String(e));
-      }
-
-      // Fallback for legacy HS256 tokens.
-      if (!userId) {
-        try {
-          const { data: u, error: uErr } = await admin.auth.getUser(token);
-          if (uErr) {
-            authDiag.reason = (authDiag.reason ?? "") + "|getUser:" + String(uErr.message);
-          } else if (u?.user?.id) {
-            userId = u.user.id;
-            authDiag.method = "getUser";
-          }
-        } catch (e) {
-          authDiag.reason = (authDiag.reason ?? "") + "|getUser_threw:" + (e instanceof Error ? e.message : String(e));
-        }
-      }
-    }
-
-    if (!userId) {
-      console.warn("[build-custom-contract] 401 auth_required:", authDiag);
-      return new Response(
-        JSON.stringify({
-          error: "За да изградите договор, влезте безплатно с email или Google.",
-          code: "auth_required",
-          requires_login: true,
-        }),
-        { status: 401, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
-      );
-    }
-    console.log("[build-custom-contract] auth ok:", { userId, ...authDiag });
-
-    // Parse + validate body first so we can fire rate-limit, content
-    // guard, and cache lookup queries in parallel.
-    const body = (await req.json()) as BuildPayload;
-    const {
-      name = "",
-      category = "",
-      categorySectorId = null,
-      documentType = "contract",
-      buildMode = "working",
-      bilingual = false,
-      parentContext = undefined,
-      partiesA = [],
-      partiesB = [],
-      customFields = [],
-      subject = "",
-      term = "",
-      prices = "",
-      obligations = "",
-      other = "",
-      userConfirmed = false,
-    } = body as BuildPayload & { userConfirmed?: boolean };
-    const safeBuildMode: BuildMode = (["fast", "working", "strict"] as BuildMode[]).includes(buildMode as BuildMode)
-      ? (buildMode as BuildMode)
-      : "working";
-    const modeSpec = BUILD_MODE_ADDENDUM[safeBuildMode];
-    const safeBilingual = Boolean(bilingual);
-
-    if (!name.trim() || !category.trim()) {
-      return new Response(
-        JSON.stringify({ error: "Името и категорията са задължителни." }),
-        { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
-      );
-    }
-
     const safeDocumentType = ALL_DOCUMENT_TYPE_IDS.includes(documentType as any)
       ? documentType
       : "contract";
@@ -974,17 +865,6 @@ ${fieldsSection}
     }
   } catch (e) {
     console.error(`build-custom-contract error [cid=${correlationId}]:`, e instanceof Error ? e.message : "unknown");
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка", correlation_id: correlationId }),
-      { status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
-    );
-  }
-});
-    return new Response(JSON.stringify(parsed), {
-      headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
-    });
-  } catch (e) {
-    console.error(`build-custom-contract error [cid=${correlationId}]:`, e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка", correlation_id: correlationId }),
       { status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },

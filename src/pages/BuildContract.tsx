@@ -67,6 +67,7 @@ import {
 } from "@/lib/docFunnel";
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { classifyGenerationError, errorClassOf, type GenerationError } from "@/lib/generationErrors";
+import { getOpSessionId, getStableOpKey, releaseStableOpKey, opaqueOpScope } from "@/lib/opSession";
 import { PartyListEditor, parseParties, serializeParties } from "@/components/wizard/PartyListEditor";
 import { Lock } from "@/icons";
 import { findSimilarTemplates, type SimilarTemplate } from "@/lib/templateSimilarity";
@@ -536,6 +537,32 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
       }));
       // Back-compat aliases for legacy server fields
       const get = (k: string) => (fieldValues[k] ?? "").trim();
+      const buildPayload = {
+        name: name.trim(),
+        category: categoryLabel,
+        categorySectorId: categoryId === "__other__" ? null : categoryId,
+        documentType,
+        buildMode,
+        bilingual: canBilingual && bilingual,
+        parentContext: parentTitleParam ? {
+          parentTitle: parentTitleParam,
+          refNumber: refNumberParam ? Number(refNumberParam) : null,
+          refType: refTypeParam ?? undefined,
+        } : undefined,
+        partiesA: splitLines(partiesA),
+        partiesB: splitLines(partiesB),
+        customFields,
+        subject: get("subject"),
+        term: get("term"),
+        prices: get("prices"),
+        obligations: get("obligations"),
+        other: get("other"),
+        userConfirmed,
+      };
+      // НЕПРОЗРАЧЕН обхват от ЦЕЛИЯ товар: същият ключ при повторен опит,
+      // двойно натискане или загубена връзка — без двойно таксуване.
+      const buildOpScope = `op:${await opaqueOpScope("build_custom_contract", buildPayload)}`;
+      const buildOperationId = getStableOpKey(buildOpScope);
       // invokeEdgeFunction: разопакова 4xx тялото в `data` и повтаря само при
       // мрежов срив — така „Failed to send a request" не се брои за провал на AI.
       let startAttempts = 1;
@@ -550,28 +577,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
             description: "Връзката прекъсна за момент — данните ви са запазени.",
           });
         },
-        body: {
-          name: name.trim(),
-          category: categoryLabel,
-          categorySectorId: categoryId === "__other__" ? null : categoryId,
-          documentType,
-          buildMode,
-          bilingual: canBilingual && bilingual,
-          parentContext: parentTitleParam ? {
-            parentTitle: parentTitleParam,
-            refNumber: refNumberParam ? Number(refNumberParam) : null,
-            refType: refTypeParam ?? undefined,
-          } : undefined,
-          partiesA: splitLines(partiesA),
-          partiesB: splitLines(partiesB),
-          customFields,
-          subject: get("subject"),
-          term: get("term"),
-          prices: get("prices"),
-          obligations: get("obligations"),
-          other: get("other"),
-          userConfirmed,
-        },
+        body: { ...buildPayload, operation_id: buildOperationId },
       });
       // Лични / чувствителни данни → диалог за потвърждение вместо сурова грешка.
       const sensitive = await parseSensitiveResponse(error, data);
@@ -606,11 +612,20 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
           goAuth({ action: "Изготвяне на документа", onSuccess: () => handleGenerate(userConfirmed) });
           return;
         }
+        if (gen.code === "operation_conflict") {
+          releaseStableOpKey(buildOpScope);
+          toast.error("Заявката се промени. Изпратете отново.", {
+            description: "Данните Ви са запазени — натиснете отново „Изготви", за да продължим.",
+          });
+          return;
+        }
         const err = new Error(data?.error || error?.message || "Неуспешно създаване");
         (err as { gen?: GenerationError }).gen = gen;
         (err as { cid?: string }).cid = error?.correlationId ?? correlationId;
         throw err;
       }
+      // ДОКАЗАН КРАЕН УСПЕХ: единственият момент, в който ключът пада.
+      releaseStableOpKey(buildOpScope);
       setResult(data as AIResult);
       trackEvent("build_contract_generated", { category: categoryLabel });
       trackGenerate("success", { source: "build", doc_key: documentType, category: categoryLabel, ...genMeta });
@@ -828,10 +843,23 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     busyRef.current = true;
     setApplyingCorrections(true);
     try {
-      const { getOpSessionId, getStableOpKey, releaseStableOpKey } = await import("@/lib/opSession");
-      // Стабилен ключ за ТАЗИ вълна поправки: нов опит не таксува втори път.
-      const batchScope = `apply_corrections:${[...sel.issues, ...sel.recommendations].join("|")}`;
-      const batchId = getStableOpKey(batchScope);
+      // НЕПРОЗРАЧЕН обхват от ЦЕЛИЯ товар — същият ключ при повторен опит.
+      const acPayloadScope = await opaqueOpScope("apply_corrections", {
+        contract: result.contract,
+        risk: result.risk,
+        selectedIssues: sel.issues,
+        selectedRecommendations: sel.recommendations,
+        answers: syntheticAnswers,
+        userConfirmed: correctionsConfirmed,
+      });
+      const acOpScope = `op:${acPayloadScope}`;
+      const acBatchScope = `wave:${acPayloadScope}`;
+      const operationId = getStableOpKey(acOpScope);
+      const batchId = getStableOpKey(acBatchScope);
+      const releaseAcKeys = () => {
+        releaseStableOpKey(acOpScope);
+        releaseStableOpKey(acBatchScope);
+      };
       const { data, error } = await supabase.functions.invoke("apply-corrections", {
         body: {
           contract: result.contract,
@@ -844,10 +872,10 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
           quality_manifest: result.quality_manifest ?? undefined,
           session_id: getOpSessionId(),
           batch_id: batchId,
+          operation_id: operationId,
           userConfirmed: correctionsConfirmed,
         },
       });
-      if (!error && !data?.error) releaseStableOpKey(batchScope);
       // Ограничената правна преграда е възстановимо състояние: нищо не се губи.
       // Ръчен повторен опит СЪС СЪЩИЯ ключ — затова не се таксува отново.
       if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable(
@@ -855,6 +883,27 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         () => { if (!busyRef.current) void handleApplyCorrections(sel, correctionsConfirmed); },
       )) return;
       if (error || data?.error) {
+        const code = (data as { code?: string } | null)?.code || "";
+        if (
+          code === "operation_in_progress" ||
+          code === "quota_unavailable" ||
+          code === "entitlement_unavailable" ||
+          code === "reconciliation_required" ||
+          code === "billing_reconciliation_required"
+        ) {
+          toast.message("Все още се обработва", { description: "Опитайте отново след малко." });
+          return;
+        }
+        if (
+          code === "idempotency_key_conflict" ||
+          code === "invalid_operation_id" ||
+          code === "operation_id_required" ||
+          code === "response_expired"
+        ) {
+          releaseAcKeys();
+          toast.error("Заявката се промени. Изпратете отново.");
+          return;
+        }
         const sensitive = await parseSensitiveResponse(error, data);
         if (isSpecialCategoryBlocked(sensitive)) {
           setSensitiveClass(sensitive?.classification ?? null);
@@ -879,6 +928,8 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         }
         throw new Error(data?.error || error?.message || "Грешка");
       }
+      // ДОКАЗАН КРАЕН УСПЕХ: единственият момент, в който ключът пада.
+      releaseAcKeys();
       setResult({
         risk: data.risk ?? result.risk,
         contract: data.contract ?? result.contract,
