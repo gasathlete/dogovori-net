@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
         ? ((stored as any).__evidence.sources as StrategySourceRef[])
         : [];
       const currentSources = await currentSourceVersions(
-        admin,
+        admin as unknown as Parameters<typeof currentSourceVersions>[0],
         storedSources.map((s) => String(s?.chunk_id ?? "")).filter(Boolean),
       );
       const verdict = await verifyStrategyEvidence({
@@ -392,7 +392,7 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
     // ПОДПИСАН ДОКАЗАТЕЛСТВЕН ПЛИК: обвързан със съдържанието, анализа,
     // потребителя и точните версии на цитираните източници.
     const citedIds = legal.citations.map((c) => c.chunk_id);
-    const versions = await currentSourceVersions(admin, citedIds);
+    const versions = await currentSourceVersions(admin as unknown as Parameters<typeof currentSourceVersions>[0], citedIds);
     if (!versions) {
       return await reconcileAndRespond("evidence_unavailable");
     }
