@@ -554,6 +554,13 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // ВЪЗСТАНОВЯВАНЕ НА ВЕЧЕ КАЧЕНИЯ ТОЧЕН ФАЙЛ при незавършена операция.
+    const isReplay = reservation.status === "reserved" && reservation.replay === true &&
+      reservation.retry !== true;
+    const priorRef = (reservation.status === "reserved" ? reservation.resultRef : null) as
+      | { bucket?: unknown; path?: unknown; filename?: unknown }
+      | null;
+
 
 
     /** Потвърждава идемпотентно и връща СВЕЖ подпис върху доказан обект. */
