@@ -91,30 +91,9 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Charge exactly 1 op. count=1 → ceil(1/5)=1. Idempotent by batch_id.
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: batchCharge, error: batchErr } = await userClient.rpc(
-      "charge_corrections_wave",
-      { p_user_id: userId, p_batch_id: batchId, p_count: 1 },
-    );
-    if (batchErr) {
-      console.error("charge_corrections_wave error:", batchErr);
-      return new Response(JSON.stringify({ error: "Грешка при проверка на квотата" }), {
-        status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
-      });
-    }
-    const batchResult = batchCharge as { ok: boolean; reason?: string; cached?: boolean };
-    if (!batchResult?.ok) {
-      return new Response(
-        JSON.stringify({ error: "quota_exceeded", reason: batchResult?.reason }),
-        { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
-      );
-    }
-    const batchCharged = !batchResult.cached;
-
+    // ВСИЧКИ НЕТАКСУЕМИ ПРОВЕРКИ СЕ ИЗВЪРШВАТ ПРЕДИ ТАКСУВАНЕ.
     // Illegal content guard
+
     const guardText = [JSON.stringify(contract).slice(0, 8000), feedback].join("\n");
     const blocked = await guardIllegalContent({
       admin, text: guardText, functionName: "refine-contract",
