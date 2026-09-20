@@ -60,6 +60,13 @@ import {
   readProductIntegrationConfig,
   type ResidencyDbClient,
 } from "../_shared/product-integration.ts";
+import {
+  markProductJobReconciliation,
+  PRODUCT_RECONCILIATION_MESSAGE,
+  ProductUncertainCallError,
+  readProductReconciliationState,
+  type ReconciliationRpcClient,
+} from "../_shared/product-reconciliation.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ALLOWED_BODY_KEYS = Object.freeze(["entitlement_id"]);
@@ -140,6 +147,7 @@ const MESSAGES: Readonly<Record<string, string>> = Object.freeze({
   processing: "Обработваме документа. Ще видите резултата тук.",
   failed_retryable: "Обработката прекъсна. Опитайте отново.",
   failed_permanent: "Обработката не може да продължи. Свържете се с нас за решение.",
+  reconciliation_required: PRODUCT_RECONCILIATION_MESSAGE,
   internal: "Възникна неочакван проблем.",
 });
 
