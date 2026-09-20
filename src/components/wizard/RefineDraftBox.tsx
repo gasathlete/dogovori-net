@@ -64,12 +64,21 @@ export function RefineDraftBox({
     setLastSummary(null);
     setLastChanged([]);
     try {
-      const { getStableOpKey, releaseStableOpKey } = await import("@/lib/opSession");
-      // Стабилен ключ за ТОЗИ текст: нов опит след грешка не таксува пак.
-      const opScope = `refine_contract_op:${text}`;
-      const batchScope = `refine_contract_wave:${text}`;
+      const { getStableOpKey, releaseStableOpKey, opaqueOpScope } = await import("@/lib/opSession");
+      // НЕПРОЗРАЧЕН обхват от ЦЕЛИЯ товар: в браузърното хранилище не влиза
+      // суров потребителски текст, а ключът е един и същ при повторен опит.
+      const payloadScope = await opaqueOpScope("refine_contract", {
+        contract,
+        feedback: text,
+        answers,
+        userConfirmed,
+      });
+      const opScope = `op:${payloadScope}`;
+      const batchScope = `wave:${payloadScope}`;
       const operationId = getStableOpKey(opScope);
       const batchId = getStableOpKey(batchScope);
+      // Ключът пада САМО при доказан краен успех. При конфликт/изравняване той
+      // се ЗАПАЗВА — нов ключ би създал ново таксуване върху неизяснена операция.
       const releaseKeys = () => {
         releaseStableOpKey(opScope);
         releaseStableOpKey(batchScope);
@@ -91,18 +100,23 @@ export function RefineDraftBox({
           userConfirmed,
         },
       });
-      if (!error && !data?.error) releaseKeys();
       if (error || data?.error) {
         const code = data?.code || "";
+        if (code === "operation_in_progress") {
+          const wait = Number(data?.retry_after_seconds ?? 4);
+          toast.message("Същата корекция вече се обработва.", {
+            description: `Изчакайте около ${wait > 0 ? wait : 4} сек. и опитайте отново.`,
+          });
+          return;
+        }
         if (
           code === "idempotency_key_conflict" ||
           code === "invalid_operation_id" ||
           code === "operation_id_required"
         ) {
-          // Ключът вече е ползван за друга заявка: нов ключ, без второ таксуване
-          // на стария.
-          releaseKeys();
-          toast.error("Заявката не съвпада с предишната. Опитайте отново.");
+          // Ключът НЕ се освобождава: неизяснена операция + нов ключ би довело
+          // до второ таксуване. Промяна на текста дава естествено нов обхват.
+          toast.error("Заявката не съвпада с предишната. Променете текста и опитайте отново.");
           return;
         }
         if (code === "billing_reconciliation_required") {
@@ -150,6 +164,8 @@ export function RefineDraftBox({
         throw new Error(data?.error || error?.message || "Грешка");
       }
       if (!data?.contract) throw new Error("Празен отговор от AI");
+      // ДОКАЗАН КРАЕН УСПЕХ: единственият момент, в който ключът пада.
+      releaseKeys();
       onRefined(data.contract, data.change_summary || "", data.changed_clause_numbers || []);
       setLastSummary(data.change_summary || "Готово.");
       setLastChanged(data.changed_clause_numbers || []);

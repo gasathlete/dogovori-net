@@ -93,3 +93,48 @@ export function releaseStableOpKey(scope: string): void {
   } catch { /* ignore */ }
 }
 
+/**
+ * НЕПРОЗРАЧЕН ОБХВАТ НА ЗАЯВКА.
+ *
+ * Ключът в sessionStorage НИКОГА не съдържа потребителски текст. Обхватът е
+ * детерминиран отпечатък на ЦЕЛИЯ товар (документ + обратна връзка + отговори
+ * + потвърждение): същият товар дава същия ключ при повторен опит, двойно
+ * натискане или загубена връзка, а всяка промяна дава различен ключ.
+ */
+function canonicalJson(value: unknown): string {
+  if (value === null || value === undefined) return "null";
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+/** Необратим резерв, когато crypto.subtle не е достъпен (без суров текст). */
+function fnv1a64Hex(input: string): string {
+  let h1 = 0x811c9dc5;
+  let h2 = 0x01000193;
+  for (let i = 0; i < input.length; i++) {
+    const c = input.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;
+    h2 = Math.imul(h2 ^ ((c << 5) | (i & 31)), 0x85ebca6b) >>> 0;
+  }
+  return h1.toString(16).padStart(8, "0") + h2.toString(16).padStart(8, "0");
+}
+
+export async function opaqueOpScope(prefix: string, payload: unknown): Promise<string> {
+  const canon = canonicalJson(payload);
+  try {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canon));
+    const hex = Array.from(new Uint8Array(buf))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    return `${prefix}:${hex}`;
+  } catch {
+    return `${prefix}:f${fnv1a64Hex(canon)}`;
+  }
+}
+

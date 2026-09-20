@@ -276,15 +276,17 @@ BEGIN
    WHERE operation_id = p_operation_id FOR UPDATE;
 
   IF FOUND THEN
+    -- Вече обвързан артефакт НИКОГА не се пренасочва към друг обект: точно
+    -- същото обвързване е повторение, различен bucket/път е конфликт.
     IF _row.user_id IS DISTINCT FROM p_user_id
        OR _row.purpose IS DISTINCT FROM p_purpose
-       OR _row.request_digest IS DISTINCT FROM p_request_digest THEN
+       OR _row.request_digest IS DISTINCT FROM p_request_digest
+       OR _row.bucket IS DISTINCT FROM p_bucket
+       OR _row.storage_path IS DISTINCT FROM p_storage_path THEN
       RAISE EXCEPTION 'artifact_binding_conflict' USING ERRCODE = '23505';
     END IF;
     UPDATE public.storage_artifacts
-       SET bucket = p_bucket,
-           storage_path = p_storage_path,
-           ready_at = COALESCE(ready_at, now()),
+       SET ready_at = COALESCE(ready_at, now()),
            expires_at = GREATEST(expires_at, p_expires_at)
      WHERE id = _row.id;
     RETURN jsonb_build_object('ok', true, 'replay', true, 'bucket', p_bucket, 'path', p_storage_path);
