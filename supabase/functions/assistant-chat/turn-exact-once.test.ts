@@ -1,5 +1,12 @@
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { canonicalTurnBinding, decideTurnMode, platformHelpAnswer, sanitizeChatPath } from "./turn-binding.ts";
+import {
+  analysisIntentOf,
+  canonicalTurnBinding,
+  decideTurnMode,
+  needsLegalClarification,
+  platformHelpAnswer,
+  sanitizeChatPath,
+} from "./turn-binding.ts";
 import { buildVerifiedIndex, noVerifiedAnswerText, validateAnswerCitations } from "./citation-integrity.ts";
 
 const SRC = await Deno.readTextFile(new URL("./index.ts", import.meta.url));
@@ -149,4 +156,130 @@ Deno.test("клиентът: устойчив ключ на хода с обхв
   assert(/assistant_turn_in_progress/.test(CLIENT));
   assert(/assistant_turn_reconciliation/.test(CLIENT));
   assert(/clearTurnOperation\(/.test(CLIENT));
+});
+
+// ---------------------------------------------------------------------------
+// P0-E2 corrective pass — детерминистично уточняване, ред на проверките,
+// доказуемо изравняване, точност на SQL и заличаване.
+// ---------------------------------------------------------------------------
+
+const SQL = await Deno.readTextFile(
+  new URL("../../../drizzle/migrations/0039_assistant_turn_exact_once.sql", import.meta.url),
+);
+const SQL_PAIR = await Deno.readTextFile(
+  new URL("../../migrations/20260920233000_assistant_turn_exact_once.sql", import.meta.url),
+);
+const TURN_KEY = await Deno.readTextFile(
+  new URL("../../../src/lib/assistantTurnKey.ts", import.meta.url),
+);
+const DELETE_ACCOUNT = await Deno.readTextFile(
+  new URL("../delete-account/index.ts", import.meta.url),
+);
+
+Deno.test("уточняващият въпрос е детерминистичен и се разпознава преди резервацията", () => {
+  const ask = "Наемателят не плаща наема три месеца, какво да правя?";
+  assertEquals(needsLegalClarification({ message: ask, history: [] }), true);
+
+  // Вече уточнено от потребителя — втори път не питаме.
+  assertEquals(
+    needsLegalClarification({
+      message: ask,
+      history: [{ role: "assistant", content: "За да отговоря точно, уточнете следното:" }],
+    }),
+    false,
+  );
+  // Заявка за изготвяне или за анализ на текст не е уточняване.
+  assertEquals(needsLegalClarification({ message: "Изготви ми договор за наем", history: [] }), false);
+  assert(analysisIntentOf("Прегледай тази клауза за неустойка"));
+});
+
+Deno.test("източникът: ключът на доставчика и правата се четат СЛЕД само-четящото търсене", () => {
+  const lookup = SRC.indexOf("await lookupTurn(");
+  const key = SRC.indexOf('Deno.env.get("LOVABLE_API_KEY")');
+  const quota = SRC.indexOf('.from("download_quota")');
+  assert(lookup > 0 && key > 0 && quota > 0);
+  assert(lookup < key, "ключът на доставчика не бива да блокира възпроизвеждане");
+  assert(lookup < quota, "правата не бива да блокират възпроизвеждане");
+  // Режимът „уточняване“ участва в обвързването и НЕ таксува.
+  assert(/turnMode === "clarification"/.test(SRC) || /clarificationTurn/.test(SRC));
+  assert(/charge = turnMode === "legal_strict"/.test(SRC), "само строгият правен ход таксува");
+});
+
+Deno.test("източникът: всяка несигурност след стартиран модел минава през доказуем преход", () => {
+  assert(/markTurnReconciliation\(/.test(SRC));
+  const calls = SRC.match(/markTurnReconciliation\(/g) ?? [];
+  assert(calls.length >= 3, `очаквани поне 3 извиквания, намерени ${calls.length}`);
+});
+
+Deno.test("SQL: двата екземпляра на 0039 са байт-идентични", () => {
+  assertEquals(SQL, SQL_PAIR);
+});
+
+Deno.test("SQL: отказът не оставя празен разговор, нито изразходвано право", () => {
+  const reserve = SQL.slice(
+    SQL.indexOf("FUNCTION public.assistant_turn_reserve"),
+    SQL.indexOf("FUNCTION public.assistant_turn_mark_model_started"),
+  );
+  const firstDenied = reserve.indexOf("'status', 'denied'");
+  const threadInsert = reserve.indexOf("INSERT INTO public.assistant_threads");
+  assert(firstDenied > 0 && threadInsert > 0);
+  assert(firstDenied < threadInsert, "разговор се създава само след потвърдено право");
+  assert(!/DELETE FROM public\.assistant_turn_operations/.test(reserve), "отмененият ред остава");
+  assert(/_reuse := true;/.test(reserve), "повторният опит преизползва същата операция");
+  assert(/p_binding !~ '\^\[0-9a-f\]\{64\}\$'/.test(reserve), "строга проверка на обвързването");
+  assert(/'platform_help', 'legal_strict', 'clarification'/.test(reserve));
+  assert(/allocation_without_charge/.test(reserve));
+  assert(/'prior', _prior/.test(reserve), "произходът на превъртения прозорец се записва");
+});
+
+Deno.test("SQL: отмяната възстановява точно и не маскира недостиг", () => {
+  const cancel = SQL.slice(SQL.indexOf("FUNCTION public.assistant_turn_cancel"));
+  assert(!/GREATEST\(/.test(cancel), "няма маскиране на недостиг");
+  assert(/window_changed/.test(cancel), "различен прозорец => изравняване");
+  assert(/provenance_missing/.test(cancel));
+  assert(/monthly_reset_at = \(_prior->>'monthly_reset_at'\)::timestamptz/.test(cancel));
+});
+
+Deno.test("SQL: частичните индекси имат предикат в целта на конфликта", () => {
+  assert(!/ON CONFLICT \(operation_id, role\) DO NOTHING/.test(SQL));
+  assert(!/ON CONFLICT \(operation_id\) DO NOTHING/.test(SQL));
+  const guarded = SQL.match(/ON CONFLICT \([^)]*operation_id[^)]*\) WHERE operation_id IS NOT NULL/g) ?? [];
+  assert(guarded.length >= 3, `очаквани поне 3 защитени цели, намерени ${guarded.length}`);
+});
+
+Deno.test("SQL: таблицата не е достъпна за анонимни и удостоверени роли", () => {
+  assert(/REVOKE ALL ON TABLE public\.assistant_turn_operations FROM anon;/.test(SQL));
+  assert(/REVOKE ALL ON TABLE public\.assistant_turn_operations FROM authenticated;/.test(SQL));
+});
+
+Deno.test("SQL: изтекъл лизинг не стартира модел, а отива за изравняване", () => {
+  const mark = SQL.slice(
+    SQL.indexOf("FUNCTION public.assistant_turn_mark_model_started"),
+    SQL.indexOf("FUNCTION public.assistant_turn_mark_reconciliation"),
+  );
+  assert(/lease_expired_before_model/.test(mark));
+  assert(/FUNCTION public\.assistant_turn_mark_reconciliation/.test(SQL));
+  assert(
+    /GRANT EXECUTE ON FUNCTION public\.assistant_turn_mark_reconciliation\(uuid, uuid, text\) TO service_role;/
+      .test(SQL),
+  );
+});
+
+Deno.test("SQL: записаният транскрипт носи реалния идентификатор на предложението", () => {
+  assert(/jsonb_set\(t\.ev, '\{data,proposal,id\}', to_jsonb\(_proposal_id\)\)/.test(SQL));
+  assert(/'events', _events/.test(SQL));
+});
+
+Deno.test("клиентът: без суров идентификатор на потребител и с чистене при смяна на профил", () => {
+  assert(/assistant_turn_user_v1:/.test(TURN_KEY), "обхватът се хешира");
+  assert(!/localStorage\.setItem\([^)]*userId/.test(TURN_KEY));
+  assert(/clearTurnOperationsForOtherUsers\(/.test(CLIENT));
+  assert(/sendingRef/.test(CLIENT), "синхронна защита срещу двойно изпращане");
+});
+
+Deno.test("заличаването е fail-closed: без изчистен транскрипт няма изтрит профил", () => {
+  assert(/purge_assistant_turn_payloads/.test(DELETE_ACCOUNT));
+  const purge = DELETE_ACCOUNT.indexOf("purge_assistant_turn_payloads");
+  const erasure = DELETE_ACCOUNT.indexOf("erasure_incomplete");
+  assert(purge > 0 && erasure > purge);
 });
