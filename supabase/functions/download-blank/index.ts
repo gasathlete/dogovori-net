@@ -458,7 +458,10 @@ Deno.serve(async (req: Request) => {
       const blank = extractJson(raw);
 
       const docxBytes = await buildDocx(blank, isBilingual);
-      storagePath = await buildBlankStoragePath(CACHE_VERSION, sectorId, documentName);
+      // Не се записва глобално преизползваема бланка без проверим правен
+      // манифест — файлът е само за тази заявка.
+      const base = await buildBlankStoragePath(CACHE_VERSION, sectorId, documentName);
+      storagePath = `request/${crypto.randomUUID()}/${base}`;
 
       const { error: upErr } = await admin.storage
         .from("document-blanks")
@@ -467,14 +470,6 @@ Deno.serve(async (req: Request) => {
           upsert: true,
         });
       if (upErr) throw new Error(`upload: ${upErr.message}`);
-
-      const { error: insErr } = await admin
-        .from("document_blanks")
-        .upsert(
-          { sector_id: sectorId, document_name: documentName, storage_path: storagePath },
-          { onConflict: "sector_id,document_name" },
-        );
-      if (insErr) throw new Error(`index: ${insErr.message}`);
     }
 
     // 4) Sign and return.
@@ -490,11 +485,17 @@ Deno.serve(async (req: Request) => {
         filename: isBilingual
           ? `${documentName} - бланка (BG-EN).docx`
           : `${documentName} - бланка.docx`,
-        cached: !!existing,
+        cached: false,
         is_pro: !!quota.is_pro,
+        citations: legal.citations,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
+    } catch (afterCharge) {
+      // Всеки неуспешен краен изход след таксуване връща операцията точно веднъж.
+      await refundOnce();
+      throw afterCharge;
+    }
   } catch (e) {
     return new Response(JSON.stringify({ error: String((e as Error)?.message ?? e) }), {
       status: 500,
