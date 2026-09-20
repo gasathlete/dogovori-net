@@ -114,15 +114,37 @@ export interface PendingConsentPayload {
   [key: string]: unknown;
 }
 
-/** Strict validation: anything that is not a consent object is discarded. */
-function parsePending(raw: string): Record<string, unknown> | null {
+/**
+ * Strict validation of the signup evidence shape. A payload is accepted only
+ * when every required flag is literally `true`; an empty or partially
+ * corrupted object is malformed and must produce NO consent record at all.
+ *
+ * - terms / privacy / age_18 / operational_notifications: must be `true`
+ * - marketing: `true`, `false` or absent
+ * - event_id: a valid UUID, or absent for legacy payloads
+ * - any other metadata (e.g. `ts`) is ignored, not rejected
+ */
+export function parsePending(raw: string): Record<string, unknown> | null {
+  let data: unknown;
   try {
-    const data = JSON.parse(raw) as unknown;
-    if (!data || typeof data !== "object" || Array.isArray(data)) return null;
-    return data as Record<string, unknown>;
+    data = JSON.parse(raw);
   } catch {
     return null;
   }
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  const obj = data as Record<string, unknown>;
+
+  for (const key of ["terms", "privacy", "age_18", "operational_notifications"]) {
+    if (obj[key] !== true) return null;
+  }
+  if (!(obj.marketing === true || obj.marketing === false || obj.marketing === undefined)) {
+    return null;
+  }
+  if (obj.event_id !== undefined
+      && !(typeof obj.event_id === "string" && UUID_RE.test(obj.event_id))) {
+    return null;
+  }
+  return obj;
 }
 
 /**
@@ -158,9 +180,9 @@ export async function flushPendingConsents() {
 
   // A stable batch id makes the retry idempotent. Persist the enriched payload
   // BEFORE the request, so a crash mid-flight still retries the same event.
-  let eventId = typeof data.event_id === "string" && UUID_RE.test(data.event_id)
-    ? data.event_id
-    : null;
+  // If persisting the id fails we must NOT write: a reload would then mint a
+  // second id and duplicate the consent event.
+  let eventId = typeof data.event_id === "string" ? data.event_id : null;
   if (!eventId) {
     eventId = newEventId();
     try {
@@ -168,14 +190,16 @@ export async function flushPendingConsents() {
         PENDING_CONSENTS_KEY,
         JSON.stringify({ ...data, event_id: eventId }),
       );
-    } catch { /* storage became unavailable — continue with in-memory id */ }
+    } catch {
+      return { ok: false as const, reason: "storage-unavailable" as const };
+    }
   }
 
   const records: ConsentRecord[] = [
     { consent_type: "terms", granted: true },
     { consent_type: "privacy", granted: true },
     { consent_type: "age_18", granted: true },
-    { consent_type: "operational_notifications", granted: data.operational_notifications !== false },
+    { consent_type: "operational_notifications", granted: true },
   ];
   // Explicit opt-in only. No record means no marketing consent.
   if (data.marketing === true) records.push({ consent_type: "marketing", granted: true });
