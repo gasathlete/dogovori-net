@@ -435,14 +435,15 @@ Deno.serve(async (req: Request) => {
       });
 
       if (aiRes.status === 429) {
-
-        return new Response(JSON.stringify({ error: "AI лимитът е достигнат. Опитайте след малко." }), {
+        await refundOnce();
+        return new Response(JSON.stringify({ error: "AI лимитът е достигнат. Опитайте след малко.", charged: false }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (aiRes.status === 402) {
-        return new Response(JSON.stringify({ error: "Изчерпан AI кредит. Опитайте по-късно." }), {
+        await refundOnce();
+        return new Response(JSON.stringify({ error: "Изчерпан AI кредит. Опитайте по-късно.", charged: false }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
