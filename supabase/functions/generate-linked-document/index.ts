@@ -2,7 +2,7 @@
 // protocol, declaration, power of attorney, notice) using the parent
 // contract as context. Returns { contract: GeneratedContract }.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { buildCors, hashIp, clientIp } from "../_shared/cors.ts";
+import { buildCors } from "../_shared/cors.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { redactForAI, unredact } from "../_shared/redact.ts";
@@ -10,9 +10,12 @@ import { canonicalize, sha256Hex } from "../_shared/canonical-digest.ts";
 import {
   asOperationId,
   type LedgerRpc,
+  type PostModelContext,
   cancelDocumentOperation,
+  cancelUnexpectedFailure,
   canonicalDocumentBinding,
   commitDocumentOperation,
+  internalErrorResponse,
   ledgerBlockResponse,
   ledgerUnavailableResponse,
   lookupDocumentOperation,
@@ -21,6 +24,7 @@ import {
   operationIdRequiredResponse,
   operationReconciliationResponse,
   ProviderCallBudget,
+  reconcileUnexpectedFailure,
   reserveDocumentOperation,
 } from "../_shared/ai-document-ledger.ts";
 
@@ -81,6 +85,10 @@ Deno.serve(async (req: Request) => {
   const corsHeaders = buildCors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Fail-closed контекст за НЕОЧАКВАНИ изключения.
+  let postStart: PostModelContext | null = null;
+  let preStart: PostModelContext | null = null;
+
   try {
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -88,13 +96,34 @@ Deno.serve(async (req: Request) => {
     );
 
     const authHeader = req.headers.get("Authorization") ?? "";
-    let userId: string | null = null;
+    let resolvedUserId: string | null = null;
     if (authHeader.startsWith("Bearer ")) {
       const { data: u } = await admin.auth.getUser(authHeader.replace("Bearer ", ""));
-      userId = u?.user?.id ?? null;
+      resolvedUserId = u?.user?.id ?? null;
     }
+    // УДОСТОВЕРЯВАНЕТО Е ЗАДЪЛЖИТЕЛНО: всяко повикване към модел минава през
+    // трайния леджър (миграция 0040), а той изисква профил. Отказът е
+    // детерминистичен и е ПРЕДИ търсене на операция, честотен лимит, ключ на
+    // доставчик, правно заземяване и всякакъв запис.
+    if (!resolvedUserId) {
+      return new Response(
+        JSON.stringify({
+          error: "За да генерирате свързан документ, влезте безплатно с email или Google.",
+          code: "login_required",
+          requires_login: true,
+        }),
+        {
+          status: 401,
+          headers: {
+            ...corsHeaders,
+            ...correlationHeaders(correlationId),
+            "Content-Type": "application/json",
+          },
+        },
+      );
+    }
+    const userId: string = resolvedUserId;
 
-    const ipHash = await hashIp(clientIp(req));
     // Леджърът е СТРОГО service_role RPC — тесен контракт за тестваемост.
     const ledger = admin as unknown as LedgerRpc;
     const jsonHeaders = { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" };
@@ -140,75 +169,65 @@ Deno.serve(async (req: Request) => {
       (parentContract.clauses ?? []).map((c) => [c.number ?? "", c.title ?? "", c.body ?? ""]),
       String(parentContract.closing ?? ""),
     ]));
-    const binding = userId
-      ? await canonicalDocumentBinding({
-        purpose: "generate_linked_document",
-        userId,
-        resourceId: parentSlug || null,
-        resourceVersion: parentDigest,
-        options: { kind, number, notes_digest: await sha256Hex(notes) },
-      })
-      : "";
+    const binding = await canonicalDocumentBinding({
+      purpose: "generate_linked_document",
+      userId,
+      resourceId: parentSlug || null,
+      resourceVersion: parentDigest,
+      options: { kind, number, notes_digest: await sha256Hex(notes) },
+    });
 
     // САМО-ЧЕТЯЩО повторение — преди честотния лимит, ключа на доставчика,
-    // RAG и всяко счетоводно записване. Анонимните заявки не се водят в
-    // леджъра (няма траен профил); за тях остава единичният лимит.
-    if (userId) {
-      const existing = await lookupDocumentOperation(ledger, {
-        operationId, userId, purpose: "generate_linked_document", binding,
-      });
-      if (existing.kind === "committed") {
-        return new Response(JSON.stringify(existing.result), { headers: jsonHeaders });
-      }
-      const blockedByLedger = ledgerBlockResponse(existing, ledgerHeaders);
-      if (blockedByLedger) return blockedByLedger;
+    // RAG и всяко счетоводно записване.
+    const existing = await lookupDocumentOperation(ledger, {
+      operationId, userId, purpose: "generate_linked_document", binding,
+    });
+    if (existing.kind === "committed") {
+      return new Response(JSON.stringify(existing.result), { headers: jsonHeaders });
     }
+    const blockedByLedger = ledgerBlockResponse(existing, ledgerHeaders);
+    if (blockedByLedger) return blockedByLedger;
 
-    // Честотен лимит: анонимни 1/24ч на IP, удостоверени 5/24ч на профил.
+    // Честотен лимит: 5 генерации за 24 часа на профил.
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { count } = await admin
       .from("ai_usage")
       .select("id", { count: "exact", head: true })
       .eq("function_name", "generate-linked-document")
       .gte("created_at", since)
-      .filter(userId ? "user_id" : "ip_hash", "eq", userId ?? ipHash);
-    const limit = userId ? 5 : 1;
-    if ((count ?? 0) >= limit) {
+      .eq("user_id", userId);
+    if ((count ?? 0) >= 5) {
       return new Response(
         JSON.stringify({
-          error: userId
-            ? "Достигнахте дневния лимит от 5 генерации. Опитайте утре или вземете Pro."
-            : "За да генерирате свързан документ, влезте безплатно с email или Google.",
+          error: "Достигнахте дневния лимит от 5 генерации. Опитайте утре или вземете Pro.",
           code: "rate_limited",
-          requires_login: !userId,
         }),
         { status: 429, headers: jsonHeaders },
       );
     }
 
-    if (userId) {
-      const reserved = await reserveDocumentOperation(ledger, {
-        operationId, userId, purpose: "generate_linked_document", binding,
-        resourceId: parentSlug || null,
-        resourceVersion: parentDigest,
-        leaseSeconds: 600,
-      });
-      if (reserved.kind === "committed") {
-        return new Response(JSON.stringify(reserved.result), { headers: jsonHeaders });
-      }
-      if (reserved.kind !== "reserved") {
-        return ledgerBlockResponse(reserved, ledgerHeaders) ?? ledgerUnavailableResponse(ledgerHeaders);
-      }
+    const reserved = await reserveDocumentOperation(ledger, {
+      operationId, userId, purpose: "generate_linked_document", binding,
+      resourceId: parentSlug || null,
+      resourceVersion: parentDigest,
+      leaseSeconds: 600,
+    });
+    if (reserved.kind === "committed") {
+      return new Response(JSON.stringify(reserved.result), { headers: jsonHeaders });
     }
+    if (reserved.kind !== "reserved") {
+      return ledgerBlockResponse(reserved, ledgerHeaders) ?? ledgerUnavailableResponse(ledgerHeaders);
+    }
+    preStart = { db: ledger, operationId, userId };
 
     /** Детерминиран провал ПРЕДИ модела — резервацията се отменя. */
     const cancelAndRespond = async (reason: string, response: Response): Promise<Response> => {
-      if (userId) await cancelDocumentOperation(ledger, { operationId, userId, reason });
+      await cancelDocumentOperation(ledger, { operationId, userId, reason });
       return response;
     };
     /** Несигурност СЛЕД модела — без връщане и без второ повикване. */
     const reconcileAndRespond = async (reason: string): Promise<Response> => {
-      if (userId) await markDocumentReconciliation(ledger, { operationId, userId, reason });
+      await markDocumentReconciliation(ledger, { operationId, userId, reason });
       return operationReconciliationResponse(ledgerHeaders, reason);
     };
     const budget = new ProviderCallBudget("generate_linked_document");
@@ -332,14 +351,15 @@ ${safeParentText}
     const groundedSystem = `${SYSTEM_PROMPT}\n\n${legal.promptBlock}`;
 
     // ТРАЙНО начало на модела ПРЕДИ първото повикване към доставчик.
-    if (userId) {
-      const started = await markDocumentModelStarted(ledger, {
-        operationId, userId, purpose: "generate_linked_document", binding,
-      });
-      if (!started.ok) {
-        return ledgerBlockResponse(started.outcome, ledgerHeaders) ?? ledgerUnavailableResponse(ledgerHeaders);
-      }
+    const started = await markDocumentModelStarted(ledger, {
+      operationId, userId, purpose: "generate_linked_document", binding,
+    });
+    if (!started.ok) {
+      return ledgerBlockResponse(started.outcome, ledgerHeaders) ?? ledgerUnavailableResponse(ledgerHeaders);
     }
+    // От тук нататък всяко неочаквано изключение отива в изравняване.
+    postStart = { db: ledger, operationId, userId };
+    preStart = null;
 
     // ТВЪРД БЮДЖЕТ: точно 1 повикване към доставчик за цялата операция.
     budget.take();
@@ -399,36 +419,27 @@ ${safeParentText}
       meta: { kind, parent_slug: parentSlug, number },
     };
 
-    if (userId) {
-      // АТОМАРНО: резултатът за точно повторение + счетоводството наведнъж.
-      const committed = await commitDocumentOperation(ledger, {
-        operationId, userId, purpose: "generate_linked_document", binding,
-        result: payload as Record<string, unknown>,
-        resultTtlSeconds: 86400,
-        usageFunction: "generate-linked-document",
-      });
-      if (committed.kind !== "committed") {
-        return await reconcileAndRespond("commit_uncertain");
-      }
-    } else {
-      // ai_usage се записва САМО при успех — не при преграда или грешка.
-      await admin.from("ai_usage").insert({
-        user_id: null,
-        ip_hash: ipHash,
-        function_name: "generate-linked-document",
-      });
+    // АТОМАРНО: резултатът за точно повторение + счетоводството наведнъж.
+    const committed = await commitDocumentOperation(ledger, {
+      operationId, userId, purpose: "generate_linked_document", binding,
+      result: payload as Record<string, unknown>,
+      resultTtlSeconds: 86400,
+      usageFunction: "generate-linked-document",
+    });
+    if (committed.kind !== "committed") {
+      return await reconcileAndRespond("commit_uncertain");
     }
 
     return new Response(JSON.stringify(payload), { headers: jsonHeaders });
   } catch (e) {
     // Нормализиран запис: без сурови съобщения от шлюза или изключения.
+    const headers = { ...corsHeaders, ...correlationHeaders(correlationId) };
+    if (postStart) return await reconcileUnexpectedFailure(postStart, headers, e);
+    if (preStart) return await cancelUnexpectedFailure(preStart, headers, e, correlationId);
     console.error("generate-linked-document error", {
       cid: correlationId,
       name: e instanceof Error ? e.name : "unknown",
     });
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка", correlation_id: correlationId }),
-      { status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
-    );
+    return internalErrorResponse(headers, correlationId);
   }
 });
