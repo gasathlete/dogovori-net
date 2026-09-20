@@ -44,6 +44,7 @@ import { parseExtraPartyTypes } from "@/components/wizard/liveDraft/clauseBuilde
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { generateContractJob } from "@/lib/generateContractJob";
 import { classifyGenerationError, errorClassOf, type GenerationError } from "@/lib/generationErrors";
+import { getOpSessionId, getStableOpKey, releaseStableOpKey, opaqueOpScope } from "@/lib/opSession";
 
 import { SensitiveDataNotice } from "@/components/wizard/SensitiveDataNotice";
 import { buildDraftOutline } from "@/lib/draftOutline";
@@ -485,6 +486,9 @@ export default function WizardPage() {
     const interval = setInterval(() => {
       setGenStepIdx((i) => (i + 1) % GEN_STEPS.length);
     }, 5000);
+    // Стабилен ключ за ТАЗИ заявка: същият при повторен опит, двойно
+    // натискане или загубена връзка — сървърът не таксува втори път.
+    let opScope: string | null = null;
     try {
 
       // Приетият контекст се СНИМА в началото на заявката (преди първото
@@ -495,22 +499,31 @@ export default function WizardPage() {
       };
       const flatQs = flattenQuestions(visibleQuestions);
       const arbitrationCourt = arbitration.enabled ? getCourtById(arbitration.courtId) : undefined;
+      const genPayload = {
+        sector: sector.title,
+        contractName: sector.contractName,
+        documentName: docName,
+        parties: sector.parties,
+        answers,
+        questions: flatQs.map((q) => ({ id: q.id, label: q.label })),
+        arbitration: arbitration.enabled ? {
+          enabled: true,
+          courtId: arbitration.courtId,
+          courtName: arbitrationCourt?.name ?? arbitration.customName,
+          courtLink: arbitrationCourt?.website ?? arbitration.customLink,
+        } : { enabled: false },
+        bilingual: bilingualMode,
+        userConfirmed,
+      };
+      // НЕПРОЗРАЧЕН обхват от ЦЕЛИЯ товар: в браузърното хранилище не влиза
+      // суров потребителски текст, а ключът е един и същ при повторен опит.
+      const opPayloadScope = await opaqueOpScope("generate_contract", genPayload);
+      opScope = `op:${opPayloadScope}`;
+      const operationId = getStableOpKey(opScope);
       const job = await generateContractJob<AIResult & { error?: string; code?: string; requires_login?: boolean; classification?: ClassificationSummary }>(
         {
-          sector: sector.title,
-          contractName: sector.contractName,
-          documentName: docName,
-          parties: sector.parties,
-          answers,
-          questions: flatQs.map((q) => ({ id: q.id, label: q.label })),
-          arbitration: arbitration.enabled ? {
-            enabled: true,
-            courtId: arbitration.courtId,
-            courtName: arbitrationCourt?.name ?? arbitration.customName,
-            courtLink: arbitrationCourt?.website ?? arbitration.customLink,
-          } : { enabled: false },
-          bilingual: bilingualMode,
-          userConfirmed,
+          ...genPayload,
+          operation_id: operationId,
         },
         {
           isStale,
@@ -587,6 +600,8 @@ export default function WizardPage() {
         (err as { genMeta?: typeof genMeta }).genMeta = genMeta;
         throw err;
       }
+      // ДОКАЗАН КРАЕН УСПЕХ: единственият момент, в който ключът пада.
+      if (opScope) releaseStableOpKey(opScope);
       const payload = data as AIResult;
       if (bilingualMode && payload.contract) payload.contract.bilingual = true;
       setResult(payload);
@@ -653,6 +668,16 @@ export default function WizardPage() {
       if (gen.code === "quota_exceeded") {
         trackPaywallShown("quota", { doc_key: docKey, source: "wizard" });
         setBlockedReason("quota_exceeded");
+        return;
+      }
+      if (gen.code === "operation_conflict") {
+        // Ключът НЕ важи повече за тази заявка — освобождаваме го. Въведените
+        // данни се пазят непокътнати; следващото ИЗРИЧНО действие ще получи
+        // нов ключ автоматично. Без автоматично препращане.
+        if (opScope) releaseStableOpKey(opScope);
+        toast.error("Заявката се промени. Изпратете отново.", {
+          description: "Данните Ви са запазени — натиснете отново „Генерирай“, за да продължим.",
+        });
         return;
       }
 
@@ -1067,11 +1092,25 @@ export default function WizardPage() {
     }
     setApplyingCorrections(true);
     try {
-      const { getOpSessionId, getStableOpKey, releaseStableOpKey } = await import("@/lib/opSession");
-      // Стабилен ключ за ТАЗИ вълна поправки: нов опит не таксува втори път.
-      const batchScope = `apply_corrections:${[...sel.issues, ...sel.recommendations].join("|")}`;
-      const batchId = getStableOpKey(batchScope);
-      const { data, error } = await invokeEdgeFunction<{ error?: string; risk?: AIResult["risk"]; contract?: AIResult["contract"]; applied?: string[]; quality_manifest?: unknown; review_grant?: unknown }>("apply-corrections", {
+      // НЕПРОЗРАЧЕН обхват от ЦЕЛИЯ товар: същият ключ при повторен опит,
+      // двойно натискане или загубена връзка — без двойно таксуване.
+      const acPayloadScope = await opaqueOpScope("apply_corrections", {
+        contract: result.contract,
+        risk: result.risk,
+        selectedIssues: sel.issues,
+        selectedRecommendations: sel.recommendations,
+        answers,
+        userConfirmed: correctionsConfirmed,
+      });
+      const acOpScope = `op:${acPayloadScope}`;
+      const acBatchScope = `wave:${acPayloadScope}`;
+      const operationId = getStableOpKey(acOpScope);
+      const batchId = getStableOpKey(acBatchScope);
+      const releaseAcKeys = () => {
+        releaseStableOpKey(acOpScope);
+        releaseStableOpKey(acBatchScope);
+      };
+      const { data, error } = await invokeEdgeFunction<{ error?: string; code?: string; retry_after_seconds?: number; risk?: AIResult["risk"]; contract?: AIResult["contract"]; applied?: string[]; quality_manifest?: unknown; review_grant?: unknown }>("apply-corrections", {
         body: {
           contract: result.contract,
           risk: result.risk,
@@ -1083,11 +1122,39 @@ export default function WizardPage() {
           quality_manifest: result.quality_manifest ?? undefined,
           session_id: getOpSessionId(),
           batch_id: batchId,
+          operation_id: operationId,
           userConfirmed: correctionsConfirmed,
         },
       });
-      if (!error && !data?.error) releaseStableOpKey(batchScope);
       if (error || data?.error) {
+        const code = data?.code || "";
+        // Заявката все още се обработва/изравнява — ключът се ПАЗИ, безопасен
+        // повторен опит без ново таксуване.
+        if (
+          code === "operation_in_progress" ||
+          code === "quota_unavailable" ||
+          code === "entitlement_unavailable" ||
+          code === "reconciliation_required" ||
+          code === "billing_reconciliation_required"
+        ) {
+          const wait = Number(data?.retry_after_seconds ?? 0);
+          toast.message("Все още се обработва", {
+            description: wait > 0 ? `Опитайте отново след ${wait} сек.` : "Опитайте отново след малко.",
+          });
+          return;
+        }
+        // Доказан конфликт на ключа — освобождаваме го и искаме ново изрично
+        // действие, без автоматично препращане.
+        if (
+          code === "idempotency_key_conflict" ||
+          code === "invalid_operation_id" ||
+          code === "operation_id_required" ||
+          code === "response_expired"
+        ) {
+          releaseAcKeys();
+          toast.error("Заявката се промени. Изпратете отново.");
+          return;
+        }
         const sensitive = await parseSensitiveResponse(error, data);
         if (isSpecialCategoryBlocked(sensitive)) {
           setSensitiveClass(sensitive?.classification ?? null);
@@ -1112,6 +1179,8 @@ export default function WizardPage() {
         }
         throw new Error(data?.error || error?.message || "Грешка");
       }
+      // ДОКАЗАН КРАЕН УСПЕХ: единственият момент, в който ключът пада.
+      releaseAcKeys();
       setResult({
         risk: data.risk ?? result.risk,
         contract: data.contract ?? result.contract,

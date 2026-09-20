@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import { extractTextFromFile, sha256Hex, type ExtractSource } from "@/lib/extractContractText";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { trackDocStart, trackGenerate } from "@/lib/docFunnel";
+import { classifyGenerationError, type GenerationError } from "@/lib/generationErrors";
+import { getStableOpKey, releaseStableOpKey, opaqueOpScope } from "@/lib/opSession";
 
 type Folder = { id: string; name: string; is_favorites: boolean };
 type Contact = { id: string; name: string };
@@ -48,20 +50,42 @@ export function UploadContractDialog({
     if (retryingRef.current) return;
     retryingRef.current = true;
     try {
+      // Същият обхват като първоначалния анализ за този документ — повторен
+      // опит (двойно натискане, загубена връзка) не таксува втори път.
+      const analyzePayloadScope = await opaqueOpScope("analyze_contract", { uploadedContractId: contractId });
+      const opScope = `op:${analyzePayloadScope}`;
+      const operationId = getStableOpKey(opScope);
       const { data, error } = await supabase.functions.invoke("analyze-contract", {
-        body: { uploadedContractId: contractId },
+        body: { uploadedContractId: contractId, operation_id: operationId },
       });
       const gate = await import("@/lib/legalGateClient");
       if (gate.handleLegalVerificationUnavailable(
         { error, data },
         () => { void retryAnalysisFor(contractId); },
       )) return;
-      const failed = (error as { message?: string } | null)?.message
-        ?? (data as { error?: string } | null)?.error;
-      if (failed) {
+      if (error || (data as { error?: string } | null)?.error) {
+        const gen: GenerationError = classifyGenerationError({ error, data: data ?? null });
+        if (gen.code === "operation_conflict") {
+          releaseStableOpKey(opScope);
+          toast.error("Заявката се промени. Изпратете отново.");
+          return;
+        }
+        if (
+          gen.code === "operation_in_progress" ||
+          gen.code === "quota_unavailable" ||
+          gen.code === "entitlement_unavailable" ||
+          gen.code === "reconciliation_required"
+        ) {
+          toast.error(gen.message);
+          return;
+        }
+        const failed = (error as { message?: string } | null)?.message
+          ?? (data as { error?: string } | null)?.error
+          ?? "Грешка при анализа";
         toast.error("Грешка при анализа", { description: failed });
         return;
       }
+      releaseStableOpKey(opScope);
       toast.success("Готово! Анализът е изготвен.");
       onUploaded();
     } finally {
@@ -222,8 +246,13 @@ export function UploadContractDialog({
       setPhase("Риск анализ...");
       setAnalyzing(true);
       trackGenerate("started", { source: "upload_analyze", doc_key: tab });
+      // Същият опаковъчен обхват като при по-късен ръчен повторен опит за
+      // този документ — двойно кликване или загубена връзка не таксуват два пъти.
+      const analyzePayloadScope = await opaqueOpScope("analyze_contract", { uploadedContractId: newId });
+      const opScope = `op:${analyzePayloadScope}`;
+      const operationId = getStableOpKey(opScope);
       const { data: aData, error: aErr } = await supabase.functions.invoke("analyze-contract", {
-        body: { uploadedContractId: newId },
+        body: { uploadedContractId: newId, operation_id: operationId },
       });
       setAnalyzing(false);
       if (aErr) {
@@ -237,6 +266,31 @@ export function UploadContractDialog({
         if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(aErr)) {
           trackGenerate("fail", { source: "upload_analyze", reason: "blocked_content" });
           onUploaded(); setOpen(false); navigate(`/uploaded/${newId}`);
+          return;
+        }
+        const gen: GenerationError = classifyGenerationError({ error: aErr, data: null });
+        if (gen.code === "operation_conflict") {
+          releaseStableOpKey(opScope);
+          trackGenerate("fail", { source: "upload_analyze", reason: gen.code });
+          toast.error("Заявката се промени. Изпратете отново.");
+          onUploaded();
+          setOpen(false);
+          navigate(`/uploaded/${newId}`);
+          return;
+        }
+        if (
+          gen.code === "operation_in_progress" ||
+          gen.code === "quota_unavailable" ||
+          gen.code === "entitlement_unavailable" ||
+          gen.code === "reconciliation_required"
+        ) {
+          // Ключът се пази — потребителят може да натисне „Опитай отново" от
+          // страницата на документа, без риск от двойно таксуване.
+          trackGenerate("fail", { source: "upload_analyze", reason: gen.code });
+          toast.error(gen.message);
+          onUploaded();
+          setOpen(false);
+          navigate(`/uploaded/${newId}`);
           return;
         }
         const msg = (aErr as any)?.context?.responseText || aErr.message;
@@ -255,6 +309,29 @@ export function UploadContractDialog({
         return;
       }
       if ((aData as any)?.error) {
+        const gen: GenerationError = classifyGenerationError({ error: null, data: aData ?? null });
+        if (gen.code === "operation_conflict") {
+          releaseStableOpKey(opScope);
+          trackGenerate("fail", { source: "upload_analyze", reason: gen.code });
+          toast.error("Заявката се промени. Изпратете отново.");
+          onUploaded();
+          setOpen(false);
+          navigate(`/uploaded/${newId}`);
+          return;
+        }
+        if (
+          gen.code === "operation_in_progress" ||
+          gen.code === "quota_unavailable" ||
+          gen.code === "entitlement_unavailable" ||
+          gen.code === "reconciliation_required"
+        ) {
+          trackGenerate("fail", { source: "upload_analyze", reason: gen.code });
+          toast.error(gen.message);
+          onUploaded();
+          setOpen(false);
+          navigate(`/uploaded/${newId}`);
+          return;
+        }
         trackGenerate("fail", { source: "upload_analyze", reason: String((aData as any).error).slice(0, 80) });
         toast.error((aData as any).error);
         onUploaded();
@@ -263,6 +340,8 @@ export function UploadContractDialog({
         return;
       }
 
+      // ДОКАЗАН КРАЕН УСПЕХ: единственият момент, в който ключът пада.
+      releaseStableOpKey(opScope);
       trackGenerate("success", { source: "upload_analyze", doc_key: tab });
       toast.success("Готово! Анализът е изготвен.");
       reset();

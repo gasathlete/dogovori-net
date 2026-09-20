@@ -1,0 +1,121 @@
+{
+  "description": "Машинно четим списък на ВСИЧКИ крайни точки, при които потребителско действие може да доведе до изходящо повикване към езиков модел, заедно с механизма за точно еднократно изпълнение. Поддържа се ръчно и се проверява от model-call-coverage.test.ts. Нова крайна точка с модел ТРЯБВА да бъде добавена тук.",
+  "version": 1,
+  "ledgerEnforced": [
+    {
+      "function": "generate-contract",
+      "trigger": "user",
+      "mechanism": "quota_operations",
+      "idempotency": "mandatory operation_id + canonical SHA-256 request digest, read-only committed lookup before mutable gates, reserve -> single model call -> commit"
+    },
+    {
+      "function": "analyze-contract",
+      "trigger": "user",
+      "mechanism": "quota_operations",
+      "idempotency": "mandatory operation_id + canonical SHA-256 digest with session_id/doc_key binding, read-only lookup, reserve -> single model call -> commit"
+    },
+    {
+      "function": "apply-corrections",
+      "trigger": "user",
+      "mechanism": "quota_operations",
+      "idempotency": "mandatory operation_id + batch_id binding + canonical SHA-256 digest, read-only lookup, reserve -> single model call -> commit"
+    },
+    {
+      "function": "build-custom-contract",
+      "trigger": "user",
+      "mechanism": "quota_operations",
+      "idempotency": "mandatory operation_id + canonical SHA-256 digest, read-only lookup, reserve -> single model call -> commit, review grant minted once"
+    },
+    {
+      "function": "refine-contract",
+      "trigger": "user",
+      "mechanism": "quota_operations",
+      "idempotency": "mandatory operation_id + canonical SHA-256 digest, committed replay before rate limit/illegal/classification/redaction/provider/legal RAG, review grant minted once before commit"
+    },
+    {
+      "function": "review-document",
+      "trigger": "user",
+      "mechanism": "review_operations",
+      "idempotency": "server-issued single-use signed grant or persisted owner + read-only review_operation_lookup before abuse/classification/redaction/legal/provider, reserve -> single model call -> commit"
+    },
+    {
+      "function": "download-blank",
+      "trigger": "user",
+      "mechanism": "quota_operations",
+      "idempotency": "mandatory operation_id + canonical SHA-256 digest, committed replay verifies the bound artifact and re-signs only the proven path; immutable filename/citations/metadata come from result_ref"
+    },
+    {
+      "function": "assistant-chat-anon",
+      "trigger": "anonymous user",
+      "mechanism": "anon_delivery_operations",
+      "idempotency": "server-derived opaque identity hash + mandatory operation_id + canonical SHA-256 digest, durable anonymous ledger with exact replay; provider key required only for a new reserved operation"
+    }
+  ],
+  "releaseBlockingInventory": [
+    {
+      "function": "assistant-chat",
+      "trigger": "user",
+      "mechanism": "none",
+      "gap": "Няма трайна резервация и терминално уреждане за повикването към модела; повторното изпращане може да изпълни модела отново."
+    },
+    {
+      "function": "correct-uploaded",
+      "trigger": "user",
+      "mechanism": "none",
+      "gap": "Няма operation_id, нито трайна резервация/уреждане."
+    },
+    {
+      "function": "generate-linked-document",
+      "trigger": "user",
+      "mechanism": "none",
+      "gap": "Няма operation_id, нито трайна резервация/уреждане."
+    },
+    {
+      "function": "negotiation-strategy",
+      "trigger": "user",
+      "mechanism": "none",
+      "gap": "Няма operation_id, нито трайна резервация/уреждане."
+    },
+    {
+      "function": "ocr-contract",
+      "trigger": "user",
+      "mechanism": "legacy consume_quota",
+      "gap": "Използва наследения consume_quota без трайна операция, без точно повторение и без доказано освобождаване."
+    },
+    {
+      "function": "download-document",
+      "trigger": "user",
+      "mechanism": "legacy consume_quota / consume_quota_session / refund_quota",
+      "gap": "Наследени RPC без трайна операция; повторното изтегляне не е точно еднократно."
+    },
+    {
+      "function": "refine-product",
+      "trigger": "user",
+      "mechanism": "product entitlement",
+      "gap": "Правото идва от продуктовото право, но повикването към модела няма трайна резервация с точно повторение."
+    },
+    {
+      "function": "fulfill-product",
+      "trigger": "payment webhook",
+      "mechanism": "product entitlement",
+      "gap": "Не е директно потребителско действие, но изпълнението на модела няма трайна операция с точно повторение."
+    }
+  ],
+  "notUserTriggered": [
+    "admin-generate-article",
+    "growth-brief",
+    "gsc-impressions-trend",
+    "gsc-index-status",
+    "ingest-legal-source",
+    "simulation-run",
+    "simulation-regression",
+    "warm-blank-cache"
+  ],
+  "noModelCall": [
+    "auth-email-hook",
+    "handle-email-events",
+    "handle-email-unsubscribe",
+    "preview-transactional-email"
+  ],
+  "noModelCallNote": "Тези функции само споменават конфигурационния ключ (имейл шаблони/събития) и НЕ извикват езиков модел."
+}

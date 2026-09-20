@@ -257,3 +257,68 @@ export async function readAnonDeliveryState(
     delivered: Math.max(0, Number(r.delivered ?? 0)),
   };
 }
+
+export type LookupOutcome =
+  | { readonly status: "absent" }
+  | { readonly status: "conflict"; readonly reason: string }
+  | { readonly status: "committed"; readonly response: Record<string, unknown> }
+  | { readonly status: "response_expired"; readonly reason: string }
+  | { readonly status: "in_progress"; readonly retryAfterSeconds: number }
+  | { readonly status: "reconciliation"; readonly reason: string }
+  | { readonly status: "unavailable"; readonly reason: string };
+
+/**
+ * САМО-ЧЕТЯЩО търсене на анонимна доставка по подписаното обвързване. Извиква
+ * се ПРЕДИ каквато и да е мутируема или външна проверка (незаконно
+ * съдържание, класификация, редакция, правно заземяване), за да намери вече
+ * завършен точен отговор БЕЗ странични ефекти — не резервира, не отменя, не
+ * таксува. FAIL-CLOSED: инфраструктурна грешка НИКОГА не е „absent".
+ */
+export async function lookupAnonDelivery(
+  db: LedgerDb,
+  input: {
+    operationId: string;
+    identityHash: string;
+    requestDigest: string;
+    purpose?: string;
+  },
+): Promise<LookupOutcome> {
+  if (!UUID_RE.test(input.operationId)) {
+    return { status: "conflict", reason: "operation_id_invalid" };
+  }
+  if (!/^[0-9a-f]{64}$/.test(input.requestDigest)) {
+    return { status: "conflict", reason: "request_digest_invalid" };
+  }
+  const { data, error } = await db.rpc("anon_delivery_lookup", {
+    p_operation_id: input.operationId,
+    p_identity_hash: input.identityHash,
+    p_request_digest: input.requestDigest,
+    p_purpose: input.purpose ?? ANON_DELIVERY_PURPOSE,
+  });
+  if (error) return { status: "unavailable", reason: "ledger_error" };
+  const r = row(data);
+  const status = typeof r.status === "string" ? r.status : "unavailable";
+
+  if (status === "absent") return { status: "absent" };
+  if (status === "conflict") {
+    return { status: "conflict", reason: typeof r.reason === "string" ? r.reason : "binding_conflict" };
+  }
+  if (status === "committed") {
+    const response = row(r.response);
+    // Потвърдена операция без запазен отговор не може да се повтори честно.
+    if (Object.keys(response).length === 0) {
+      return { status: "unavailable", reason: "response_missing" };
+    }
+    return { status: "committed", response };
+  }
+  if (status === "response_expired") {
+    return { status: "response_expired", reason: typeof r.reason === "string" ? r.reason : "new_request_required" };
+  }
+  if (status === "in_progress") {
+    return { status: "in_progress", retryAfterSeconds: Math.max(1, Number(r.retry_after_seconds ?? 5)) };
+  }
+  if (status === "reconciliation") {
+    return { status: "reconciliation", reason: typeof r.reason === "string" ? r.reason : "reconciliation_required" };
+  }
+  return { status: "unavailable", reason: typeof r.reason === "string" ? r.reason : "unknown" };
+}

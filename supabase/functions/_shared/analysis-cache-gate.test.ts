@@ -40,8 +40,10 @@ Deno.test("няма ранно връщане на кеширан анализ �
 Deno.test("извличането и преградата предхождат всяко удържане на квота", () => {
   const retrieval = SRC.indexOf("retrieveLegalContext(");
   const gate = SRC.indexOf("legalVerificationUnavailableResponse");
+  // Удържането минава ИЗКЛЮЧИТЕЛНО през трайния леджър (наследените RPC са
+  // премахнати), затова преградата се сравнява с резервацията.
   const quota = Math.min(
-    ...["consume_quota_session", 'rpc("consume_quota"']
+    ...["reserveQuota(", "reserveQuotaNoCharge("]
       .map((needle) => SRC.indexOf(needle))
       .filter((i) => i > 0),
   );

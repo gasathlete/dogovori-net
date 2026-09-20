@@ -282,6 +282,148 @@ Deno.serve(async (req: Request) => {
         .map((f) => ({ key: String(f.key), label: String(f.label), value: String(f.value ?? "") }))
       : [];
 
+    // Клиентският ключ на операцията е ЗАДЪЛЖИТЕЛЕН: без него повторният опит
+    // не е идемпотентен и би генерирал и таксувал наново.
+    const { asUuidOrNull, canonicalRequestDigest } = await import("../_shared/canonical-digest.ts");
+    // Заобикаляне на тясната типизация на BuildPayload: полето идва от суровия
+    // JSON на заявката, не от декларираната форма.
+    const rawClientOpId = (body as unknown as Record<string, unknown>)?.operation_id ??
+      (body as unknown as Record<string, unknown>)?.client_operation_id;
+    const operationId = asUuidOrNull(rawClientOpId);
+    if (!operationId) {
+      return new Response(
+        JSON.stringify({
+          error: "Липсва или е невалиден идентификатор на операцията.",
+          code: rawClientOpId ? "invalid_operation_id" : "operation_id_required",
+          charge_state: "not_charged",
+        }),
+        { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+      );
+    }
+
+    // КАНОНИЧЕН ОТПЕЧАТЪК на ЦЯЛОТО семантично съдържание на заявката — СЛЕД
+    // проверката на правата и схемата, но ПРЕДИ ВСЯКА променлива външна
+    // зависимост (дневен лимит, проверка за незаконно съдържание, класификация,
+    // редакция, промпт от базата, ключ на доставчика, правно заземяване).
+    const requestDigest = await canonicalRequestDigest({
+      purpose: "build_custom_contract",
+      userId,
+      name,
+      category,
+      categorySectorId,
+      documentType: safeDocumentType,
+      buildMode: safeBuildMode,
+      bilingual: safeBilingual,
+      parentContext: parentContext ?? null,
+      partiesA,
+      partiesB,
+      customFields: safeCustomFields,
+      subject,
+      term,
+      prices,
+      obligations,
+      other,
+    });
+
+    const {
+      reserveQuotaNoCharge,
+      commitQuota,
+      cancelQuota,
+      billingReconciliationResponse,
+      recordReconciliation,
+      lookupCommittedOperation,
+      isOperationInProgress,
+      operationInProgressResponse,
+      responseExpiredResponse,
+    } = await import("../_shared/quota-ledger.ts");
+    type LedgerDb = Parameters<typeof reserveQuotaNoCharge>[0];
+    const ledgerDb = admin as unknown as LedgerDb;
+    const jsonHeaders = {
+      ...corsHeaders,
+      ...correlationHeaders(correlationId),
+      "Content-Type": "application/json",
+    };
+    // build-custom-contract ОСТАВА БЕЗПЛАТНО генериране (само дневният лимит
+    // от 5 през ai_usage важи тук) — квотата „contract" се плаща отделно, при
+    // самото сваляне (download-document). За да получи операцията траен
+    // точно-веднъж леджър (задължителен за идемпотентност/повторение) БЕЗ да
+    // въвежда ново, скрито таксуване, резервацията минава през
+    // quota_reserve_no_charge: записва се пълното обвързване с
+    // charged = false, source = 'no_charge', но НЕ се докосва download_quota
+    // и НЕ се консумира абонамент/топъп/бонус/сесийно право.
+    const ledgerBinding = {
+      operationId,
+      userId,
+      kind: "contract" as const,
+      purpose: "build_custom_contract",
+      batchId: null,
+      requestDigest,
+    };
+    const conflictResponse = () =>
+      new Response(
+        JSON.stringify({
+          error: "Този идентификатор вече е използван за друга заявка.",
+          code: "idempotency_key_conflict",
+          charge_state: "not_charged",
+        }),
+        { status: 409, headers: jsonHeaders },
+      );
+    const quotaUnavailableResponse = () =>
+      new Response(
+        JSON.stringify({
+          error: "Проверката на квотата е временно недостъпна. Опитайте отново.",
+          code: "quota_unavailable",
+          charge_state: "not_charged",
+        }),
+        { status: 503, headers: jsonHeaders },
+      );
+    /** Точният записан отговор се връща такъв, какъвто е потвърден. */
+    const exactReplayResponse = (payload: Record<string, unknown>) =>
+      new Response(
+        JSON.stringify(payload),
+        { headers: { ...jsonHeaders, "X-Operation-Replay": "true" } },
+      );
+
+    // САМО-ЧЕТЯЩА проверка: без резервация, без освобождаване, без такса.
+    // ПРЕДИ всяка чуплива/платена зависимост (дневен лимит, незаконно
+    // съдържание, класификация, редакция, промпт от базата, ключ на
+    // доставчика, правно заземяване).
+    const lookup = await lookupCommittedOperation(ledgerDb, ledgerBinding);
+    if (lookup.status === "conflict") return conflictResponse();
+    if (lookup.status === "unavailable") return quotaUnavailableResponse();
+    if (lookup.status === "in_progress") {
+      return operationInProgressResponse(
+        { ...corsHeaders, ...correlationHeaders(correlationId) },
+        lookup.retryAfterSeconds,
+      );
+    }
+    if (lookup.status === "reconciliation") {
+      await recordReconciliation(ledgerDb, operationId, `build_custom_contract_lookup:${lookup.reason}`, {
+        user_id: userId,
+        kind: "contract",
+      });
+      return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+    }
+    if (lookup.status === "response_expired") {
+      return responseExpiredResponse(
+        { ...corsHeaders, ...correlationHeaders(correlationId) },
+        lookup.charged,
+      );
+    }
+    if (lookup.status === "committed") {
+      const stored = lookup.resultRef;
+      if (stored && stored.contract) {
+        // Никакво заземяване, никакъв модел, никаква нова такса и НИКАКЪВ нов
+        // пропуск за ревизия: правото е издадено веднъж при потвърждението.
+        return exactReplayResponse(stored);
+      }
+      await recordReconciliation(ledgerDb, operationId, "build_custom_contract_committed_without_result", {
+        user_id: userId,
+        kind: "contract",
+      });
+      return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+    }
+
     const PROMPT_VERSION = "v6-bilingual-cols";
     const guardText = [
       name, category,
@@ -302,7 +444,9 @@ Deno.serve(async (req: Request) => {
         .gte("created_at", since)
         .eq("user_id", userId),
       guardIllegalContent({
-        admin, text: guardText, functionName: "build-custom-contract",
+        // Пред-съществуващо несъответствие между версии на generated types;
+        // поведението на клиента не се променя.
+        admin: admin as any, text: guardText, functionName: "build-custom-contract",
         userId, ipHash: null,
         userAgent: req.headers.get("user-agent"),
         corsHeaders,
@@ -413,15 +557,78 @@ ${fieldsSection}
       : "";
 
     const composedSystem = `${BASE_SYSTEM_PROMPT}\n\n=== СПЕЦИФИКА ЗА ВИД „${docSpec.label.toUpperCase()}" ===\n${docSpec.systemAddendum}\n\n=== ${modeSpec.label} ===\n${modeSpec.addendum}${safeBilingual ? BILINGUAL_ADDENDUM : ""}`;
-    const baseSystem = await loadActivePrompt(admin, "build-custom-contract", composedSystem);
+        // Пред-съществуващо несъответствие между версии на generated types.
+    const baseSystem = await loadActivePrompt(admin as any, "build-custom-contract", composedSystem);
     const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
-    const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, `${docSpec.label}\n${redacted.redacted}`.slice(0, 4000), { matchCount: 6 });
+        const legal = await retrieveLegalContext(admin as any, LOVABLE_API_KEY, `${docSpec.label}\n${redacted.redacted}`.slice(0, 4000), { matchCount: 6 });
     // FAIL-CLOSED: без проверена норма за тази заявка няма повикване към модел.
     if (!legal.hasMatches) {
       const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
       return legalVerificationUnavailableResponse({ headers: { ...corsHeaders, ...correlationHeaders(correlationId) } });
     }
     const activeSystemPrompt = `${baseSystem}\n\n${legal.promptBlock}`;
+
+    // РЕЗЕРВАЦИЯ БЕЗ ТАКСА: след всички непарични проверки. ЕДИН леджър,
+    // идемпотентен по ключа на операцията и обвързан със съдържанието на
+    // заявката — но БЕЗ никакво ново начисляване (виж бележката по-горе).
+    const reservation = await reserveQuotaNoCharge(ledgerDb, ledgerBinding);
+    if (reservation.status === "conflict") return conflictResponse();
+    if (reservation.status === "reconciliation") {
+      await recordReconciliation(ledgerDb, operationId, `build_custom_contract_reserve:${reservation.reason}`, {
+        user_id: userId,
+        kind: "contract",
+      });
+      return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+    }
+    if (reservation.status === "unavailable") return quotaUnavailableResponse();
+    if (reservation.status === "denied") {
+      return new Response(
+        JSON.stringify({ error: "quota_exceeded", reason: reservation.reason, charge_state: "not_charged" }),
+        { status: 402, headers: jsonHeaders },
+      );
+    }
+
+    // ТОЧНО ПОВТОРЕНИЕ, ако операцията е завършила между четенето и
+    // резервацията: връща се точно записаният отговор, без ново генериране,
+    // без второ таксуване и без нов пропуск.
+    const priorRef = reservation.resultRef;
+    if (priorRef && priorRef.contract) {
+      return exactReplayResponse(priorRef);
+    }
+
+    // ЕДНОВРЕМЕННО ИЗПЪЛНЕНИЕ ПО СЪЩИЯ КЛЮЧ: повторение на още незавършена
+    // резервация БЕЗ записан резултат НИКОГА не стартира второ повикване към
+    // модела. Доказано отменена резервация (retry) е нормален нов опит.
+    if (isOperationInProgress(reservation)) {
+      return operationInProgressResponse(
+        { ...corsHeaders, ...correlationHeaders(correlationId) },
+        4,
+      );
+    }
+
+    /**
+     * ЕДИНСТВЕН КОМПЕНСИРАЩ ПАЗИТЕЛ през леджъра. „charged: false" се твърди
+     * САМО при доказана отмяна; иначе типизиран billing_reconciliation_required
+     * и траен запис за изравняване.
+     */
+    let compensated = false;
+    const cancelOrReport = async (reason: string): Promise<Response | null> => {
+      if (compensated) return null;
+      const outcome = await cancelQuota(ledgerDb, operationId, reason);
+      if (outcome.status !== "settled") {
+        await recordReconciliation(
+          ledgerDb,
+          operationId,
+          `build_custom_contract_cancel_failed:${outcome.reason}`,
+          { user_id: userId, kind: "contract" },
+        );
+        return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+      }
+      compensated = true;
+      return null;
+    };
+
+    try {
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -439,34 +646,32 @@ ${fieldsSection}
     });
 
     if (!aiResp.ok) {
+      const unresolved = await cancelOrReport(`ai_gateway_${aiResp.status}`);
       await logAiAudit({
         user_id: userId, operation: "build-custom-contract", model: route.model,
         classification, redaction_applied: route.redactionRequired,
         status: "error", error_code: `http_${aiResp.status}`,
       });
-      if (aiResp.status === 429) {
-        return new Response(JSON.stringify({ error: "Достигнат е лимитът. Моля опитайте след малко." }), { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
-      }
-      if (aiResp.status === 402) {
-        return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI. Моля заредете акаунта." }), { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
-      }
-      const t = await aiResp.text();
-      console.error("AI gateway:", aiResp.status, t);
-      throw new Error("AI грешка");
+      if (unresolved) return unresolved;
+      // Тялото на шлюза НЕ се връща и НЕ се логва: може да носи части от
+      // въведените от потребителя данни.
+      const { normalizeGatewayStatus, gatewayErrorResponse } = await import(
+        "../_shared/gateway-error.ts"
+      );
+      console.error("AI gateway status:", aiResp.status);
+      return gatewayErrorResponse(
+        normalizeGatewayStatus(aiResp.status),
+        { ...corsHeaders, ...correlationHeaders(correlationId) },
+        { charged: false, charge_state: "cancelled" },
+      );
     }
-
-    await admin.from("ai_usage").insert({
-      user_id: userId,
-      ip_hash: null,
-      function_name: "build-custom-contract",
-    });
 
     const rawText = await aiResp.text();
     if (!rawText) throw new Error("Празен отговор от AI");
 
     let data: any;
     try { data = JSON.parse(rawText); } catch {
-      console.error("AI raw (not JSON):", rawText.slice(0, 500));
+      console.error("AI raw response was not valid JSON (length:", rawText.length, ")");
       throw new Error("AI върна невалиден JSON отговор");
     }
 
@@ -476,7 +681,7 @@ ${fieldsSection}
       throw new Error("AI не върна съдържание. Опитайте отново.");
     }
 
-    let parsed: { risk: any; contract: any };
+    let parsed: { risk: any; contract: any; [key: string]: unknown };
     try {
       const { parseAiJsonWithRetry } = await import("../_shared/ai-json-retry.ts");
       const res = await parseAiJsonWithRetry({
@@ -496,7 +701,7 @@ ${fieldsSection}
       parsed = res.parsed;
       if (res.stage !== "direct") console.log(`build-custom-contract: JSON recovered via ${res.stage}`);
     } catch {
-      console.error("JSON parse failed. finish_reason:", finishReason, "Content head:", content.slice(0, 800));
+      console.error("JSON parse failed. finish_reason:", finishReason, "content_length:", content.length);
       const friendly = finishReason === "length"
         ? "Документът е твърде дълъг и отговорът беше отрязан. Моля опитайте с по-кратко описание или го разделете на части."
         : "AI отговорът не може да бъде анализиран. Моля опитайте отново.";
@@ -588,7 +793,8 @@ ${fieldsSection}
       parsed.risk = withIntent.risk;
       parsed.quality = { ...gated.quality, intent: { checked: intentReport.checked, satisfied: intentReport.satisfied, mismatched: intentReport.mismatched_required.length } };
       if (qualityManifest) parsed.quality_manifest = qualityManifest;
-      // СЪРВЪРНО издаден ЕДНОКРАТЕН пропуск за ревизия на ТОЧНО този текст.
+      // СЪРВЪРНО издаден ЕДНОКРАТЕН пропуск за ревизия на ТОЧНО този текст —
+      // мината ТОЧНО ВЕДНЪЖ, преди потвърждението, и никога при повторение.
       {
         const { issueGrantForGeneratedContent, reviewGrantSecret } = await import(
           "../_shared/review-grant.ts"
@@ -602,7 +808,28 @@ ${fieldsSection}
       }
     }
 
+    // ЕДИН ТОЧЕН ОТГОВОР: сглобява се ВЕДНЪЖ и се записва ЦЯЛОСТНО при
+    // потвърждението. Повторен опит по същия ключ връща същия отговор.
+    const exactPayload = { ...parsed, charge_state: "charged" } as Record<string, unknown>;
 
+    // ПОТВЪРЖДЕНИЕ + ОБВЪРЗВАНЕ на резултата ПРЕДИ 200: повторен опит по същия
+    // ключ връща точно този текст. Недоказано потвърждение НЕ дава 200.
+    const settlement = await commitQuota(ledgerDb, operationId, exactPayload);
+    if (settlement.status !== "settled") {
+      await recordReconciliation(
+        ledgerDb,
+        operationId,
+        `build_custom_contract_commit_unresolved:${settlement.reason}`,
+        { user_id: userId, kind: "contract" },
+      );
+      await logAiAudit({
+        user_id: userId, operation: "build-custom-contract", model: route.model,
+        classification, redaction_applied: route.redactionRequired,
+        status: "error", error_code: "commit_unresolved",
+      });
+      return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+    }
+    compensated = true;
 
     await logAiAudit({
       user_id: userId, operation: "build-custom-contract", model: route.model,
@@ -611,13 +838,20 @@ ${fieldsSection}
       tokens_out: data?.usage?.completion_tokens,
     });
 
-    // Cache successful result.
-    // Без кеш: запис без доказана правна основа не може да бъде преизползван.
+    // ai_usage се записва САМО при успешен краен изход.
+    await admin.from("ai_usage").insert({
+      user_id: userId,
+      ip_hash: null,
+      function_name: "build-custom-contract",
+    });
 
     // Fire-and-forget: anonymise + persist as a candidate blank for admin review.
     // We do NOT await this so the user's response is fast.
-    EdgeRuntime?.waitUntil?.(
-      anonymiseAndStoreBlank(admin, {
+    // @ts-ignore — EdgeRuntime е глобал на средата на Supabase Edge Functions,
+    // липсва в lib типовете на Deno; поведението не се променя.
+    (globalThis as any).EdgeRuntime?.waitUntil?.(
+      // Пред-съществуващо несъответствие между версии на generated types.
+      anonymiseAndStoreBlank(admin as any, {
         name, category, categorySectorId,
         contract: parsed.contract,
         userId,
@@ -625,11 +859,22 @@ ${fieldsSection}
       }).catch((e) => console.error("anonymiseAndStoreBlank failed:", e))
     );
 
-    return new Response(JSON.stringify(parsed), {
+    // Връща се ТОЧНО записаният отговор (ако леджърът го е върнал обратно).
+    const committedPayload = settlement.resultRef ?? exactPayload;
+    return new Response(JSON.stringify(committedPayload), {
       headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
     });
+
+    } catch (afterCharge) {
+      // Всеки неуспешен краен изход след резервацията отменя я точно веднъж.
+      const unresolved = await cancelOrReport(
+        `exception:${String((afterCharge as Error)?.message ?? afterCharge).slice(0, 200)}`,
+      );
+      if (unresolved) return unresolved;
+      throw afterCharge;
+    }
   } catch (e) {
-    console.error(`build-custom-contract error [cid=${correlationId}]:`, e);
+    console.error(`build-custom-contract error [cid=${correlationId}]:`, e instanceof Error ? e.message : "unknown");
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка", correlation_id: correlationId }),
       { status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
@@ -645,7 +890,9 @@ const ANON_SYSTEM = `Ти си редактор на правни шаблони
  * по-горе, затова не може да я заобиколи и не произвежда правно твърдение.
  */
 async function anonymiseAndStoreBlank(
-  admin: ReturnType<typeof createClient>,
+  // Заобикаляне на несъответствие в generated types за custom_contract_blanks /
+  // noop_no_such_fn — поведението остава непроменено.
+  admin: any,
   args: {
     name: string;
     category: string;
@@ -682,7 +929,7 @@ async function anonymiseAndStoreBlank(
   const text_hash = await sha256Hex(text.replace(/\s+/g, " ").trim().toLowerCase());
 
   // Try insert; on conflict (duplicate text_hash) increment occurrences.
-  const { error: insErr } = await admin.from("custom_contract_blanks").insert({
+  const { error: insErr } = await (admin.from("custom_contract_blanks") as any).insert({
     source_user_id: userId,
     category,
     category_sector_id: categorySectorId,
@@ -692,7 +939,7 @@ async function anonymiseAndStoreBlank(
   });
   if (insErr && (insErr as any).code === "23505") {
     // Duplicate — bump occurrences.
-    await admin.rpc("noop_no_such_fn").catch(() => {});
+    await (admin.rpc("noop_no_such_fn") as unknown as Promise<unknown>).catch(() => {});
     const { data: existing } = await admin
       .from("custom_contract_blanks")
       .select("id, occurrences")

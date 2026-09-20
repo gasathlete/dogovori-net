@@ -255,6 +255,66 @@ export type ReviewReserveOutcome =
   | { readonly kind: "reconciliation"; readonly reason: string }
   | { readonly kind: "unavailable"; readonly reason: string };
 
+/**
+ * САМО-ЧЕТЯЩО състояние на ревизия по ЦЯЛОТО подписано обвързване. Не резервира,
+ * не отменя и НЕ изгаря пропуска. Ползва се ПРЕДИ безплатните, но чупливи
+ * стъпки (ограничител, класификация, редакция, заземяване, доставчик), за да не
+ * бъде блокиран нормален повторен опит по вече завършена ревизия.
+ */
+export type ReviewLookupOutcome =
+  | { readonly kind: "absent"; readonly reason?: string }
+  | { readonly kind: "committed"; readonly response: Record<string, unknown> }
+  | { readonly kind: "in_progress"; readonly retryAfterSeconds: number }
+  | { readonly kind: "expired" }
+  | { readonly kind: "conflict" }
+  | { readonly kind: "reconciliation"; readonly reason: string }
+  | { readonly kind: "unavailable"; readonly reason: string };
+
+export async function lookupReviewOperation(
+  db: NonceDb,
+  payload: ReviewGrantPayload,
+): Promise<ReviewLookupOutcome> {
+  let data: unknown = null;
+  let error: { message: string } | null = null;
+  try {
+    const out = await db.rpc("review_operation_lookup", {
+      p_nonce: payload.nonce,
+      p_aud: payload.aud,
+      p_subject: payload.sub,
+      p_owner_id: payload.owner,
+      p_content_digest: payload.content_digest,
+      p_operation: payload.operation,
+    });
+    data = out.data;
+    error = out.error;
+  } catch {
+    return { kind: "unavailable", reason: "lookup_threw" };
+  }
+  if (error) return { kind: "unavailable", reason: "lookup_uncertain" };
+  const r = rowOf(data);
+  const status = String(r.status ?? "");
+  if (status === "committed") {
+    const stored = rowOf(r.response);
+    if (Object.keys(stored).length === 0) return { kind: "expired" };
+    return { kind: "committed", response: stored };
+  }
+  if (status === "in_progress") {
+    return {
+      kind: "in_progress",
+      retryAfterSeconds: Math.max(1, Number(r.retry_after_seconds ?? 5)),
+    };
+  }
+  if (status === "response_expired") return { kind: "expired" };
+  if (status === "conflict") return { kind: "conflict" };
+  if (status === "reconciliation") {
+    return { kind: "reconciliation", reason: String(r.reason ?? "reconciliation_required") };
+  }
+  if (status === "absent") {
+    return { kind: "absent", reason: r.reason ? String(r.reason) : undefined };
+  }
+  return { kind: "unavailable", reason: `unexpected_lookup_status:${status || "empty"}` };
+}
+
 export async function reserveReviewOperation(
   db: NonceDb,
   payload: ReviewGrantPayload,

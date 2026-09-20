@@ -58,6 +58,8 @@ import {
   isSpecialCategoryBlocked,
   type ClassificationSummary,
 } from "@/lib/aiSensitiveData";
+import { classifyGenerationError, type GenerationError } from "@/lib/generationErrors";
+import { getStableOpKey, releaseStableOpKey, opaqueOpScope } from "@/lib/opSession";
 
 
 
@@ -181,8 +183,13 @@ export default function UploadedContractPage() {
     busyRef.current = true;
     setAnalyzing(true);
     trackGenerate("started", { source: "reanalyze" });
+    // НЕПРОЗРАЧЕН обхват от целия товар: същият ключ при повторен опит,
+    // двойно натискане или загубена връзка — сървърът не таксува втори път.
+    const analyzePayloadScope = await opaqueOpScope("analyze_contract", { uploadedContractId: id, userConfirmed });
+    const opScope = `op:${analyzePayloadScope}`;
+    const operationId = getStableOpKey(opScope);
     const { data, error } = await supabase.functions.invoke("analyze-contract", {
-      body: { uploadedContractId: id, userConfirmed },
+      body: { uploadedContractId: id, userConfirmed, operation_id: operationId },
     });
     busyRef.current = false;
     if (!isCurrentRequest(token, analyzeTokenRef, startedIdentity)) return;
@@ -215,11 +222,34 @@ export default function UploadedContractPage() {
         trackGenerate("fail", { source: "reanalyze", reason: "blocked_content" });
         return;
       }
+      const gen: GenerationError = classifyGenerationError({ error, data: data ?? null });
+      if (gen.code === "operation_conflict") {
+        // Доказан конфликт на ключа за идемпотентност — освобождаваме го.
+        // Въведеното се пази; следващото ИЗРИЧНО действие ще получи нов ключ.
+        releaseStableOpKey(opScope);
+        trackGenerate("fail", { source: "reanalyze", reason: gen.code });
+        toast.error("Заявката се промени. Изпратете отново.");
+        return;
+      }
+      if (
+        gen.code === "operation_in_progress" ||
+        gen.code === "quota_unavailable" ||
+        gen.code === "entitlement_unavailable" ||
+        gen.code === "reconciliation_required"
+      ) {
+        // Операцията все още не е приключила — ключът се пази, същият
+        // повторен опит е безопасен.
+        trackGenerate("fail", { source: "reanalyze", reason: gen.code });
+        toast.error(gen.message);
+        return;
+      }
       const msg = (data as { error?: string } | null)?.error ?? error?.message ?? "Грешка";
       trackGenerate("fail", { source: "reanalyze", reason: String(msg).slice(0, 80) });
       toast.error(msg);
       return;
     }
+    // ДОКАЗАН КРАЕН УСПЕХ: единственият момент, в който ключът пада.
+    releaseStableOpKey(opScope);
     trackGenerate("success", { source: "reanalyze" });
     toast.success("Анализът е обновен");
     // Само резултатът от анализа — това, което пишете в редактора, остава.

@@ -142,7 +142,35 @@ export type LookupOutcome =
   | { readonly status: "in_progress"; readonly retryAfterSeconds: number }
   /** Недоказан изход: изравняване, не нов опит. */
   | { readonly status: "reconciliation"; readonly reason: string }
+  /**
+   * Операцията е завършила и е таксувана, но точният товар вече НЕ се пази
+   * (граница на задържане). Никога не се връща празен или друг отговор — иска
+   * се НОВА заявка с нов ключ.
+   */
+  | { readonly status: "response_expired"; readonly charged: boolean }
   | { readonly status: "unavailable"; readonly message: string };
+
+export const RESPONSE_EXPIRED = "response_expired";
+
+/**
+ * Типизиран отговор при изтекъл точен товар. Клиентът освобождава ключа и
+ * следващият ИЗРИЧЕН опит е НОВА операция — без мълчаливо повторение.
+ */
+export function responseExpiredResponse(
+  headers: Record<string, string>,
+  charged = true,
+): Response {
+  return new Response(
+    JSON.stringify({
+      error: "Този резултат вече не се пази. Изпратете заявката отново.",
+      code: RESPONSE_EXPIRED,
+      reason: "new_request_required",
+      retryable: false,
+      charge_state: charged ? "charged" : "not_charged",
+    }),
+    { status: 409, headers: { ...headers, "Content-Type": "application/json" } },
+  );
+}
 
 export async function lookupCommittedOperation(
   db: Rpc,
@@ -190,6 +218,9 @@ export async function lookupCommittedOperation(
   }
   if (status === "reconciliation") {
     return { status: "reconciliation", reason: String(row.reason ?? "reconciliation_required") };
+  }
+  if (status === "response_expired") {
+    return { status: "response_expired", charged: row.charged !== false };
   }
   if (status === "absent") {
     return { status: "absent", reason: row.reason ? String(row.reason) : undefined };
@@ -276,6 +307,59 @@ export async function reserveQuota(db: Rpc, input: ReserveInput): Promise<Reserv
     retry: row.retry === true,
     ledgerState: row.state === "committed" ? "committed" : "reserved",
     source: String(row.source ?? "unknown"),
+    resultRef,
+    raw: row,
+  };
+}
+
+/**
+ * Резервация БЕЗ такса (0035, quota_reserve_no_charge): същият точно-веднъж
+ * леджър, но не консумира абонамент/топъп/бонус/сесийно право и не докосва
+ * download_quota. Ползва се, когато операцията (напр. build-custom-contract)
+ * остава безплатна на този етап — квотата се плаща отделно, по-късно.
+ * Връща СЪЩИЯ типизиран съюз като reserveQuota, за да могат извикващите да
+ * обработват reserved/replay/committed/in_progress/conflict/unavailable
+ * идентично, без разклоняване по вид резервация.
+ */
+export async function reserveQuotaNoCharge(db: Rpc, input: ReserveInput): Promise<ReserveOutcome> {
+  // Без валиден отпечатък НЕ се прави повикване към базата и нищо не се записва.
+  if (typeof input.requestDigest !== "string" || !SHA256_HEX.test(input.requestDigest)) {
+    return { status: "conflict", reason: "request_digest_required" };
+  }
+  const { data, error } = await db.rpc("quota_reserve_no_charge", {
+    p_operation_id: input.operationId,
+    p_user_id: input.userId,
+    p_kind: input.kind,
+    p_purpose: input.purpose,
+    p_session_id: input.sessionId ?? null,
+    p_doc_key: input.docKey ?? null,
+    p_batch_id: input.batchId ?? null,
+    p_request_digest: input.requestDigest,
+  });
+  if (error) {
+    if (isConflict(error.message)) {
+      return { status: "conflict", reason: IDEMPOTENCY_KEY_CONFLICT };
+    }
+    return { status: "unavailable", message: error.message };
+  }
+  const row = (data ?? {}) as Record<string, unknown>;
+  if (row.ok !== true) {
+    const reason = String(row.reason ?? "quota_denied");
+    if (RECONCILIATION_REASONS.has(reason)) {
+      return { status: "reconciliation", reason };
+    }
+    return { status: "denied", reason, raw: row };
+  }
+  const resultRef = row.result_ref && typeof row.result_ref === "object"
+    ? (row.result_ref as Record<string, unknown>)
+    : null;
+  return {
+    status: "reserved",
+    charged: row.charged === true,
+    replay: row.replay === true,
+    retry: row.retry === true,
+    ledgerState: row.state === "committed" ? "committed" : "reserved",
+    source: String(row.source ?? "no_charge"),
     resultRef,
     raw: row,
   };
