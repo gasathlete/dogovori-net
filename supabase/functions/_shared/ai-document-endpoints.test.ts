@@ -26,6 +26,13 @@ function at(text: string, needle: string): number {
   return i;
 }
 
+/** Позицията на ИСТИНСКОТО повикване към шлюза, не на константата с адреса. */
+function providerCallAt(text: string): number {
+  const m = text.match(/fetch\(\s*(?:"https:\/\/ai\.gateway\.lovable\.dev[^"]*"|GATEWAY_URL)/);
+  assert(m && typeof m.index === "number", "липсва повикване към шлюза");
+  return m!.index!;
+}
+
 Deno.test("всяка документна крайна точка изисква клиентски operation_id", async () => {
   for (const { fn } of ENDPOINTS) {
     const s = await src(fn);
