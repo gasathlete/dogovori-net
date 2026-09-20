@@ -98,6 +98,27 @@ describe("миграция 0028 — маркетингът е изричен opt
     expect(sql).not.toMatch(/UPDATE public\.user_consents/i);
   });
 
+  it("изпращането отказва при нула получатели преди всякакъв запис", () => {
+    expect(sql).toContain("no explicit marketing opt-in recipients");
+    const fn = sql.slice(sql.indexOf("FUNCTION public.admin_send_campaign_topic"));
+    const guard = fn.indexOf("no explicit marketing opt-in recipients");
+    expect(guard).toBeGreaterThan(-1);
+    expect(guard).toBeLessThan(fn.indexOf("INSERT INTO public.notifications"));
+    expect(guard).toBeLessThan(fn.indexOf("SET last_sent_at"));
+  });
+
+  it("правата върху функциите за кампании са изрично ограничени", () => {
+    for (const sig of [
+      "public.admin_list_marketing_recipients(text, integer)",
+      "public.admin_send_campaign_topic(uuid)",
+    ]) {
+      expect(sql).toContain(`REVOKE ALL ON FUNCTION ${sig} FROM PUBLIC, anon`);
+      expect(sql).toContain(`GRANT EXECUTE ON FUNCTION ${sig} TO authenticated`);
+      expect(sql).toContain(`GRANT EXECUTE ON FUNCTION ${sig} TO service_role`);
+    }
+  });
+
+
   it("е огледален в supabase/migrations", () => {
     const mirror = readFileSync(
       "supabase/migrations/20260920073000_marketing_explicit_opt_in_consent_events.sql",
