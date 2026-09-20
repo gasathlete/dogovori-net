@@ -146,7 +146,7 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
 
     // СТРОГО ЗАЗЕМЯВАНЕ за точно тази (редактирана) заявка — преди модела.
     const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
-    const legal = await retrieveLegalContext(admin, apiKey, userMsg.slice(0, 4000), {
+    const legal = await retrieveLegalContext(admin as unknown as Parameters<typeof retrieveLegalContext>[0], apiKey, userMsg.slice(0, 4000), {
       matchCount: 6,
     });
     if (!legal.hasMatches) {
