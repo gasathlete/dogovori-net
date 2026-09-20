@@ -411,35 +411,41 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
       })
       : null;
     if (!evidence) {
-      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
-      return legalVerificationUnavailableResponse({ headers: cors });
+      return await reconcileAndRespond("evidence_unsigned");
     }
     const envelope = { ...strategy, __evidence: evidence };
 
-    const { error: upErr } = await admin
-      .from("risk_analyses")
-      .update({
-        negotiation_strategy: envelope,
-        negotiation_generated_at: evidence.generated_at,
-      })
-      .eq("id", analysisId);
-    if (upErr) {
-      console.error("negotiation-strategy persist error", upErr.message);
-      return new Response(
-        JSON.stringify({ error: "persist_failed", charged: false }),
-        { status: 503, headers: { ...cors, "Content-Type": "application/json" } },
-      );
+    // АТОМАРНО: подписаният плик върху собствения анализ, резултатът за точно
+    // повторение и счетоводството — заедно, най-много една бизнес промяна.
+    const payload = {
+      ok: true,
+      cached: false,
+      model: usedModel,
+      strategy: envelope,
+      citations: legal.citations,
+    };
+    const committed = await commitDocumentOperation(admin, {
+      operationId,
+      userId: user.id,
+      purpose: "negotiation_strategy",
+      binding,
+      result: payload,
+      resultTtlSeconds: 86400,
+      usageFunction: "negotiation-strategy",
+      business: {
+        kind: "negotiation_strategy",
+        analysis_id: analysisId,
+        source_version: sourceVersion,
+        envelope,
+        generated_at: evidence.generated_at,
+      },
+    });
+    if (committed.kind !== "committed") {
+      return await reconcileAndRespond("commit_uncertain");
     }
 
-
     return new Response(
-      JSON.stringify({
-        ok: true,
-        cached: false,
-        model: usedModel,
-        strategy: envelope,
-        citations: legal.citations,
-      }),
+      JSON.stringify(payload),
       { headers: { ...cors, "Content-Type": "application/json" } },
     );
   } catch (e) {
