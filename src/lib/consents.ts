@@ -63,12 +63,14 @@ export async function recordConsents(
       document_version: CONSENT_VERSIONS[r.consent_type],
       granted: r.granted,
       user_agent: typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 500) : null,
-      metadata: (r.metadata ?? null) as never,
+      metadata: r.metadata ?? null,
     }));
 
+    // `consent_event_id` is added by migration 0028; generated types are
+    // regenerated with that migration, so the row shape is cast until then.
     const { error } = await supabase
       .from("user_consents")
-      .upsert(rows, {
+      .upsert(rows as never, {
         onConflict: "user_id,consent_type,consent_event_id",
         ignoreDuplicates: true,
       });
