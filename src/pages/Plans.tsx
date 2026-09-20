@@ -419,7 +419,6 @@ export default function Plans() {
                           </span>
                           <span className="text-sm text-muted-foreground">{effectivePrice.suffix}</span>
                         </div>
-                        </div>
                         {teamMonthlyDisabled && (
                           <p className="mt-1.5 text-xs font-medium text-brand">Само годишно</p>
                         )}
