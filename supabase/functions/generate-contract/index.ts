@@ -92,13 +92,10 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
-    const userClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
-    );
 
-    // Identify caller: prefer authenticated user, fall back to IP-based limit.
+    // Identify caller: prefer authenticated user, fall back to IP-based limit
+    // for the anonymous "taste" tier (never charged, никога не минава през
+    // леджъра на операциите).
     const authHeader = req.headers.get("Authorization") ?? "";
     let userId: string | null = null;
     if (authHeader.startsWith("Bearer ")) {
@@ -108,7 +105,159 @@ Deno.serve(async (req: Request) => {
 
     const ipHash = await hashIp(clientIp(req));
 
-    // Rate limits: anonymous 1/24h per IP, authenticated 10/24h per user.
+    const body = await req.json();
+    const { sector, contractName, documentName, parties, answers, questions, arbitration, bilingual, session_id, doc_key, userConfirmed = false } = body;
+    const isBilingual = Boolean(bilingual);
+
+    // Целият потребителски контекст се събира ЕДИН път — редакцията, класификацията
+    // и идентичността на кеша работят върху едно и също множество полета.
+    const ctxOrError = buildGeneratorContext(body);
+    if ("ok" in ctxOrError) {
+      return new Response(
+        JSON.stringify({ error: ctxOrError.message, code: ctxOrError.code }),
+        { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+      );
+    }
+    const userContext = ctxOrError;
+
+    const { asUuidOrNull, asTextOrNull, canonicalRequestDigest } = await import("../_shared/canonical-digest.ts");
+    // Клиентският ключ на операцията е ЗАДЪЛЖИТЕЛЕН: без него повторният опит
+    // не е идемпотентен и би генерирал (и при удостоверен потребител —
+    // таксувал) наново.
+    const rawClientOpId = body?.operation_id ?? body?.client_operation_id;
+    const operationId = asUuidOrNull(rawClientOpId);
+    if (!operationId) {
+      return new Response(
+        JSON.stringify({
+          error: "Липсва или е невалиден идентификатор на операцията.",
+          code: rawClientOpId ? "invalid_operation_id" : "operation_id_required",
+          charge_state: "not_charged",
+        }),
+        { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+      );
+    }
+    const sessionId = asUuidOrNull(session_id);
+    const docKey = asTextOrNull(doc_key);
+
+    // КАНОНИЧЕН ОТПЕЧАТЪК на заявката — СЛЕД проверката на правата и схемата,
+    // но ПРЕДИ ВСЯКА променлива външна зависимост (дневен лимит, проверка за
+    // незаконно съдържание, класификация, редакция, промпт от базата, ключ на
+    // доставчика, правно заземяване). Вече завършена и вече таксувана операция
+    // не бива да бъде блокирана от нито една от тях. Обхваща ЦЕЛИЯ семантичен
+    // товар, използван за генерирането, плюс удостоверения потребител,
+    // предназначението и обвързването към таб/документ.
+    const requestDigest = await canonicalRequestDigest({
+      purpose: "generate_contract",
+      userId,
+      context: userContext,
+      arbitration: arbitration ?? null,
+      bilingual: isBilingual,
+      userConfirmed: !!userConfirmed,
+      sessionId,
+      docKey,
+    });
+
+    const {
+      reserveQuota,
+      commitQuota,
+      cancelQuota,
+      billingReconciliationResponse,
+      recordReconciliation,
+      lookupCommittedOperation,
+      isOperationInProgress,
+      operationInProgressResponse,
+      responseExpiredResponse,
+    } = await import("../_shared/quota-ledger.ts");
+    type LedgerDb = Parameters<typeof reserveQuota>[0];
+    const ledgerDb = admin as unknown as LedgerDb;
+    const jsonHeaders = {
+      ...corsHeaders,
+      ...correlationHeaders(correlationId),
+      "Content-Type": "application/json",
+    };
+    const conflictResponse = () =>
+      new Response(
+        JSON.stringify({
+          error: "Този идентификатор вече е използван за друга заявка.",
+          code: "idempotency_key_conflict",
+          charge_state: "not_charged",
+        }),
+        { status: 409, headers: jsonHeaders },
+      );
+    const quotaUnavailableResponse = () =>
+      new Response(
+        JSON.stringify({
+          error: "Проверката на квотата е временно недостъпна. Опитайте отново.",
+          code: "quota_unavailable",
+          charge_state: "not_charged",
+        }),
+        { status: 503, headers: jsonHeaders },
+      );
+    /** Точният записан отговор се връща такъв, какъвто е потвърден. */
+    // Товарът НЕ се мутира с нови полета: маркерът за повторение е САМО хедър.
+    const exactReplayResponse = (payload: Record<string, unknown>) =>
+      new Response(
+        JSON.stringify(payload),
+        { headers: { ...jsonHeaders, "X-Operation-Replay": "true" } },
+      );
+
+    // Анонимните заявки НИКОГА не се таксуват (безплатен „вкус" — 1/24ч по IP)
+    // и затова не минават през леджъра на операциите: липсва удостоверен
+    // потребител, с когото операцията да се обвърже трайно.
+    const useLedger = !!userId;
+    const ledgerBinding = useLedger
+      ? {
+          operationId,
+          userId: userId!,
+          kind: "analysis" as const,
+          purpose: "generate_contract",
+          sessionId,
+          docKey,
+          batchId: null,
+          requestDigest,
+        }
+      : null;
+
+    if (ledgerBinding) {
+      // САМО-ЧЕТЯЩА проверка: без резервация, без освобождаване, без такса.
+      const lookup = await lookupCommittedOperation(ledgerDb, ledgerBinding);
+      if (lookup.status === "conflict") return conflictResponse();
+      if (lookup.status === "unavailable") return quotaUnavailableResponse();
+      if (lookup.status === "in_progress") {
+        return operationInProgressResponse(
+          { ...corsHeaders, ...correlationHeaders(correlationId) },
+          lookup.retryAfterSeconds,
+        );
+      }
+      if (lookup.status === "reconciliation") {
+        await recordReconciliation(ledgerDb, operationId, `generate_contract_lookup:${lookup.reason}`, {
+          user_id: userId,
+          kind: "analysis",
+        });
+        return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+      }
+      if (lookup.status === "response_expired") {
+        // Операцията е платена, но точният товар вече не се пази: изрична НОВА заявка.
+        return responseExpiredResponse(
+          { ...corsHeaders, ...correlationHeaders(correlationId) },
+          lookup.charged,
+        );
+      }
+      if (lookup.status === "committed") {
+        const stored = lookup.resultRef;
+        if (stored && stored.contract) {
+          return exactReplayResponse(stored);
+        }
+        await recordReconciliation(ledgerDb, operationId, "generate_contract_committed_without_result", {
+          user_id: userId,
+          kind: "analysis",
+        });
+        return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+      }
+      // status === "absent" → нормален нов опит, продължаваме надолу.
+    }
+
+    // Rate limits: anonymous 1/24h per IP, authenticated 5/24h per user.
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { count } = await admin
       .from("ai_usage")
@@ -127,25 +276,11 @@ Deno.serve(async (req: Request) => {
             : "За да генерирате договор, влезте безплатно с email или Google.",
           code: "rate_limited",
           requires_login: !userId,
+          charge_state: "not_charged",
         }),
         { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
     }
-
-    const body = await req.json();
-    const { sector, contractName, documentName, parties, answers, questions, arbitration, bilingual, session_id, doc_key, userConfirmed = false } = body;
-    const isBilingual = Boolean(bilingual);
-
-    // Целият потребителски контекст се събира ЕДИН път — редакцията, класификацията
-    // и идентичността на кеша работят върху едно и също множество полета.
-    const ctxOrError = buildGeneratorContext(body);
-    if ("ok" in ctxOrError) {
-      return new Response(
-        JSON.stringify({ error: ctxOrError.message, code: ctxOrError.code }),
-        { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
-      );
-    }
-    const userContext = ctxOrError;
 
     // Illegal content guard — block before AI call, log + alert admin.
     const guardText = buildGeneratorClassificationCorpus(userContext);
@@ -166,17 +301,7 @@ Deno.serve(async (req: Request) => {
     // спецификация, не изходящ текст.
     const docTypeSpec = getDocumentTypeSpec(inferDocumentType(documentName || contractName));
 
-    // Кеш: идентичност = версия на политиката + удостоверен повикващ + ТОЧНИЯТ
-    // потребителски контекст (включително етикетите и реда на въпросите,
-    // арбитражния избор и двуезичния режим). Старите глобални ключове, които не
-    // включваха етикетите на въпросите, вече не могат да бъдат улучени.
-    // Версията на Q4a политиката влиза в кеш-идентичността: стари, НЕПОДПИСАНИ
-    // резултати не могат да бъдат сервирани под настоящия договор за качество.
     const PROMPT_VERSION = `${isBilingual ? "v3-doc-type-bilingual" : "v3-doc-type"}|${GENERATED_QUALITY_POLICY_VERSION}`;
-    // КЕШЪТ СЕ ЗАОБИКАЛЯ: старите записи в template_cache не носят сървърни
-    // доказателства за правната си основа (цитирани норми, версия на политиката),
-    // затова не могат да бъдат преизползвани. Резултат се връща само след
-    // успешно извличане на проверена норма за ТОЧНО тази заявка.
     const bilingualLine = isBilingual
       ? `\nБИЛИНГВАЛЕН РЕЖИМ: ЗАДЪЛЖИТЕЛНО върни паралелен английски превод. За contract добави полета: "title_en", "preamble_en", "closing_en" и за всяка клауза в "clauses" — "title_en" и "body_en". Преводът да е професионален легален английски (US/UK неутрален), номерацията на членовете да е "Art. N." и да съответства 1:1 на българския текст. Поставяй "bilingual": true на root на contract. Английският текст НЕ заменя българския — те съществуват паралелно.`
       : "";
@@ -189,7 +314,6 @@ Deno.serve(async (req: Request) => {
       promptLength: guardText.length,
     });
 
-
     if (!route.allowed) {
       await logAiAudit({
         user_id: userId, operation: "generate-contract", model: "",
@@ -199,6 +323,7 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({
         error: "Въведените данни съдържат специални категории лични данни и не могат да бъдат обработени автоматично.",
         code: route.blockedReason ?? "special_category_blocked",
+        charge_state: "not_charged",
         classification: {
           risk_level: classification.risk_level,
           contains_special_category_data: classification.contains_special_category_data,
@@ -210,6 +335,7 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({
         error: "needs_confirmation",
         code: "sensitive_data_confirmation_required",
+        charge_state: "not_charged",
         classification: {
           risk_level: classification.risk_level,
           contains_personal_data: classification.contains_personal_data,
@@ -229,7 +355,7 @@ Deno.serve(async (req: Request) => {
         classification, redaction_applied: false, status: "blocked",
         error_code: safe.code,
       });
-      return new Response(JSON.stringify({ error: safe.message, code: safe.code }), {
+      return new Response(JSON.stringify({ error: safe.message, code: safe.code, charge_state: "not_charged" }), {
         status: 422,
         headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
       });
@@ -273,26 +399,76 @@ ${docTypeSpec.systemAddendum}
     }
     const activeSystemPrompt = `${baseSystem}\n\n${legal.promptBlock}`;
 
-    // Session-aware quota consumption — same (session_id, doc_key) in tab = free.
-    // Skipped for anonymous calls; userId is guaranteed by the rate-limit branch above
-    // (anonymous get limit=0).
-    async function consumeQuota(): Promise<{ ok: boolean; quota?: unknown }> {
-      if (!userId) return { ok: true };
-      const useSession = !!session_id && !!doc_key;
-      const { data: consumed, error: consumeErr } = useSession
-        ? await userClient.rpc("consume_quota_session", {
-            _kind: "analysis",
-            _doc_key: String(doc_key),
-            _session_id: String(session_id),
-          })
-        : await userClient.rpc("consume_quota", { _kind: "analysis" });
-      if (consumeErr) {
-        console.error("consume_quota error:", consumeErr);
-        return { ok: false, quota: { reason: "consume_error" } };
+    // ТАКСУВАНЕ: след всички непарични проверки. ЕДИН леджър, идемпотентен по
+    // ключа на операцията и обвързан със съдържанието на заявката. Само за
+    // удостоверени потребители — анонимните никога не се таксуват.
+    let compensated = !ledgerBinding;
+    let priorRef: Record<string, unknown> | null = null;
+    if (ledgerBinding) {
+      const reservation = await reserveQuota(ledgerDb, ledgerBinding);
+      if (reservation.status === "conflict") return conflictResponse();
+      if (reservation.status === "reconciliation") {
+        await recordReconciliation(ledgerDb, operationId, `generate_contract_reserve:${reservation.reason}`, {
+          user_id: userId,
+          kind: "analysis",
+        });
+        return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
       }
-      const q = consumed as { ok: boolean; reason?: string; is_pro?: boolean; charged?: boolean };
-      return { ok: !!q?.ok, quota: q };
+      if (reservation.status === "unavailable") return quotaUnavailableResponse();
+      if (reservation.status === "denied") {
+        return new Response(
+          JSON.stringify({
+            error: "Изчерпан е безплатният ви лимит. Активирайте Pro за неограничени анализи.",
+            code: "quota_exceeded",
+            reason: reservation.reason,
+            charge_state: "not_charged",
+          }),
+          { status: 402, headers: jsonHeaders },
+        );
+      }
+
+      // ТОЧНО ПОВТОРЕНИЕ, ако операцията е завършила между четенето и
+      // резервацията: връща се точно записаният отговор, без ново генериране,
+      // без второ таксуване.
+      priorRef = reservation.resultRef;
+      if (priorRef && priorRef.contract) {
+        return exactReplayResponse(priorRef);
+      }
+
+      // ЕДНОВРЕМЕННО ИЗПЪЛНЕНИЕ ПО СЪЩИЯ КЛЮЧ: повторение на още незавършена
+      // резервация БЕЗ записан резултат НИКОГА не стартира второ повикване към
+      // модела. Доказано отменена резервация (retry) е нормален нов опит.
+      if (isOperationInProgress(reservation)) {
+        return operationInProgressResponse(
+          { ...corsHeaders, ...correlationHeaders(correlationId) },
+          4,
+        );
+      }
+      compensated = false;
     }
+
+    /**
+     * ЕДИНСТВЕН КОМПЕНСИРАЩ ПАЗИТЕЛ през леджъра. „charged: false" се твърди
+     * САМО при доказана отмяна; иначе типизиран billing_reconciliation_required
+     * и траен запис за изравняване. За анонимни заявки няма какво да се отменя.
+     */
+    const cancelOrReport = async (reason: string): Promise<Response | null> => {
+      if (compensated || !ledgerBinding) return null;
+      const outcome = await cancelQuota(ledgerDb, operationId, reason);
+      if (outcome.status !== "settled") {
+        await recordReconciliation(
+          ledgerDb,
+          operationId,
+          `generate_contract_cancel_failed:${outcome.reason}`,
+          { user_id: userId, kind: "analysis" },
+        );
+        return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+      }
+      compensated = true;
+      return null;
+    };
+
+    try {
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -307,26 +483,29 @@ ${docTypeSpec.systemAddendum}
       }),
     });
 
-
     if (!aiResp.ok) {
+      const unresolved = await cancelOrReport(`ai_gateway_${aiResp.status}`);
       await logAiAudit({
         user_id: userId, operation: "generate-contract", model: route.model,
         classification, redaction_applied: route.redactionRequired,
         status: "error", error_code: `http_${aiResp.status}`,
       });
-      if (aiResp.status === 429) {
-        return new Response(JSON.stringify({ error: "Достигнат е лимитът. Моля опитайте след малко." }), { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
-      }
-      if (aiResp.status === 402) {
-        return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI. Моля заредете акаунта." }), { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
-      }
-      // Без съдържание в лога — само диагностика.
-      const t = await aiResp.text();
-      console.error("AI gateway error:", aiResp.status, `body_len=${t.length}`);
-      throw new Error("AI грешка");
+      if (unresolved) return unresolved;
+      // Тялото на шлюза НЕ се връща и НЕ се логва: може да носи части от
+      // документа на потребителя.
+      const { normalizeGatewayStatus, gatewayErrorResponse } = await import(
+        "../_shared/gateway-error.ts"
+      );
+      console.error("AI gateway status:", aiResp.status);
+      return gatewayErrorResponse(
+        normalizeGatewayStatus(aiResp.status),
+        { ...corsHeaders, ...correlationHeaders(correlationId) },
+        { charged: false, charge_state: ledgerBinding ? "cancelled" : "not_charged" },
+      );
     }
 
-    // Record usage AFTER successful AI call so failed attempts don't burn the quota.
+    // Usage за ЛИМИТА (не за таксуването) се записва след успешно повикване
+    // към модела, независимо дали заявката е анонимна или удостоверена.
     await admin.from("ai_usage").insert({
       user_id: userId,
       ip_hash: userId ? null : ipHash,
@@ -369,7 +548,6 @@ ${docTypeSpec.systemAddendum}
       if (res.stage !== "direct") console.log(`generate-contract: JSON recovered via ${res.stage} (attempts=${res.attempts})`);
     }
 
-
     // Unredact AI output so the user sees real names/EGN/IBAN in the final doc.
     // Walk the parsed object and replace placeholders directly in string leaves
     // to avoid JSON round-trip issues when original values contain control chars.
@@ -390,7 +568,6 @@ ${docTypeSpec.systemAddendum}
         console.error("unredact failed:", e instanceof Error ? e.name : "unknown_error");
       }
     }
-
 
     // Defensive: ensure bilingual flag is set on contract when requested, so
     // exporters render BG/EN two-column layout reliably. ВАЖНО: това става ПРЕДИ
@@ -529,7 +706,6 @@ ${docTypeSpec.systemAddendum}
       parsed.risk.strengths = merged;
     }
 
-
     await logAiAudit({
       user_id: userId, operation: "generate-contract", model: route.model,
       classification, redaction_applied: route.redactionRequired, status: "ok",
@@ -541,27 +717,58 @@ ${docTypeSpec.systemAddendum}
     // Не записваме кеш: без сървърни доказателства за правната основа такъв
     // запис не може да бъде преизползван безопасно.
 
-    // Charge operation AFTER successful AI generation so failed attempts don't
-    // burn the quota. Same (session_id, doc_key) in tab → server returns free.
-    const q = await consumeQuota();
-    if (!q.ok) {
-      return new Response(
-        JSON.stringify({
-          error: "Изчерпан е безплатният ви лимит. Активирайте Pro за неограничени анализи.",
-          code: "quota_exceeded",
-        }),
-        { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
-      );
+    if (!ledgerBinding) {
+      // Анонимна, никога нетаксувана заявка: връща се директно, без леджър.
+      return new Response(JSON.stringify(parsed), {
+        headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
+      });
     }
 
-    return new Response(JSON.stringify(parsed), {
+    // ЕДИН ТОЧЕН ОТГОВОР: сглобява се ВЕДНЪЖ и се записва ЦЯЛОСТНО при
+    // потвърждението. Така повторен опит по същия ключ връща същия отговор и
+    // същия пропуск за ревизия, без ново генериране и без ново право.
+    const exactPayload: Record<string, unknown> = {
+      ...(parsed as Record<string, unknown>),
+      charge_state: "charged",
+    };
+
+    // ПОТВЪРЖДЕНИЕ + ОБВЪРЗВАНЕ на резултата ПРЕДИ 200: повторен опит по същия
+    // ключ връща точно този товар. Недоказано потвърждение НЕ дава 200.
+    const settlement = await commitQuota(ledgerDb, operationId, exactPayload);
+    if (settlement.status !== "settled") {
+      await recordReconciliation(
+        ledgerDb,
+        operationId,
+        `generate_contract_commit_unresolved:${settlement.reason}`,
+        { user_id: userId, kind: "analysis" },
+      );
+      await logAiAudit({
+        user_id: userId, operation: "generate-contract", model: route.model,
+        classification, redaction_applied: route.redactionRequired,
+        status: "error", error_code: "commit_unresolved",
+      });
+      return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+    }
+    compensated = true;
+
+    const committedPayload = settlement.resultRef ?? exactPayload;
+    return new Response(JSON.stringify(committedPayload), {
       headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
     });
 
+    } catch (afterCharge) {
+      // Всеки неуспешен краен изход след таксуване отменя резервацията точно
+      // веднъж (при анонимни заявки cancelOrReport е no-op).
+      const unresolved = await cancelOrReport(
+        `exception:${String((afterCharge as Error)?.message ?? afterCharge).slice(0, 200)}`,
+      );
+      if (unresolved) return unresolved;
+      throw afterCharge;
+    }
   } catch (e) {
-    console.error(`generate-contract error [cid=${correlationId}]:`, e);
-    // Типизиран код за клиента/аналитиката. Квотата НЕ е таксувана — тя се
-    // консумира едва след успешно парснат AI отговор (виж consumeQuota по-горе).
+    // Нормализиран запис и отговор: без вътрешни съобщения, тела от шлюза и
+    // никога суров текст на потребителския документ.
+    console.error(`generate-contract error [cid=${correlationId}]:`, e instanceof Error ? e.name : "unknown");
     const message = e instanceof Error ? e.message : "Неизвестна грешка";
     const code =
       (e as { name?: string })?.name === "AiJsonUnparsableError" || /json/i.test(message)
@@ -572,7 +779,7 @@ ${docTypeSpec.systemAddendum}
             ? "job_timeout"
             : "internal_error";
     return new Response(
-      JSON.stringify({ error: message, code, charged: false, correlation_id: correlationId }),
+      JSON.stringify({ error: "Възникна вътрешна грешка. Опитайте отново.", code, charged: false, correlation_id: correlationId }),
       { status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
     );
   }

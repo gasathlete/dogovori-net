@@ -29,6 +29,7 @@ import {
   buildTitleContext,
   computeAnalysisCacheKey,
 } from "../_shared/analysis-source-binding.ts";
+import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
 
 // PROMPT_VERSION — bump to invalidate cached analyses produced by older prompts.
 // v5: доказателствената проверка на цитатите е строга (един непрекъснат пасаж),
@@ -142,6 +143,7 @@ function isClauseActuallyMissing(name: string, normalizedSource: string): boolea
 }
 
 Deno.serve(async (req: Request) => {
+  const correlationId = getCorrelationId(req);
   const corsHeaders = buildCors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -150,17 +152,12 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
-    const userClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
-    );
 
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
       });
     }
     const { data: u } = await admin.auth.getUser(authHeader.replace("Bearer ", ""));
@@ -168,7 +165,7 @@ Deno.serve(async (req: Request) => {
     if (!userId) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
       });
     }
 
@@ -181,10 +178,26 @@ Deno.serve(async (req: Request) => {
     // САМО ако отпечатъкът на съдържанието съвпада с анализирания текст.
     const submittedQualityManifest = reqBody?.qualityManifest ?? reqBody?.quality_manifest ?? null;
 
+    const { asUuidOrNull, canonicalRequestDigest } = await import("../_shared/canonical-digest.ts");
+    // Клиентският ключ на операцията е ЗАДЪЛЖИТЕЛЕН: без него повторният опит
+    // не е идемпотентен и би генерирал и таксувал анализа наново.
+    const rawClientOpId = reqBody?.operation_id ?? reqBody?.client_operation_id;
+    const operationId = asUuidOrNull(rawClientOpId);
+    if (!operationId) {
+      return new Response(
+        JSON.stringify({
+          error: "Липсва или е невалиден идентификатор на операцията.",
+          code: rawClientOpId ? "invalid_operation_id" : "operation_id_required",
+          charge_state: "not_charged",
+        }),
+        { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+      );
+    }
+
     if (!uploadedContractId || typeof uploadedContractId !== "string") {
       return new Response(JSON.stringify({ error: "uploadedContractId е задължителен" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
       });
     }
 
@@ -197,13 +210,13 @@ Deno.serve(async (req: Request) => {
     if (cErr || !contract) {
       return new Response(JSON.stringify({ error: "Договорът не е намерен" }), {
         status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
       });
     }
     if (contract.user_id !== userId) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
       });
     }
 
@@ -211,20 +224,9 @@ Deno.serve(async (req: Request) => {
     if (text.length < 80) {
       return new Response(JSON.stringify({ error: "Текстът на договора е твърде кратък за анализ." }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
       });
     }
-
-    // Illegal content guard — block before AI call, log + alert admin.
-    const blocked = await guardIllegalContent({
-      admin,
-      text: `${contract.title}\n${text.slice(0, 12000)}`,
-      functionName: "analyze-contract",
-      userId,
-      userAgent: req.headers.get("user-agent"),
-      corsHeaders,
-    });
-    if (blocked) return blocked;
 
     // Q2b1 — снимка на източника: точният ПЪЛЕН текст (след външния trim, ПРЕДИ
     // компактиране/съкращаване) и точният заглавен контекст, който се изпраща.
@@ -276,6 +278,143 @@ Deno.serve(async (req: Request) => {
     //
     // `normalizedHash` се запазва само като версиониран ключ при ЗАПИС.
 
+
+    // Обвързването с (session_id, doc_key) идва СЕГА от самия леджър — не от
+    // `consume_quota_session`. Едно и също повторно ползване по тази двойка
+    // остава безплатно, защото `reserveQuota`/`lookupCommittedOperation`
+    // виждат същия отпечатък и същото обвързване.
+    const docKey = docKeyClient || `upload:${uploadedContractId}`;
+
+    // КАНОНИЧЕН ОТПЕЧАТЪК на ЦЕЛИЯ семантичен товар, който реално се анализира:
+    // текстът на договора, заглавният контекст, подадения манифест за качество
+    // и флага за потвърждение на чувствителни данни — плюс автентикирания
+    // потребител, целта и обвързването session_id/doc_key. Изчислява се СЛЕД
+    // проверката на правата и СЛЕД зареждането на съдържанието, но ПРЕДИ ВСЯКА
+    // променлива външна зависимост (проверка за незаконно съдържание,
+    // класификация, редакция, промпт от базата, ключ на доставчика, правно
+    // заземяване).
+    const requestDigest = await canonicalRequestDigest({
+      purpose: "analyze_contract",
+      userId,
+      text,
+      titleContext,
+      submittedQualityManifest,
+      userConfirmed,
+      trustIdentity,
+      sessionId: sessionId || null,
+      docKey,
+    });
+
+    const {
+      reserveQuota,
+      commitQuota,
+      cancelQuota,
+      billingReconciliationResponse,
+      recordReconciliation,
+      lookupCommittedOperation,
+      isOperationInProgress,
+      operationInProgressResponse,
+      responseExpiredResponse,
+    } = await import("../_shared/quota-ledger.ts");
+    type LedgerDb = Parameters<typeof reserveQuota>[0];
+    const ledgerDb = admin as unknown as LedgerDb;
+    const jsonHeaders = {
+      ...corsHeaders,
+      ...correlationHeaders(correlationId),
+      "Content-Type": "application/json",
+    };
+    const ledgerBinding = {
+      operationId,
+      userId,
+      kind: "analysis" as const,
+      purpose: "analyze_contract",
+      sessionId: sessionId || null,
+      docKey,
+      requestDigest,
+    };
+    const conflictResponse = () =>
+      new Response(
+        JSON.stringify({
+          error: "Този идентификатор вече е използван за друга заявка.",
+          code: "idempotency_key_conflict",
+          charge_state: "not_charged",
+        }),
+        { status: 409, headers: jsonHeaders },
+      );
+    const quotaUnavailableResponse = () =>
+      new Response(
+        JSON.stringify({
+          error: "Проверката на квотата е временно недостъпна. Опитайте отново.",
+          code: "quota_unavailable",
+          charge_state: "not_charged",
+        }),
+        { status: 503, headers: jsonHeaders },
+      );
+    // Точният записан отговор се връща такъв, какъвто е потвърден. Товарът НЕ
+    // се мутира с нови полета — маркерът за повторение е САМО хедър.
+    const exactReplayResponse = (payload: Record<string, unknown>) =>
+      new Response(
+        JSON.stringify(payload),
+        { headers: { ...jsonHeaders, "X-Operation-Replay": "true" } },
+      );
+    // Replay-ът връща персистиран запис от `risk_analyses`: собствеността на
+    // ТОЗИ ред трябва да е доказана — никога само по UUID.
+    const isOwnedStoredAnalysis = (stored: Record<string, unknown>): boolean => {
+      const a = stored.analysis;
+      if (!a || typeof a !== "object") return false;
+      return (a as Record<string, unknown>).user_id === userId;
+    };
+
+    // САМО-ЧЕТЯЩА проверка: без резервация, без освобождаване, без такса.
+    const lookup = await lookupCommittedOperation(ledgerDb, ledgerBinding);
+    if (lookup.status === "conflict") return conflictResponse();
+    if (lookup.status === "unavailable") return quotaUnavailableResponse();
+    if (lookup.status === "in_progress") {
+      return operationInProgressResponse(
+        { ...corsHeaders, ...correlationHeaders(correlationId) },
+        lookup.retryAfterSeconds,
+      );
+    }
+    if (lookup.status === "reconciliation") {
+      await recordReconciliation(ledgerDb, operationId, `analyze_contract_lookup:${lookup.reason}`, {
+        user_id: userId,
+        kind: "analysis",
+      });
+      return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+    }
+    if (lookup.status === "response_expired") {
+      return responseExpiredResponse(
+        { ...corsHeaders, ...correlationHeaders(correlationId) },
+        lookup.charged,
+      );
+    }
+    if (lookup.status === "committed") {
+      const stored = lookup.resultRef;
+      if (stored && stored.analysis && isOwnedStoredAnalysis(stored)) {
+        return exactReplayResponse(stored);
+      }
+      await recordReconciliation(
+        ledgerDb,
+        operationId,
+        stored && stored.analysis ? "analyze_contract_owner_mismatch" : "analyze_contract_committed_without_result",
+        { user_id: userId, kind: "analysis" },
+      );
+      return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+    }
+
+    // Отвъд тази точка операцията е ОТСЪСТВАЩА или ДОКАЗАНО ОТМЕНЕНА: нормален
+    // нов опит. ВСИЧКИ НЕТАКСУЕМИ ПРОВЕРКИ се извършват ПРЕДИ резервацията.
+
+    // Illegal content guard — block before AI call, log + alert admin.
+    const blocked = await guardIllegalContent({
+      admin,
+      text: `${contract.title}\n${text.slice(0, 12000)}`,
+      functionName: "analyze-contract",
+      userId,
+      userAgent: req.headers.get("user-agent"),
+      corsHeaders,
+    });
+    if (blocked) return blocked;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");

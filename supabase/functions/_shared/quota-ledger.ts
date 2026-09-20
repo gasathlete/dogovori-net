@@ -142,7 +142,35 @@ export type LookupOutcome =
   | { readonly status: "in_progress"; readonly retryAfterSeconds: number }
   /** Недоказан изход: изравняване, не нов опит. */
   | { readonly status: "reconciliation"; readonly reason: string }
+  /**
+   * Операцията е завършила и е таксувана, но точният товар вече НЕ се пази
+   * (граница на задържане). Никога не се връща празен или друг отговор — иска
+   * се НОВА заявка с нов ключ.
+   */
+  | { readonly status: "response_expired"; readonly charged: boolean }
   | { readonly status: "unavailable"; readonly message: string };
+
+export const RESPONSE_EXPIRED = "response_expired";
+
+/**
+ * Типизиран отговор при изтекъл точен товар. Клиентът освобождава ключа и
+ * следващият ИЗРИЧЕН опит е НОВА операция — без мълчаливо повторение.
+ */
+export function responseExpiredResponse(
+  headers: Record<string, string>,
+  charged = true,
+): Response {
+  return new Response(
+    JSON.stringify({
+      error: "Този резултат вече не се пази. Изпратете заявката отново.",
+      code: RESPONSE_EXPIRED,
+      reason: "new_request_required",
+      retryable: false,
+      charge_state: charged ? "charged" : "not_charged",
+    }),
+    { status: 409, headers: { ...headers, "Content-Type": "application/json" } },
+  );
+}
 
 export async function lookupCommittedOperation(
   db: Rpc,
@@ -190,6 +218,9 @@ export async function lookupCommittedOperation(
   }
   if (status === "reconciliation") {
     return { status: "reconciliation", reason: String(row.reason ?? "reconciliation_required") };
+  }
+  if (status === "response_expired") {
+    return { status: "response_expired", charged: row.charged !== false };
   }
   if (status === "absent") {
     return { status: "absent", reason: row.reason ? String(row.reason) : undefined };

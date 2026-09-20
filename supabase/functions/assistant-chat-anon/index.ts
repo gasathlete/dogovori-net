@@ -114,13 +114,6 @@ Deno.serve(async (req) => {
     });
   }
 
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
-    return new Response(JSON.stringify({ error: "AI gateway не е конфигуриран" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
   try {
     const body = await req.json().catch(() => ({}));
     const history: ChatMsg[] = Array.isArray(body?.messages) ? body.messages : [];
@@ -294,6 +287,21 @@ Deno.serve(async (req) => {
         retry_after_seconds: 30,
       }, 503, 30);
     };
+
+    // Ключът на шлюза се изисква САМО за НОВА резервирана операция. Точното
+    // повторение по-горе върна записания отговор без каквато и да е зависимост
+    // от настройката на доставчика.
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      const reconcile = await releaseOrReconcile("ai_gateway_not_configured");
+      if (reconcile) return reconcile;
+      return json({
+        error: "ai_gateway_not_configured",
+        code: "ai_gateway_not_configured",
+        message: "Асистентът е временно недостъпен. Опитайте отново по-късно.",
+        free_message_consumed: false,
+      }, 503, 30);
+    }
 
     // -----------------------------------------------------------------------
     // 3) ОТДЕЛЕН ограничител за прекомерно натоварване — НЕ е право и НЕ е

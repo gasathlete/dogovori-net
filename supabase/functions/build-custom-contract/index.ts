@@ -272,6 +272,115 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+Deno.serve(async (req: Request) => {
+  const correlationId = getCorrelationId(req);
+  const corsHeaders = buildCors(req);
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    const authHeader = req.headers.get("Authorization") ?? "";
+    let userId: string | null = null;
+    let authDiag: { kid?: string; alg?: string; method?: string; reason?: string } = {};
+
+    if (!authHeader.startsWith("Bearer ")) {
+      authDiag.reason = "missing_bearer";
+      console.warn("[build-custom-contract] auth fail:", authDiag);
+    } else {
+      const token = authHeader.replace("Bearer ", "").trim();
+
+      // Decode JWT header for diagnostics (kid/alg) — no verification here.
+      try {
+        const headerB64 = token.split(".")[0];
+        const padded = headerB64 + "=".repeat((4 - (headerB64.length % 4)) % 4);
+        const headerJson = JSON.parse(atob(padded.replace(/-/g, "+").replace(/_/g, "/")));
+        authDiag.kid = headerJson.kid;
+        authDiag.alg = headerJson.alg;
+      } catch (e) {
+        authDiag.reason = "header_decode_failed";
+        console.warn("[build-custom-contract] could not decode JWT header:", e);
+      }
+
+      // Prefer getClaims() — works with the signing-keys (ES256) auth system.
+      try {
+        const { data: claimsData, error: claimsErr } = await admin.auth.getClaims(token);
+        if (claimsErr) {
+          authDiag.reason = "getClaims:" + String(claimsErr.message);
+        } else if (claimsData?.claims?.sub) {
+          userId = claimsData.claims.sub as string;
+          authDiag.method = "getClaims";
+        }
+      } catch (e) {
+        authDiag.reason = "getClaims_threw:" + (e instanceof Error ? e.message : String(e));
+      }
+
+      // Fallback for legacy HS256 tokens.
+      if (!userId) {
+        try {
+          const { data: u, error: uErr } = await admin.auth.getUser(token);
+          if (uErr) {
+            authDiag.reason = (authDiag.reason ?? "") + "|getUser:" + String(uErr.message);
+          } else if (u?.user?.id) {
+            userId = u.user.id;
+            authDiag.method = "getUser";
+          }
+        } catch (e) {
+          authDiag.reason = (authDiag.reason ?? "") + "|getUser_threw:" + (e instanceof Error ? e.message : String(e));
+        }
+      }
+    }
+
+    if (!userId) {
+      console.warn("[build-custom-contract] 401 auth_required:", authDiag);
+      return new Response(
+        JSON.stringify({
+          error: "За да изградите договор, влезте безплатно с email или Google.",
+          code: "auth_required",
+          requires_login: true,
+        }),
+        { status: 401, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+      );
+    }
+    console.log("[build-custom-contract] auth ok:", { userId, ...authDiag });
+
+    // Parse + validate body first so we can fire rate-limit, content
+    // guard, and cache lookup queries in parallel.
+    const body = (await req.json()) as BuildPayload;
+    const {
+      name = "",
+      category = "",
+      categorySectorId = null,
+      documentType = "contract",
+      buildMode = "working",
+      bilingual = false,
+      parentContext = undefined,
+      partiesA = [],
+      partiesB = [],
+      customFields = [],
+      subject = "",
+      term = "",
+      prices = "",
+      obligations = "",
+      other = "",
+      userConfirmed = false,
+    } = body as BuildPayload & { userConfirmed?: boolean };
+    const safeBuildMode: BuildMode = (["fast", "working", "strict"] as BuildMode[]).includes(buildMode as BuildMode)
+      ? (buildMode as BuildMode)
+      : "working";
+    const modeSpec = BUILD_MODE_ADDENDUM[safeBuildMode];
+    const safeBilingual = Boolean(bilingual);
+
+    if (!name.trim() || !category.trim()) {
+      return new Response(
+        JSON.stringify({ error: "Името и категорията са задължителни." }),
+        { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+      );
+    }
+
     const safeDocumentType = ALL_DOCUMENT_TYPE_IDS.includes(documentType as any)
       ? documentType
       : "contract";
@@ -281,6 +390,145 @@ Deno.serve(async (req: Request) => {
       ? customFields.filter((f) => f && typeof f.key === "string" && typeof f.label === "string")
         .map((f) => ({ key: String(f.key), label: String(f.label), value: String(f.value ?? "") }))
       : [];
+
+    // Клиентският ключ на операцията е ЗАДЪЛЖИТЕЛЕН: без него повторният опит
+    // не е идемпотентен и би генерирал и таксувал наново.
+    const { asUuidOrNull, canonicalRequestDigest } = await import("../_shared/canonical-digest.ts");
+    const rawClientOpId = (body as Record<string, unknown>)?.operation_id ??
+      (body as Record<string, unknown>)?.client_operation_id;
+    const operationId = asUuidOrNull(rawClientOpId);
+    if (!operationId) {
+      return new Response(
+        JSON.stringify({
+          error: "Липсва или е невалиден идентификатор на операцията.",
+          code: rawClientOpId ? "invalid_operation_id" : "operation_id_required",
+          charge_state: "not_charged",
+        }),
+        { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+      );
+    }
+
+    // КАНОНИЧЕН ОТПЕЧАТЪК на ЦЯЛОТО семантично съдържание на заявката — СЛЕД
+    // проверката на правата и схемата, но ПРЕДИ ВСЯКА променлива външна
+    // зависимост (дневен лимит, проверка за незаконно съдържание, класификация,
+    // редакция, промпт от базата, ключ на доставчика, правно заземяване).
+    const requestDigest = await canonicalRequestDigest({
+      purpose: "build_custom_contract",
+      userId,
+      name,
+      category,
+      categorySectorId,
+      documentType: safeDocumentType,
+      buildMode: safeBuildMode,
+      bilingual: safeBilingual,
+      parentContext: parentContext ?? null,
+      partiesA,
+      partiesB,
+      customFields: safeCustomFields,
+      subject,
+      term,
+      prices,
+      obligations,
+      other,
+    });
+
+    const {
+      reserveQuota,
+      commitQuota,
+      cancelQuota,
+      billingReconciliationResponse,
+      recordReconciliation,
+      lookupCommittedOperation,
+      isOperationInProgress,
+      operationInProgressResponse,
+      responseExpiredResponse,
+    } = await import("../_shared/quota-ledger.ts");
+    type LedgerDb = Parameters<typeof reserveQuota>[0];
+    const ledgerDb = admin as unknown as LedgerDb;
+    const jsonHeaders = {
+      ...corsHeaders,
+      ...correlationHeaders(correlationId),
+      "Content-Type": "application/json",
+    };
+    // Забележка за одита: build-custom-contract ИСТОРИЧЕСКИ НЕ таксуваше квота
+    // при генериране (само дневен лимит от 5 през ai_usage) — квотата „contract"
+    // се пази за самото сваляне (download-document). За да получи операцията
+    // траен точно-веднъж леджър (задължителен за идемпотентност/повторение),
+    // тя се обвързва с вида „analysis" — СЪЩИЯТ вид, ползван от generate-contract
+    // и refine-contract за AI генериране/редакция на договор. Това Е поведенческа
+    // промяна (виж отчета към задачата) и НЕ въвежда нов, изобретен вид квота.
+    const ledgerBinding = {
+      operationId,
+      userId,
+      kind: "analysis" as const,
+      purpose: "build_custom_contract",
+      batchId: null,
+      requestDigest,
+    };
+    const conflictResponse = () =>
+      new Response(
+        JSON.stringify({
+          error: "Този идентификатор вече е използван за друга заявка.",
+          code: "idempotency_key_conflict",
+          charge_state: "not_charged",
+        }),
+        { status: 409, headers: jsonHeaders },
+      );
+    const quotaUnavailableResponse = () =>
+      new Response(
+        JSON.stringify({
+          error: "Проверката на квотата е временно недостъпна. Опитайте отново.",
+          code: "quota_unavailable",
+          charge_state: "not_charged",
+        }),
+        { status: 503, headers: jsonHeaders },
+      );
+    /** Точният записан отговор се връща такъв, какъвто е потвърден. */
+    const exactReplayResponse = (payload: Record<string, unknown>) =>
+      new Response(
+        JSON.stringify(payload),
+        { headers: { ...jsonHeaders, "X-Operation-Replay": "true" } },
+      );
+
+    // САМО-ЧЕТЯЩА проверка: без резервация, без освобождаване, без такса.
+    // ПРЕДИ всяка чуплива/платена зависимост (дневен лимит, незаконно
+    // съдържание, класификация, редакция, промпт от базата, ключ на
+    // доставчика, правно заземяване).
+    const lookup = await lookupCommittedOperation(ledgerDb, ledgerBinding);
+    if (lookup.status === "conflict") return conflictResponse();
+    if (lookup.status === "unavailable") return quotaUnavailableResponse();
+    if (lookup.status === "in_progress") {
+      return operationInProgressResponse(
+        { ...corsHeaders, ...correlationHeaders(correlationId) },
+        lookup.retryAfterSeconds,
+      );
+    }
+    if (lookup.status === "reconciliation") {
+      await recordReconciliation(ledgerDb, operationId, `build_custom_contract_lookup:${lookup.reason}`, {
+        user_id: userId,
+        kind: "analysis",
+      });
+      return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+    }
+    if (lookup.status === "response_expired") {
+      return responseExpiredResponse(
+        { ...corsHeaders, ...correlationHeaders(correlationId) },
+        lookup.charged,
+      );
+    }
+    if (lookup.status === "committed") {
+      const stored = lookup.resultRef;
+      if (stored && stored.contract) {
+        // Никакво заземяване, никакъв модел, никаква нова такса и НИКАКЪВ нов
+        // пропуск за ревизия: правото е издадено веднъж при потвърждението.
+        return exactReplayResponse(stored);
+      }
+      await recordReconciliation(ledgerDb, operationId, "build_custom_contract_committed_without_result", {
+        user_id: userId,
+        kind: "analysis",
+      });
+      return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+    }
 
     const PROMPT_VERSION = "v6-bilingual-cols";
     const guardText = [
@@ -422,6 +670,67 @@ ${fieldsSection}
       return legalVerificationUnavailableResponse({ headers: { ...corsHeaders, ...correlationHeaders(correlationId) } });
     }
     const activeSystemPrompt = `${baseSystem}\n\n${legal.promptBlock}`;
+
+    // ТАКСУВАНЕ: след всички непарични проверки. ЕДИН леджър, идемпотентен по
+    // ключа на операцията и обвързан със съдържанието на заявката.
+    const reservation = await reserveQuota(ledgerDb, ledgerBinding);
+    if (reservation.status === "conflict") return conflictResponse();
+    if (reservation.status === "reconciliation") {
+      await recordReconciliation(ledgerDb, operationId, `build_custom_contract_reserve:${reservation.reason}`, {
+        user_id: userId,
+        kind: "analysis",
+      });
+      return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+    }
+    if (reservation.status === "unavailable") return quotaUnavailableResponse();
+    if (reservation.status === "denied") {
+      return new Response(
+        JSON.stringify({ error: "quota_exceeded", reason: reservation.reason, charge_state: "not_charged" }),
+        { status: 402, headers: jsonHeaders },
+      );
+    }
+
+    // ТОЧНО ПОВТОРЕНИЕ, ако операцията е завършила между четенето и
+    // резервацията: връща се точно записаният отговор, без ново генериране,
+    // без второ таксуване и без нов пропуск.
+    const priorRef = reservation.resultRef;
+    if (priorRef && priorRef.contract) {
+      return exactReplayResponse(priorRef);
+    }
+
+    // ЕДНОВРЕМЕННО ИЗПЪЛНЕНИЕ ПО СЪЩИЯ КЛЮЧ: повторение на още незавършена
+    // резервация БЕЗ записан резултат НИКОГА не стартира второ повикване към
+    // модела. Доказано отменена резервация (retry) е нормален нов опит.
+    if (isOperationInProgress(reservation)) {
+      return operationInProgressResponse(
+        { ...corsHeaders, ...correlationHeaders(correlationId) },
+        4,
+      );
+    }
+
+    /**
+     * ЕДИНСТВЕН КОМПЕНСИРАЩ ПАЗИТЕЛ през леджъра. „charged: false" се твърди
+     * САМО при доказана отмяна; иначе типизиран billing_reconciliation_required
+     * и траен запис за изравняване.
+     */
+    let compensated = false;
+    const cancelOrReport = async (reason: string): Promise<Response | null> => {
+      if (compensated) return null;
+      const outcome = await cancelQuota(ledgerDb, operationId, reason);
+      if (outcome.status !== "settled") {
+        await recordReconciliation(
+          ledgerDb,
+          operationId,
+          `build_custom_contract_cancel_failed:${outcome.reason}`,
+          { user_id: userId, kind: "analysis" },
+        );
+        return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+      }
+      compensated = true;
+      return null;
+    };
+
+    try {
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -439,34 +748,32 @@ ${fieldsSection}
     });
 
     if (!aiResp.ok) {
+      const unresolved = await cancelOrReport(`ai_gateway_${aiResp.status}`);
       await logAiAudit({
         user_id: userId, operation: "build-custom-contract", model: route.model,
         classification, redaction_applied: route.redactionRequired,
         status: "error", error_code: `http_${aiResp.status}`,
       });
-      if (aiResp.status === 429) {
-        return new Response(JSON.stringify({ error: "Достигнат е лимитът. Моля опитайте след малко." }), { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
-      }
-      if (aiResp.status === 402) {
-        return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI. Моля заредете акаунта." }), { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
-      }
-      const t = await aiResp.text();
-      console.error("AI gateway:", aiResp.status, t);
-      throw new Error("AI грешка");
+      if (unresolved) return unresolved;
+      // Тялото на шлюза НЕ се връща и НЕ се логва: може да носи части от
+      // въведените от потребителя данни.
+      const { normalizeGatewayStatus, gatewayErrorResponse } = await import(
+        "../_shared/gateway-error.ts"
+      );
+      console.error("AI gateway status:", aiResp.status);
+      return gatewayErrorResponse(
+        normalizeGatewayStatus(aiResp.status),
+        { ...corsHeaders, ...correlationHeaders(correlationId) },
+        { charged: false, charge_state: "cancelled" },
+      );
     }
-
-    await admin.from("ai_usage").insert({
-      user_id: userId,
-      ip_hash: null,
-      function_name: "build-custom-contract",
-    });
 
     const rawText = await aiResp.text();
     if (!rawText) throw new Error("Празен отговор от AI");
 
     let data: any;
     try { data = JSON.parse(rawText); } catch {
-      console.error("AI raw (not JSON):", rawText.slice(0, 500));
+      console.error("AI raw response was not valid JSON (length:", rawText.length, ")");
       throw new Error("AI върна невалиден JSON отговор");
     }
 
@@ -476,7 +783,7 @@ ${fieldsSection}
       throw new Error("AI не върна съдържание. Опитайте отново.");
     }
 
-    let parsed: { risk: any; contract: any };
+    let parsed: { risk: any; contract: any; [key: string]: unknown };
     try {
       const { parseAiJsonWithRetry } = await import("../_shared/ai-json-retry.ts");
       const res = await parseAiJsonWithRetry({
@@ -496,7 +803,7 @@ ${fieldsSection}
       parsed = res.parsed;
       if (res.stage !== "direct") console.log(`build-custom-contract: JSON recovered via ${res.stage}`);
     } catch {
-      console.error("JSON parse failed. finish_reason:", finishReason, "Content head:", content.slice(0, 800));
+      console.error("JSON parse failed. finish_reason:", finishReason, "content_length:", content.length);
       const friendly = finishReason === "length"
         ? "Документът е твърде дълъг и отговорът беше отрязан. Моля опитайте с по-кратко описание или го разделете на части."
         : "AI отговорът не може да бъде анализиран. Моля опитайте отново.";
@@ -588,7 +895,8 @@ ${fieldsSection}
       parsed.risk = withIntent.risk;
       parsed.quality = { ...gated.quality, intent: { checked: intentReport.checked, satisfied: intentReport.satisfied, mismatched: intentReport.mismatched_required.length } };
       if (qualityManifest) parsed.quality_manifest = qualityManifest;
-      // СЪРВЪРНО издаден ЕДНОКРАТЕН пропуск за ревизия на ТОЧНО този текст.
+      // СЪРВЪРНО издаден ЕДНОКРАТЕН пропуск за ревизия на ТОЧНО този текст —
+      // мината ТОЧНО ВЕДНЪЖ, преди потвърждението, и никога при повторение.
       {
         const { issueGrantForGeneratedContent, reviewGrantSecret } = await import(
           "../_shared/review-grant.ts"
@@ -602,7 +910,28 @@ ${fieldsSection}
       }
     }
 
+    // ЕДИН ТОЧЕН ОТГОВОР: сглобява се ВЕДНЪЖ и се записва ЦЯЛОСТНО при
+    // потвърждението. Повторен опит по същия ключ връща същия отговор.
+    const exactPayload = { ...parsed, charge_state: "charged" } as Record<string, unknown>;
 
+    // ПОТВЪРЖДЕНИЕ + ОБВЪРЗВАНЕ на резултата ПРЕДИ 200: повторен опит по същия
+    // ключ връща точно този текст. Недоказано потвърждение НЕ дава 200.
+    const settlement = await commitQuota(ledgerDb, operationId, exactPayload);
+    if (settlement.status !== "settled") {
+      await recordReconciliation(
+        ledgerDb,
+        operationId,
+        `build_custom_contract_commit_unresolved:${settlement.reason}`,
+        { user_id: userId, kind: "analysis" },
+      );
+      await logAiAudit({
+        user_id: userId, operation: "build-custom-contract", model: route.model,
+        classification, redaction_applied: route.redactionRequired,
+        status: "error", error_code: "commit_unresolved",
+      });
+      return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+    }
+    compensated = true;
 
     await logAiAudit({
       user_id: userId, operation: "build-custom-contract", model: route.model,
@@ -611,8 +940,12 @@ ${fieldsSection}
       tokens_out: data?.usage?.completion_tokens,
     });
 
-    // Cache successful result.
-    // Без кеш: запис без доказана правна основа не може да бъде преизползван.
+    // ai_usage се записва САМО при успешен краен изход.
+    await admin.from("ai_usage").insert({
+      user_id: userId,
+      ip_hash: null,
+      function_name: "build-custom-contract",
+    });
 
     // Fire-and-forget: anonymise + persist as a candidate blank for admin review.
     // We do NOT await this so the user's response is fast.
@@ -625,6 +958,28 @@ ${fieldsSection}
       }).catch((e) => console.error("anonymiseAndStoreBlank failed:", e))
     );
 
+    // Връща се ТОЧНО записаният отговор (ако леджърът го е върнал обратно).
+    const committedPayload = settlement.resultRef ?? exactPayload;
+    return new Response(JSON.stringify(committedPayload), {
+      headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
+    });
+
+    } catch (afterCharge) {
+      // Всеки неуспешен краен изход след резервацията отменя я точно веднъж.
+      const unresolved = await cancelOrReport(
+        `exception:${String((afterCharge as Error)?.message ?? afterCharge).slice(0, 200)}`,
+      );
+      if (unresolved) return unresolved;
+      throw afterCharge;
+    }
+  } catch (e) {
+    console.error(`build-custom-contract error [cid=${correlationId}]:`, e instanceof Error ? e.message : "unknown");
+    return new Response(
+      JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка", correlation_id: correlationId }),
+      { status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+    );
+  }
+});
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
     });

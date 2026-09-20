@@ -87,9 +87,6 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("Липсва конфигурация за AI");
-
     const rawBody: Record<string, unknown> = await req.json().catch(() => ({}));
     const req0 = buildReviewRequest(rawBody);
     if ("ok" in req0) {
@@ -170,6 +167,7 @@ Deno.serve(async (req: Request) => {
       cancelReviewOperation,
       commitReviewOperation,
       reserveReviewOperation,
+      lookupReviewOperation,
       reviewContentDigest,
       reviewGrantSecret,
       REVIEW_GRANT_AUDIENCE,
@@ -263,6 +261,83 @@ Deno.serve(async (req: Request) => {
 
     if (!authorizedOwnerId) {
       return denied(persistedDenial ?? "missing_authorization");
+    }
+
+    // -----------------------------------------------------------------------
+    // САМО-ЧЕТЯЩА ПРОВЕРКА ЗА ВЕЧЕ ЗАВЪРШЕНА РЕВИЗИЯ по ЦЯЛОТО подписано
+    // обвързване. Не резервира, не отменя и НЕ изгаря пропуска. Минава СЛЕД
+    // оторизацията и отпечатъка на съдържанието, но ПРЕДИ ограничителя,
+    // класификацията, редакцията, заземяването и ключа на доставчика: всички
+    // те са променливи и не бива да блокират вече издаден резултат.
+    // -----------------------------------------------------------------------
+    if (grantPayload) {
+      const existing = await lookupReviewOperation(admin, grantPayload);
+      if (existing.kind === "committed") {
+        // Точно записаният отговор, немутиран. Маркерът е САМО хедър.
+        return new Response(JSON.stringify(existing.response), {
+          headers: {
+            ...corsHeaders,
+            ...correlationHeaders(correlationId),
+            "Content-Type": "application/json",
+            "X-Operation-Replay": "true",
+          },
+        });
+      }
+      if (existing.kind === "in_progress") {
+        return new Response(
+          JSON.stringify({
+            error: "Ревизията на този документ вече се обработва. Опитайте отново след малко.",
+            code: "review_in_progress",
+            retry_after_seconds: existing.retryAfterSeconds,
+          }),
+          {
+            status: 409,
+            headers: {
+              ...corsHeaders,
+              ...correlationHeaders(correlationId),
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+      if (existing.kind === "conflict") return denied("grant_replayed");
+      if (existing.kind === "expired") return denied("grant_invalid");
+      if (existing.kind === "reconciliation") {
+        return new Response(
+          JSON.stringify({
+            error: "Проверяваме състоянието на предишната ревизия. Опитайте отново след малко.",
+            code: "reconciliation_required",
+            retry_after_seconds: 15,
+          }),
+          {
+            status: 503,
+            headers: {
+              ...corsHeaders,
+              ...correlationHeaders(correlationId),
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+      if (existing.kind === "unavailable") {
+        return new Response(
+          JSON.stringify({
+            error: "Ревизията е временно недостъпна. Опитайте отново след малко.",
+            code: "review_unavailable",
+            retry_after_seconds: 10,
+          }),
+          {
+            status: 503,
+            headers: {
+              ...corsHeaders,
+              ...correlationHeaders(correlationId),
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      }
+      // absent (включително доказано отменена): продължава през ВСИЧКИ безплатни
+      // проверки и чак тогава резервира.
     }
 
     // ЩАБНО ИЗКЛЮЧЕНИЕ: само проверена роля може ръчно да изключи проверката за
@@ -378,6 +453,11 @@ Deno.serve(async (req: Request) => {
       s.text,
     ].filter(Boolean).join("\n");
 
+
+    // Ключът на доставчика се изисква САМО за НОВА ревизия. Вече завършена и
+    // вече издадена ревизия не зависи от настройката на шлюза.
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("Липсва конфигурация за AI");
 
     // СТРОГО ЗАЗЕМЯВАНЕ за точно тази (редактирана) заявка — преди всяко
     // повикване към модела. Без проверена норма ревизията спира с 503.

@@ -358,9 +358,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
-
     // Match the document type so the AI doesn't render every blank as a contract.
     const docTypeSpec = getDocumentTypeSpec(inferDocumentType(documentName));
 
@@ -455,6 +452,12 @@ Deno.serve(async (req: Request) => {
     if (committedLookup.status === "reconciliation") {
       return await reconcile(`lookup_${committedLookup.reason}`);
     }
+    if (committedLookup.status === "response_expired") {
+      // Артефактните метаданни вече не се пазят: изрична НОВА заявка, без
+      // ново генериране по стария ключ и без второ таксуване.
+      const { responseExpiredResponse } = await import("../_shared/quota-ledger.ts");
+      return responseExpiredResponse(corsHeaders, committedLookup.charged);
+    }
     if (committedLookup.status === "committed") {
       const stored = (committedLookup.resultRef ?? {}) as Record<string, unknown>;
       const storedBucket = typeof stored.bucket === "string" ? stored.bucket : null;
@@ -515,6 +518,11 @@ Deno.serve(async (req: Request) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
+    // Ключът на доставчика се изисква САМО за НОВА операция. Вече завършена и
+    // вече таксувана доставка не зависи от настройката на шлюза.
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
     // СТРОГО ЗАЗЕМЯВАНЕ — ПРЕДИ таксуване и преди всяко повикване към модела.
     const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
