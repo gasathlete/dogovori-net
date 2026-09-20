@@ -308,6 +308,8 @@ export async function commitDocumentOperation(
   const { data, error } = await db.rpc("ai_document_operation_commit", {
     p_operation_id: input.operationId,
     p_user_id: input.userId,
+    p_purpose: input.purpose,
+    p_binding: input.binding,
     p_result: input.result,
     p_result_ttl_seconds: Math.max(60, Math.min(input.resultTtlSeconds ?? 86400, 7 * 86400)),
     p_usage_function: input.usageFunction ?? null,
