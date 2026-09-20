@@ -226,6 +226,7 @@ function AnonChat({ resetKey }: { resetKey: number }) {
   const typingTimerRef = useRef<number | null>(null);
   // Запазва се между повторните опити на едно и също изпращане.
   const pendingRequestIdRef = useRef<string | null>(null);
+  const pendingScopeRef = useRef<string | null>(null);
 
   // Wipe state when parent forces a reset (idle >24h).
   useEffect(() => {
