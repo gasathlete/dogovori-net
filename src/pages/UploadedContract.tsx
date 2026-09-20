@@ -296,7 +296,7 @@ export default function UploadedContractPage() {
       purpose: "correct_uploaded",
       userId: user.id,
       resourceId: id,
-      resourceVersion: payload.binding.textSha256 ?? null,
+      resourceVersion: payload.binding.text_sha256 ?? null,
       options: {
         analysis_id: payload.analysisId,
         issues: payload.selectedIssueIndices,
