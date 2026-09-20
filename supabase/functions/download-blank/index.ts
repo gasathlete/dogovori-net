@@ -581,12 +581,21 @@ Deno.serve(async (req: Request) => {
     );
     if (committed.status !== "settled") {
       // Без доказано обвързване на резултата НЕ връщаме успех: иначе повторният
-      // опит би генерирал и таксувал наново.
+      // опит би генерирал и таксувал наново. Качественият обект се маха
+      // синхронно; ако и това не успее, се записва за изравняване.
+      const { error: rmErr } = await admin.storage
+        .from("document-blanks")
+        .remove([storagePath!]);
       await recordReconciliation(
         admin as unknown as Parameters<typeof recordReconciliation>[0],
         operationId,
         `commit_failed:${committed.reason}`,
-        { purpose: "download_blank", bucket: "document-blanks", path: storagePath },
+        {
+          purpose: "download_blank",
+          bucket: "document-blanks",
+          path: storagePath,
+          cleanup: rmErr ? `remove_failed:${rmErr.message}` : "removed",
+        },
       );
       return billingReconciliationResponse(corsHeaders);
     }
@@ -599,11 +608,11 @@ Deno.serve(async (req: Request) => {
         cached: false,
         is_pro: !!isPro,
         citations: legal.citations,
-        // Сървърният ключ се връща, за да може клиентът да повтори безопасно.
+        // Ключът е клиентски и задължителен — повторението е идемпотентно.
         operation_id: operationId,
-        // Стар клиент без ключ НЕ получава гаранция за идемпотентно повторение.
-        retry_idempotent: hasClientKey,
+        retry_idempotent: true,
       }),
+
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
     } catch (afterCharge) {
