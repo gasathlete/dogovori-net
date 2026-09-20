@@ -443,6 +443,17 @@ Deno.serve(async (req) => {
     });
 
 
+    // 6б) Неизяснен изход от предишно извикване БЛОКИРА нова задача. Четенето е
+    // само четене и стои ПРЕДИ заявяването, доставчика и всяка промяна.
+    const reconciliation = await readProductReconciliationState(
+      admin as unknown as ReconciliationRpcClient,
+      userId,
+      entitlementId,
+    );
+    if (reconciliation.jobRequired) {
+      return fail("reconciliation_required", 409, headers, cid);
+    }
+
     // 7) Атомарно заявяване на НАЙ-МНОГО една ограничена стъпка.
     // Ключът за идемпотентност се изчислява ВЪТРЕ в атомарното заявяване, от
     // правото, политиката и действително записания курсор — не от извикващия.
@@ -494,6 +505,20 @@ Deno.serve(async (req) => {
       return fail("failed_retryable", 503, headers, cid);
     };
     const handlePostClaimFailure = async (error: unknown): Promise<Response> => {
+      // Неизяснен изход на доставчик: НЕ се освобождава наем (иначе втора
+      // заявка би извикала модела пак), НЕ се обявява провал и НИКОГА не се
+      // възстановява платено право. Състоянието се замразява до ръчно изясняване.
+      if (error instanceof ProductUncertainCallError) {
+        console.error("fulfill-product provider outcome unknown", { cid, code: error.code });
+        await markProductJobReconciliation(
+          admin as unknown as ReconciliationRpcClient,
+          jobId,
+          leaseToken,
+          error.code,
+          error.callId,
+        );
+        return fail("reconciliation_required", 409, headers, cid);
+      }
       // Провалът на доставчика НИКОГА не изтича навън: нито тяло, нито подсказка,
       // нито изход на модела. Остава само затворен код.
       const gateway = error instanceof ProductModelGatewayError;
