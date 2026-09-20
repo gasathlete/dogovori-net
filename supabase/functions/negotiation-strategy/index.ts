@@ -284,6 +284,12 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
     // външна заявка (включително извличането на правния контекст).
     const classification = classifyDocumentBeforeAI(rawCorpus);
     if (classification.risk_level === "blocked") {
+      // Детерминистичен провал ПРЕДИ модела: отмяна, без такса.
+      await cancelDocumentOperation(admin, {
+        operationId,
+        userId: user.id,
+        reason: "content_blocked",
+      });
       return new Response(
         JSON.stringify({ error: "content_blocked", code: "content_blocked", charged: false }),
         { status: 422, headers: { ...cors, "Content-Type": "application/json" } },
