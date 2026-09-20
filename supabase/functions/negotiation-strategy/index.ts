@@ -360,22 +360,26 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
       resp = await callModel("google/gemini-2.5-pro");
       usedModel = "google/gemini-2.5-pro";
     }
+    // СЛЕД началото на модела няма автоматично връщане и няма трето повикване:
+    // всяка несигурност отива в изравняване.
+    const reconcileAndRespond = async (reason: string): Promise<Response> => {
+      await markDocumentReconciliation(admin, {
+        operationId,
+        userId: user.id,
+        reason,
+      });
+      return operationReconciliationResponse(cors, reason);
+    };
+
     if (!resp.ok) {
       // Нормализирана грешка: без тяло и подробности от доставчика.
-      const status = resp.status === 429 ? 429 : 502;
-      return new Response(
-        JSON.stringify({ error: resp.status === 429 ? "ai_busy" : "ai_failed", charged: false }),
-        { status, headers: { ...cors, "Content-Type": "application/json" } },
-      );
+      return await reconcileAndRespond(resp.status === 429 ? "provider_busy" : "provider_failed");
     }
-    const data = await resp.json();
+    const data = await resp.json().catch(() => null);
     const raw = data?.choices?.[0]?.message?.content ?? "";
     const parsedStrategy = extractJson(raw, { fn: "negotiation-strategy" });
     if (!parsedStrategy || typeof parsedStrategy !== "object") {
-      return new Response(JSON.stringify({ error: "parse_failed" }), {
-        status: 502,
-        headers: { ...cors, "Content-Type": "application/json" },
-      });
+      return await reconcileAndRespond("malformed_response");
     }
     // Връщане на редактираните стойности само в текстовите полета.
     const strategy = JSON.parse(
