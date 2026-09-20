@@ -392,6 +392,18 @@ ${answersRedacted}
       p.risk = withIntent.risk;
       p.quality = { ...gated.quality, intent: { checked: carryReport.checked, satisfied: carryReport.satisfied, mismatched: carryReport.mismatched_required.length } };
       if (qualityManifest) p.quality_manifest = qualityManifest;
+      // СЪРВЪРНО издаден ЕДНОКРАТЕН пропуск за ревизия на ТОЧНО този текст.
+      {
+        const { issueGrantForGeneratedContent, reviewGrantSecret } = await import(
+          "../_shared/review-grant.ts"
+        );
+        const reviewGrant = await issueGrantForGeneratedContent({
+          secret: reviewGrantSecret(),
+          ownerId: userId,
+          documentText,
+        });
+        if (reviewGrant) p.review_grant = reviewGrant;
+      }
     }
 
     await logAiAudit({
