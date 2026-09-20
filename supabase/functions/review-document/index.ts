@@ -177,7 +177,7 @@ Deno.serve(async (req: Request) => {
 
     // СТРОГО ЗАЗЕМЯВАНЕ за точно тази (редактирана) заявка — преди всяко
     // повикване към модела. Без проверена норма ревизията спира с 503.
-    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.0");
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
