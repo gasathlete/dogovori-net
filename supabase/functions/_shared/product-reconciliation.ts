@@ -57,7 +57,31 @@ export interface ReconciliationRpcClient {
 export interface ProductReconciliationState {
   readonly jobRequired: boolean;
   readonly refinementRequired: boolean;
+  /** Окончателно погасено извикване по задачата (решение „consume“ от оператор). */
+  readonly terminalJob: boolean;
+  /** Окончателно погасено извикване по уточнението. */
+  readonly terminalRefinement: boolean;
+  /** Висящо/незавършено извикване за уточнение без разрешение. */
+  readonly orphanRefinementCall: boolean;
   readonly code: string | null;
+}
+
+const UNREADABLE: ProductReconciliationState = Object.freeze({
+  jobRequired: true,
+  refinementRequired: true,
+  terminalJob: false,
+  terminalRefinement: false,
+  orphanRefinementCall: false,
+  code: "state_unreadable",
+});
+
+const TERMINAL_KINDS = Object.freeze(["job", "refinement"] as const);
+
+/** Затворен набор: всяка друга стойност се третира като нечетимо състояние. */
+function normalizeCode(value: unknown): string | null | "invalid" {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "string") return "invalid";
+  return (PRODUCT_RECONCILIATION_CODES as readonly string[]).includes(value) ? value : "invalid";
 }
 
 /**
@@ -69,23 +93,73 @@ export async function readProductReconciliationState(
   userId: string,
   entitlementId: string,
 ): Promise<ProductReconciliationState> {
-  const { data, error } = await db.rpc("product_reconciliation_state", {
-    p_user_id: userId,
-    p_entitlement_id: entitlementId,
-  });
-  if (error) return { jobRequired: true, refinementRequired: true, code: "state_unreadable" };
-  const row = (data ?? {}) as Record<string, unknown>;
-  if (row.ok !== true) return { jobRequired: true, refinementRequired: true, code: "state_unreadable" };
-  const job = (row.job ?? null) as Record<string, unknown> | null;
-  const refinement = (row.refinement ?? null) as Record<string, unknown> | null;
+  let data: unknown;
+  try {
+    const res = await db.rpc("product_reconciliation_state", {
+      p_user_id: userId,
+      p_entitlement_id: entitlementId,
+    });
+    if (res.error) return UNREADABLE;
+    data = res.data;
+  } catch {
+    return UNREADABLE;
+  }
+  if (data === null || data === undefined || typeof data !== "object" || Array.isArray(data)) {
+    return UNREADABLE;
+  }
+  const row = data as Record<string, unknown>;
+  if (row.ok !== true) return UNREADABLE;
+
+  const job = normalizeSubject(row.job);
+  const refinement = normalizeSubject(row.refinement);
+  if (job === "invalid" || refinement === "invalid") return UNREADABLE;
+
+  // terminal: null или масив САМО от познати видове.
+  let terminalJob = false;
+  let terminalRefinement = false;
+  const terminal = row.terminal ?? null;
+  if (terminal !== null) {
+    if (!Array.isArray(terminal)) return UNREADABLE;
+    for (const kind of terminal) {
+      if (typeof kind !== "string" || !(TERMINAL_KINDS as readonly string[]).includes(kind)) {
+        return UNREADABLE;
+      }
+      if (kind === "job") terminalJob = true;
+      if (kind === "refinement") terminalRefinement = true;
+    }
+  }
+
+  // orphan_refinement_call: само true или null.
+  const orphanRaw = row.orphan_refinement_call ?? null;
+  if (orphanRaw !== null && orphanRaw !== true) return UNREADABLE;
+  const orphanRefinementCall = orphanRaw === true;
+
+  const code = job?.code ?? refinement?.code ??
+    (terminalJob || terminalRefinement
+      ? "reconciliation_terminal"
+      : orphanRefinementCall
+      ? "refinement_call_orphaned"
+      : null);
+
   return {
-    jobRequired: job !== null,
-    refinementRequired: refinement !== null,
-    code: typeof (job?.code ?? refinement?.code) === "string"
-      ? String(job?.code ?? refinement?.code)
-      : null,
+    jobRequired: job !== null || terminalJob,
+    refinementRequired: refinement !== null || terminalRefinement || orphanRefinementCall,
+    terminalJob,
+    terminalRefinement,
+    orphanRefinementCall,
+    code,
   };
 }
+
+/** Връща null (няма ред), обекта с валиден код, или "invalid" при чужда форма. */
+function normalizeSubject(value: unknown): { code: string | null } | null | "invalid" {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "object" || Array.isArray(value)) return "invalid";
+  const code = normalizeCode((value as Record<string, unknown>).code);
+  if (code === "invalid") return "invalid";
+  return { code };
+}
+
 
 /** Вписва неизяснено състояние на задачата. Никога не хвърля навън. */
 export async function markProductJobReconciliation(
