@@ -133,33 +133,93 @@
       ],
       "releaseBlocking": true,
       "releaseBlockingReason": "Остава блокиращо за пускане, докато 0039 не бъде приложена и фикстурата не бъде изпълнена срещу нея."
-    }
-  ],
-  "releaseBlockingInventory": [
+    },
     {
       "function": "correct-uploaded",
       "trigger": "user",
-      "mechanism": "none",
-      "gap": "Няма operation_id, нито трайна резервация/уреждане."
+      "mechanism": "ai_document_operations",
+      "purpose": "correct_uploaded",
+      "idempotency": "задължителен клиентски operation_id + каноничен SHA-256 обвързване (цел correct_uploaded, собствен документ, точната версия на текста, избраните находки и потвърждението), само-четящо търсене на завършена операция ПРЕДИ дневния лимит, ключа на доставчика, квотата и RAG, после резервация -> трайно отбелязано начало на модела -> едно атомарно потвърждаване заедно с ai_usage; детерминиран отказ преди модела отменя резервацията и връща точно същата квота, а несигурност след старта дава уреждане без автоматично връщане и без повторно повикване",
+      "directGatewayCallSites": 1,
+      "maxChatRequestsPerOperation": 2,
+      "providerCallBudget": 2,
+      "repair": {
+        "policy": "bounded JSON repair in the same reservation",
+        "parseAiJsonWithRetry": true,
+        "regenerateAttempts": 1
+      },
+      "releaseBlocking": true,
+      "releaseBlockers": [
+        "миграция 0040 НЕ е приложена",
+        "supabase/tests/0040_gate2_ai_operations.sql е написан, но НЕ е изпълнен",
+        "истинска двусесийна PostgreSQL проверка за едновременност НЕ е доказана"
+      ]
     },
     {
       "function": "generate-linked-document",
       "trigger": "user",
-      "mechanism": "none",
-      "gap": "Няма operation_id, нито трайна резервация/уреждане."
+      "mechanism": "ai_document_operations",
+      "purpose": "generate_linked_document",
+      "idempotency": "задължителен клиентски operation_id за вписан профил + каноничен SHA-256 обвързване (цел generate_linked_document, вид, номер, указания, отпечатък на основния документ); анонимните заявки остават с досегашните ограничения по IP; само-четящо търсене преди лимитите, ключа и RAG; резервация -> трайно начало -> едно атомарно потвърждаване с ai_usage",
+      "directGatewayCallSites": 1,
+      "maxChatRequestsPerOperation": 1,
+      "providerCallBudget": 1,
+      "repair": {
+        "policy": "bounded JSON repair in the same reservation",
+        "parseAiJsonWithRetry": true,
+        "regenerateAttempts": 0
+      },
+      "releaseBlocking": true,
+      "releaseBlockers": [
+        "миграция 0040 НЕ е приложена",
+        "supabase/tests/0040_gate2_ai_operations.sql е написан, но НЕ е изпълнен",
+        "истинска двусесийна PostgreSQL проверка за едновременност НЕ е доказана"
+      ]
     },
     {
       "function": "negotiation-strategy",
       "trigger": "user",
-      "mechanism": "none",
-      "gap": "Няма operation_id, нито трайна резервация/уреждане."
+      "mechanism": "ai_document_operations",
+      "purpose": "negotiation_strategy",
+      "idempotency": "задължителен клиентски operation_id за генериране + каноничен SHA-256 обвързване (цел negotiation_strategy, собствен анализ, версия на източника, режим); четенето на вече запазена стратегия (cached_only) е без модел и без операция; резервация -> трайно начало -> едно атомарно потвърждаване, което записва подписания плик и ai_usage в една стъпка",
+      "directGatewayCallSites": 1,
+      "maxChatRequestsPerOperation": 2,
+      "providerCallBudget": 2,
+      "repair": {
+        "policy": "no JSON repair round",
+        "parseAiJsonWithRetry": false,
+        "regenerateAttempts": 0
+      },
+      "releaseBlocking": true,
+      "releaseBlockers": [
+        "миграция 0040 НЕ е приложена",
+        "supabase/tests/0040_gate2_ai_operations.sql е написан, но НЕ е изпълнен",
+        "истинска двусесийна PostgreSQL проверка за едновременност НЕ е доказана"
+      ]
     },
     {
       "function": "ocr-contract",
       "trigger": "user",
-      "mechanism": "legacy consume_quota",
-      "gap": "Използва наследения consume_quota без трайна операция, без точно повторение и без доказано освобождаване."
-    },
+      "mechanism": "ai_document_operations",
+      "purpose": "ocr_contract",
+      "idempotency": "задължителен клиентски operation_id + каноничен SHA-256 обвързване от ПОДРЕДЕНИТЕ отпечатъци на страниците (никакви base64 байтове в регистъра или дневниците); най-много 12 страници = най-много 12 повиквания за цялата партида; резервацията на допълнителните операции е всичко-или-нищо; резервация -> трайно начало -> едно атомарно потвърждаване",
+      "directGatewayCallSites": 1,
+      "maxChatRequestsPerOperation": 12,
+      "providerCallBudget": 12,
+      "repair": {
+        "policy": "no JSON repair round",
+        "parseAiJsonWithRetry": false,
+        "regenerateAttempts": 0
+      },
+      "releaseBlocking": true,
+      "releaseBlockers": [
+        "миграция 0040 НЕ е приложена",
+        "supabase/tests/0040_gate2_ai_operations.sql е написан, но НЕ е изпълнен",
+        "истинска двусесийна PostgreSQL проверка за едновременност НЕ е доказана"
+      ]
+    }
+  ],
+  "releaseBlockingInventory": [
     {
       "function": "download-document",
       "trigger": "user",
