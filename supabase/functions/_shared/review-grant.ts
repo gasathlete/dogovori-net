@@ -443,3 +443,181 @@ export async function cancelReviewOperation(
     reason: typeof r.reason === "string" ? r.reason : "cancel_failed",
   };
 }
+
+// =============================================================================
+// СОБСТВЕНИ (owned) операции по ревизия — durable леджър, когато оторизацията
+// идва от ПРОВЕРЕН СОБСТВЕНИК на запазен документ (grantPayload === null), а
+// не от подписан еднократен пропуск. Обвързването е с owner/document/version/
+// hash вместо nonce-грант (виж 0036). Стилът е нарочно огледален на
+// `lookupReviewOperation`/`reserveReviewOperation`/`commitReviewOperation`/
+// `cancelReviewOperation` по-горе — типовете на изхода се преизползват.
+// =============================================================================
+
+export interface OwnedReviewBinding {
+  readonly operationId: string;
+  readonly ownerId: string;
+  readonly documentId: string;
+  readonly documentVersion: string | null;
+  readonly documentHash: string;
+  readonly contentDigest: string;
+  readonly purpose: string;
+}
+
+export async function lookupOwnedReviewOperation(
+  db: NonceDb,
+  binding: OwnedReviewBinding,
+): Promise<ReviewLookupOutcome> {
+  let data: unknown = null;
+  let error: { message: string } | null = null;
+  try {
+    const out = await db.rpc("owned_review_operation_lookup", {
+      p_operation_id: binding.operationId,
+      p_owner_id: binding.ownerId,
+      p_document_id: binding.documentId,
+      p_document_version: binding.documentVersion,
+      p_document_hash: binding.documentHash,
+      p_content_digest: binding.contentDigest,
+      p_purpose: binding.purpose,
+    });
+    data = out.data;
+    error = out.error;
+  } catch {
+    return { kind: "unavailable", reason: "lookup_threw" };
+  }
+  if (error) return { kind: "unavailable", reason: "lookup_uncertain" };
+  const r = rowOf(data);
+  const status = String(r.status ?? "");
+  if (status === "committed") {
+    const stored = rowOf(r.response);
+    if (Object.keys(stored).length === 0) return { kind: "expired" };
+    return { kind: "committed", response: stored };
+  }
+  if (status === "in_progress") {
+    return {
+      kind: "in_progress",
+      retryAfterSeconds: Math.max(1, Number(r.retry_after_seconds ?? 5)),
+    };
+  }
+  if (status === "response_expired") return { kind: "expired" };
+  if (status === "conflict") return { kind: "conflict" };
+  if (status === "reconciliation") {
+    return { kind: "reconciliation", reason: String(r.reason ?? "reconciliation_required") };
+  }
+  if (status === "absent") {
+    return { kind: "absent", reason: r.reason ? String(r.reason) : undefined };
+  }
+  return { kind: "unavailable", reason: `unexpected_lookup_status:${status || "empty"}` };
+}
+
+export async function reserveOwnedReviewOperation(
+  db: NonceDb,
+  binding: OwnedReviewBinding,
+  leaseSeconds = 180,
+): Promise<ReviewReserveOutcome> {
+  let data: unknown = null;
+  let error: { message: string } | null = null;
+  try {
+    const out = await db.rpc("owned_review_operation_reserve", {
+      p_operation_id: binding.operationId,
+      p_owner_id: binding.ownerId,
+      p_document_id: binding.documentId,
+      p_document_version: binding.documentVersion,
+      p_document_hash: binding.documentHash,
+      p_content_digest: binding.contentDigest,
+      p_purpose: binding.purpose,
+      p_lease_seconds: leaseSeconds,
+    });
+    data = out.data;
+    error = out.error;
+  } catch {
+    return { kind: "unavailable", reason: "reserve_threw" };
+  }
+  if (error) return { kind: "unavailable", reason: "reserve_uncertain" };
+  const r = rowOf(data);
+  if (r.ok === true) {
+    if (r.replay === true) {
+      const stored = rowOf(r.response);
+      if (Object.keys(stored).length === 0) {
+        return { kind: "unavailable", reason: "response_missing" };
+      }
+      return { kind: "replay", response: stored };
+    }
+    return { kind: "reserved" };
+  }
+  if (r.reason === "in_progress") {
+    return {
+      kind: "in_progress",
+      retryAfterSeconds: Math.max(1, Number(r.retry_after_seconds ?? 5)),
+    };
+  }
+  if (r.reason === "response_expired") return { kind: "expired" };
+  if (r.reason === "binding_conflict") return { kind: "conflict" };
+  if (r.reason === "reconciliation_required" || r.reason === "cancellation_unproven") {
+    return { kind: "reconciliation", reason: String(r.reason) };
+  }
+  return {
+    kind: "unavailable",
+    reason: typeof r.reason === "string" ? r.reason : "reserve_failed",
+  };
+}
+
+export async function commitOwnedReviewOperation(
+  db: NonceDb,
+  binding: OwnedReviewBinding,
+  response: Record<string, unknown>,
+): Promise<ReviewCommitOutcome> {
+  let data: unknown = null;
+  let error: { message: string } | null = null;
+  try {
+    const out = await db.rpc("owned_review_operation_commit", {
+      p_operation_id: binding.operationId,
+      p_owner_id: binding.ownerId,
+      p_response: response,
+    });
+    data = out.data;
+    error = out.error;
+  } catch {
+    return { kind: "uncertain", reason: "commit_threw" };
+  }
+  if (error) return { kind: "uncertain", reason: "commit_uncertain" };
+  const r = rowOf(data);
+  if (r.ok === true) {
+    const stored = rowOf(r.response);
+    if (Object.keys(stored).length === 0) {
+      return { kind: "uncertain", reason: "response_missing" };
+    }
+    return { kind: "committed", replay: r.replay === true, response: stored };
+  }
+  return {
+    kind: "uncertain",
+    reason: typeof r.reason === "string" ? r.reason : "commit_failed",
+  };
+}
+
+export async function cancelOwnedReviewOperation(
+  db: NonceDb,
+  binding: OwnedReviewBinding,
+  reason: string,
+): Promise<ReviewCancelOutcome> {
+  let data: unknown = null;
+  let error: { message: string } | null = null;
+  try {
+    const out = await db.rpc("owned_review_operation_cancel", {
+      p_operation_id: binding.operationId,
+      p_owner_id: binding.ownerId,
+      p_reason: reason,
+    });
+    data = out.data;
+    error = out.error;
+  } catch {
+    return { kind: "uncertain", reason: "cancel_threw" };
+  }
+  if (error) return { kind: "uncertain", reason: "cancel_uncertain" };
+  const r = rowOf(data);
+  if (r.ok === true) return { kind: "cancelled" };
+  if (r.reason === "already_committed") return { kind: "already_committed" };
+  return {
+    kind: "uncertain",
+    reason: typeof r.reason === "string" ? r.reason : "cancel_failed",
+  };
+}

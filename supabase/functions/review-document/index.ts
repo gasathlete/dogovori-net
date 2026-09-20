@@ -96,6 +96,18 @@ Deno.serve(async (req: Request) => {
       );
     }
     const request = req0;
+    const { asUuidOrNull } = await import("../_shared/canonical-digest.ts");
+    const rawClientOpId = rawBody?.operation_id ?? rawBody?.client_operation_id;
+    const operationId = asUuidOrNull(rawClientOpId);
+    if (!operationId) {
+      return new Response(
+        JSON.stringify({
+          error: "Липсва или е невалиден идентификатор на операцията.",
+          code: rawClientOpId ? "invalid_operation_id" : "operation_id_required",
+        }),
+        { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+      );
+    }
     // Q4a — незадължителен манифест за качество от нашия генератор. Доверява се
     // САМО при точно съвпадение на отпечатъка със РЕВИЗИРАНИЯ текст; иначе
     // документът е външен/недоверен и нищо не се потиска.
@@ -135,6 +147,7 @@ Deno.serve(async (req: Request) => {
     const {
       authorizePersistedReview,
       reviewDenial,
+      normalizeDocumentRef,
     } = await import("./review-authorization.ts");
     const denied = (
       reason: Parameters<typeof reviewDenial>[0],
@@ -168,11 +181,16 @@ Deno.serve(async (req: Request) => {
       commitReviewOperation,
       reserveReviewOperation,
       lookupReviewOperation,
+      cancelOwnedReviewOperation,
+      commitOwnedReviewOperation,
+      reserveOwnedReviewOperation,
+      lookupOwnedReviewOperation,
       reviewContentDigest,
       reviewGrantSecret,
       REVIEW_GRANT_AUDIENCE,
       verifyReviewGrant,
     } = await import("../_shared/review-grant.ts");
+    type OwnedBinding = Parameters<typeof lookupOwnedReviewOperation>[1];
     const contentDigest = await reviewContentDigest(request.documentText);
     const submittedGrant = rawBody?.grant ?? rawBody?.review_grant ?? null;
     const submittedDocumentId = rawBody?.document_id ?? rawBody?.documentId ?? null;
@@ -180,6 +198,10 @@ Deno.serve(async (req: Request) => {
     // Пропускът се РЕЗЕРВИРА по-късно — непосредствено преди платеното повикване.
     let grantPayload: ReviewGrantPayload | null = null;
     let persistedDenial: Parameters<typeof reviewDenial>[0] | null = null;
+    // Трайното обвързване (owner/document/version/hash) за пътя на ПРОВЕРЕНИЯ
+    // собственик на запазения документ — без нито едно повикване към модела
+    // без ДОКАЗАНА резервация в this ledger (виж 0036).
+    let ownedBinding: OwnedBinding | null = null;
 
     // ПРЕДПОЧИТАНИЕ: проверен собственик на запазения документ. Така нормалният
     // собствен поток НЕ харчи пропуск и остарял пропуск не блокира ревизията.
@@ -232,6 +254,21 @@ Deno.serve(async (req: Request) => {
       });
       if (verdict.ok) {
         authorizedOwnerId = verdict.ownerId;
+        const ref = normalizeDocumentRef(
+          submittedDocumentId,
+          rawBody?.document_version_no ?? rawBody?.documentVersionNo ?? null,
+        );
+        if (ref) {
+          ownedBinding = {
+            operationId,
+            ownerId: verdict.ownerId,
+            documentId: ref.documentId,
+            documentVersion: ref.versionNo !== null ? String(ref.versionNo) : null,
+            documentHash: contentDigest,
+            contentDigest,
+            purpose: REVIEW_GRANT_AUDIENCE,
+          };
+        }
       } else if (verdict.reason === "unavailable") {
         // Недостъпна база НИКОГА не се компенсира с пропуск.
         return denied(verdict.reason);
