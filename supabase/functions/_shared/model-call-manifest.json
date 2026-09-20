@@ -19,8 +19,8 @@
     {
       "function": "apply-corrections",
       "trigger": "user",
-      "mechanism": "quota_operations",
-      "idempotency": "mandatory operation_id + batch_id binding + canonical SHA-256 digest, read-only lookup, reserve -> single model call -> commit",
+      "mechanism": "quota_wave_operations",
+      "idempotency": "mandatory operation_id + batch_id binding + canonical SHA-256 digest, read-only lookup, single atomic wave reserve (ops_count = ceil(corrections/5)) -> single model call -> single atomic wave commit/cancel; expired lease or unproven restoration returns reconciliation, never a second reservation",
       "modelCallSites": 1
     },
     {
