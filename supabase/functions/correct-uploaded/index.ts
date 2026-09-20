@@ -100,8 +100,82 @@ Deno.serve(async (req: Request) => {
     const { userConfirmed } = pre.request;
     const selected = { issues: pre.issues, missing: pre.missing };
 
+    // === Точно едно изпълнение (Gate 2) ===
+    const operationId = asOperationId((rawBody as { operation_id?: unknown } | null)?.operation_id);
+    if (!operationId) return operationIdRequiredResponse(ledgerHeaders);
+
+    const bindingInput = {
+      purpose: "correct_uploaded" as const,
+      userId,
+      resourceId: contract.id,
+      resourceVersion: await sha256Hex(canonicalize(currentBinding)),
+      options: {
+        analysis_id: analysis.id,
+        issues: selected.issues.map((i) => i.title),
+        missing: selected.missing.map((m) => m.name),
+        user_confirmed: userConfirmed === true,
+      },
+    };
+    const binding = await canonicalDocumentBinding(bindingInput);
+
+    // САМО-ЧЕТЯЩО повторение — преди честотния лимит, ключа на доставчика,
+    // RAG и всяко счетоводно/бизнес записване.
+    const existing = await lookupDocumentOperation(admin, {
+      operationId, userId, purpose: "correct_uploaded", binding,
+    });
+    if (existing.kind === "committed") {
+      return new Response(JSON.stringify(existing.result), { headers: jsonHeaders });
+    }
+    const blockedByLedger = ledgerBlockResponse(existing, ledgerHeaders);
+    if (blockedByLedger) return blockedByLedger;
+
+    // Дневният лимит е честотно ограничение — след повторението.
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count } = await admin
+      .from("ai_usage")
+      .select("id", { count: "exact", head: true })
+      .eq("function_name", "correct-uploaded")
+      .eq("user_id", userId)
+      .gte("created_at", since);
+    if ((count ?? 0) >= DAILY_LIMIT) {
+      return new Response(JSON.stringify({
+        error: `Достигнахте дневния лимит от ${DAILY_LIMIT} корекции. Опитайте отново след 24 часа.`,
+        code: "rate_limited",
+      }), { status: 429, headers: jsonHeaders });
+    }
+
+    const reserved = await reserveDocumentOperation(admin, {
+      operationId, userId, purpose: "correct_uploaded", binding,
+      resourceId: contract.id,
+      resourceVersion: bindingInput.resourceVersion,
+      leaseSeconds: 600,
+    });
+    if (reserved.kind === "committed") {
+      return new Response(JSON.stringify(reserved.result), { headers: jsonHeaders });
+    }
+    if (reserved.kind !== "reserved") {
+      return ledgerBlockResponse(reserved, ledgerHeaders) ?? ledgerUnavailableResponse(ledgerHeaders);
+    }
+
+    /** Детерминиран провал ПРЕДИ модела — резервацията се отменя. */
+    const cancelAndRespond = async (reason: string, response: Response): Promise<Response> => {
+      await cancelDocumentOperation(admin, { operationId, userId, reason });
+      return response;
+    };
+    /** Несигурност СЛЕД модела — без връщане и без второ повикване. */
+    const reconcileAndRespond = async (reason: string): Promise<Response> => {
+      await markDocumentReconciliation(admin, { operationId, userId, reason });
+      return operationReconciliationResponse(ledgerHeaders, reason);
+    };
+    const budget = new ProviderCallBudget("correct_uploaded");
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
+    if (!LOVABLE_API_KEY) {
+      return await cancelAndRespond(
+        "provider_key_missing",
+        new Response(JSON.stringify({ error: "Обработката е временно недостъпна.", code: "provider_unavailable" }), { status: 503, headers: jsonHeaders }),
+      );
+    }
 
     // Illegal content guard — checks uploaded contract text + selections
     const guardText = [
