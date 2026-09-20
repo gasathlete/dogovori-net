@@ -201,6 +201,64 @@ Deno.serve(async (req) => {
       contractText = ((u as any)?.text_content ?? "").slice(0, 12000);
     }
 
+    // ---------------------------------------------------------------------
+    // GATE 2 — ТОЧНО ЕДНО ИЗПЪЛНЕНИЕ за генерирана стратегия.
+    // Само-четенето на запазен плик (cached_only) остава БЕЗ модел и БЕЗ
+    // операция. Оттук надолу заявката може да стигне до модел.
+    // ---------------------------------------------------------------------
+    const operationId = asOperationId((body as { operation_id?: unknown }).operation_id);
+    if (!operationId) return operationIdRequiredResponse(cors);
+
+    // Версията се извлича ИЗЦЯЛО на сървъра от собствения анализ — клиентът
+    // никога не носи истината за версията.
+    const sourceVersion = await sha256Hex(canonicalize([
+      "negotiation_source_v1",
+      String((a as any).contract_type ?? ""),
+      await sha256Hex(String((a as any).summary ?? "")),
+      await sha256Hex(JSON.stringify((a as any).issues ?? [])),
+      await sha256Hex(JSON.stringify((a as any).missing_clauses ?? [])),
+      await sha256Hex(contractText),
+    ]));
+    const binding = await canonicalDocumentBinding({
+      purpose: "negotiation_strategy",
+      userId: user.id,
+      resourceId: analysisId,
+      resourceVersion: sourceVersion,
+      options: { force: body.force === true },
+    });
+
+    const existing = await lookupDocumentOperation(admin, {
+      operationId,
+      userId: user.id,
+      purpose: "negotiation_strategy",
+      binding,
+    });
+    if (existing.kind === "committed") {
+      return new Response(JSON.stringify({ ...existing.result, replay: true }), {
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+    const existingBlock = ledgerBlockResponse(existing, cors);
+    if (existingBlock) return existingBlock;
+
+    const reserved = await reserveDocumentOperation(admin, {
+      operationId,
+      userId: user.id,
+      purpose: "negotiation_strategy",
+      binding,
+      inputDigest: sourceVersion,
+      resourceId: analysisId,
+      resourceVersion: sourceVersion,
+      leaseSeconds: 600,
+    });
+    if (reserved.kind === "committed") {
+      return new Response(JSON.stringify({ ...reserved.result, replay: true }), {
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+    const reserveBlock = ledgerBlockResponse(reserved, cors);
+    if (reserveBlock) return reserveBlock;
+
 
     const sys = `Ти си опитен правен стратег за преговори по български договори. Връщаш САМО валиден JSON със следната структура:
 {
