@@ -312,6 +312,59 @@ export async function reserveQuota(db: Rpc, input: ReserveInput): Promise<Reserv
   };
 }
 
+/**
+ * Резервация БЕЗ такса (0035, quota_reserve_no_charge): същият точно-веднъж
+ * леджър, но не консумира абонамент/топъп/бонус/сесийно право и не докосва
+ * download_quota. Ползва се, когато операцията (напр. build-custom-contract)
+ * остава безплатна на този етап — квотата се плаща отделно, по-късно.
+ * Връща СЪЩИЯ типизиран съюз като reserveQuota, за да могат извикващите да
+ * обработват reserved/replay/committed/in_progress/conflict/unavailable
+ * идентично, без разклоняване по вид резервация.
+ */
+export async function reserveQuotaNoCharge(db: Rpc, input: ReserveInput): Promise<ReserveOutcome> {
+  // Без валиден отпечатък НЕ се прави повикване към базата и нищо не се записва.
+  if (typeof input.requestDigest !== "string" || !SHA256_HEX.test(input.requestDigest)) {
+    return { status: "conflict", reason: "request_digest_required" };
+  }
+  const { data, error } = await db.rpc("quota_reserve_no_charge", {
+    p_operation_id: input.operationId,
+    p_user_id: input.userId,
+    p_kind: input.kind,
+    p_purpose: input.purpose,
+    p_session_id: input.sessionId ?? null,
+    p_doc_key: input.docKey ?? null,
+    p_batch_id: input.batchId ?? null,
+    p_request_digest: input.requestDigest,
+  });
+  if (error) {
+    if (isConflict(error.message)) {
+      return { status: "conflict", reason: IDEMPOTENCY_KEY_CONFLICT };
+    }
+    return { status: "unavailable", message: error.message };
+  }
+  const row = (data ?? {}) as Record<string, unknown>;
+  if (row.ok !== true) {
+    const reason = String(row.reason ?? "quota_denied");
+    if (RECONCILIATION_REASONS.has(reason)) {
+      return { status: "reconciliation", reason };
+    }
+    return { status: "denied", reason, raw: row };
+  }
+  const resultRef = row.result_ref && typeof row.result_ref === "object"
+    ? (row.result_ref as Record<string, unknown>)
+    : null;
+  return {
+    status: "reserved",
+    charged: row.charged === true,
+    replay: row.replay === true,
+    retry: row.retry === true,
+    ledgerState: row.state === "committed" ? "committed" : "reserved",
+    source: String(row.source ?? "no_charge"),
+    resultRef,
+    raw: row,
+  };
+}
+
 /** Изравняване на изтекли резервации (извиква се от retention-sweeper). */
 export async function reconcileStaleOperations(
   db: Rpc,
