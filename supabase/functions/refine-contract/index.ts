@@ -287,6 +287,34 @@ ${redaction.answersText}
       );
     }
 
+    /**
+     * НОВ пропуск за ревизия на ПРОМЕНЕНИЯ текст. Старият пропуск е обвързан с
+     * предишното съдържание и не бива да важи след прецизиране. Липсващ ключ не
+     * е грешка тук — ревизията просто ще поиска запазен документ.
+     */
+    const reviewGrantForRefinedContract = async (
+      ownerId: string | null,
+      contract: unknown,
+    ): Promise<Record<string, unknown>> => {
+      try {
+        const [{ issueGrantForGeneratedContent, reviewGrantSecret }, { renderCanonicalPlainText }] =
+          await Promise.all([
+            import("../_shared/review-grant.ts"),
+            import("../_shared/generated-document-quality.ts"),
+          ]);
+        const text = renderCanonicalPlainText(contract);
+        if (!text.trim()) return {};
+        const grant = await issueGrantForGeneratedContent({
+          secret: reviewGrantSecret(),
+          ownerId,
+          documentText: text,
+        });
+        return grant ? { review_grant: grant } : {};
+      } catch {
+        return {};
+      }
+    };
+
     // ТОЧНО ПОВТОРЕНИЕ при загубен отговор: същият ключ със същия товар връща
     // вече изготвения резултат, без ново генериране и без второ таксуване.
     const priorRef = reservation.resultRef;
@@ -298,6 +326,7 @@ ${redaction.answersText}
           change_summary: priorRef.change_summary ?? "",
           citations: legal.citations,
           replay: true,
+          ...(await reviewGrantForRefinedContract(userId, priorRef.contract)),
           charge_state: "charged",
         }),
         { headers: jsonHeaders },
@@ -464,12 +493,16 @@ ${redaction.answersText}
     await admin.from("ai_usage").insert({ user_id: userId, function_name: "refine-contract" });
 
     const committedRef = settlement.resultRef ?? null;
+    const finalContract = committedRef?.contract ?? parsed.contract;
     return new Response(JSON.stringify({
-      contract: committedRef?.contract ?? parsed.contract,
+      contract: finalContract,
       changed_clause_numbers: committedRef?.changed_clause_numbers ?? parsed.changed_clause_numbers ?? [],
       change_summary: committedRef?.change_summary ?? parsed.change_summary ?? "",
       citations: legal.citations,
       charge_state: "charged",
+      // Прецизирането ПРОМЕНЯ текста, затова старият пропуск за ревизия вече не
+      // важи: издава се НОВ пропуск за точно този нов текст.
+      ...(await reviewGrantForRefinedContract(userId, finalContract)),
     }), {
       headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
     });

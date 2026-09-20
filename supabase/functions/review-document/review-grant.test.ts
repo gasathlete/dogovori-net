@@ -1,6 +1,8 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
-  consumeReviewGrantDurable,
+  cancelReviewOperation,
+  commitReviewOperation,
+  reserveReviewOperation,
   issueGrantForGeneratedContent,
   issueReviewGrant,
   reviewContentDigest,
@@ -230,43 +232,88 @@ Deno.test("отпечатъкът на съдържанието е чувств�
   assertEquals(other === await reviewContentDigest("Ред 1\nРед 2"), false);
 });
 
-Deno.test("nonce се консумира трайно и еднократно", async () => {
-  const g = await issueReviewGrant({
+const grant = () =>
+  issueReviewGrant({
     secret: SECRET,
     subject: null,
     owner: null,
     contentDigest: DIGEST,
     operation: "review",
   });
-  const seen = new Set<string>();
+
+Deno.test("резервация, запис и ТОЧНО повторение на същия резултат", async () => {
+  const g = await grant();
+  const store = new Map<string, Record<string, unknown>>();
   const db = {
-    rpc: (_name: string, args: Record<string, unknown>) => {
+    rpc: (name: string, args: Record<string, unknown>) => {
       const nonce = String(args.p_nonce);
-      if (seen.has(nonce)) {
-        return Promise.resolve({ data: { ok: false, reason: "replayed" }, error: null });
+      if (name === "review_operation_reserve") {
+        const done = store.get(nonce);
+        if (done) {
+          return Promise.resolve({ data: { ok: true, replay: true, response: done }, error: null });
+        }
+        return Promise.resolve({ data: { ok: true, replay: false }, error: null });
       }
-      seen.add(nonce);
+      if (name === "review_operation_commit") {
+        const body = args.p_response as Record<string, unknown>;
+        const stored = store.get(nonce) ?? body;
+        store.set(nonce, stored);
+        return Promise.resolve({ data: { ok: true, replay: store.has(nonce), response: stored }, error: null });
+      }
       return Promise.resolve({ data: { ok: true }, error: null });
     },
   };
-  assertEquals((await consumeReviewGrantDurable(db, g.payload)).ok, true);
-  const second = await consumeReviewGrantDurable(db, g.payload);
-  assertEquals(second.ok, false);
-  assertEquals(second.reason, "replayed");
+  assertEquals((await reserveReviewOperation(db, g.payload)).kind, "reserved");
+  const first = await commitReviewOperation(db, g.payload, { verdict: "ok", score: 7 });
+  assertEquals(first.kind, "committed");
+  const again = await reserveReviewOperation(db, g.payload);
+  assertEquals(again.kind, "replay");
+  if (again.kind === "replay") {
+    assertEquals(JSON.stringify(again.response), JSON.stringify({ verdict: "ok", score: 7 }));
+  }
 });
 
-Deno.test("грешка в базата при консумация НЕ е повторение и НЕ е разрешение", async () => {
-  const g = await issueReviewGrant({
-    secret: SECRET,
-    subject: null,
-    owner: null,
-    contentDigest: DIGEST,
-    operation: "review",
-  });
+Deno.test("активна заявка НЕ дава второ повикване към модел", async () => {
+  const g = await grant();
   const db = {
+    rpc: () =>
+      Promise.resolve({
+        data: { ok: false, reason: "in_progress", retry_after_seconds: 12 },
+        error: null,
+      }),
+  };
+  const r = await reserveReviewOperation(db, g.payload);
+  assertEquals(r.kind, "in_progress");
+  if (r.kind === "in_progress") assertEquals(r.retryAfterSeconds, 12);
+});
+
+Deno.test("грешка в базата при резервация НЕ е разрешение", async () => {
+  const g = await grant();
+  const db = { rpc: () => Promise.resolve({ data: null, error: { message: "db down" } }) };
+  const r = await reserveReviewOperation(db, g.payload);
+  assertEquals(r.kind, "unavailable");
+});
+
+Deno.test("липсващо записано съдържание е недостъпност, не успех", async () => {
+  const g = await grant();
+  const db = {
+    rpc: () => Promise.resolve({ data: { ok: true, replay: true, response: {} }, error: null }),
+  };
+  assertEquals((await reserveReviewOperation(db, g.payload)).kind, "unavailable");
+});
+
+Deno.test("недоказана отмяна е несигурна и НЕ освобождава пропуска", async () => {
+  const g = await grant();
+  const uncertain = {
     rpc: () => Promise.resolve({ data: null, error: { message: "db down" } }),
   };
-  const r = await consumeReviewGrantDurable(db, g.payload);
-  assertEquals(r.ok, false);
-  assertEquals(r.reason, "grant_unavailable");
+  assertEquals((await cancelReviewOperation(uncertain, g.payload, "x")).kind, "uncertain");
+  const proven = { rpc: () => Promise.resolve({ data: { ok: true }, error: null }) };
+  assertEquals((await cancelReviewOperation(proven, g.payload, "x")).kind, "cancelled");
+});
+
+Deno.test("непотвърден запис изисква изравняване", async () => {
+  const g = await grant();
+  const db = { rpc: () => Promise.resolve({ data: null, error: { message: "db down" } }) };
+  assertEquals((await commitReviewOperation(db, g.payload, { a: 1 })).kind, "uncertain");
 });

@@ -10,7 +10,6 @@ import { legalVerificationUnavailableResponse } from "../_shared/legal-gate.ts";
 import { sanitizeAssistantReply } from "../_shared/response-sanitizer.ts";
 import { gatewayErrorResponse, normalizeGatewayStatus } from "../_shared/gateway-error.ts";
 import {
-  ANON_DELIVERY_CAP,
   anonRequestDigest,
   cancelAnonDelivery,
   commitAnonDelivery,
@@ -150,9 +149,146 @@ Deno.serve(async (req) => {
       throw e;
     }
 
-    // ОТДЕЛЕН ограничител за прекомерно натоварване — НЕ е право и НЕ е
-    // резервация. FAIL-CLOSED: недостъпен ограничител спира заявката с 503,
-    // никога не я пропуска „наужким".
+    const json = (payload: Record<string, unknown>, status: number, retryAfter?: number) =>
+      new Response(JSON.stringify(payload), {
+        status,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          ...(retryAfter ? { "Retry-After": String(retryAfter) } : {}),
+        },
+      });
+
+    const unavailable = (code: string) =>
+      json({
+        error: code,
+        code,
+        message: "Услугата е временно недостъпна. Опитайте отново след минута.",
+        free_message_consumed: false,
+        retry_after_seconds: 60,
+      }, 503, 60);
+
+    // -----------------------------------------------------------------------
+    // 1) ВАЛИДАЦИЯ ПРЕДИ ВСЯКО ТРАЙНО ДЕЙСТВИЕ.
+    // Форма на историята, последно съобщение от потребителя и ЗАДЪЛЖИТЕЛЕН
+    // идентификатор на заявката се проверяват ПРЕДИ ограничителя за
+    // натоварване и преди каквато и да е резервация. Невалидна заявка НИКОГА
+    // не оставя заето място и не хаби опит.
+    // -----------------------------------------------------------------------
+    const safe: ChatMsg[] = history
+      .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+      .slice(-8)
+      .map((m) => ({ role: m.role, content: String(m.content).slice(0, 2000) }));
+
+    if (safe.length === 0 || safe[safe.length - 1].role !== "user") {
+      return json({
+        error: "Последното съобщение трябва да е от потребителя",
+        code: "invalid_history",
+        free_message_consumed: false,
+      }, 400);
+    }
+
+    const requestId = typeof body?.request_id === "string" && UUID_RE.test(body.request_id)
+      ? body.request_id
+      : null;
+    if (!requestId) {
+      return json({
+        error: "request_id_required",
+        code: "request_id_required",
+        message: "Липсва идентификатор на заявката.",
+        free_message_consumed: false,
+      }, 400);
+    }
+
+    // -----------------------------------------------------------------------
+    // 2) ТРАЕН ЛЕДЖЪР (право по ДОСТАВЕНИ отговори). Резервацията е достатъчно
+    // рано, за да може вече ДОСТАВЕН отговор да се върне ТОЧНО, без
+    // ограничител, без заземяване и без повикване към модел.
+    // -----------------------------------------------------------------------
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!SUPABASE_URL || !SERVICE_ROLE) return unavailable("entitlement_unavailable");
+    // deno-lint-ignore no-explicit-any
+    const ledger: any = createClient(SUPABASE_URL, SERVICE_ROLE);
+    const operationId = requestId;
+    // Отпечатъкът обвързва заявката, БЕЗ да излиза текст на въпроса навън.
+    const requestDigest = await anonRequestDigest([
+      ipHash,
+      requestId,
+      String(safe.length),
+      ...safe.map((m) => `${m.role}:${m.content}`),
+    ]);
+
+    const res = await reserveAnonDelivery(ledger, {
+      operationId,
+      identityHash: ipHash,
+      requestDigest,
+    });
+    if (res.kind === "replay") {
+      // ТОЧНО повторение на вече доставен отговор.
+      return json(res.response as Record<string, unknown>, 200);
+    }
+    if (res.kind === "in_progress") {
+      return json({
+        error: "operation_in_progress",
+        code: "operation_in_progress",
+        message: "Заявката се обработва. Опитайте отново след малко.",
+        free_message_consumed: false,
+        retry_after_seconds: res.retryAfterSeconds,
+      }, 409, res.retryAfterSeconds);
+    }
+    if (res.kind === "limit_reached") {
+      return json({
+        error: "limit_reached",
+        code: "limit_reached",
+        remaining: 0,
+        message:
+          "Достигнахте лимита от 5 безплатни съобщения. Регистрирайте се и получавайте 5 + 2 безплатни съобщения всеки месец.",
+        free_message_consumed: false,
+        retry_after_s: 86400,
+      }, 429);
+    }
+    if (res.kind === "conflict") {
+      return json({
+        error: "request_binding_conflict",
+        code: "request_binding_conflict",
+        message: "Идентификаторът на заявката е зает от друг въпрос. Задайте въпроса отново.",
+        free_message_consumed: false,
+      }, 409);
+    }
+    if (res.kind !== "reserved") {
+      // Инфраструктурна несигурност НИКОГА не е ново право и НИКОГА не е лимит.
+      return unavailable("entitlement_unavailable");
+    }
+
+    /**
+     * ТИПИЗИРАНО ОСВОБОЖДАВАНЕ. Върнатата стойност е:
+     *  - null → отмяната е ДОКАЗАНА и извикващият може да върне намерената грешка;
+     *  - Response → отмяната НЕ е доказана (или операцията вече е потвърдена):
+     *    връща се изравняване 503 и СЪЩИЯТ ключ се запазва за повторен опит.
+     */
+    const releaseOrReconcile = async (reason: string): Promise<Response | null> => {
+      const cancelled = await cancelAnonDelivery(ledger, {
+        operationId,
+        identityHash: ipHash,
+        requestDigest,
+        reason,
+      });
+      if (cancelled.kind === "cancelled") return null;
+      return json({
+        error: "reconciliation_required",
+        code: "reconciliation_required",
+        message: "Проверяваме състоянието на заявката. Опитайте отново със същия въпрос.",
+        free_message_consumed: false,
+        retry_after_seconds: 30,
+      }, 503, 30);
+    };
+
+    // -----------------------------------------------------------------------
+    // 3) ОТДЕЛЕН ограничител за прекомерно натоварване — НЕ е право и НЕ е
+    // оторизация. FAIL-CLOSED. При отказ резервацията се ОСВОБОЖДАВА и отказът
+    // се връща само след доказана отмяна.
+    // -----------------------------------------------------------------------
     {
       const rl = await checkRateLimitStrict(
         `anon-chat-abuse:${ipHash}`,
@@ -160,181 +296,21 @@ Deno.serve(async (req) => {
         86400,
       );
       if (!rl.ok) {
-        const unavailable = rl.unavailable === true;
-        return new Response(
-          JSON.stringify({
-            error: unavailable ? "entitlement_unavailable" : "too_many_attempts",
-            code: unavailable ? "entitlement_unavailable" : "too_many_attempts",
-            message: unavailable
-              ? "Услугата е временно недостъпна. Опитайте отново след минута."
-              : "Твърде много заявки за кратко време. Опитайте отново по-късно.",
-            free_message_consumed: false,
-            retry_after_seconds: rl.retry_after_s ?? (unavailable ? 60 : 86400),
-            retry_after_s: rl.retry_after_s ?? (unavailable ? 60 : 86400),
-          }),
-          {
-            status: unavailable ? 503 : 429,
-            headers: {
-              ...corsHeaders,
-              "Content-Type": "application/json",
-              "Retry-After": String(rl.retry_after_s ?? (unavailable ? 60 : 86400)),
-            },
-          },
-        );
+        const unavail = rl.unavailable === true;
+        const reconcile = await releaseOrReconcile(unavail ? "limiter_unavailable" : "rate_limited");
+        if (reconcile) return reconcile;
+        const retryAfter = rl.retry_after_s ?? (unavail ? 60 : 86400);
+        return json({
+          error: unavail ? "entitlement_unavailable" : "too_many_attempts",
+          code: unavail ? "entitlement_unavailable" : "too_many_attempts",
+          message: unavail
+            ? "Услугата е временно недостъпна. Опитайте отново след минута."
+            : "Твърде много заявки за кратко време. Опитайте отново по-късно.",
+          free_message_consumed: false,
+          retry_after_seconds: retryAfter,
+          retry_after_s: retryAfter,
+        }, unavail ? 503 : 429, retryAfter);
       }
-    }
-
-    const safe: ChatMsg[] = history
-      .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
-      .slice(-8)
-      .map((m) => ({ role: m.role, content: String(m.content).slice(0, 2000) }));
-
-    // ПРАВО НА БЕЗПЛАТНИ СЪОБЩЕНИЯ — ТРАЕН ЛЕДЖЪР по ДОСТАВЕНИ отговори.
-    // Изчистване на историята в браузъра вече не дава ново право, а броят НЕ
-    // се пази в брояч за натоварване. Правото се изразходва САМО при доказано
-    // доставен отговор; неуспешен опит се отменя и може да се повтори.
-    let entitlementRemaining = ANON_DELIVERY_CAP;
-    let releaseAttempt: () => Promise<void> = async () => {};
-    // deno-lint-ignore no-explicit-any
-    let ledger: any = null;
-    let operationId = "";
-    let requestDigest = "";
-    {
-      const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-      const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-      if (!SUPABASE_URL || !SERVICE_ROLE) {
-        // Без леджър правото не може да се спази: безопасен повтаряем отказ.
-        return new Response(
-          JSON.stringify({
-            error: "entitlement_unavailable",
-            code: "entitlement_unavailable",
-            message: "Услугата е временно недостъпна. Опитайте отново след минута.",
-            free_message_consumed: false,
-            retry_after_seconds: 60,
-          }),
-          {
-            status: 503,
-            headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
-          },
-        );
-      }
-      ledger = createClient(SUPABASE_URL, SERVICE_ROLE);
-      // Еднократност на опита: клиентският UUID е ЗАДЪЛЖИТЕЛЕН — без него
-      // повторният опит не може да е идемпотентен.
-      const requestId = typeof body?.request_id === "string" && UUID_RE.test(body.request_id)
-        ? body.request_id
-        : null;
-      if (!requestId) {
-        return new Response(
-          JSON.stringify({
-            error: "request_id_required",
-            code: "request_id_required",
-            message: "Липсва идентификатор на заявката.",
-            free_message_consumed: false,
-          }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-      operationId = requestId;
-      // Отпечатъкът обвързва заявката, БЕЗ да излиза текст на въпроса навън.
-      requestDigest = await anonRequestDigest([
-        ipHash,
-        requestId,
-        String(safe.length),
-        ...safe.map((m) => `${m.role}:${m.content}`),
-      ]);
-
-      const res = await reserveAnonDelivery(ledger, {
-        operationId,
-        identityHash: ipHash,
-        requestDigest,
-      });
-      if (res.kind === "replay") {
-        // ТОЧНО повторение на вече доставен отговор: без нов модел и без ново
-        // изразходвано право.
-        return new Response(JSON.stringify(res.response), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (res.kind === "in_progress") {
-        return new Response(
-          JSON.stringify({
-            error: "operation_in_progress",
-            code: "operation_in_progress",
-            message: "Заявката се обработва. Опитайте отново след малко.",
-            free_message_consumed: false,
-            retry_after_seconds: res.retryAfterSeconds,
-          }),
-          {
-            status: 409,
-            headers: {
-              ...corsHeaders,
-              "Content-Type": "application/json",
-              "Retry-After": String(res.retryAfterSeconds),
-            },
-          },
-        );
-      }
-      if (res.kind === "limit_reached") {
-        return new Response(
-          JSON.stringify({
-            error: "limit_reached",
-            code: "limit_reached",
-            remaining: 0,
-            message:
-              "Достигнахте лимита от 5 безплатни съобщения. Регистрирайте се и получавайте 5 + 2 безплатни съобщения всеки месец.",
-            free_message_consumed: false,
-            retry_after_s: 86400,
-          }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-      if (res.kind === "conflict") {
-        return new Response(
-          JSON.stringify({
-            error: "request_binding_conflict",
-            code: "request_binding_conflict",
-            message: "Идентификаторът на заявката е зает от друг въпрос. Задайте въпроса отново.",
-            free_message_consumed: false,
-          }),
-          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-      if (res.kind !== "reserved") {
-        // Инфраструктурна несигурност НИКОГА не е ново право и НИКОГА не е лимит.
-        return new Response(
-          JSON.stringify({
-            error: "entitlement_unavailable",
-            code: "entitlement_unavailable",
-            message: "Услугата е временно недостъпна. Опитайте отново след минута.",
-            free_message_consumed: false,
-            retry_after_seconds: 60,
-          }),
-          {
-            status: 503,
-            headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
-          },
-        );
-      }
-      entitlementRemaining = res.remaining;
-      releaseAttempt = async () => {
-        try {
-          await cancelAnonDelivery(ledger, {
-            operationId,
-            identityHash: ipHash,
-            requestDigest,
-            reason: "not_delivered",
-          });
-        } catch { /* отмяната е best-effort; правото остава неизразходвано */ }
-      };
-    }
-
-
-    if (safe.length === 0 || safe[safe.length - 1].role !== "user") {
-      return new Response(JSON.stringify({ error: "Последното съобщение трябва да е от потребителя" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
     }
 
     // СТРОГО ЗАЗЕМЯВАНЕ: без поне една проверена норма за ТОЧНО тази заявка
@@ -358,7 +334,8 @@ Deno.serve(async (req) => {
         }
       }
       if (!hasMatches) {
-        await releaseAttempt();
+        const reconcile = await releaseOrReconcile("legal_unavailable");
+        if (reconcile) return reconcile;
         return legalVerificationUnavailableResponse({ headers: corsHeaders });
       }
 
@@ -392,7 +369,8 @@ Deno.serve(async (req) => {
       if (!res.ok) {
         // Тялото на gateway-а НЕ се връща и НЕ се логва — нормализирана грешка.
         // Неуспешен модел не изразходва безплатно съобщение.
-        await releaseAttempt();
+        const reconcile = await releaseOrReconcile("gateway_error");
+        if (reconcile) return reconcile;
         return gatewayErrorResponse(normalizeGatewayStatus(res.status), corsHeaders, {
           free_message_consumed: false,
         });
@@ -410,7 +388,8 @@ Deno.serve(async (req) => {
       // Няма ръчно сглобен правен отговор: връщаме безопасна грешка без
       // правно съдържание и без изразходвано безплатно съобщение. Опитът се
       // освобождава, за да работи повторният опит със същия UUID.
-      await releaseAttempt();
+      const reconcile = await releaseOrReconcile("ungrounded_reply");
+      if (reconcile) return reconcile;
       return new Response(
         JSON.stringify({
           error: ANON_LEGAL_ANSWER_UNAVAILABLE,
@@ -501,9 +480,9 @@ Deno.serve(async (req) => {
     // ПОВТОРНА ВАЛИДАЦИЯ след sanitizer/CTA/линкове: доставя се само текст,
     // който и в окончателния си вид няма непроверено правно обозначение.
     if (!validateGroundedReply(reply, citations).ok) {
-      await releaseAttempt();
+      const reconcile = await releaseOrReconcile("ungrounded_final_reply");
+      if (reconcile) return reconcile;
       return new Response(
-
         JSON.stringify({
           error: ANON_LEGAL_ANSWER_UNAVAILABLE,
           code: ANON_LEGAL_ANSWER_UNAVAILABLE,
@@ -515,54 +494,51 @@ Deno.serve(async (req) => {
     }
 
     // Правото се изразходва САМО сега — след доказано доставен отговор, и то с
-    // ПОТВЪРЖДАВАНЕ на същата операция. ТОЧНИЯТ отговор се запазва, за да е
-    // повторението истинско повторение без ново повикване към модел.
-    const remaining = Math.max(0, entitlementRemaining - 1);
-    const payload: Record<string, unknown> = { reply, followups, citations, remaining };
-    {
-      const committed = await commitAnonDelivery(ledger, {
-        operationId,
-        identityHash: ipHash,
-        requestDigest,
-        response: payload,
-      });
-      if (committed.kind === "limit_reached") {
-        // Загубена надпревара за последното право: НЕ доставяме шести отговор.
-        return new Response(
-          JSON.stringify({
-            error: "limit_reached",
-            code: "limit_reached",
-            message:
-              "Достигнахте лимита от 5 безплатни съобщения. Регистрирайте се и получавайте 5 + 2 безплатни съобщения всеки месец.",
-            free_message_consumed: false,
-            retry_after_s: 86400,
-          }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-      if (committed.kind !== "committed") {
-        // Записът е несигурен: не твърдим изразходвано право и пускаме ключа,
-        // за да е възможен точно същият повторен опит.
-        await releaseAttempt();
-        return new Response(
-          JSON.stringify({
-            error: "entitlement_unavailable",
-            code: "entitlement_unavailable",
-            message: "Услугата е временно недостъпна. Опитайте отново след минута.",
-            free_message_consumed: false,
-            retry_after_seconds: 60,
-          }),
-          {
-            status: 503,
-            headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
-          },
-        );
-      }
-      payload.remaining = committed.remaining;
+    // ПОТВЪРЖДАВАНЕ на същата операция. Базата сглобява и запазва ТОЧНИЯ
+    // отговор (включително авторитетното оставащо право) и връща него.
+    const payload: Record<string, unknown> = { reply, followups, citations };
+    const committed = await commitAnonDelivery(ledger, {
+      operationId,
+      identityHash: ipHash,
+      requestDigest,
+      response: payload,
+    });
+    if (committed.kind === "limit_reached") {
+      // Загубена надпревара за последното право: НЕ доставяме шести отговор.
+      return new Response(
+        JSON.stringify({
+          error: "limit_reached",
+          code: "limit_reached",
+          message:
+            "Достигнахте лимита от 5 безплатни съобщения. Регистрирайте се и получавайте 5 + 2 безплатни съобщения всеки месец.",
+          free_message_consumed: false,
+          retry_after_s: 86400,
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (committed.kind !== "committed") {
+      // НЕИЗВЕСТЕН запис: НЕ се прави отмяна (записът може да е успял).
+      // Връща се изравняване и СЪЩИЯТ ключ се запазва — повторният опит или
+      // намира потвърдената доставка, или активната резервация.
+      return new Response(
+        JSON.stringify({
+          error: "reconciliation_required",
+          code: "reconciliation_required",
+          message: "Проверяваме състоянието на заявката. Опитайте отново със същия въпрос.",
+          free_message_consumed: false,
+          retry_after_seconds: 30,
+        }),
+        {
+          status: 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "30" },
+        },
+      );
     }
 
+    // Връща се ТОЧНО трайният отговор от базата — никога локално доизменен.
     return new Response(
-      JSON.stringify(payload),
+      JSON.stringify(committed.response),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (_e) {

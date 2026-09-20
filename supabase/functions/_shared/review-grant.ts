@@ -229,30 +229,157 @@ export interface NonceDb {
   ): PromiseLike<{ data: any; error: { message: string } | null }>;
 }
 
-/**
- * ТРАЙНА атомарна консумация на nonce (отделна таблица, НЕ общ ограничител за
- * натоварване). Вторият опит със същия nonce е повторение. Грешка в базата е
- * НЕДОСТЪПНОСТ — пропускът НЕ се приема и няма повикване към модел.
- */
-export async function consumeReviewGrantDurable(
-  db: NonceDb,
-  payload: ReviewGrantPayload,
-): Promise<{ ok: boolean; reason?: GrantFailure }> {
-  const { data, error } = await db.rpc("review_grant_nonce_consume", {
-    p_nonce: payload.nonce,
-    p_aud: payload.aud,
-    p_subject: payload.sub,
-    p_owner_id: payload.owner,
-    p_content_digest: payload.content_digest,
-    p_operation: payload.operation,
-    p_expires_at: new Date(payload.expires_at * 1000).toISOString(),
-  });
-  if (error) return { ok: false, reason: "grant_unavailable" };
-  const r = data && typeof data === "object" && !Array.isArray(data)
+function rowOf(data: unknown): Record<string, unknown> {
+  return data && typeof data === "object" && !Array.isArray(data)
     ? data as Record<string, unknown>
     : {};
-  if (r.ok === true) return { ok: true };
-  if (r.reason === "expired") return { ok: false, reason: "expired" };
-  if (r.reason === "replayed") return { ok: false, reason: "replayed" };
-  return { ok: false, reason: "grant_unavailable" };
+}
+
+/**
+ * ТРАЕН ЛЕДЖЪР НА РЕВИЗИЯТА (не „изгарящ" nonce).
+ *
+ * Резервацията се прави НЕПОСРЕДСТВЕНО ПРЕДИ платеното повикване към модела.
+ * Всяка безплатна проверка (валидация, оторизация, потвърждение за чувствителни
+ * данни, ограничител, заземяване) минава ПРЕДИ това, за да не изгаря
+ * единственият пропуск.
+ */
+export type ReviewReserveOutcome =
+  /** Резервирано: сега и само сега може да се извика моделът. */
+  | { readonly kind: "reserved" }
+  /** Вече направена ревизия: връща се ТОЧНИЯТ резултат, без модел. */
+  | { readonly kind: "replay"; readonly response: Record<string, unknown> }
+  /** Активна заявка: никакво второ повикване към модел. */
+  | { readonly kind: "in_progress"; readonly retryAfterSeconds: number }
+  | { readonly kind: "expired" }
+  | { readonly kind: "conflict" }
+  | { readonly kind: "reconciliation"; readonly reason: string }
+  | { readonly kind: "unavailable"; readonly reason: string };
+
+export async function reserveReviewOperation(
+  db: NonceDb,
+  payload: ReviewGrantPayload,
+  leaseSeconds = 180,
+): Promise<ReviewReserveOutcome> {
+  let data: unknown = null;
+  let error: { message: string } | null = null;
+  try {
+    const out = await db.rpc("review_operation_reserve", {
+      p_nonce: payload.nonce,
+      p_aud: payload.aud,
+      p_subject: payload.sub,
+      p_owner_id: payload.owner,
+      p_content_digest: payload.content_digest,
+      p_operation: payload.operation,
+      p_expires_at: new Date(payload.expires_at * 1000).toISOString(),
+      p_lease_seconds: leaseSeconds,
+    });
+    data = out.data;
+    error = out.error;
+  } catch {
+    return { kind: "unavailable", reason: "reserve_threw" };
+  }
+  if (error) return { kind: "unavailable", reason: "reserve_uncertain" };
+  const r = rowOf(data);
+  if (r.ok === true) {
+    if (r.replay === true) {
+      const stored = rowOf(r.response);
+      if (Object.keys(stored).length === 0) {
+        return { kind: "unavailable", reason: "response_missing" };
+      }
+      return { kind: "replay", response: stored };
+    }
+    return { kind: "reserved" };
+  }
+  if (r.reason === "in_progress") {
+    return {
+      kind: "in_progress",
+      retryAfterSeconds: Math.max(1, Number(r.retry_after_seconds ?? 5)),
+    };
+  }
+  if (r.reason === "expired") return { kind: "expired" };
+  if (r.reason === "binding_conflict") return { kind: "conflict" };
+  if (r.reason === "reconciliation_required" || r.reason === "cancellation_unproven") {
+    return { kind: "reconciliation", reason: String(r.reason) };
+  }
+  return {
+    kind: "unavailable",
+    reason: typeof r.reason === "string" ? r.reason : "reserve_failed",
+  };
+}
+
+export type ReviewCommitOutcome =
+  | {
+    readonly kind: "committed";
+    readonly replay: boolean;
+    readonly response: Record<string, unknown>;
+  }
+  /** Неизвестен запис: НЕ се отменя нищо, изисква изравняване. */
+  | { readonly kind: "uncertain"; readonly reason: string };
+
+export async function commitReviewOperation(
+  db: NonceDb,
+  payload: ReviewGrantPayload,
+  response: Record<string, unknown>,
+): Promise<ReviewCommitOutcome> {
+  let data: unknown = null;
+  let error: { message: string } | null = null;
+  try {
+    const out = await db.rpc("review_operation_commit", {
+      p_nonce: payload.nonce,
+      p_content_digest: payload.content_digest,
+      p_response: response,
+    });
+    data = out.data;
+    error = out.error;
+  } catch {
+    return { kind: "uncertain", reason: "commit_threw" };
+  }
+  if (error) return { kind: "uncertain", reason: "commit_uncertain" };
+  const r = rowOf(data);
+  if (r.ok === true) {
+    const stored = rowOf(r.response);
+    if (Object.keys(stored).length === 0) {
+      return { kind: "uncertain", reason: "response_missing" };
+    }
+    return { kind: "committed", replay: r.replay === true, response: stored };
+  }
+  return {
+    kind: "uncertain",
+    reason: typeof r.reason === "string" ? r.reason : "commit_failed",
+  };
+}
+
+export type ReviewCancelOutcome =
+  /** ДОКАЗАНА отмяна: СЪЩИЯТ пропуск може да опита отново. */
+  | { readonly kind: "cancelled" }
+  | { readonly kind: "already_committed" }
+  | { readonly kind: "uncertain"; readonly reason: string };
+
+export async function cancelReviewOperation(
+  db: NonceDb,
+  payload: ReviewGrantPayload,
+  reason: string,
+): Promise<ReviewCancelOutcome> {
+  let data: unknown = null;
+  let error: { message: string } | null = null;
+  try {
+    const out = await db.rpc("review_operation_cancel", {
+      p_nonce: payload.nonce,
+      p_content_digest: payload.content_digest,
+      p_reason: reason,
+      p_reconciliation_required: false,
+    });
+    data = out.data;
+    error = out.error;
+  } catch {
+    return { kind: "uncertain", reason: "cancel_threw" };
+  }
+  if (error) return { kind: "uncertain", reason: "cancel_uncertain" };
+  const r = rowOf(data);
+  if (r.ok === true) return { kind: "cancelled" };
+  if (r.reason === "already_committed") return { kind: "already_committed" };
+  return {
+    kind: "uncertain",
+    reason: typeof r.reason === "string" ? r.reason : "cancel_failed",
+  };
 }

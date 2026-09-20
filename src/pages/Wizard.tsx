@@ -1888,12 +1888,12 @@ export default function WizardPage() {
                 <RefineDraftBox
                   contract={result.contract}
                   answers={answers}
-                  onRefined={(next) => {
+                  onRefined={(next, _summary, _changed, reviewGrant) => {
                     setResult({
                       ...result,
                       contract: { ...result.contract, ...next },
                       quality_manifest: undefined,
-                      review_grant: undefined,
+                      review_grant: reviewGrant ?? undefined,
                     });
                     setSavedDocId(undefined);
                   }}

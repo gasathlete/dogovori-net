@@ -16,7 +16,12 @@ import {
 interface RefineDraftBoxProps {
   contract: GeneratedContract;
   answers: Record<string, unknown>;
-  onRefined: (next: GeneratedContract, summary: string, changed: string[]) => void;
+  onRefined: (
+    next: GeneratedContract,
+    summary: string,
+    changed: string[],
+    reviewGrant?: unknown,
+  ) => void;
   onNeedAuth?: () => void;
   onQuotaExceeded?: () => void;
   heading?: string;
@@ -87,6 +92,7 @@ export function RefineDraftBox({
         contract?: GeneratedContract;
         changed_clause_numbers?: string[];
         change_summary?: string;
+        review_grant?: unknown;
         error?: string;
         code?: string;
         retry_after_seconds?: number;
@@ -166,7 +172,13 @@ export function RefineDraftBox({
       if (!data?.contract) throw new Error("Празен отговор от AI");
       // ДОКАЗАН КРАЕН УСПЕХ: единственият момент, в който ключът пада.
       releaseKeys();
-      onRefined(data.contract, data.change_summary || "", data.changed_clause_numbers || []);
+      onRefined(
+        data.contract,
+        data.change_summary || "",
+        data.changed_clause_numbers || [],
+        // Нов пропуск за ревизия на ПРОМЕНЕНИЯ текст; старият вече не важи.
+        data.review_grant ?? null,
+      );
       setLastSummary(data.change_summary || "Готово.");
       setLastChanged(data.changed_clause_numbers || []);
       setFeedback("");

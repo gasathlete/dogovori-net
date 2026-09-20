@@ -125,7 +125,17 @@ export async function reserveAnonDelivery(
 }
 
 export type CommitOutcome =
-  | { readonly kind: "committed"; readonly remaining: number; readonly replay: boolean }
+  | {
+    readonly kind: "committed";
+    readonly remaining: number;
+    readonly replay: boolean;
+    /**
+     * ТОЧНИЯТ траен отговор, както е записан в базата (включително
+     * авторитетното `remaining`). Крайната точка връща ИМЕННО него — никога
+     * локално доизменен товар.
+     */
+    readonly response: Record<string, unknown>;
+  }
   | { readonly kind: "limit_reached" }
   | { readonly kind: "unavailable"; readonly reason: string };
 
@@ -147,13 +157,21 @@ export async function commitAnonDelivery(
     p_purpose: input.purpose ?? ANON_DELIVERY_PURPOSE,
   });
   // Неизвестен изход НЕ е успех: отговорът не се доставя като безплатно право.
+  // ВАЖНО: тук НИКОГА не се прави отмяна — записът може да е успял.
   if (error) return { kind: "unavailable", reason: "commit_uncertain" };
   const r = row(data);
   if (r.ok === true) {
+    const stored = row(r.response);
+    // Без траен отговор не можем да върнем точния резултат — това е
+    // изравняване, не успех.
+    if (Object.keys(stored).length === 0) {
+      return { kind: "unavailable", reason: "response_missing" };
+    }
     return {
       kind: "committed",
-      remaining: Math.max(0, Number(r.remaining ?? 0)),
+      remaining: Math.max(0, Number(r.remaining ?? stored.remaining ?? 0)),
       replay: r.replay === true,
+      response: stored,
     };
   }
   if (r.reason === "limit_reached") return { kind: "limit_reached" };
@@ -164,7 +182,11 @@ export async function commitAnonDelivery(
 }
 
 export type CancelOutcome =
+  /** Доказана отмяна: мястото е свободно, същият ключ може да опита пак. */
   | { readonly kind: "cancelled" }
+  /** Операцията вече е потвърдена — отмяна НЕ се прави и не се твърди. */
+  | { readonly kind: "already_committed" }
+  /** Недоказана отмяна: изисква изравняване, ключът се ЗАПАЗВА. */
   | { readonly kind: "uncertain"; readonly reason: string };
 
 /** Отмяна при НЕдоставен отговор — освобождава мястото, не изразходва право. */
@@ -178,16 +200,25 @@ export async function cancelAnonDelivery(
     purpose?: string;
   },
 ): Promise<CancelOutcome> {
-  const { data, error } = await db.rpc("anon_delivery_cancel", {
-    p_operation_id: input.operationId,
-    p_identity_hash: input.identityHash,
-    p_request_digest: input.requestDigest,
-    p_reason: input.reason,
-    p_purpose: input.purpose ?? ANON_DELIVERY_PURPOSE,
-  });
+  let data: unknown = null;
+  let error: { message: string } | null = null;
+  try {
+    const out = await db.rpc("anon_delivery_cancel", {
+      p_operation_id: input.operationId,
+      p_identity_hash: input.identityHash,
+      p_request_digest: input.requestDigest,
+      p_reason: input.reason,
+      p_purpose: input.purpose ?? ANON_DELIVERY_PURPOSE,
+    });
+    data = out.data;
+    error = out.error;
+  } catch {
+    return { kind: "uncertain", reason: "cancel_threw" };
+  }
   if (error) return { kind: "uncertain", reason: "cancel_uncertain" };
   const r = row(data);
   if (r.ok === true) return { kind: "cancelled" };
+  if (r.reason === "already_committed") return { kind: "already_committed" };
   return {
     kind: "uncertain",
     reason: typeof r.reason === "string" ? r.reason : "cancel_failed",

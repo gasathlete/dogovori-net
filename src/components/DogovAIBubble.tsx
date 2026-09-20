@@ -12,6 +12,29 @@ import { AssistantThinkingStatus } from "@/components/assistant/AssistantThinkin
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { getStableOpKey, opaqueOpScope, releaseStableOpKey } from "@/lib/opSession";
+
+/**
+ * Безопасно четене на СТРУКТУРИРАНОТО тяло при отговор извън 2xx. Без него
+ * кодовете на сървъра (лимит, в обработка, изравняване) изглеждат празни.
+ */
+async function readFunctionErrorBody(error: unknown): Promise<Record<string, unknown> | null> {
+  const ctx = (error as { context?: unknown })?.context as
+    | { json?: () => Promise<unknown>; text?: () => Promise<string> }
+    | undefined;
+  if (!ctx) return null;
+  try {
+    if (typeof ctx.json === "function") {
+      const parsed = await ctx.json();
+      return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : null;
+    }
+    if (typeof ctx.text === "function") {
+      const parsed = JSON.parse(await ctx.text());
+      return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : null;
+    }
+  } catch { /* непарсируемо тяло не е код */ }
+  return null;
+}
 const dogovaiIcon = "/dogovai-favicon.png";
 
 
@@ -227,6 +250,9 @@ function AnonChat({ resetKey }: { resetKey: number }) {
   // Запазва се между повторните опити на едно и също изпращане.
   const pendingRequestIdRef = useRef<string | null>(null);
   const pendingScopeRef = useRef<string | null>(null);
+  // Ясно състояние на последното изпращане (лимит / в обработка / недостъпно /
+  // изравняване) — БЕЗ фалшив ред от асистента в разговора.
+  const [sendNotice, setSendNotice] = useState<string | null>(null);
 
   // Wipe state when parent forces a reset (idle >24h).
   useEffect(() => {
@@ -349,20 +375,34 @@ function AnonChat({ resetKey }: { resetKey: number }) {
         setProgressSteps((prev) => prev.map((p) => p.step === step.step ? { ...p, status: "done" } : p));
       }, index * 220 + 180);
     });
+    // ЕДИН ключ за ЕДИН И СЪЩ товар. Обхватът е НЕПРОЗРАЧЕН отпечатък (без
+    // текст на въпроса в хранилището), а ключът се пази в sessionStorage, за да
+    // издържи презареждане, загубена връзка и повторен опит. Променен товар
+    // естествено получава нов обхват и нов ключ.
+    const requestBody = { messages: next };
+    const scope = await opaqueOpScope("anon-chat", requestBody);
+    const requestId = getStableOpKey(scope);
+    pendingScopeRef.current = scope;
+    pendingRequestIdRef.current = requestId;
+
+    /** Връща историята и въпроса в изходно състояние за ИДЕНТИЧЕН повторен опит. */
+    const restoreForRetry = (noticeText: string) => {
+      setMessages(messages);
+      setFollowups([]);
+      setInput(trimmed);
+      setSendNotice(noticeText);
+      saveAnonStored({ messages, followups: [], updatedAt: Date.now() });
+    };
+
     try {
-      // Един UUID за ЕДНО И СЪЩО запитване: при загубена връзка повторният опит
-      // не създава втори отговор и не изразходва второ безплатно съобщение.
-      // Ключът е обвързан с точния обхват на заявката — променено съдържание
-      // винаги получава нов ключ, за да няма сблъсък със стар отговор.
-      const scope = JSON.stringify(next.map((m) => [m.role, m.content]));
-      if (!pendingRequestIdRef.current || pendingScopeRef.current !== scope) {
-        pendingRequestIdRef.current = crypto.randomUUID();
-        pendingScopeRef.current = scope;
-      }
+      setSendNotice(null);
       const { data, error } = await supabase.functions.invoke("assistant-chat-anon", {
-        body: { messages: next, request_id: pendingRequestIdRef.current },
+        body: { ...requestBody, request_id: requestId },
       });
-      const payload = (data ?? {}) as {
+      // Структурираното тяло при не-2xx идва през error.context — без него
+      // кодовете на сървъра изглеждат празни.
+      const errorBody = error ? await readFunctionErrorBody(error) : null;
+      const payload = { ...(errorBody ?? {}), ...((data ?? {}) as Record<string, unknown>) } as {
         reply?: string;
         followups?: string[];
         citations?: Citation[];
@@ -375,58 +415,59 @@ function AnonChat({ resetKey }: { resetKey: number }) {
         setServerRemaining(Math.max(0, payload.remaining));
       }
       if (error || payload.error || !payload.reply) {
-        const code = payload.code ?? "";
-        // Изчерпан лимит: заключваме входа с ясното съобщение на сървъра.
+        const code = payload.code ?? payload.error ?? "";
+        // Изчерпан лимит — единственият окончателен изход: ключът се пуска.
         if (code === "limit_reached") {
           setServerLimitReached(true);
           setServerRemaining(0);
+          releaseStableOpKey(scope);
           pendingRequestIdRef.current = null;
           pendingScopeRef.current = null;
+          restoreForRetry("");
+          setSendNotice(null);
           return;
         }
-        // Сблъсък на ключ: същият ключ е зает от друго запитване — сменяме го,
-        // за да не се смесват отговори.
-        if (code === "request_binding_conflict") {
-          pendingRequestIdRef.current = null;
-          pendingScopeRef.current = null;
+        // Повтаряеми състояния — ключът се ЗАПАЗВА (включително при сблъсък и
+        // изравняване), за да е повторният опит същата заявка.
+        const retryNotice: Record<string, string> = {
+          operation_in_progress:
+            "Обработваме същия въпрос. Изпратете го отново след малко — не е изразходвано съобщение.",
+          reconciliation_required:
+            "Проверяваме състоянието на заявката. Изпратете същия въпрос отново — не е изразходвано съобщение.",
+          request_binding_conflict:
+            "Заявката още се обработва. Изпратете същия въпрос отново — не е изразходвано съобщение.",
+          entitlement_unavailable:
+            "Услугата е временно недостъпна. Изпратете въпроса отново след малко — не е изразходвано съобщение.",
+          identity_unavailable:
+            "Услугата е временно недостъпна. Изпратете въпроса отново след малко — не е изразходвано съобщение.",
+          too_many_attempts:
+            "Твърде много заявки за кратко време. Опитайте отново по-късно — не е изразходвано съобщение.",
+        };
+        const notice = retryNotice[code];
+        if (notice) {
+          restoreForRetry(notice);
+          return;
         }
-        // Временна недостъпност или заявка в обработка: ключът се пази, за да е
-        // повторният опит безплатен и без втори отговор.
-        const retryable = code === "entitlement_unavailable" ||
-          code === "operation_in_progress" || code === "identity_unavailable" ||
-          code === "too_many_attempts" || !code;
-        const content = code === "operation_in_progress"
-          ? "Обработваме предишния въпрос. Опитайте отново след малко — това съобщение не е изразходвано."
-          : retryable
-          ? "Услугата е временно недостъпна. Опитайте отново след малко — това съобщение не е изразходвано."
-          : "Не успяхме да обработим това запитване. Опитайте с друг въпрос или се регистрирайте за пълен достъп.";
-        if (!retryable) {
-          pendingRequestIdRef.current = null;
-          pendingScopeRef.current = null;
-        }
-        const finalMsgs: AnonMsg[] = [...next, { role: "assistant", content }];
-        setMessages(finalMsgs);
-        setFollowups([]);
-        saveAnonStored({ messages: finalMsgs, followups: [], updatedAt: Date.now() });
+        // Неповтаряема грешка: ключът се пуска и въпросът остава наличен.
+        releaseStableOpKey(scope);
+        pendingRequestIdRef.current = null;
+        pendingScopeRef.current = null;
+        restoreForRetry(
+          "Не успяхме да обработим това запитване. Опитайте с друга формулировка или се регистрирайте за пълен достъп.",
+        );
         return;
       }
+      releaseStableOpKey(scope);
       pendingRequestIdRef.current = null;
       pendingScopeRef.current = null;
+      setSendNotice(null);
       const fups = (payload.followups ?? []).slice(0, 3);
       const cits = (payload.citations ?? []).slice(0, 3);
       streamAssistantReply(next, payload.reply, cits, fups);
     } catch {
-      const finalMsgs: AnonMsg[] = [
-        ...next,
-        {
-          role: "assistant",
-          content:
-            "Връзката прекъсна. Опитайте отново — това съобщение не е изразходвано.",
-        },
-      ];
-      setMessages(finalMsgs);
-      setFollowups([]);
-      saveAnonStored({ messages: finalMsgs, followups: [], updatedAt: Date.now() });
+      // Прекъсната връзка: ключът се пази, историята се връща и повторният опит
+      // е БАЙТ-ИДЕНТИЧЕН.
+      restoreForRetry("Връзката прекъсна. Изпратете въпроса отново — не е изразходвано съобщение.");
     } finally {
       setBusy(false);
       setProgressSteps([]);
@@ -595,6 +636,15 @@ function AnonChat({ resetKey }: { resetKey: number }) {
         </div>
       ) : (
         <div className="border-t border-border/40 bg-card p-2 pb-[max(env(safe-area-inset-bottom),0.5rem)]">
+          {sendNotice ? (
+            <p
+              role="status"
+              aria-live="polite"
+              className="mb-2 rounded-lg border border-gold/30 bg-gold/10 px-2.5 py-1.5 text-[11px] leading-relaxed text-foreground"
+            >
+              {sendNotice}
+            </p>
+          ) : null}
           <div className="flex items-end gap-2 rounded-2xl border border-border/60 bg-background p-1.5 transition-colors focus-within:border-gold/60 focus-within:ring-2 focus-within:ring-gold/15">
             <textarea
               ref={inputRef}
