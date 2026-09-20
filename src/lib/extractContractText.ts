@@ -3,6 +3,12 @@
 // DOCX -> mammoth.
 
 import { supabase } from "@/integrations/supabase/client";
+import {
+  clearDocumentOperation,
+  documentOperationScope,
+  documentOperationUserKey,
+  getOrCreateDocumentOperationId,
+} from "@/lib/documentOperationKey";
 
 export type ExtractSource = "pdf" | "docx" | "paste";
 
