@@ -54,7 +54,7 @@ Deno.test("редът е: търсене → резервация → трайн
     const lookup = at(s, "lookupDocumentOperation(");
     const reserve = at(s, "reserveDocumentOperation(");
     const started = at(s, "markDocumentModelStarted(");
-    const provider = at(s, GATEWAY);
+    const provider = providerCallAt(s);
     const commit = at(s, "commitDocumentOperation(");
     assert(lookup < reserve, `${fn}: търсенето трябва да е ПРЕДИ резервацията`);
     assert(reserve < started, `${fn}: началото на модела е след резервацията`);
@@ -80,7 +80,7 @@ Deno.test("бюджетът за повиквания се налага в ко�
       `${fn}: липсва твърд бюджет за повиквания с цел ${purpose}`,
     );
     const budget = at(s, "budget.take()");
-    assert(budget < at(s, GATEWAY) + s.length, `${fn}: бюджетът трябва да се взима преди повикване`);
+    assert(budget < providerCallAt(s), `${fn}: бюджетът се взима ПРЕДИ повикването към доставчика`);
   }
 });
 
