@@ -290,6 +290,8 @@ export async function markDocumentModelStarted(
 export interface CommitDocumentInput {
   operationId: string;
   userId: string;
+  purpose: AiDocumentPurpose;
+  binding: string;
   /** Минималният товар за ТОЧНО повторение. Без излишно съдържание. */
   result: Record<string, unknown>;
   resultTtlSeconds?: number;
