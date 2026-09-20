@@ -4,6 +4,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, hashIp, clientIp } from "../_shared/cors.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
+import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
+import { redactForAI, unredact } from "../_shared/redact.ts";
 
 const KIND_SPECS: Record<string, { label: string; addendum: string }> = {
   appendix: {
@@ -212,21 +214,16 @@ ${safeParentText}
       throw new Error("AI грешка");
     }
 
-    await admin.from("ai_usage").insert({
-      user_id: userId,
-      ip_hash: userId ? null : ipHash,
-      function_name: "generate-linked-document",
-    });
-
     const rawJson = await aiResp.json();
     const content: string = rawJson?.choices?.[0]?.message?.content ?? "";
     if (!content.trim()) throw new Error("AI не върна съдържание");
 
     const { parseAiJsonWithRetry } = await import("../_shared/ai-json-retry.ts");
-    const parsed = (await parseAiJsonWithRetry({
+    const rawParsed = (await parseAiJsonWithRetry({
       content,
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        // И при повторния опит се ползва ЗАЗЕМЕНИЯТ системен промпт.
+        { role: "system", content: groundedSystem },
         { role: "user", content: userPrompt },
       ],
       model: "google/gemini-2.5-flash",
@@ -235,10 +232,19 @@ ${safeParentText}
       correlationId,
       regenerateAttempts: 1,
     })).parsed;
+    const parsed = JSON.parse(unredact(JSON.stringify(rawParsed), redaction.mapping));
+
+    // ai_usage се записва САМО при успех — не при преграда или грешка.
+    await admin.from("ai_usage").insert({
+      user_id: userId,
+      ip_hash: userId ? null : ipHash,
+      function_name: "generate-linked-document",
+    });
 
     return new Response(
       JSON.stringify({
         ...parsed,
+        citations: legal.citations,
         meta: { kind, parent_slug: parentSlug, number },
       }),
       { headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
