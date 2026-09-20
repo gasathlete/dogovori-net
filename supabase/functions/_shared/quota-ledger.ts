@@ -564,18 +564,19 @@ export type WaveLookupOutcome =
   | { readonly status: "absent" }
   | { readonly status: "conflict"; readonly reason: string }
   | { readonly status: "committed"; readonly result: Record<string, unknown> | null }
+  | { readonly status: "response_expired"; readonly charged: boolean }
   | { readonly status: "in_progress"; readonly retryAfterSeconds: number }
   | { readonly status: "reconciliation"; readonly reason: string }
   | { readonly status: "unavailable"; readonly message: string };
 
 export async function lookupCommittedWave(
-  db: RpcWithSelect,
+  db: Rpc,
   input: WaveBinding,
 ): Promise<WaveLookupOutcome> {
   if (typeof input.requestDigest !== "string" || !SHA256_HEX.test(input.requestDigest)) {
     return { status: "conflict", reason: "request_digest_required" };
   }
-  const { data, error } = await db
+  const { data, error } = await (db as RpcWithSelect)
     .from("quota_wave_operations")
     .select("*")
     .eq("operation_id", input.operationId)
@@ -600,6 +601,14 @@ export async function lookupCommittedWave(
     const result = row.result && typeof row.result === "object"
       ? (row.result as Record<string, unknown>)
       : null;
+    // Точният отговор се пази ограничено (24 ч). След изтичане НИКОГА не се
+    // връща празен или друг резултат — изисква се нова заявка.
+    const expiresAtMs = row.result_expires_at
+      ? new Date(String(row.result_expires_at)).getTime()
+      : 0;
+    if (!result || (expiresAtMs > 0 && expiresAtMs <= Date.now())) {
+      return { status: "response_expired", charged: true };
+    }
     return { status: "committed", result };
   }
   if (state === "reserved") {
@@ -728,7 +737,7 @@ export async function commitQuotaWave(
       result: row.result && typeof row.result === "object" ? (row.result as Record<string, unknown>) : null,
     };
   }
-  return { status: "unresolved", reason: String(row.reason ?? status || "wave_commit_failed") };
+  return { status: "unresolved", reason: String(row.reason ?? (status || "wave_commit_failed")) };
 }
 
 export type CancelWaveOutcome =
@@ -761,7 +770,7 @@ export async function cancelQuotaWave(
   if (status === "already_committed") {
     return { status: "already_committed" };
   }
-  const failReason = String(row.reason ?? status || "wave_cancel_failed");
+  const failReason = String(row.reason ?? (status || "wave_cancel_failed"));
   await recordReconciliation(db, operationId, `wave_${failReason}`);
   return { status: "unresolved", reason: failReason };
 }
