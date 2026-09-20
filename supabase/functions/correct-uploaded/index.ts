@@ -214,7 +214,7 @@ Deno.serve(async (req: Request) => {
         status: "blocked",
         error_code: route.blockedReason ?? "blocked",
       });
-      return new Response(
+      return await cancelAndRespond("special_category_blocked", new Response(
         JSON.stringify({
           error: "Документът съдържа специални категории лични данни (здравни, биометрични, синдикални, политически, религиозни) и не може да бъде коригиран автоматично.",
           code: route.blockedReason ?? "special_category_blocked",
@@ -224,12 +224,12 @@ Deno.serve(async (req: Request) => {
             reasons: classification.reasons,
           },
         }),
-        { status: 422, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
-      );
+        { status: 422, headers: jsonHeaders },
+      ));
     }
 
     if (route.requireConfirmation) {
-      return new Response(
+      return await cancelAndRespond("confirmation_required", new Response(
         JSON.stringify({
           error: "needs_confirmation",
           code: "sensitive_data_confirmation_required",
@@ -241,8 +241,8 @@ Deno.serve(async (req: Request) => {
             reasons: classification.reasons,
           },
         }),
-        { status: 200, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
-      );
+        { status: 200, headers: jsonHeaders },
+      ));
     }
 
     // Един общ мапинг за документа, резюмето, типа и текстовете на находките.
