@@ -65,6 +65,8 @@ IMMUTABLE
 AS $function$ SELECT 600 $function$;
 
 REVOKE ALL ON FUNCTION public.owned_review_grant_ttl_seconds() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.owned_review_grant_ttl_seconds() FROM anon;
+REVOKE ALL ON FUNCTION public.owned_review_grant_ttl_seconds() FROM authenticated;
 GRANT EXECUTE ON FUNCTION public.owned_review_grant_ttl_seconds() TO service_role;
 
 -- ---------------------------------------------------------------------------
@@ -267,6 +269,8 @@ END;
 $function$;
 
 REVOKE ALL ON FUNCTION public.owned_review_operation_reserve(uuid, uuid, uuid, text, text, text, text, integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.owned_review_operation_reserve(uuid, uuid, uuid, text, text, text, text, integer) FROM anon;
+REVOKE ALL ON FUNCTION public.owned_review_operation_reserve(uuid, uuid, uuid, text, text, text, text, integer) FROM authenticated;
 GRANT EXECUTE ON FUNCTION public.owned_review_operation_reserve(uuid, uuid, uuid, text, text, text, text, integer) TO service_role;
 
 -- ---------------------------------------------------------------------------
@@ -336,6 +340,8 @@ END;
 $function$;
 
 REVOKE ALL ON FUNCTION public.owned_review_operation_commit(uuid, uuid, jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.owned_review_operation_commit(uuid, uuid, jsonb) FROM anon;
+REVOKE ALL ON FUNCTION public.owned_review_operation_commit(uuid, uuid, jsonb) FROM authenticated;
 GRANT EXECUTE ON FUNCTION public.owned_review_operation_commit(uuid, uuid, jsonb) TO service_role;
 
 CREATE OR REPLACE FUNCTION public.owned_review_operation_cancel(
@@ -392,6 +398,8 @@ END;
 $function$;
 
 REVOKE ALL ON FUNCTION public.owned_review_operation_cancel(uuid, uuid, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.owned_review_operation_cancel(uuid, uuid, text) FROM anon;
+REVOKE ALL ON FUNCTION public.owned_review_operation_cancel(uuid, uuid, text) FROM authenticated;
 GRANT EXECUTE ON FUNCTION public.owned_review_operation_cancel(uuid, uuid, text) TO service_role;
 
 -- =============================================================================
