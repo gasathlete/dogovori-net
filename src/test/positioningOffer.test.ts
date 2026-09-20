@@ -169,7 +169,7 @@ describe("цените и плащането остават непокътнат
 
   it("checkout извикванията в /plans и в профила не са променени", () => {
     const plansSrc = read("src/pages/Plans.tsx");
-    expect(plansSrc).toContain("/account?tab=subscription&plan=${planId}&billing=${billing}&promo=SEPT20");
+    expect(plansSrc).toContain("/account?tab=subscription&plan=${planId}&billing=${billing}");
     const tab = read("src/pages/account/SubscriptionTab.tsx");
     for (const key of [
       "professional_monthly",

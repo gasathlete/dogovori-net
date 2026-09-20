@@ -58,7 +58,7 @@ export function PlanScaleSlider({ plans, billing, isAuthed, onRecommend }: Props
             label: "Регистрирай се за Екип",
           };
     }
-    const target = `/account?tab=subscription&plan=${rec.planId}&billing=${billing}&promo=SEPT20`;
+    const target = `/account?tab=subscription&plan=${rec.planId}&billing=${billing}`;
     const name = rec.plan?.name ?? "";
     return isAuthed
       ? { href: target, label: `Активирай ${name}`.trim() }

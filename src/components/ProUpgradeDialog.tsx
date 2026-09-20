@@ -134,7 +134,7 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
         ? `&redirect=${encodeURIComponent(returnTo)}`
         : "";
     onOpenChange(false);
-    navigate(`/account?tab=subscription&plan=${plan}&billing=${billing}&promo=SEPT20${redirect}`);
+    navigate(`/account?tab=subscription&plan=${plan}&billing=${billing}${redirect}`);
   };
 
   const SCENARIOS = [
@@ -177,14 +177,6 @@ export function ProUpgradeDialog({ open, onOpenChange, trigger, context }: Props
           </div>
         </div>
 
-        <div className="my-2 rounded-lg border border-gold/30 bg-gold/5 p-3 text-center">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-gold">
-            Септемврийска промоция · код SEPT20
-          </div>
-          <div className="mt-0.5 text-xs text-muted-foreground">
-            20% отстъпка при регистрация до 30.09
-          </div>
-        </div>
 
         <div className="my-2 grid grid-cols-2 gap-1.5">
           {SCENARIOS.map(({ icon: Icon, label, detail }) => (

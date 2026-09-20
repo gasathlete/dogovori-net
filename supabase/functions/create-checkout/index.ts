@@ -127,46 +127,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ----- SEPT20 promo code (20% off, all recurring subs) -----
-    // Септемврийска промоция: −20% при регистрация до 30.09.2026.
-    // Uses a versioned coupon ID so old coupons in Stripe are NOT reused.
-    // The coupon is restricted to the current line-item product so it
-    // applies correctly across monthly + yearly. Legacy FIRST100 codes are
-    // deactivated. Skipped for one-off purchases (five_operations /
-    // single_contract).
-    let promoCouponId: string | null = null;
-    const promoActive = Date.now() < Date.parse("2026-10-01T00:00:00+03:00");
+    // Септемврийската промоция SEPT20 е прекратена — не се прилага
+    // автоматично намаление. Публични промокодове няма.
+
+    // Deactivate the retired FIRST100 codes so they can no longer be used.
     if (isRecurring) {
-      const productId = typeof price.product === "string" ? price.product : (price.product as any)?.id;
-      try {
-        // Купонът е ограничен до конкретния продукт, затова идентификаторът е
-        // per-product: така намалението важи и за Професионалист, и за
-        // Предприемач, а не само за първия продукт, за който е създаден.
-        const couponId = `sept20_20off_${String(productId ?? "all").replace(/[^a-zA-Z0-9_]/g, "")}`;
-        try {
-          await stripe.coupons.retrieve(couponId);
-        } catch {
-          await stripe.coupons.create({
-            id: couponId,
-            // Stripe ограничава name до 40 знака — над това coupons.create
-            // хвърля и цялата промо-настройка тихо се пропуска.
-            name: "SEPT20 — 20% септемврийска промоция",
-            percent_off: 20,
-            duration: "forever",
-            ...(productId ? { applies_to: { products: [productId] } } : {}),
-            redeem_by: Math.floor(Date.parse("2026-10-01T00:00:00+03:00") / 1000),
-          });
-        }
-        if (promoActive) promoCouponId = couponId;
-      } catch (couponErr) {
-        console.error("SEPT20 coupon setup failed (non-fatal):", couponErr);
-      }
-
-      // Няма публичен код за въвеждане: намалението от −20% се прилага
-      // автоматично към сметката, така че цената, която човекът е видял в
-      // „Планове“, е и сумата, която плаща.
-
-      // Deactivate the retired FIRST100 codes so they can no longer be used.
       try {
         const legacy = await stripe.promotionCodes.list({ code: "FIRST100", limit: 20, active: true });
         for (const pc of legacy.data) {
@@ -178,18 +143,16 @@ Deno.serve(async (req) => {
     }
 
 
+
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: price.id, quantity: 1 }],
       mode: isRecurring ? "subscription" : "payment",
       ui_mode: "embedded_page",
       return_url: returnUrl,
       customer: customerId,
-      // Auto-applied discount: loyalty coupon takes precedence, otherwise the
-      // active September promo (−20%) is applied automatically so the price the
-      // customer saw on /plans is the price charged. Stripe does not allow
-      // `discounts` together with `allow_promotion_codes`, so the manual code
-      // field is only shown when no discount is auto-applied.
-      ...(isRecurring && !appliedCouponId && !promoCouponId && { allow_promotion_codes: true }),
+      // Auto-applied discount: само loyalty купон, когато клиентът го е
+      // спечелил. Публични промокодове няма, затова и поле за код не се
+      // показва — цената в „Планове“ е и сумата, която се плаща.
       metadata: {
         userId,
         priceId,
@@ -199,20 +162,14 @@ Deno.serve(async (req) => {
         // потвърждение, което не е дошло от интерфейса.
         ...consentMetadata(consent),
         ...(appliedCouponId ? { loyalty_coupon: appliedCouponId } : {}),
-        ...(!appliedCouponId && promoCouponId ? { promo_coupon: promoCouponId } : {}),
       },
 
-      ...(appliedCouponId
-        ? { discounts: [{ coupon: appliedCouponId }] }
-        : promoCouponId
-          ? { discounts: [{ coupon: promoCouponId }] }
-          : {}),
+      ...(appliedCouponId ? { discounts: [{ coupon: appliedCouponId }] } : {}),
       ...(isRecurring && {
         subscription_data: {
           metadata: {
             userId,
             ...(appliedCouponId ? { loyalty_coupon: appliedCouponId } : {}),
-            ...(!appliedCouponId && promoCouponId ? { promo_coupon: promoCouponId } : {}),
           },
         },
       }),
