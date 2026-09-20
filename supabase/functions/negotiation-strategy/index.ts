@@ -391,10 +391,7 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
     const citedIds = legal.citations.map((c) => c.chunk_id);
     const versions = await currentSourceVersions(admin, citedIds);
     if (!versions) {
-      return new Response(
-        JSON.stringify({ error: "evidence_unavailable", charged: false }),
-        { status: 503, headers: { ...cors, "Content-Type": "application/json" } },
-      );
+      return await reconcileAndRespond("evidence_unavailable");
     }
     const sources: StrategySourceRef[] = legal.citations
       .filter((c) => versions.get(c.chunk_id))
