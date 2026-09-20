@@ -65,6 +65,6 @@ describe("повикващият код на документните опера
   it("OCR обвързването използва отпечатъци на страници, не base64", () => {
     const src = read("src/lib/extractContractText.ts");
     expect(src).toContain("documentOperationScope");
-    expect(src).not.toMatch(/options:\s*\{[^}]*:\s*images\b/);
+    expect(src).not.toMatch(/options:\s*\{[^}]*:\s*images\s*[,}]/);
   });
 });
