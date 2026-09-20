@@ -43,6 +43,10 @@ interface SelectChain {
   limit(n: number): Promise<{ data: ArtifactRow[] | null; error: { message: string } | null }>;
 }
 
+interface StorageListEntry {
+  readonly name?: string;
+}
+
 interface SweepDb {
   from(table: string): {
     select(cols: string): SelectChain;
@@ -55,6 +59,10 @@ interface SweepDb {
       remove(
         paths: string[],
       ): Promise<{ data: RemovedObject[] | null; error: { message: string } | null }>;
+      list(
+        prefix: string,
+        opts: { search?: string; limit?: number },
+      ): Promise<{ data: StorageListEntry[] | null; error: { message: string } | null }>;
     };
   };
 }
@@ -63,16 +71,43 @@ export interface SweepResult {
   readonly examined: number;
   /** Обекти, които хранилището потвърди като премахнати в този курс. */
   readonly removed: number;
-  /** Обекти, които вече не съществуват — логически чисти. */
+  /** Обекти, чието ОТСЪСТВИЕ е потвърдено с проверка в хранилището. */
   readonly missing: number;
-  /** Редове, маркирани като заличени (removed + missing, при успешен запис). */
+  /** Редове, маркирани като заличени (само след успешен запис в базата). */
   readonly marked: number;
+  /**
+   * Редове без доказан изход: обектът още съществува, проверката за наличие
+   * се провали или записът в базата не мина. Остават чакащи следващ курс.
+   */
+  readonly unresolved: number;
   readonly skipped_not_request: number;
   readonly errors: string[];
 }
 
 function objectName(obj: RemovedObject): string {
   return String(obj.name ?? obj.path ?? "");
+}
+
+/**
+ * ТОЧНА проверка за наличие на един обект. „Липсва в отговора на remove" НЕ е
+ * доказателство за отсъствие — затова се проверява изрично.
+ */
+async function objectAbsent(
+  db: SweepDb,
+  bucket: string,
+  path: string,
+): Promise<{ absent: boolean; error?: string }> {
+  const slash = path.lastIndexOf("/");
+  const prefix = slash >= 0 ? path.slice(0, slash) : "";
+  const name = slash >= 0 ? path.slice(slash + 1) : path;
+  try {
+    const { data, error } = await db.storage.from(bucket).list(prefix, { search: name, limit: 100 });
+    if (error) return { absent: false, error: error.message };
+    const entries = (data ?? []).map((e) => String(e.name ?? ""));
+    return { absent: !entries.includes(name) };
+  } catch (e) {
+    return { absent: false, error: e instanceof Error ? e.message : "existence check failed" };
+  }
 }
 
 export async function sweepExpiredRequestArtifacts(
@@ -82,7 +117,7 @@ export async function sweepExpiredRequestArtifacts(
   const now = opts.now ?? new Date();
   const batchSize = Math.min(Math.max(opts.batchSize ?? 200, 1), 500);
   const errors: string[] = [];
-  const empty = { removed: 0, missing: 0, marked: 0, skipped_not_request: 0 };
+  const empty = { removed: 0, missing: 0, marked: 0, unresolved: 0, skipped_not_request: 0 };
 
   // Филтрите по обхват и префикс са В ЗАЯВКАТА, за да не се „изяжда" партидата
   // от изтекли чернови и заличаването по заявка да не спира никога.
@@ -124,7 +159,18 @@ export async function sweepExpiredRequestArtifacts(
   let removed = 0;
   let missing = 0;
   let marked = 0;
+  let unresolved = 0;
   const nowIso = new Date().toISOString();
+
+  /** Записва причината на реда, без да твърди заличаване. */
+  const keepPending = async (bucket: string, ids: string[], reason: string) => {
+    unresolved += ids.length;
+    const { error: noteErr } = await db
+      .from("storage_artifacts")
+      .update({ delete_error: reason })
+      .in("id", ids);
+    if (noteErr) errors.push(`${bucket} record delete_error: ${noteErr.message}`);
+  };
 
   for (const [bucket, list] of byBucket) {
     const { data: removedObjects, error: rmErr } = await db.storage
@@ -133,33 +179,46 @@ export async function sweepExpiredRequestArtifacts(
 
     if (rmErr) {
       errors.push(`${bucket} remove: ${rmErr.message}`);
-      // Грешката се запомня НА РЕДА, за да е видима и да не се губи.
-      const { error: noteErr } = await db
-        .from("storage_artifacts")
-        .update({ delete_error: rmErr.message })
-        .in("id", list.map((r) => r.id));
-      if (noteErr) errors.push(`${bucket} record delete_error: ${noteErr.message}`);
+      await keepPending(bucket, list.map((r) => r.id), rmErr.message);
       continue;
     }
 
     // Съгласуваме какво реално е върнало хранилището.
     const confirmed = new Set((removedObjects ?? []).map(objectName).filter(Boolean));
     const confirmedRows = list.filter((r) => confirmed.has(r.storage_path));
-    const missingRows = list.filter((r) => !confirmed.has(r.storage_path));
-    removed += confirmedRows.length;
-    missing += missingRows.length;
+    const omitted = list.filter((r) => !confirmed.has(r.storage_path));
 
-    // Маркират се само редове с потвърдено премахване ИЛИ вече липсващ обект —
-    // и двете значат, че съдържанието вече не е достъпно.
-    const resolved = [...confirmedRows, ...missingRows];
+    // Пропуснат в отговора обект се ПРОВЕРЯВА поименно. Само потвърдено
+    // отсъствие е „липсващ"; наличен или непроверим остава чакащ.
+    const absentRows: ArtifactRow[] = [];
+    for (const r of omitted) {
+      const check = await objectAbsent(db, bucket, r.storage_path);
+      if (check.absent) {
+        absentRows.push(r);
+        continue;
+      }
+      const reason = check.error
+        ? `existence_check_failed: ${check.error}`
+        : "object_still_present_after_remove";
+      errors.push(`${bucket} ${r.storage_path}: ${reason}`);
+      await keepPending(bucket, [r.id], reason);
+    }
+
+    const resolved = [...confirmedRows, ...absentRows];
+    if (resolved.length === 0) continue;
+
     const { error: markErr } = await db
       .from("storage_artifacts")
       .update({ deleted_at: nowIso, delete_error: null })
       .in("id", resolved.map((r) => r.id));
     if (markErr) {
       errors.push(`${bucket} mark deleted: ${markErr.message}`);
+      await keepPending(bucket, resolved.map((r) => r.id), `mark_failed: ${markErr.message}`);
       continue;
     }
+    // Броим само СЛЕД доказан запис в базата.
+    removed += confirmedRows.length;
+    missing += absentRows.length;
     marked += resolved.length;
   }
 
@@ -168,7 +227,9 @@ export async function sweepExpiredRequestArtifacts(
     removed,
     missing,
     marked,
+    unresolved,
     skipped_not_request: skipped,
     errors,
   };
 }
+

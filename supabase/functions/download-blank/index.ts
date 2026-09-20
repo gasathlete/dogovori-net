@@ -317,17 +317,21 @@ Deno.serve(async (req: Request) => {
     );
     const sessionId = asUuidOrNull(body?.session_id);
     const docKey = asTextOrNull(body?.doc_key);
-    // Клиентският ключ на операцията прави повторния опит безопасен. Стар
-    // кеширан клиент може да го пропусне — тогава не блокираме заявката, но и
-    // НЕ твърдим, че повторението е идемпотентно.
+    // Клиентският ключ на операцията е ЗАДЪЛЖИТЕЛЕН: без него повторният опит
+    // не може да бъде идемпотентен и би генерирал и таксувал наново.
     const rawClientOpId = body?.operation_id ?? body?.client_operation_id;
     const clientOperationId = asUuidOrNull(rawClientOpId);
-    if (rawClientOpId !== undefined && rawClientOpId !== null && !clientOperationId) {
+    if (!clientOperationId) {
       return new Response(
-        JSON.stringify({ error: "Невалиден идентификатор на операцията.", code: "invalid_operation_id" }),
+        JSON.stringify({
+          error: "Липсва или е невалиден идентификатор на операцията.",
+          code: rawClientOpId ? "invalid_operation_id" : "operation_id_required",
+          charge_state: "not_charged",
+        }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
 
     // Strict input validation to prevent prompt-cache poisoning. The generated
     // blank is shared globally by (sector_id, document_name), so untrusted
@@ -393,8 +397,7 @@ Deno.serve(async (req: Request) => {
       sectorTitle,
       isBilingual,
     });
-    const hasClientKey = Boolean(clientOperationId);
-    const operationId = clientOperationId ?? crypto.randomUUID();
+    const operationId = clientOperationId;
     const reservation = await reserveQuota(admin as unknown as Parameters<typeof reserveQuota>[0], {
       operationId,
       userId,
@@ -416,7 +419,9 @@ Deno.serve(async (req: Request) => {
     }
     // ТРАЙНО ПОВТОРЕНИЕ: същият ключ след загубен отговор връща СЪЩИЯ документ.
     // Подписва се нов адрес към вече записания файл — без ново генериране и
-    // без второ таксуване.
+    // без второ таксуване. Ако записаният обект вече не съществува, НЕ
+    // генерираме мълчаливо наново върху вече таксувана резервация: връщаме
+    // типизирано състояние за изравняване.
     if (reservation.status === "reserved" && reservation.replay && reservation.resultRef) {
       const ref = reservation.resultRef as { bucket?: unknown; path?: unknown; filename?: unknown };
       const bucket = typeof ref.bucket === "string" ? ref.bucket : "document-blanks";
@@ -433,13 +438,23 @@ Deno.serve(async (req: Request) => {
                 : `${documentName} - бланка.docx`,
               cached: false,
               replay: true,
+              operation_id: operationId,
+              retry_idempotent: true,
               citations: legal.citations,
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
       }
+      await recordReconciliation(
+        admin as unknown as Parameters<typeof recordReconciliation>[0],
+        operationId,
+        "replay_artifact_missing",
+        { purpose: "download_blank", bucket, path },
+      );
+      return billingReconciliationResponse(corsHeaders);
     }
+
     if (reservation.status === "unavailable") {
       return new Response(
         JSON.stringify({ error: "Квотата не може да бъде проверена в момента. Опитайте отново.", charge_state: "not_charged" }),
@@ -566,12 +581,21 @@ Deno.serve(async (req: Request) => {
     );
     if (committed.status !== "settled") {
       // Без доказано обвързване на резултата НЕ връщаме успех: иначе повторният
-      // опит би генерирал и таксувал наново.
+      // опит би генерирал и таксувал наново. Качественият обект се маха
+      // синхронно; ако и това не успее, се записва за изравняване.
+      const { error: rmErr } = await admin.storage
+        .from("document-blanks")
+        .remove([storagePath!]);
       await recordReconciliation(
         admin as unknown as Parameters<typeof recordReconciliation>[0],
         operationId,
         `commit_failed:${committed.reason}`,
-        { purpose: "download_blank", bucket: "document-blanks", path: storagePath },
+        {
+          purpose: "download_blank",
+          bucket: "document-blanks",
+          path: storagePath,
+          cleanup: rmErr ? `remove_failed:${rmErr.message}` : "removed",
+        },
       );
       return billingReconciliationResponse(corsHeaders);
     }
@@ -584,11 +608,11 @@ Deno.serve(async (req: Request) => {
         cached: false,
         is_pro: !!isPro,
         citations: legal.citations,
-        // Сървърният ключ се връща, за да може клиентът да повтори безопасно.
+        // Ключът е клиентски и задължителен — повторението е идемпотентно.
         operation_id: operationId,
-        // Стар клиент без ключ НЕ получава гаранция за идемпотентно повторение.
-        retry_idempotent: hasClientKey,
+        retry_idempotent: true,
       }),
+
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
     } catch (afterCharge) {

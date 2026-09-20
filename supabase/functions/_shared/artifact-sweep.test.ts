@@ -9,7 +9,10 @@ interface FakeOpts {
   rows: ArtifactRow[];
   /** Обекти, които хранилището потвърждава като премахнати. */
   confirm?: (bucket: string, paths: string[]) => string[];
+  /** Обекти, които ВСЕ ОЩЕ съществуват при проверката за наличие. */
+  present?: string[];
   removeError?: string;
+  listError?: string;
   markError?: string;
   queryError?: string;
   /** Симулира променена/дефектна заявка, която връща редове извън обхват. */
@@ -19,6 +22,7 @@ interface FakeOpts {
 function fakeDb(opts: FakeOpts) {
   const filters: Record<string, string> = {};
   const removeCalls: Array<{ bucket: string; paths: string[] }> = [];
+  const listCalls: Array<{ bucket: string; prefix: string; search?: string }> = [];
   const updates: Array<{ values: Record<string, unknown>; ids: string[] }> = [];
   let limitUsed = 0;
 
@@ -73,10 +77,21 @@ function fakeDb(opts: FakeOpts) {
             error: null,
           });
         },
+        list: (prefix: string, o: { search?: string; limit?: number }) => {
+          listCalls.push({ bucket, prefix, search: o.search });
+          if (opts.listError) {
+            return Promise.resolve({ data: null, error: { message: opts.listError } });
+          }
+          const present = (opts.present ?? []).filter((p) => p.startsWith(`${prefix}/`) || !prefix);
+          const names = present
+            .map((p) => p.slice(p.lastIndexOf("/") + 1))
+            .filter((n) => !o.search || n === o.search);
+          return Promise.resolve({ data: names.map((name) => ({ name })), error: null });
+        },
       }),
     },
   };
-  return { db, removeCalls, updates, filters, limitUsed: () => limitUsed };
+  return { db, removeCalls, listCalls, updates, filters, limitUsed: () => limitUsed };
 }
 
 function row(id: string, path: string, scope = "request", bucket = "document-blanks"): ArtifactRow {
@@ -102,6 +117,7 @@ Deno.test("филтърът по обхват и префикс е в заявк
   assertEquals(res.examined, 2);
   assertEquals(res.removed, 2);
   assertEquals(res.marked, 2);
+  assertEquals(res.unresolved, 0);
   assertEquals(removeCalls[0].paths.length, 2);
 });
 
@@ -117,17 +133,59 @@ Deno.test("различни хранилища се третират поотд�
   assertEquals(res.removed, 2);
 });
 
-Deno.test("вече липсващ обект се отчита отделно, но пак се маркира", async () => {
+Deno.test("потвърдено отсъствие се брои като липсващ и се маркира", async () => {
   const rows = [row("a", "request/1/a.docx"), row("b", "request/2/b.docx")];
-  const { db, updates } = fakeDb({
+  const { db, updates, listCalls } = fakeDb({
     rows,
-    confirm: () => ["request/1/a.docx"], // вторият вече липсва
+    confirm: () => ["request/1/a.docx"], // вторият е пропуснат в отговора
+    present: [], // и проверката потвърждава, че наистина липсва
   });
   const res = await sweepExpiredRequestArtifacts(db);
   assertEquals(res.removed, 1);
   assertEquals(res.missing, 1);
   assertEquals(res.marked, 2);
+  assertEquals(res.unresolved, 0);
+  assertEquals(listCalls.length, 1);
+  assertEquals(listCalls[0].search, "b.docx");
   assertEquals(updates[0].ids.length, 2);
+});
+
+Deno.test("пропуснат, но ВСЕ ОЩЕ наличен обект остава чакащ, не заличен", async () => {
+  const rows = [row("a", "request/1/a.docx")];
+  const { db, updates } = fakeDb({
+    rows,
+    confirm: () => [], // хранилището не потвърждава премахване
+    present: ["request/1/a.docx"], // и обектът съществува
+  });
+  const res = await sweepExpiredRequestArtifacts(db);
+  assertEquals(res.removed, 0);
+  assertEquals(res.missing, 0);
+  assertEquals(res.marked, 0);
+  assertEquals(res.unresolved, 1);
+  assertEquals(updates[0].values.delete_error, "object_still_present_after_remove");
+  assertEquals(updates[0].values.deleted_at, undefined);
+});
+
+Deno.test("празен отговор от remove не маркира всичко като липсващо", async () => {
+  const rows = [row("a", "request/1/a.docx"), row("b", "request/1/b.docx")];
+  const { db } = fakeDb({
+    rows,
+    confirm: () => [], // data: [] — без потвърждение
+    present: ["request/1/a.docx", "request/1/b.docx"],
+  });
+  const res = await sweepExpiredRequestArtifacts(db);
+  assertEquals(res.marked, 0);
+  assertEquals(res.missing, 0);
+  assertEquals(res.unresolved, 2);
+});
+
+Deno.test("грешка при проверката за наличие оставя реда чакащ", async () => {
+  const rows = [row("a", "request/1/a.docx")];
+  const { db, updates } = fakeDb({ rows, confirm: () => [], listError: "list down" });
+  const res = await sweepExpiredRequestArtifacts(db);
+  assertEquals(res.marked, 0);
+  assertEquals(res.unresolved, 1);
+  assert(String(updates[0].values.delete_error).includes("existence_check_failed"));
 });
 
 Deno.test("грешка при триене се записва на реда и не се твърди заличаване", async () => {
@@ -136,17 +194,19 @@ Deno.test("грешка при триене се записва на реда и
   const res = await sweepExpiredRequestArtifacts(db);
   assertEquals(res.removed, 0);
   assertEquals(res.marked, 0);
+  assertEquals(res.unresolved, 1);
   assertEquals(res.errors.length >= 1, true);
   assertEquals(updates[0].values.delete_error, "storage down");
   assertEquals(updates[0].values.deleted_at, undefined);
 });
 
-Deno.test("грешка при маркиране не се отчита като маркиран ред", async () => {
+Deno.test("грешка при маркиране не се отчита като премахнат или маркиран ред", async () => {
   const rows = [row("a", "request/1/a.docx")];
   const { db } = fakeDb({ rows, markError: "update failed" });
   const res = await sweepExpiredRequestArtifacts(db);
-  assertEquals(res.removed, 1);
+  assertEquals(res.removed, 0);
   assertEquals(res.marked, 0);
+  assertEquals(res.unresolved, 1);
   assert(res.errors.some((e) => e.includes("mark deleted")));
 });
 
@@ -163,6 +223,7 @@ Deno.test("повторен курс без изтекли редове е бе�
   assertEquals(res.examined, 0);
   assertEquals(res.removed, 0);
   assertEquals(res.marked, 0);
+  assertEquals(res.unresolved, 0);
   assertEquals(removeCalls.length, 0);
   assertEquals(res.errors.length, 0);
 });
@@ -172,6 +233,7 @@ Deno.test("грешка при заявката връща истинна нул
   const res = await sweepExpiredRequestArtifacts(db);
   assertEquals(res.examined, 0);
   assertEquals(res.marked, 0);
+  assertEquals(res.unresolved, 0);
   assert(res.errors[0].includes("db down"));
 });
 

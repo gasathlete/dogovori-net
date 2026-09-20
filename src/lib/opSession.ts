@@ -57,22 +57,39 @@ export function newOpBatchId(): string {
 /**
  * СТАБИЛЕН КЛЮЧ НА ЕДНА ЗАЯВКА.
  *
- * Един и същ ключ трябва да се използва при повторен опит, двойно натискане
- * или загубена връзка — иначе сървърът вижда нова заявка и таксува втори път.
+ * Един и същ ключ трябва да се използва при повторен опит, двойно натискане,
+ * загубена връзка И презареждане на страницата — иначе сървърът вижда нова
+ * заявка и таксува втори път. Затова ключът се пази в sessionStorage (същия
+ * таб), а не само в паметта на текущия JS живот.
  * Ключът се освобождава едва когато заявката е приключила успешно.
  */
 const stableKeys = new Map<string, string>();
+const STABLE_PREFIX = "op_stable_key:";
 
 export function getStableOpKey(scope: string): string {
-  let v = stableKeys.get(scope);
-  if (!v) {
-    v = uuid();
-    stableKeys.set(scope, v);
-  }
+  const storageKey = `${STABLE_PREFIX}${scope}`;
+  const cached = stableKeys.get(scope);
+  if (cached) return cached;
+  try {
+    const stored = sessionStorage.getItem(storageKey);
+    if (stored) {
+      stableKeys.set(scope, stored);
+      return stored;
+    }
+  } catch { /* sessionStorage недостъпен */ }
+  const v = uuid();
+  stableKeys.set(scope, v);
+  try {
+    sessionStorage.setItem(storageKey, v);
+  } catch { /* ignore */ }
   return v;
 }
 
 /** Освобождава ключа след доказано успешен изход. */
 export function releaseStableOpKey(scope: string): void {
   stableKeys.delete(scope);
+  try {
+    sessionStorage.removeItem(`${STABLE_PREFIX}${scope}`);
+  } catch { /* ignore */ }
 }
+

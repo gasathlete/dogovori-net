@@ -26,6 +26,9 @@ interface BucketDb {
         }>;
       };
     };
+    delete?(): {
+      eq(col: string, val: string): Promise<{ error: { message: string } | null }>;
+    };
   };
   rpc(
     name: string,
@@ -41,9 +44,14 @@ export interface EntitlementState {
   readonly used: number;
   readonly remaining: number;
   readonly exhausted: boolean;
+  /**
+   * Инфраструктурен отказ. НЕ е ново право и НЕ е изчерпан лимит — извикващият
+   * ТРЯБВА да върне повторяем 503.
+   */
+  readonly unavailable?: boolean;
 }
 
-/** Само ЧЕТЕ състоянието — не изразходва право. */
+/** Само ЧЕТЕ състоянието — не изразходва право. FAIL-CLOSED при грешка. */
 export async function readAnonEntitlement(
   db: BucketDb,
   ipHash: string,
@@ -55,7 +63,12 @@ export async function readAnonEntitlement(
     .eq("key", anonEntitlementKey(ipHash))
     .maybeSingle();
 
-  if (error || !data) {
+  // Грешка при четене НЕ дава свежо право (иначе всеки срив = безкраен достъп).
+  if (error) {
+    return { used: 0, remaining: 0, exhausted: false, unavailable: true };
+  }
+  // Липсващ запис = наистина нов посетител.
+  if (!data) {
     return { used: 0, remaining: ANON_FREE_MESSAGES, exhausted: false };
   }
   const started = new Date(data.window_start).getTime();
@@ -65,6 +78,7 @@ export async function readAnonEntitlement(
   const remaining = Math.max(0, ANON_FREE_MESSAGES - used);
   return { used, remaining, exhausted: remaining <= 0 };
 }
+
 
 /**
  * Изразходва ЕДНО съобщение — извиква се СЛЕД доказано доставен отговор.
@@ -81,9 +95,11 @@ export async function consumeAnonDelivered(
     _window_s: ANON_ENTITLEMENT_WINDOW_S,
   });
   if (error) {
-    // Записът не успя: правото не се твърди за изразходвано.
-    return { ok: false, used: 0, remaining: 0, exhausted: false };
+    // Записът не успя: правото не се твърди за изразходвано И това НЕ е
+    // изчерпан лимит — извикващият връща повторяем 503.
+    return { ok: false, used: 0, remaining: 0, exhausted: false, unavailable: true };
   }
+
   const row = (data ?? {}) as { ok?: boolean; remaining?: number };
   const remaining = Math.max(0, Number(row.remaining ?? 0));
   return {
@@ -117,3 +133,28 @@ export async function reserveAnonOperation(
   const row = (data ?? {}) as { ok?: boolean };
   return { ok: row.ok === true, replay: row.ok !== true, infraFailed: false };
 }
+
+/**
+ * ОСВОБОЖДАВА резервацията на опит, когато отговорът НЕ е доставен (правна
+ * преграда, грешка в модела, липсващо заземяване). Така повторният опит със
+ * същия UUID не се отказва като „вече обработен" — неуспехът не изгаря опит.
+ *
+ * ВАЖНО (остатъчно ограничение): това НЕ е трайно повторение на точния отговор.
+ * Пълната таблица с анонимни доставки изисква нова миграция, която в този
+ * обхват не е прилагана.
+ */
+export async function releaseAnonOperation(
+  db: BucketDb,
+  ipHash: string,
+  requestId: string,
+): Promise<{ released: boolean }> {
+  try {
+    const table = db.from("rate_limit_buckets");
+    if (!table.delete) return { released: false };
+    const { error } = await table.delete().eq("key", anonOperationKey(ipHash, requestId));
+    return { released: !error };
+  } catch {
+    return { released: false };
+  }
+}
+

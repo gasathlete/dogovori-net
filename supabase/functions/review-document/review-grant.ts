@@ -44,7 +44,10 @@ export type GrantFailure =
   | "wrong_audience"
   | "content_mismatch"
   | "subject_mismatch"
+  | "owner_mismatch"
+  | "operation_mismatch"
   | "replayed";
+
 
 function encoder(): TextEncoder {
   return new TextEncoder();
@@ -121,12 +124,19 @@ function looksLikeGrant(value: unknown): value is SignedReviewGrant {
     typeof p.issued_at === "number" && typeof p.expires_at === "number";
 }
 
-/** Проверява подпис, срок, предназначение, съдържание и субект (без nonce). */
+/**
+ * Проверява подпис, срок, предназначение, съдържание, субект И собственик
+ * (без nonce).
+ */
 export async function verifyReviewGrant(input: {
   grant: unknown;
   secret: string | null;
   contentDigest: string;
   subject: string | null;
+  /** Очакван собственик на документа, ако извикването го знае. */
+  expectedOwner?: string | null;
+  /** Очаквана операция, ако извикването е обвързано с конкретна операция. */
+  expectedOperation?: string | null;
   now?: number;
 }): Promise<GrantVerdict> {
   if (!input.secret) return { ok: false, reason: "grant_unavailable" };
@@ -143,6 +153,15 @@ export async function verifyReviewGrant(input: {
     return { ok: false, reason: "subject_mismatch" };
   }
   if (p.sub && !input.subject) return { ok: false, reason: "subject_mismatch" };
+  // Собственикът е обвързан в подписа и СЕ ПРОВЕРЯВА: пропуск, издаден за
+  // документ на един собственик, не важи за друг.
+  if (p.owner) {
+    const actor = input.expectedOwner ?? input.subject;
+    if (!actor || p.owner !== actor) return { ok: false, reason: "owner_mismatch" };
+  }
+  if (input.expectedOperation && p.operation !== input.expectedOperation) {
+    return { ok: false, reason: "operation_mismatch" };
+  }
   return { ok: true, payload: p };
 }
 
@@ -150,11 +169,20 @@ export function reviewGrantNonceKey(nonce: string): string {
   return `review-grant:${nonce}`;
 }
 
-/** Атомарна консумация: вторият опит със същия nonce е повторение. */
+/**
+ * Атомарна консумация: вторият опит със същия nonce е повторение. Проверката е
+ * FAIL-CLOSED — при инфраструктурен проблем пропускът НЕ се приема.
+ */
 export async function consumeReviewGrant(
-  rateLimit: (key: string, max: number, windowSeconds: number) => Promise<{ ok: boolean }>,
+  rateLimit: (
+    key: string,
+    max: number,
+    windowSeconds: number,
+  ) => Promise<{ ok: boolean; unavailable?: boolean }>,
   payload: ReviewGrantPayload,
 ): Promise<{ ok: boolean; reason?: GrantFailure }> {
   const res = await rateLimit(reviewGrantNonceKey(payload.nonce), 1, 3600);
-  return res.ok ? { ok: true } : { ok: false, reason: "replayed" };
+  if (res.ok) return { ok: true };
+  return { ok: false, reason: res.unavailable ? "grant_unavailable" : "replayed" };
 }
+

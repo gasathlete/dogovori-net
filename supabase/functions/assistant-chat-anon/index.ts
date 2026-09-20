@@ -13,8 +13,10 @@ import {
   ANON_FREE_MESSAGES,
   consumeAnonDelivered,
   readAnonEntitlement,
+  releaseAnonOperation,
   reserveAnonOperation,
 } from "../_shared/anon-entitlement.ts";
+
 
 const SYSTEM_PROMPT = `# РОЛЯ И ИДЕНТИЧНОСТ
 Ти си AI асистентът на **Dogovori.net** — българска платформа за правни документи, договори и бланки. Името ти е **"DogovaryAI"** (или просто Асистентът).
@@ -175,6 +177,9 @@ Deno.serve(async (req) => {
     // Неуспешен или незаземен опит не изразходва съобщение (записва се след
     // доставянето, по-долу).
     let entitlementRemaining = ANON_FREE_MESSAGES;
+    // Ако отговор НЕ бъде доставен, резервацията на опита се освобождава, за да
+    // не „изгаря" повторният опит със същия UUID.
+    let releaseAttempt: () => Promise<void> = async () => {};
     {
       const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
       const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -197,50 +202,84 @@ Deno.serve(async (req) => {
       {
         // deno-lint-ignore no-explicit-any
         const admin = createClient(SUPABASE_URL, SERVICE_ROLE) as any;
-        // Еднократност на опита: клиентският UUID пази от двойно генериране и
-        // двойно таксуване при загубен отговор.
+        // Еднократност на опита: клиентският UUID е ЗАДЪЛЖИТЕЛЕН — без него
+        // повторният опит не може да е идемпотентен.
         const requestId = typeof body?.request_id === "string" &&
             /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.request_id)
           ? body.request_id
           : null;
-        if (requestId) {
-          const res = await reserveAnonOperation(admin, ipHash, requestId);
-          if (res.infraFailed) {
-            return new Response(
-              JSON.stringify({
-                error: "entitlement_unavailable",
-                code: "entitlement_unavailable",
-                message: "Услугата е временно недостъпна. Опитайте отново след минута.",
-                free_message_consumed: false,
-                retry_after_seconds: 60,
-              }),
-              {
-                status: 503,
-                headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
-              },
-            );
-          }
-          if (res.replay) {
-            // Същият опит вече е обработен: не генерираме и не таксуваме пак.
-            return new Response(
-              JSON.stringify({
-                error: "already_processed",
-                code: "already_processed",
-                message:
-                  "Този въпрос вече беше обработен. Отворете отново разговора, за да видите отговора.",
-                free_message_consumed: false,
-                replay: true,
-              }),
-              { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-            );
-          }
+        if (!requestId) {
+          return new Response(
+            JSON.stringify({
+              error: "request_id_required",
+              code: "request_id_required",
+              message: "Липсва идентификатор на заявката.",
+              free_message_consumed: false,
+            }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
         }
+        const res = await reserveAnonOperation(admin, ipHash, requestId);
+        if (res.infraFailed) {
+          return new Response(
+            JSON.stringify({
+              error: "entitlement_unavailable",
+              code: "entitlement_unavailable",
+              message: "Услугата е временно недостъпна. Опитайте отново след минута.",
+              free_message_consumed: false,
+              retry_after_seconds: 60,
+            }),
+            {
+              status: 503,
+              headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+            },
+          );
+        }
+        if (res.replay) {
+          // Същият опит вече е обработен: не генерираме и не таксуваме пак.
+          return new Response(
+            JSON.stringify({
+              error: "already_processed",
+              code: "already_processed",
+              message:
+                "Този въпрос вече беше обработен. Отворете отново разговора, за да видите отговора.",
+              free_message_consumed: false,
+              replay: true,
+            }),
+            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        releaseAttempt = async () => {
+          try {
+            await releaseAnonOperation(admin, ipHash, requestId);
+          } catch { /* освобождаването е best-effort */ }
+        };
         const state = await readAnonEntitlement(admin, ipHash);
+        if (state.unavailable) {
+          // Четенето се провали: НЕ издаваме свежо право и НЕ казваме „лимит".
+          await releaseAttempt();
+          return new Response(
+            JSON.stringify({
+              error: "entitlement_unavailable",
+              code: "entitlement_unavailable",
+              message: "Услугата е временно недостъпна. Опитайте отново след минута.",
+              free_message_consumed: false,
+              retry_after_seconds: 60,
+            }),
+            {
+              status: 503,
+              headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+            },
+          );
+        }
         entitlementRemaining = state.remaining;
         if (state.exhausted) {
+          await releaseAttempt();
           return new Response(
             JSON.stringify({
               error: "limit_reached",
+              code: "limit_reached",
+              remaining: 0,
               message:
                 "Достигнахте лимита от 5 безплатни съобщения. Регистрирайте се и получавайте 5 + 2 безплатни съобщения всеки месец.",
               retry_after_s: 86400,
@@ -250,6 +289,7 @@ Deno.serve(async (req) => {
         }
       }
     }
+
 
     if (safe.length === 0 || safe[safe.length - 1].role !== "user") {
       return new Response(JSON.stringify({ error: "Последното съобщение трябва да е от потребителя" }), {
@@ -278,8 +318,10 @@ Deno.serve(async (req) => {
         }
       }
       if (!hasMatches) {
+        await releaseAttempt();
         return legalVerificationUnavailableResponse({ headers: corsHeaders });
       }
+
     }
 
     const systemFinal = `${SYSTEM_PROMPT}\n\n${promptBlock}`;
@@ -310,10 +352,12 @@ Deno.serve(async (req) => {
       if (!res.ok) {
         // Тялото на gateway-а НЕ се връща и НЕ се логва — нормализирана грешка.
         // Неуспешен модел не изразходва безплатно съобщение.
+        await releaseAttempt();
         return gatewayErrorResponse(normalizeGatewayStatus(res.status), corsHeaders, {
           free_message_consumed: false,
         });
       }
+
       const data = await res.json();
       const candidate: string = data?.choices?.[0]?.message?.content ?? "";
       if (validateGroundedReply(candidate, citations).ok) {
@@ -324,7 +368,9 @@ Deno.serve(async (req) => {
 
     if (!rawReply) {
       // Няма ръчно сглобен правен отговор: връщаме безопасна грешка без
-      // правно съдържание и без изразходвано безплатно съобщение.
+      // правно съдържание и без изразходвано безплатно съобщение. Опитът се
+      // освобождава, за да работи повторният опит със същия UUID.
+      await releaseAttempt();
       return new Response(
         JSON.stringify({
           error: ANON_LEGAL_ANSWER_UNAVAILABLE,
@@ -335,6 +381,7 @@ Deno.serve(async (req) => {
         { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
 
     let reply = rawReply;
     let followups: string[] = [];
@@ -414,7 +461,9 @@ Deno.serve(async (req) => {
     // ПОВТОРНА ВАЛИДАЦИЯ след sanitizer/CTA/линкове: доставя се само текст,
     // който и в окончателния си вид няма непроверено правно обозначение.
     if (!validateGroundedReply(reply, citations).ok) {
+      await releaseAttempt();
       return new Response(
+
         JSON.stringify({
           error: ANON_LEGAL_ANSWER_UNAVAILABLE,
           code: ANON_LEGAL_ANSWER_UNAVAILABLE,
@@ -449,8 +498,11 @@ Deno.serve(async (req) => {
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       } else {
-        // Записът не успя: не твърдим нищо за изразходвано право.
+        // Записът не успя: не твърдим нищо за изразходвано право и пускаме
+        // ключа, за да е възможен повторен опит.
+        await releaseAttempt();
         return new Response(
+
           JSON.stringify({
             error: "entitlement_unavailable",
             code: "entitlement_unavailable",

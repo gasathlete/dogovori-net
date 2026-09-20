@@ -25,12 +25,12 @@ const SIZE_PREF_KEY = "dogovai_size_pref"; // "small" | "full"
  */
 
 const HIDDEN_PREFIXES = ["/assistant", "/console", "/signing", "/share", "/checkout"];
-const ANON_LIMIT = 3;
-// Persist anonymous trial across close/re-open. Server enforces 5/24h per IP,
-// so the client counter should not silently reset when the user closes the
-// bubble — it caused confusion ("тестовете се рестартират").
-const ANON_PERSIST_MS = 24 * 60 * 60 * 1000; // 24h — matches server IP limit
+const ANON_LIMIT = 5;
+// Пробният период се пази, докато го пази и сървърът (30 дни за същия
+// посетител). Локален брояч НИКОГА не дава повече от сървърния.
+const ANON_PERSIST_MS = 30 * 24 * 60 * 60 * 1000;
 const ANON_STORAGE_KEY = "dogovai_anon_chat_v2";
+
 const LAST_ACTIVITY_KEY = "dogovai_last_activity_v2";
 const LEGACY_KEYS = ["dogovai_anon_chat", "dogovai_anon_chat_v1", "dogovai_last_activity"];
 
@@ -240,9 +240,14 @@ function AnonChat({ resetKey }: { resetKey: number }) {
     try { localStorage.removeItem(ANON_STORAGE_KEY); } catch { /* ignore */ }
   }, [resetKey]);
 
+  // Сървърът е източникът на истината за оставащите съобщения. Локалният брояч
+  // е само предварителна оценка, докато не пристигне отговор.
+  const [serverRemaining, setServerRemaining] = useState<number | null>(null);
+  const [serverLimitReached, setServerLimitReached] = useState(false);
   const userTurns = messages.filter((m) => m.role === "user").length;
-  const remaining = Math.max(0, ANON_LIMIT - userTurns);
-  const limitReached = remaining <= 0;
+  const remaining = serverRemaining ?? Math.max(0, ANON_LIMIT - userTurns);
+  const limitReached = serverLimitReached || remaining <= 0;
+
 
   // Smart auto-scroll — follow the writing when the user is already near
   // the bottom; leave them alone if they scrolled up to re-read something.
@@ -350,16 +355,53 @@ function AnonChat({ resetKey }: { resetKey: number }) {
       const { data, error } = await supabase.functions.invoke("assistant-chat-anon", {
         body: { messages: next, request_id: pendingRequestIdRef.current },
       });
-      if (error) throw error;
+      const payload = (data ?? {}) as {
+        reply?: string;
+        followups?: string[];
+        citations?: Citation[];
+        remaining?: number;
+        code?: string;
+        error?: string;
+        retry_after_seconds?: number;
+      };
+      if (typeof payload.remaining === "number") {
+        setServerRemaining(Math.max(0, payload.remaining));
+      }
+      if (error || payload.error || !payload.reply) {
+        const code = payload.code ?? "";
+        // Изчерпан лимит: заключваме входа с ясното съобщение на сървъра.
+        if (code === "limit_reached") {
+          setServerLimitReached(true);
+          setServerRemaining(0);
+          pendingRequestIdRef.current = null;
+          return;
+        }
+        // Временна недостъпност: ключът се пази, за да е повторният опит
+        // безплатен и без втори отговор.
+        const retryable = code === "entitlement_unavailable" ||
+          code === "identity_unavailable" || code === "too_many_attempts" || !code;
+        const content = retryable
+          ? "Услугата е временно недостъпна. Опитайте отново след малко — това съобщение не е изразходвано."
+          : "Не успяхме да обработим това запитване. Опитайте с друг въпрос или се регистрирайте за пълен достъп.";
+        if (!retryable) pendingRequestIdRef.current = null;
+        const finalMsgs: AnonMsg[] = [...next, { role: "assistant", content }];
+        setMessages(finalMsgs);
+        setFollowups([]);
+        saveAnonStored({ messages: finalMsgs, followups: [], updatedAt: Date.now() });
+        return;
+      }
       pendingRequestIdRef.current = null;
-      const reply = (data as { reply?: string })?.reply ?? "Извинете, опитайте отново.";
-      const fups = ((data as { followups?: string[] })?.followups ?? []).slice(0, 3);
-      const cits = ((data as { citations?: Citation[] })?.citations ?? []).slice(0, 3);
-      streamAssistantReply(next, reply, cits, fups);
+      const fups = (payload.followups ?? []).slice(0, 3);
+      const cits = (payload.citations ?? []).slice(0, 3);
+      streamAssistantReply(next, payload.reply, cits, fups);
     } catch {
       const finalMsgs: AnonMsg[] = [
         ...next,
-        { role: "assistant", content: "Грешка при връзка. Опитайте отново или се регистрирайте за пълен достъп." },
+        {
+          role: "assistant",
+          content:
+            "Връзката прекъсна. Опитайте отново — това съобщение не е изразходвано.",
+        },
       ];
       setMessages(finalMsgs);
       setFollowups([]);
@@ -370,6 +412,7 @@ function AnonChat({ resetKey }: { resetKey: number }) {
       requestAnimationFrame(() => inputRef.current?.focus());
     }
   };
+
 
   return (
     <div className="flex h-full min-h-0 flex-col">
