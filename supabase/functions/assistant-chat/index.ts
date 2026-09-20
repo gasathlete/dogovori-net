@@ -26,14 +26,33 @@ import {
   sanitizePath,
   toolSchemasFor,
 } from "../_shared/assistant-tools.ts";
-import { proposeSavedDocumentEdit } from "../_shared/assistant-edit.ts";
+import { computeSavedDocumentEditProposal } from "../_shared/assistant-edit.ts";
 import { redactForAI, unredact, type RedactionMapping } from "../_shared/redact.ts";
 import {
   buildRedactedContextSystemBlock,
   parseRequestedDocumentContext,
 } from "./document-context.ts";
 import { resolveDocumentContext, type ResolvedDocumentContext } from "./context-resolver.ts";
-import { runAssistantOrchestration, type ThreadBinding } from "./orchestration.ts";
+import {
+  decideAssistantOrchestration,
+  FREE_AI_MESSAGES,
+  type ThreadBinding,
+} from "./orchestration.ts";
+import {
+  canonicalTurnBinding,
+  decideTurnMode,
+  platformHelpAnswer,
+  sanitizeChatPath,
+} from "./turn-binding.ts";
+import {
+  cancelTurn,
+  commitTurn,
+  lookupTurn,
+  markTurnModelStarted,
+  reserveTurn,
+} from "./turn-ledger.ts";
+import { HISTORY_CHARS_LIMIT, loadThreadHistory } from "./history.ts";
+import { noVerifiedAnswerText, validateAnswerCitations } from "./citation-integrity.ts";
 
 const SYSTEM_PROMPT = `# РОЛЯ
 Ти си **DogovaryAI** — управляван от tools агент на Dogovori.net. Не отказваш, не се извиняваш — водиш потребителя през ясна верига от стъпки докато стигнете до готов договор/документ.
@@ -199,6 +218,13 @@ const SYSTEM_PROMPT = `# РОЛЯ
 const MODEL_STANDARD = "google/gemini-3.7-flash";
 const MODEL_PREMIUM = "google/gemini-3.1-pro-preview";
 const MAX_TOOL_ITERATIONS = 8;
+/**
+ * Деклариран таван на ЗАЯВКИТЕ към доставчика в ЕДНА операция: до 8 хода с
+ * инструменти + най-много ЕДНО ограничено поправяне на правния отговор.
+ * Вграждането (embedding) за строгия правен режим е ОТДЕЛНО и не се брои тук.
+ */
+const MAX_CHAT_REQUESTS_PER_OPERATION = 9;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LEGAL_ANSWER_MAX_TOKENS = 4096;
 
 interface ChatMsg {
@@ -208,22 +234,20 @@ interface ChatMsg {
   tool_call_id?: string;
 }
 
-function makeCitation(citations: any[], userMsg: string): string {
+/** Само РЕАЛЕН извлечен цитат. Няма „общ режим“ и няма измислен акт. */
+function makeCitation(citations: any[]): string | null {
   const first = (citations || []).find((c) => c?.short_code || c?.citation_label);
   if (first?.short_code && first?.article_no) {
-    const paragraph = first.paragraph_no ? `, ал. ${String(first.paragraph_no).replace(/^ал\.\s*/i, "")}` : "";
+    const paragraph = first.paragraph_no
+      ? `, ал. ${String(first.paragraph_no).replace(/^ал\.\s*/i, "")}`
+      : "";
     return `[${first.short_code}, чл. ${first.article_no}${paragraph}]`;
   }
   if (first?.citation_label) {
     const label = String(first.citation_label).replace(/^\[|\]$/g, "").slice(0, 120);
     return `[${label}]`;
   }
-  const lower = userMsg.toLowerCase();
-  if (/домашн|насил|заповед\s+за\s+защита|зздн/.test(lower)) return "[приложим общ режим по ЗЗДН]";
-  if (/уволн|работодател|работник|трудов|предизвест|кт\b/.test(lower)) return "[приложим общ режим по КТ]";
-  if (/прокурат|полици|обвин|наказател|нк\b|нпк\b/.test(lower)) return "[приложим общ режим по НК/НПК]";
-  if (/развод|издръжк|родител|семеен|ск\b/.test(lower)) return "[приложим общ режим по СК]";
-  return "[приложим общ режим по българското право]";
+  return null;
 }
 
 function hasInlineLegalCitation(text: string): boolean {
@@ -239,35 +263,6 @@ function needsLegalAnswerRepair(text: string): boolean {
     || citationCount < 3;
 }
 
-function normalizeLegalAnswerFallback(text: string, userMsg: string, citations: any[]): string {
-  const citation = makeCitation(citations, userMsg);
-  const body = text.replace(/\(Обща информация,\s*не правен съвет\.\)/i, "").trim();
-  if (!body) return body;
-  if (!/^\s*1[.)]\s+/m.test(body)) {
-    return [
-      `Накратко: отговорът зависи от конкретните факти, но описаният казус следва да се разглежда през приложимия български правен режим. По-долу е структурирана ориентация по най-важните разклонения ${citation}`,
-      `1. **Приложим правен режим.** ${body} ${hasInlineLegalCitation(body) ? "" : citation}`.trim(),
-      `2. **Фактите определят защитата.** Най-важно е дали вече има официално действие — сигнал, призовка, молба, заповед или връчен документ — защото това променя сроковете и доказателствата ${citation}`,
-      `3. **Доказателствата са ключови.** Запазете писмени съобщения, документи, свидетели и всяка официална кореспонденция, без да редактирате оригиналите ${citation}`,
-      `4. **Не поемайте признания прибързано.** Ако има полиция, прокуратура, съд или насрещна претенция, първо поискайте писмено основанието и сроковете, преди да давате подробни обяснения ${citation}`,
-      `\nПрактически:\n- **Съберете доказателства** в оригинален вид.\n- **Проверете сроковете** по всеки връчен документ.\n- **Не подписвайте** признания или споразумения без преглед.\n- **Подгответе кратка хронология** с дати, участници и документи.`,
-      `\nКога адвокат\nПотърсете адвокат веднага при призовка, заповед, наказателен елемент, риск за дете/семейна среда, запор, съдебен срок или ако отсрещната страна вече има адвокат ${citation}`,
-      "\n(Обща информация, не правен съвет.)",
-    ].join("\n\n");
-  }
-  if (hasInlineLegalCitation(body)) return `${body}\n\n(Обща информация, не правен съвет.)`.replace(/(?:\n\s*){3,}/g, "\n\n");
-  const cited = body.split("\n").map((line) => {
-    const trimmed = line.trim();
-    if (!trimmed || /^#{1,6}\s|^Практически:?$|^Кога\s+адвокат/i.test(trimmed)) return line;
-    if (/\[[^\]]+\]\s*$/.test(trimmed)) return line;
-    if (/^(?:[-*]|\d+[.)])\s+/.test(trimmed) || /прав|закон|съд|срок|доказател|жалб|молб|отговорност|защит|договор|претенц/i.test(trimmed)) {
-      return `${line} ${citation}`;
-    }
-    return line;
-  }).join("\n");
-  return `${cited}\n\n(Обща информация, не правен съвет.)`.replace(/(?:\n\s*){3,}/g, "\n\n");
-}
-
 async function repairLegalAnswer(params: {
   apiKey: string;
   model: string;
@@ -276,7 +271,7 @@ async function repairLegalAnswer(params: {
   legalPromptBlock: string;
   citations: any[];
 }): Promise<string | null> {
-  const citation = makeCitation(params.citations, params.question);
+  const citation = makeCitation(params.citations);
   const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -290,7 +285,7 @@ async function repairLegalAnswer(params: {
       messages: [
         {
           role: "system",
-          content: `Ти редактираш отговор на български правен AI асистент. Върни САМО финалния отговор. Форматът е задължителен: 1) кратко въведение 2–3 изречения; 2) номериран списък 5–10 точки, всяка с **удебелена теза**; 3) секция "Практически:" с bullet точки; 4) секция "Кога адвокат". Всяко правно твърдение завършва с инлайн цитат в квадратни скоби. Ако няма точен член, използвай ${citation}. Не измисляй несигурни членове. Завърши с "(Обща информация, не правен съвет.)".`,
+          content: `Ти редактираш отговор на български правен AI асистент. Върни САМО финалния отговор. Форматът е задължителен: 1) кратко въведение 2–3 изречения; 2) номериран списък 5–10 точки, всяка с **удебелена теза**; 3) секция "Практически:" с bullet точки; 4) секция "Кога адвокат". Всяко правно твърдение завършва с инлайн цитат в квадратни скоби. Цитирай САМО норми от подадената нормативна база${citation ? ` (например ${citation})` : ""}. Ако няма проверена норма, не цитирай нищо и не измисляй член. Завърши с "(Обща информация, не правен съвет.)".`,
         },
         { role: "system", content: params.legalPromptBlock.slice(0, 5000) },
         { role: "user", content: `Въпрос/уточнения:\n${params.question}\n\nЧернова за преработване:\n${params.draft}` },
@@ -347,11 +342,16 @@ Deno.serve(async (req) => {
     });
   }
 
+  const corr = crypto.randomUUID();
+  const json = (payload: Record<string, unknown>, status: number, extra?: Record<string, string>) =>
+    new Response(JSON.stringify({ ...payload, correlation_id: corr }), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json", ...(extra ?? {}) },
+    });
+
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) {
-    return new Response(JSON.stringify({ error: "AI gateway не е конфигуриран" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ error: "Услугата е временно недостъпна.", code: "ai_gateway_unconfigured" }, 503);
   }
 
   try {
@@ -362,40 +362,32 @@ Deno.serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "Unauthorized", code: "unauthorized" }, 401);
     }
     const { data: u } = await admin.auth.getUser(authHeader.replace("Bearer ", ""));
     const userId = u?.user?.id;
-    if (!userId) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!userId) return json({ error: "Unauthorized", code: "unauthorized" }, 401);
 
+    // ---- Тяло: ЗАДЪЛЖИТЕЛЕН operation_id + САМО новото съобщение ------------
     const body = await req.json().catch(() => null);
-    const messages = Array.isArray(body?.messages) ? body.messages : null;
-    const threadId: string | null = body?.threadId ?? null;
-    const currentPath: string = typeof body?.currentPath === "string" ? body.currentPath.slice(0, 200) : "";
-    if (!messages || messages.length === 0) {
-      return new Response(JSON.stringify({ error: "messages е задължителен" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const operationId = typeof body?.operationId === "string" ? body.operationId.trim() : "";
+    if (!UUID_RE.test(operationId)) {
+      return json({ error: "Липсва валиден идентификатор на заявката.", code: "operation_id_required" }, 400);
     }
-    const safeMessages = messages
-      .filter((m: any) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
-      .slice(-20)
-      .map((m: any) => ({ role: m.role, content: String(m.content).slice(0, 8000) }));
-    if (safeMessages.length === 0 || safeMessages[safeMessages.length - 1].role !== "user") {
-      return new Response(JSON.stringify({ error: "Последното съобщение трябва да е от потребителя" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const rawMessage = typeof body?.message === "string" ? body.message : "";
+    const newMessage = rawMessage.slice(0, HISTORY_CHARS_LIMIT).trim();
+    if (!newMessage) {
+      return json({ error: "Съобщението е задължително.", code: "message_required" }, 400);
     }
+    const requestedThreadId = typeof body?.threadId === "string" && UUID_RE.test(body.threadId)
+      ? body.threadId
+      : null;
+    const currentPath = sanitizeChatPath(body?.currentPath);
 
+    // ---- Безплатни проверки ПРЕДИ всяка резервация --------------------------
     const blockedChat = await guardIllegalContent({
       admin,
-      text: safeMessages[safeMessages.length - 1].content,
+      text: newMessage,
       functionName: "assistant-chat",
       userId,
       userEmail: u?.user?.email ?? null,
@@ -404,48 +396,58 @@ Deno.serve(async (req) => {
     });
     if (blockedChat) return blockedChat;
 
-    const lastUserMsg = safeMessages[safeMessages.length - 1].content;
-    const chatClassification = classifyDocumentBeforeAI(lastUserMsg);
+    const chatClassification = classifyDocumentBeforeAI(newMessage);
     if (chatClassification.contains_special_category_data) {
       await logAiAudit({
         user_id: userId, operation: "assistant-chat", model: "",
         classification: chatClassification, redaction_applied: false,
         status: "blocked", error_code: "special_category_in_chat",
       });
-      return new Response(JSON.stringify({
+      return json({
         error: "Молим не споделяйте чувствителни лични данни (здравни, биометрични, синдикални, политически, религиозни) в чата.",
         code: "special_category_blocked",
-      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }, 422);
     }
 
-    // ---- Q2e: заявен документен контекст (само {kind, entityId}) -------------
     const requestedCtxParse = parseRequestedDocumentContext(body?.documentContext ?? null);
-    // Невалидният контекст стига до оркестрацията като `"invalid"`, за да е
-    // гарантирано, че нито един резервационен път не е бил докоснат.
     const requestedContext: { kind: string; entityId: string } | null | "invalid" =
       requestedCtxParse.ok ? requestedCtxParse.value : "invalid";
 
-    // Клиент с JWT-а на потребителя — RLS (включително правилата за екипи) е
-    // единственият авторитет за достъп до документа. Service-role НЕ се ползва
-    // като проверка за достъп.
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!,
       { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } },
     );
 
-    // FAIL-CLOSED ПРЕДИ резервация на операция и преди всякакъв модел:
-    // точно този въпрос трябва да е обоснован с поне една проверена,
-    // достатъчно релевантна норма. Няма „общ режим“.
-    const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, lastUserMsg, {
-      matchCount: 10,
-    });
-    if (!legal.hasMatches) {
-      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
-      return legalVerificationUnavailableResponse({ headers: corsHeaders });
+    // ---- Собственост на разговора и ревизия (безплатно) --------------------
+    let existingThread: ThreadBinding | null | "not_found" = null;
+    let priorTurnRevision = 0;
+    if (requestedThreadId) {
+      const { data: th } = await admin
+        .from("assistant_threads")
+        .select("id, user_id, context_kind, context_entity_id, context_version, context_title, turn_revision")
+        .eq("id", requestedThreadId)
+        .maybeSingle();
+      existingThread = th
+        ? {
+            userId: (th as any).user_id,
+            contextKind: (th as any).context_kind ?? null,
+            contextEntityId: (th as any).context_entity_id ?? null,
+            contextVersion: (th as any).context_version ?? null,
+          }
+        : "not_found";
+      priorTurnRevision = Number((th as any)?.turn_revision ?? 0);
     }
 
-    // Paid individual / team gate
+    let resolvedContext: ResolvedDocumentContext | null = null;
+    let resolutionFailure: "document_not_found" | "analysis_context_stale" | null = null;
+    if (requestedContext && requestedContext !== "invalid") {
+      const resolution = await resolveDocumentContext(userClient, requestedContext as any);
+      if (resolution.ok) resolvedContext = resolution.value;
+      else resolutionFailure = resolution.code;
+    }
+
+    // Право и валидност на контекста — типизирана безплатна грешка при отказ.
     const { data: quota } = await admin
       .from("download_quota")
       .select("plan, pro_until, pro_monthly_used")
@@ -463,8 +465,7 @@ Deno.serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      const pid = (subRow as any)?.price_id || "";
-      isEntrepreneur = pid.startsWith("entrepreneur");
+      isEntrepreneur = String((subRow as any)?.price_id || "").startsWith("entrepreneur");
     }
 
     let teamId: string | null = null;
@@ -479,117 +480,232 @@ Deno.serve(async (req) => {
       if (t && t.teams?.status === "active") teamId = t.team_id;
     }
 
-    // ---- Валидация на разговора (ПРЕДИ всякаква резервация) -----------------
-    let activeThreadId = threadId;
-    let existingThread: ThreadBinding | null | "not_found" = null;
-    if (activeThreadId) {
-      const { data: th } = await admin
-        .from("assistant_threads")
-        .select("id, user_id, context_kind, context_entity_id, context_version, context_title")
-        .eq("id", activeThreadId)
-        .maybeSingle();
-      existingThread = th
-        ? {
-            userId: (th as any).user_id,
-            contextKind: (th as any).context_kind ?? null,
-            contextEntityId: (th as any).context_entity_id ?? null,
-            contextVersion: (th as any).context_version ?? null,
-          }
-        : "not_found";
+    const decision = decideAssistantOrchestration({
+      userId,
+      requestedContext,
+      existingThread,
+      resolved: resolvedContext ? { version: resolvedContext.version } : null,
+      resolutionFailure,
+      plan: { teamId, isPro: !!isPro },
+    });
+    if (!decision.ok) {
+      return json({ error: decision.error, code: decision.code }, decision.status);
     }
 
-    // ---- Разрешаване на контекста през RLS (ПРЕДИ резервация) --------------
-    let resolvedContext: ResolvedDocumentContext | null = null;
-    let resolutionFailure: "document_not_found" | "analysis_context_stale" | null = null;
-    if (requestedContext && requestedContext !== "invalid") {
-      const resolution = await resolveDocumentContext(userClient, requestedContext as any);
-      if (resolution.ok) resolvedContext = resolution.value;
-      else resolutionFailure = resolution.code;
+    // ---- Режим и канонично обвързване --------------------------------------
+    const modeDecision = decideTurnMode(newMessage, !!resolvedContext);
+    const binding = await canonicalTurnBinding({
+      userId,
+      requestedThreadId,
+      actualThreadId: requestedThreadId,
+      message: newMessage,
+      contextKind: resolvedContext?.kind ?? null,
+      contextEntityId: resolvedContext?.entityId ?? null,
+      contextVersion: resolvedContext?.version ?? null,
+      priorTurnRevision,
+      mode: modeDecision.mode,
+      path: currentPath,
+    });
+
+    const replayResponse = (result: Record<string, unknown>) => {
+      const events = Array.isArray(result.events) ? result.events : [];
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          for (const ev of events) {
+            const e = ev as { event?: unknown; data?: unknown };
+            const name = typeof e?.event === "string" && e.event ? `event: ${e.event}\n` : "";
+            controller.enqueue(encoder.encode(`${name}data: ${JSON.stringify(e?.data ?? null)}\n\n`));
+          }
+          controller.close();
+        },
+      });
+      return new Response(stream, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          "Connection": "keep-alive",
+        },
+      });
+    };
+
+    const ledgerStateResponse = (
+      kind: "in_progress" | "reconciliation" | "conflict" | "response_expired" | "unavailable",
+    ): Response => {
+      if (kind === "in_progress") {
+        return json({
+          error: "Този въпрос вече се обработва. Изчакайте отговора — не изпращайте повторно.",
+          code: "assistant_turn_in_progress",
+        }, 409, { "Retry-After": "5" });
+      }
+      if (kind === "conflict") {
+        return json({
+          error: "Заявката не съвпада с предишната. Изпратете съобщението отново.",
+          code: "assistant_turn_conflict",
+        }, 409);
+      }
+      if (kind === "response_expired") {
+        return json({
+          error: "Отговорът вече не е запазен. Изпратете съобщението отново.",
+          code: "assistant_turn_response_expired",
+        }, 409);
+      }
+      if (kind === "reconciliation") {
+        return json({
+          error: "Изясняваме състоянието на предишния Ви въпрос. Опитайте отново след малко — ако се повтори, свържете се с поддръжката.",
+          code: "assistant_turn_reconciliation",
+        }, 503);
+      }
+      return json({
+        error: "Услугата е временно недостъпна. Опитайте отново след минута.",
+        code: "assistant_turn_unavailable",
+      }, 503);
+    };
+
+    // ---- САМО-ЧЕТЯЩО търсене ПРЕДИ ограничения, правна база и доставчик ----
+    const lookup = await lookupTurn(admin, operationId, userId, binding);
+    if (lookup.kind === "committed") return replayResponse(lookup.result);
+    if (lookup.kind !== "absent") return ledgerStateResponse(lookup.kind);
+
+    // ---- Правната основа: САМО за строгия режим, fail-closed ---------------
+    let legal: Awaited<ReturnType<typeof retrieveLegalContext>> | null = null;
+    if (modeDecision.mode === "legal_strict") {
+      legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, newMessage, { matchCount: 10 });
+      if (!legal.hasMatches) {
+        const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
+        return legalVerificationUnavailableResponse({ headers: corsHeaders });
+      }
     }
 
-    // ---- Оркестрация: валидация → запис → ЕДНА резервация -------------------
-    // Отказан/невалиден/остарял контекст изразходва 0 операции.
-    const orchestration = await runAssistantOrchestration(
-      {
-        userId,
-        requestedContext,
-        existingThread,
-        resolved: resolvedContext ? { version: resolvedContext.version } : null,
-        resolutionFailure,
-        plan: { teamId, isPro: !!isPro },
-      },
-      { admin, userClient, userId, teamId },
-      {
-        ensureThread: async () => {
-          if (activeThreadId) return activeThreadId;
-          const firstUser = safeMessages.find((m: any) => m.role === "user");
-          const title = (firstUser?.content ?? "Нов разговор").slice(0, 80);
-          const insertRow: Record<string, unknown> = { user_id: userId, title };
-          if (resolvedContext) {
-            insertRow.context_kind = resolvedContext.kind;
-            insertRow.context_entity_id = resolvedContext.entityId;
-            insertRow.context_version = resolvedContext.version;
-            insertRow.context_title = resolvedContext.title;
-          }
-          const { data: created, error: createErr } = await admin
-            .from("assistant_threads")
-            .insert(insertRow as any)
-            .select("id")
-            .maybeSingle();
-          if (createErr || !created?.id) {
-            console.error("assistant thread insert failed", createErr?.code ?? "no_row");
-            return null;
-          }
-          return created.id as string;
-        },
-        persistUserMessage: async (tid: string) => {
-          const lastUser = safeMessages[safeMessages.length - 1];
-          const { error: msgErr } = await admin.from("assistant_messages").insert({
-            thread_id: tid,
-            role: "user",
-            content: lastUser.content,
-          });
-          if (msgErr) {
-            console.error("assistant message insert failed", msgErr.code ?? "unknown");
-            return false;
-          }
-          return true;
-        },
-      },
-    );
-
-    if (!orchestration.ok) {
-      return new Response(
-        JSON.stringify({ error: orchestration.error, code: orchestration.code }),
-        {
-          status: orchestration.status,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+    // ---- Резервация: точно едно право, точно една ревизия -------------------
+    const charge = modeDecision.mode === "legal_strict";
+    const reserved = await reserveTurn(admin, {
+      operationId,
+      userId,
+      binding,
+      requestedThreadId,
+      mode: modeDecision.mode,
+      charge,
+      allocationSource: charge ? decision.path : null,
+      teamId,
+      leaseSeconds: 180,
+      newThread: requestedThreadId
+        ? null
+        : {
+            title: newMessage.slice(0, 80),
+            context_kind: resolvedContext?.kind ?? null,
+            context_entity_id: resolvedContext?.entityId ?? null,
+            context_version: resolvedContext?.version ?? null,
+            context_title: resolvedContext?.title ?? null,
+          },
+      freeAiCap: FREE_AI_MESSAGES,
+    });
+    if (reserved.kind === "replay") return replayResponse(reserved.result);
+    if (reserved.kind === "denied") {
+      const reason = reserved.reason;
+      const message = reason === "team_limit_reached"
+        ? "Месечният лимит на екипа е достигнат."
+        : reason === "ai_plan_limit_reached"
+          ? "Месечният лимит на плана Ви е достигнат."
+          : reason === "ai_free_limit_reached"
+            ? "Безплатните съобщения за този месец са изчерпани."
+            : "Заявката не може да бъде изпълнена с текущия Ви план.";
+      return json({ error: message, code: reason }, 402);
+    }
+    if (reserved.kind === "invalid") {
+      return json({ error: "Заявката е невалидна.", code: "assistant_turn_invalid" }, 400);
+    }
+    if (reserved.kind !== "reserved") {
+      return ledgerStateResponse(
+        reserved.kind === "conflict"
+          ? (reserved.reason === "thread_busy" ? "in_progress" : "conflict")
+          : reserved.kind,
       );
     }
-    activeThreadId = orchestration.threadId;
+    const activeThreadId = reserved.threadId;
 
+    /** Провален път ПРЕДИ доставчика: доказана отмяна с точно връщане. */
+    const cancelAndRespond = async (
+      code: string,
+      message: string,
+      status: number,
+    ): Promise<Response> => {
+      const cancelled = await cancelTurn(admin, operationId, userId, code);
+      if (cancelled.kind === "cancelled") return json({ error: message, code }, status);
+      if (cancelled.kind === "reconciliation") return ledgerStateResponse("reconciliation");
+      return ledgerStateResponse("unavailable");
+    };
 
+    // ---- Сървърна история: клиентски препис НЕ се приема --------------------
+    const history = await loadThreadHistory(admin, activeThreadId);
+    if (history === null) {
+      return await cancelAndRespond(
+        "history_unavailable",
+        "Разговорът не може да бъде прочетен в момента. Опитайте отново след минута.",
+        503,
+      );
+    }
+    const safeMessages: Array<{ role: "user" | "assistant"; content: string }> = [
+      ...history,
+      { role: "user", content: newMessage },
+    ];
+    const lastUserMsg = newMessage;
 
+    // ---- Буфериран транскрипт: НИЩО не се доставя преди commit -------------
+    const events: Array<{ event: string | null; data: unknown }> = [];
+    const emit = (event: string | null, data: unknown) => { events.push({ event, data }); };
 
-    // RAG
+    emit("meta", {
+      threadId: activeThreadId,
+      citations: legal?.citations ?? [],
+      documentContext: resolvedContext
+        ? {
+            kind: resolvedContext.kind,
+            entityId: resolvedContext.entityId,
+            version: resolvedContext.version,
+            title: resolvedContext.title,
+            truncated: false,
+          }
+        : null,
+    });
+
+    // ---- РЕЖИМ „помощ за платформата“: без модел, без такса ----------------
+    if (modeDecision.mode === "platform_help") {
+      const answer = modeDecision.deterministicAnswer ?? platformHelpAnswer(newMessage);
+      emit("progress", { step: "done", label: "Готово", status: "done" });
+      emit(null, { delta: answer });
+      emit("final_text", { content: answer });
+      emit("followups", { followups: modeDecision.followups ?? [] });
+      const committed = await commitTurn(admin, {
+        operationId,
+        userId,
+        userMessage: newMessage,
+        assistantMessage: answer,
+        events,
+        proposal: null,
+      });
+      if (committed.kind === "committed" || committed.kind === "replay") {
+        return replayResponse(committed.result);
+      }
+      if (committed.kind === "response_expired") return ledgerStateResponse("response_expired");
+      if (committed.kind === "conflict") return ledgerStateResponse("conflict");
+      return ledgerStateResponse("unavailable");
+    }
+
+    // =====================  СТРОГ ПРАВЕН РЕЖИМ  =============================
+    const verifiedLegal = legal!;
     const ctxLines = [
-      `Потребителски статус: ${teamId ? "Екип" : isEntrepreneur ? "Предприемач" : "Професионалист"}.`,
+      `Потребителски статус: ${teamId ? "Екип" : isEntrepreneur ? "Предприемач" : isPro ? "Професионалист" : "Безплатен"}.`,
       currentPath ? `Текуща страница: ${currentPath}.` : "",
     ].filter(Boolean).join(" ");
     const activePrompt = await loadActivePromptMeta(admin, "assistant-chat", SYSTEM_PROMPT);
-    const uniqueActs = new Set(
-      legal.chunks.map((c) => c.short_code).filter(Boolean),
-    ).size;
-    const chunkCount = legal.chunks.length;
-    const systemFinal =
-      `${activePrompt.content}\n\n[КОНТЕКСТ] ${ctxLines}\n\n${legal.promptBlock}`;
-
+    const uniqueActs = new Set(verifiedLegal.chunks.map((c) => c.short_code).filter(Boolean)).size;
+    const chunkCount = verifiedLegal.chunks.length;
+    const systemFinal = `${activePrompt.content}\n\n[КОНТЕКСТ] ${ctxLines}\n\n${verifiedLegal.promptBlock}`;
     const standardModel = activePrompt.model || MODEL_STANDARD;
     const premiumModel = activePrompt.premiumModel || MODEL_PREMIUM;
 
-    // Smart cost-aware router: escalate to premium only when needed.
-    // Settings live in ai_simulation_settings (single row).
     let routerEnabled = true;
     let longTurnsThreshold = 6;
     let modelPrices: Record<string, { in: number; out: number }> = {};
@@ -606,27 +722,15 @@ Deno.serve(async (req) => {
       }
     } catch (_) { /* defaults */ }
 
-    const userTurnCount = safeMessages.filter((m: any) => m.role === "user").length;
-    const isHighRisk = chatClassification.risk_level === "high";
+    const userTurnCount = safeMessages.filter((m) => m.role === "user").length;
+    const isHighRiskClass = chatClassification.risk_level === "high";
     const isLongConvo = userTurnCount >= longTurnsThreshold;
-    const shouldEscalate = routerEnabled && (isHighRisk || isLongConvo);
+    const shouldEscalate = routerEnabled && (isHighRiskClass || isLongConvo);
     const chatModel = isEntrepreneur || shouldEscalate ? premiumModel : standardModel;
-    const routerReason = isEntrepreneur
-      ? "plan:entrepreneur"
-      : shouldEscalate
-        ? (isHighRisk ? "risk:high" : `long_convo:${userTurnCount}`)
-        : "default:flash";
-    console.log(`[router] model=${chatModel} reason=${routerReason}`);
-    // Инструментът за редакция се добавя по-долу, само ако контекстът е
-    // НЕотрязан запазен документ (Q2f).
+
     let tools = toolSchemasFor(FULL_TOOL_NAMES);
 
-
-    // Intent hints — injected as an extra system nudge to steer the model on
-    // ambiguous patterns where it would otherwise misfire (call the wrong tool
-    // or ask for clarification when we have enough context).
     const lastLower = lastUserMsg.toLowerCase();
-    // Detect pasted contract-like text even without explicit keywords
     const longQuotedBlock = /(['"„][^'"„"]{120,}['"""])/.test(lastUserMsg);
     const multilineLegalBlock = lastUserMsg.length > 400 && /\n/.test(lastUserMsg) &&
       /(чл\.?\s*\d+|ал\.?\s*\d+|неустой|отговорн|прекрат|страни(те)?\s+се\s+съглас|настоящ(ия|ият)\s+договор)/i.test(lastLower);
@@ -639,19 +743,15 @@ Deno.serve(async (req) => {
     const isBroadLegalQ = /(мрз|минимална\s+(работна\s+)?заплата|ддс|осигуров|дневн(и|о)\s+пар|обезщет|командиров)/i.test(lastLower);
     const isLaborCase = /(уволн|прекратяв(ане|а)\s+на\s+труд|чл\.?\s*32[68]\s*кт|чл\.?\s*71\s*кт|предизвестие|дисциплинарн|съкращ|отпуск\s+по\s+майч|болничен|трудов\s+спор|обезщетение\s+за\s+уволнение)/i.test(lastLower);
 
-    // Guard against endless ask_clarification loops:
-    // count how many of the last 4 assistant turns already asked for clarification.
     const recentAssistantContents = safeMessages
-      .filter((m: any) => m.role === "assistant")
+      .filter((m) => m.role === "assistant")
       .slice(-4)
-      .map((m: any) => String(m.content || "").toLowerCase());
-    const priorClarificationCount = recentAssistantContents.filter((c: string) =>
+      .map((m) => String(m.content || "").toLowerCase());
+    const tooManyClarifications = recentAssistantContents.filter((c) =>
       /уточн|нека уточним|за да е точен документът|моля посочете|моля уточнете/.test(c)
-    ).length;
-    const tooManyClarifications = priorClarificationCount >= 2;
+    ).length >= 2;
 
     const intentNudges: string[] = [];
-    // Baseline behaviour rule that fixes silent tool calls we observed in probes.
     intentNudges.push(
       "❗ ГОВОРИ ПРЕДИ ТУЛ: ВИНАГИ пиши поне 2–3 изречения обяснителен текст ПРЕДИ да извикаш какъвто и да е tool (включително `ask_clarification`, `open_upload_analyzer`, `prefill_build_contract`). Празен отговор + tool call е забранен.",
     );
@@ -660,74 +760,69 @@ Deno.serve(async (req) => {
     );
     if (analysisIntent) {
       intentNudges.push(
-        "❗ АНАЛИЗ НА ДОГОВОР: потребителят е поставил конкретен текст или иска проверка. След 2–3 обяснителни изречения извикай `open_upload_analyzer` — НЕ `ask_clarification`, НЕ анализирай клауза по клауза в чата. Целият пайплайн (OCR, риск-скор, корекции) е в /analyze.",
+        "❗ АНАЛИЗ НА ДОГОВОР: потребителят е поставил конкретен текст или иска проверка. След 2–3 обяснителни изречения извикай `open_upload_analyzer` — НЕ `ask_clarification`, НЕ анализирай клауза по клауза в чата.",
       );
     }
     if (hasBgn) {
       intentNudges.push(
-        "❗ ВАЛУТА (СТРИКТНО): в целия отговор НЕ трябва да остане нито едно число, следвано от 'лв.', 'лева' или 'стотинки'. Всички суми преизчисли по 1 € = 1,95583 лв. и пиши САМО във вида '767 €' или '≈ 767 €'. Дори в примери и пресмятания използвай евро. НЕ задавай уточняващ въпрос за валута.",
+        "❗ ВАЛУТА (СТРИКТНО): в целия отговор НЕ трябва да остане нито едно число, следвано от 'лв.', 'лева' или 'стотинки'. Всички суми преизчисли по 1 € = 1,95583 лв. и пиши САМО във вида '767 €'.",
       );
     }
     if (hasBgn && hasNumber) {
       intentNudges.push(
-        "❗ ЗАБРАНЕНО ПЪРВО ХОД `ask_clarification`, ако потребителят вече е дал числова сума. Първо: (1) конвертирай в €, (2) дай кратка същинска оценка/механика (3–5 изречения), (3) предложи конкретен шаблон с markdown link към https://dogovori.net/…, и ЕДВА ТОГАВА може да питаш за детайли.",
+        "❗ ЗАБРАНЕНО ПЪРВО ХОД `ask_clarification`, ако потребителят вече е дал числова сума. Първо: (1) конвертирай в €, (2) дай кратка същинска оценка (3–5 изречения), (3) предложи конкретен шаблон, и ЕДВА ТОГАВА питай за детайли.",
       );
     }
     if (isBroadLegalQ) {
       intentNudges.push(
-        "❗ ЗАКОНОВ ПРАГ/СТАВКА: НЕ давай числа по памет за МРЗ/ДДС/осигуровки/командировъчни. Обясни механиката, посочи компетентния акт/орган (ПМС/ДВ/НАП/МТСП/НОИ) и препоръчай сверяване за 2026 г. Ако все пак посочваш стойност — задължително добави '(да се свери с актуалния акт за 2026 г.)'.",
+        "❗ ЗАКОНОВ ПРАГ/СТАВКА: НЕ давай числа по памет за МРЗ/ДДС/осигуровки/командировъчни. Обясни механиката и посочи компетентния акт/орган.",
       );
     }
     if (isLaborCase) {
       intentNudges.push(
-        "❗ ТРУДОВ КАЗУС: НЕ казвай 'няма основание в наличната нормативна база' за общи институти от Кодекса на труда. Обясни условно приложимия режим (чл. 328 КТ — прекратяване по инициатива на работодателя с предизвестие; чл. 220 КТ — обезщетение при неспазено предизвестие; чл. 222 КТ — обезщетение при съкращаване; чл. 224 КТ — за неползван отпуск). Цитирай `[КТ, чл. NNN]` и препоръчай `open_upload_analyzer`, ако има връчен документ.",
+        "❗ ТРУДОВ КАЗУС: обясни условно приложимия режим и цитирай САМО норми, които присъстват в [НОРМАТИВНА БАЗА].",
       );
     }
     if (tooManyClarifications) {
       intentNudges.push(
-        "❗ СТИГА УТОЧНЕНИЯ: Вече попита ≥2 пъти за уточнение. ЗАБРАНЕНО е ново `ask_clarification`. Продължи с `propose_contract_outline` или `prefill_build_contract` с наличните данни и разумни default-и (маркирай ги [DEFAULT]). Потребителят ще коригира във wizard-a.",
+        "❗ СТИГА УТОЧНЕНИЯ: Вече попита ≥2 пъти. ЗАБРАНЕНО е ново `ask_clarification`. Продължи с `propose_contract_outline` или `prefill_build_contract` с разумни default-и.",
       );
     }
     intentNudges.push(
-      "❗ ЦИТАТИ: НИКОГА не пиши маркери от вида [S1], [S2], [източник N]. Използвай САМО реалния кратък цитат `[ЗЗД, чл. 79]`, `[КТ, чл. 328]` и т.н. Ако нямаш сигурен цитат — пропусни го.",
+      "❗ ЦИТАТИ (СТРИКТНО): НИКОГА не пиши [S1], [источник N] или „приложим общ режим“. Използвай САМО цитат, който присъства в [НОРМАТИВНА БАЗА] — например `[ЗЗД, чл. 79]`. Ако нормата не е в базата, не цитирай нищо.",
     );
 
-    // --- LEGAL Q DETECTION (Режим A) ---
-    // Fires when the user asks about a situation/dispute, not a document build.
     const legalCaseIntent =
       /(съди|съдят|заплашв|призовк|производств|обвин|разследв|жалба\s+срещу|подадена\s+жалба|нарушен|нападн|насил|развод|издръжк|запор|глоб|дискриминац|тормоз|мобинг|имам\s+ли\s+право|могат\s+ли\s+да|какво\s+да\s+правя|какви\s+са\s+ми\s+правата|какво\s+ми\s+грози|как\s+да\s+се\s+защит|заповед\s+за\s+защита|домашно\s+насилие)/i
         .test(lastUserMsg);
     const docBuildIntent =
       /(изготв(и|ете)|направ(и|ете)|създа(й|йте)|попълн(и|ете)|generate|шаблон|бланк|prefill)/i
         .test(lastUserMsg);
-    const priorClarifiedInThread = safeMessages.some((m: any) =>
-      m.role === "assistant" &&
-      /уточн|нека уточним|моля посочете|моля уточнете/i.test(String(m.content || ""))
+    const priorClarifiedInThread = safeMessages.some((m) =>
+      m.role === "assistant" && /уточн|нека уточним|моля посочете|моля уточнете/i.test(String(m.content || ""))
     );
-    const userProvidedLegalClarifications = safeMessages.some((m: any) =>
+    const userProvidedLegalClarifications = safeMessages.some((m) =>
       m.role === "user" && /Ето\s+уточненията\s+по\s+казуса|Продължи\s+с\s+дълъг\s+структуриран\s+правен\s+отговор/i.test(String(m.content || ""))
     );
-    const needsForcedLegalClarification = legalCaseIntent && !docBuildIntent && !priorClarifiedInThread && !userProvidedLegalClarifications && !analysisIntent;
+    const needsForcedLegalClarification = legalCaseIntent && !docBuildIntent &&
+      !priorClarifiedInThread && !userProvidedLegalClarifications && !analysisIntent;
     if (needsForcedLegalClarification) {
       intentNudges.push(
-        "❗ РЕЖИМ A (ПРАВЕН КАЗУС): Потребителят описва казус/спор, не иска шаблон. ЗАДЪЛЖИТЕЛЕН ПЪРВИ ХОД: `ask_clarification` с 2–3 (макс 3) кратки въпроса, всеки с `type: \"choice\"` и 3–5 стойности в `options` (напр. \"Има ли вече официално действие срещу Вас?\" → [\"Само заплашва, че ще подаде жалба или иск\", \"Подаден е сигнал в полицията/прокуратурата\", \"Получих призовка или ме търсят за обяснения\", \"Получих заповед/молба за защита от домашно насилие\"]). НЕ давай дълъг отговор в този ход. Преди tool call-а напиши 1–2 изречения \"Не е ясно дали…\", които оправдават уточненията.",
+        "❗ РЕЖИМ A (ПРАВЕН КАЗУС): ЗАДЪЛЖИТЕЛЕН ПЪРВИ ХОД `ask_clarification` с 2–3 кратки въпроса с опции.",
       );
     }
-    const needsStructuredLegalAnswer = (legalCaseIntent || priorClarifiedInThread || userProvidedLegalClarifications) && !docBuildIntent && !needsForcedLegalClarification;
+    const needsStructuredLegalAnswer = (legalCaseIntent || priorClarifiedInThread || userProvidedLegalClarifications) &&
+      !docBuildIntent && !needsForcedLegalClarification;
     if (needsStructuredLegalAnswer) {
       intentNudges.push(
-        "❗ STRUCTURED_ANSWER (задължителен формат след получени уточнения): (1) 2–3 въвеждащи изречения обобщаващи разбирането; (2) НОМЕРИРАН списък 5–10 точки, всяка започваща с **удебелена теза**, следвана от 2–4 обяснителни изречения; (3) BULLET списък \"Практически:\" с 3–6 повелителни съвета (**bold** ключови действия); (4) 1–2 изречения \"Кога адвокат\" с конкретни маркери. Използвай **bold** обилно за ключови термини (напр. **домашно насилие**, **лека телесна повреда**, **заповед за защита**).",
+        "❗ STRUCTURED_ANSWER: (1) 2–3 въвеждащи изречения; (2) НОМЕРИРАН списък 5–10 точки с **удебелена теза**; (3) BULLET списък „Практически:“; (4) „Кога адвокат“.",
       );
       intentNudges.push(
-        "❗ CITE_EVERY_CLAIM: ВСЯКО правно твърдение задължително завършва с ИНЛАЙН цитат в квадратни скоби ВЕДНАГА след изречението — примери: `[ЗЗДН, чл. 5]`, `[КТ, чл. 328, ал. 1]`, `[НК, чл. 130]`, `[НПК, чл. 117]`, `[ГПК, чл. 131]`, `[ТР № 4/2013 ОСГТК ВКС]`, `[Решение № 173 от 2009 г. на ВКС]`. Ако нямаш сигурен конкретен член — пиши `[приложим общ режим по <КОДЕКС>]`, не измисляй номер.",
+        "❗ CITE_VERIFIED_ONLY: правно твърдение се придружава с цитат САМО ако нормата е в [НОРМАТИВНА БАЗА]. Без сигурен цитат — не твърди нормата.",
       );
     }
-
     const nudgeBlock = intentNudges.join("\n");
 
-    // ---- Q2e: блок с НЕДОВЕРЕНИ ДАННИ за избрания документ -----------------
-    // Редакцията е с ЕДНО in-memory съответствие; нито то, нито суровият
-    // контекст се логват или записват.
     let contextMapping: RedactionMapping | null = null;
     let contextTruncated = false;
     const contextSystemBlocks: ChatMsg[] = [];
@@ -743,12 +838,8 @@ Deno.serve(async (req) => {
       contextSystemBlocks.push(built.message);
     }
 
-    // ---- Q2f: редакция на запазен документ — само предложения ---------------
-    // Инструментът съществува САМО при избран запазен документ, чийто пълен
-    // контекст НЕ е отрязан. При общ чат, качен документ, анализ или отрязан
-    // контекст той дори не се предлага на модела.
-    // Максимум едно предложение за редакция на заявка/ход.
     let proposalThisTurn = false;
+    let pendingProposal: Record<string, unknown> | null = null;
     const editToolAvailable =
       !!resolvedContext && resolvedContext.kind === "saved_document" && !contextTruncated;
     if (editToolAvailable) {
@@ -757,499 +848,369 @@ Deno.serve(async (req) => {
         role: "system",
         content:
           "# РЕДАКЦИЯ НА ИЗБРАНИЯ ЗАПАЗЕН ДОКУМЕНТ\n" +
-          "- Когато потребителят иска промяна в текста на документа, извикай `propose_saved_document_edit`.\n" +
-          "- Това е ПРЕДЛОЖЕНИЕ: документът НЕ се променя, докато потребителят не натисне „Приеми“. Никога не твърди, че вече си променил документа.\n" +
-          "- Максимум ЕДНО предложение на ход и само за съществуващ елемент (заглавие, уводен текст, заключение, свободен текст, секция или клауза по номер).\n" +
-          "- Подавай пълния нов текст на елемента и кратка причина. Не подавай стария текст, id-та или версии.",
+          "- Когато потребителят иска промяна в текста, извикай `propose_saved_document_edit`.\n" +
+          "- Това е ПРЕДЛОЖЕНИЕ: документът НЕ се променя, докато потребителят не натисне „Приеми“.\n" +
+          "- Максимум ЕДНО предложение на ход и само за съществуващ елемент.",
       });
     }
 
-    // Build conversation
     const convo: ChatMsg[] = [
-
       { role: "system", content: systemFinal },
       { role: "system", content: `# INTENT HINTS (за текущия ход)\n${nudgeBlock}` },
       ...contextSystemBlocks,
-      ...safeMessages.map((m: any) => ({ role: m.role, content: m.content })),
+      ...safeMessages.map((m) => ({ role: m.role, content: m.content })),
     ];
-
     const restoreLeaves = (text: string): string =>
       contextMapping ? unredact(text, contextMapping) : text;
 
-    const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
+    emit("progress", { step: "analyze", label: "Анализ на въпроса", status: "done" });
+    emit("progress", {
+      step: "found",
+      label: `Намерих ${uniqueActs} нормативни акта и ${chunkCount} релевантни извадки`,
+      status: "done",
+    });
 
-    const stream = new ReadableStream({
-      async start(controller) {
-        const enqueue = (event: string | null, data: unknown) => {
-          const ev = event ? `event: ${event}\n` : "";
-          controller.enqueue(encoder.encode(`${ev}data: ${JSON.stringify(data)}\n\n`));
-        };
+    // ---- Детерминистичен ход с уточнения: БЕЗ модел, но точно едно записване
+    if (needsForcedLegalClarification) {
+      const clarificationArgs = buildLegalCaseClarificationArgs(lastUserMsg);
+      const preamble = "Преди да дам правен отговор, трябва да уточним няколко факта. Те променят приложимия режим, сроковете и това дали говорим за превенция, защита или вече започнала процедура.\n\n";
+      emit(null, { delta: preamble });
+      emit("tool_call", {
+        id: `tc_legal_${crypto.randomUUID()}`,
+        name: "ask_clarification",
+        args: clarificationArgs,
+      });
+      emit("followups", { followups: ["Отговори на въпросите", "Опиши документите", "Посочи спешността"] });
+      emit("progress", { step: "done", label: "Готово", status: "done" });
+      const committed = await commitTurn(admin, {
+        operationId, userId, userMessage: newMessage, assistantMessage: preamble,
+        events, proposal: null,
+      });
+      await logAiAudit({
+        user_id: userId, operation: "assistant-chat", model: "forced-clarification",
+        classification: chatClassification, redaction_applied: false, status: "ok",
+      }).catch(() => {});
+      if (committed.kind === "committed" || committed.kind === "replay") {
+        return replayResponse(committed.result);
+      }
+      if (committed.kind === "response_expired") return ledgerStateResponse("response_expired");
+      if (committed.kind === "conflict") return ledgerStateResponse("conflict");
+      return ledgerStateResponse("unavailable");
+    }
 
-        enqueue("meta", {
-          threadId: activeThreadId,
-          citations: legal.citations,
-          // Сървърно извлечени метаданни — UI етикетите не са авторитетни.
-          documentContext: resolvedContext
-            ? {
-                kind: resolvedContext.kind,
-                entityId: resolvedContext.entityId,
-                version: resolvedContext.version,
-                title: resolvedContext.title,
-                truncated: contextTruncated,
-              }
-            : null,
+    // ---- Доставчик: ТОЧНО ЕДНО изпълнение, с деклариран таван --------------
+    const started = await markTurnModelStarted(admin, operationId, userId);
+    if (!started.ok) {
+      return ledgerStateResponse(started.conflict ? "in_progress" : "unavailable");
+    }
+
+    let providerRequests = 0;
+    let fullAssistantText = "";
+    let lastModelStatus = 200;
+    let providerFailed = false;
+    const toolEvents: Array<{ event: string; data: unknown }> = [];
+
+    try {
+      let iterations = 0;
+      while (iterations < MAX_TOOL_ITERATIONS) {
+        iterations++;
+        if (providerRequests >= MAX_CHAT_REQUESTS_PER_OPERATION) break;
+        providerRequests++;
+        const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: chatModel,
+            stream: true,
+            max_tokens: needsStructuredLegalAnswer ? LEGAL_ANSWER_MAX_TOKENS : undefined,
+            tools,
+            messages: convo,
+          }),
         });
-
-
-        // --- Visible reasoning progress trace (competitor parity) ---
-        // Steps stream one-by-one so the user sees the assistant "working".
-        // The RAG has already run; we replay the pipeline as visible steps.
-        const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-        const foundLabel =
-          `Намерих ${uniqueActs} нормативни акта и ${chunkCount} релевантни извадки`;
-        const progressSteps: Array<{ step: string; label: string; delay: number }> = [
-          { step: "analyze",  label: "Анализ на въпроса", delay: 250 },
-          { step: "sources",  label: "Прецених какви източници са необходими", delay: 300 },
-          { step: "search",   label: "Подготвих фрази и ключови думи за търсене", delay: 300 },
-          { step: "found",    label: foundLabel, delay: 350 },
-          { step: "rank",     label: "Преценявам кои източници са най-относими", delay: 300 },
-          { step: "generate", label: "Генерирам отговор въз основа на намерените източници", delay: 200 },
-        ];
-        for (const p of progressSteps) {
-          enqueue("progress", { step: p.step, label: p.label, status: "active" });
-          await sleep(p.delay);
-          enqueue("progress", { step: p.step, label: p.label, status: "done" });
+        lastModelStatus = aiResp.status;
+        if (!aiResp.ok || !aiResp.body) {
+          providerFailed = true;
+          break;
         }
 
-        if (needsForcedLegalClarification) {
-          const clarificationArgs = buildLegalCaseClarificationArgs(lastUserMsg);
-          const preamble = "Преди да дам правен отговор, трябва да уточним няколко факта. Те променят приложимия режим, сроковете и това дали говорим за превенция, защита или вече започнала процедура.\n\n";
-          enqueue(null, { delta: preamble });
-          enqueue("tool_call", {
-            id: `tc_legal_${crypto.randomUUID()}`,
-            name: "ask_clarification",
-            args: clarificationArgs,
-          });
-          const finalFollowups = ["Отговори на въпросите", "Опиши документите", "Посочи спешността"];
-          enqueue("followups", { followups: finalFollowups });
-          if (activeThreadId) {
-            await admin.from("assistant_messages").insert({
-              thread_id: activeThreadId,
-              role: "assistant",
-              content: preamble,
-            });
-            await admin.from("assistant_threads")
-              .update({ updated_at: new Date().toISOString() })
-              .eq("id", activeThreadId);
+        const reader = aiResp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let textThisTurn = "";
+        const toolAcc: Map<number, { id: string; name: string; args: string }> = new Map();
+        const scrubber = makeStreamScrubber({ citationCount: verifiedLegal.citations.length });
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            const t = line.trim();
+            if (!t.startsWith("data:")) continue;
+            const dat = t.slice(5).trim();
+            if (dat === "[DONE]") continue;
+            let parsed: any;
+            try { parsed = JSON.parse(dat); } catch { continue; }
+            const delta = parsed?.choices?.[0]?.delta;
+            if (!delta) continue;
+            if (typeof delta.content === "string" && delta.content.length > 0) {
+              textThisTurn += scrubber.push(delta.content);
+            }
+            if (Array.isArray(delta.tool_calls)) {
+              for (const tc of delta.tool_calls) {
+                const idx = typeof tc.index === "number" ? tc.index : 0;
+                const existing = toolAcc.get(idx) ?? { id: "", name: "", args: "" };
+                if (tc.id) existing.id = tc.id;
+                if (tc.function?.name) existing.name = tc.function.name;
+                if (typeof tc.function?.arguments === "string") existing.args += tc.function.arguments;
+                toolAcc.set(idx, existing);
+              }
+            }
           }
-          await logAiAudit({
-            user_id: userId,
-            operation: "assistant-chat",
-            model: "forced-clarification",
-            classification: chatClassification,
-            redaction_applied: false,
-            status: "ok",
-          });
-          enqueue("progress", { step: "done", label: "Готово", status: "done" });
-          controller.close();
-          return;
         }
+        textThisTurn += scrubber.flush();
+        fullAssistantText += textThisTurn;
 
-        let fullAssistantText = "";
-        let iterations = 0;
-        let lastModelStatus = 200;
+        if (toolAcc.size === 0) break;
 
-        try {
-          while (iterations < MAX_TOOL_ITERATIONS) {
-            iterations++;
-            const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${LOVABLE_API_KEY}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                model: chatModel,
-                stream: true,
-                max_tokens: needsStructuredLegalAnswer ? LEGAL_ANSWER_MAX_TOKENS : undefined,
-                tools,
-                messages: convo,
-              }),
-            });
-            lastModelStatus = aiResp.status;
+        const seenNames = new Set<string>();
+        const toolCallsArr = Array.from(toolAcc.entries())
+          .sort((a, b) => a[0] - b[0])
+          .map(([, v]) => ({
+            id: v.id || `tc_${crypto.randomUUID()}`,
+            type: "function" as const,
+            function: { name: v.name, arguments: v.args || "{}" },
+          }))
+          .filter((tc) => {
+            if (seenNames.has(tc.function.name)) return false;
+            seenNames.add(tc.function.name);
+            return true;
+          });
 
-            if (!aiResp.ok || !aiResp.body) {
-              const errText = await aiResp.text().catch(() => "");
-              console.error("AI gateway error:", aiResp.status, errText.slice(0, 300));
-              const errMsg = aiResp.status === 429
-                ? "Лимитът е достигнат. Опитайте отново скоро."
-                : aiResp.status === 402
-                ? "Изчерпани AI кредити."
-                : "AI грешка. Опитайте отново.";
-              enqueue("error", { message: errMsg, status: aiResp.status });
-              break;
-            }
+        convo.push({ role: "assistant", content: textThisTurn || null, tool_calls: toolCallsArr });
 
-            // Parse stream — collect text + tool_calls assembly
-            const reader = aiResp.body.getReader();
-            let buffer = "";
-            let textThisTurn = "";
-            // tool_calls accumulator: index -> { id, name, args (string) }
-            const toolAcc: Map<number, { id: string; name: string; args: string }> = new Map();
-            // Buffered scrubber — safe across chunk boundaries:
-            //  - converts BGN literals (лв./лева/BGN) → EUR at 1.95583
-            //  - strips fake source markers [Sn] / [източник N]
-            //  - hides the entire <followups>...</followups> block from the UI so
-            //    users never see the raw tag flash before the chip render.
-            const scrubber = makeStreamScrubber({ citationCount: legal.citations.length });
+        const clientCalls = toolCallsArr.filter((tc) => !isServerTool(tc.function.name));
+        const serverCalls = toolCallsArr.filter((tc) => isServerTool(tc.function.name));
 
-            while (true) {
-              const { value, done } = await reader.read();
-              if (done) break;
-              buffer += decoder.decode(value, { stream: true });
-              const lines = buffer.split("\n");
-              buffer = lines.pop() ?? "";
-              for (const line of lines) {
-                const t = line.trim();
-                if (!t.startsWith("data:")) continue;
-                const dat = t.slice(5).trim();
-                if (dat === "[DONE]") continue;
-                let parsed: any;
-                try { parsed = JSON.parse(dat); } catch { continue; }
-                const choice = parsed?.choices?.[0];
-                const delta = choice?.delta;
-                if (!delta) continue;
-                if (typeof delta.content === "string" && delta.content.length > 0) {
-                  const cleaned = scrubber.push(delta.content);
-                  if (cleaned.length > 0) {
-                    textThisTurn += cleaned;
-                    enqueue(null, { delta: cleaned });
-                  }
-                }
-                if (Array.isArray(delta.tool_calls)) {
-                  for (const tc of delta.tool_calls) {
-                    const idx = typeof tc.index === "number" ? tc.index : 0;
-                    const existing = toolAcc.get(idx) ?? { id: "", name: "", args: "" };
-                    if (tc.id) existing.id = tc.id;
-                    if (tc.function?.name) existing.name = tc.function.name;
-                    if (typeof tc.function?.arguments === "string") existing.args += tc.function.arguments;
-                    toolAcc.set(idx, existing);
-                  }
-                }
-              }
-            }
-
-            // Flush any residual buffered text (last ~40 chars held back to allow
-            // safe cross-chunk scrubbing) before we decide about tool preambles.
-            const tail = scrubber.flush();
-            if (tail.length > 0) {
-              textThisTurn += tail;
-              enqueue(null, { delta: tail });
-            }
-
-            fullAssistantText += textThisTurn;
-
-            if (toolAcc.size === 0) {
-              // Done — no tool calls
-              enqueue(null, "[DONE]");
-              break;
-            }
-
-            // We have tool calls. Append assistant message with tool_calls to convo.
-            // Dedupe by function.name — the model sometimes emits the same client tool
-            // twice in one turn (esp. ask_clarification), which spawns duplicate UI cards.
-            const seenNames = new Set<string>();
-            const toolCallsArr = Array.from(toolAcc.entries())
-              .sort((a, b) => a[0] - b[0])
-              .map(([, v]) => ({
-                id: v.id || `tc_${Math.random().toString(36).slice(2)}`,
-                type: "function" as const,
-                function: { name: v.name, arguments: v.args || "{}" },
-              }))
-              .filter((tc) => {
-                if (seenNames.has(tc.function.name)) return false;
-                seenNames.add(tc.function.name);
-                return true;
-              });
-
-            convo.push({
-              role: "assistant",
-              content: textThisTurn || null,
-              tool_calls: toolCallsArr,
-            });
-
-            // Split server vs client tool calls.
-            const clientCalls = toolCallsArr.filter((tc) => !isServerTool(tc.function.name));
-            const serverCalls = toolCallsArr.filter((tc) => isServerTool(tc.function.name));
-
-            // Execute server tools and feed back.
-            for (const sc of serverCalls) {
-              let result: unknown;
-              try {
-                const args = safeParse(sc.function.arguments || "{}");
-                if (sc.function.name === "search_templates") {
-                  result = await execSearchTemplates(admin, args);
-                } else if (sc.function.name === SAVED_DOCUMENT_EDIT_TOOL) {
-                  // Пътят за редакция е достъпен САМО при валиден контекст;
-                  // иначе инструментът дори не е бил обявен на модела.
-                  if (!editToolAvailable || !resolvedContext || !activeThreadId) {
-                    result = { ok: false, code: "edit_not_available" };
-                  } else if (proposalThisTurn) {
-                    result = { ok: false, code: "one_proposal_per_turn" };
-                  } else {
-                    const proposed = await proposeSavedDocumentEdit({
-                      reader: userClient,
-                      writer: admin,
-                      userId,
-                      threadId: activeThreadId,
-                      documentId: resolvedContext.entityId,
-                      contextVersion: resolvedContext.version,
-                      contextTruncated,
-                      restore: restoreLeaves,
-                    }, args as any);
-                    if (proposed.ok) {
-                      proposalThisTurn = true;
-                      const p = proposed.proposal;
-                      result = {
-                        ok: true,
-                        proposal: {
-                          id: p.id,
-                          status: p.status,
-                          targetPath: p.target_path,
-                          before: p.before_text,
-                          after: p.after_text,
-                          reason: p.reason,
-                          savedDocumentId: p.saved_document_id,
-                          threadId: p.thread_id,
-                          createdAt: p.created_at ?? null,
-                        },
-                        note: "Предложението чака изричното решение на потребителя. Документът не е променен.",
-                      };
-                    } else {
-                      result = { ok: false, code: proposed.code };
-                    }
-                  }
-                } else {
-                  result = { error: "unknown_tool" };
-                }
-
-              } catch (e) {
-                result = { error: "tool_exec_failed", message: e instanceof Error ? e.message : String(e) };
-              }
-              convo.push({
-                role: "tool",
-                tool_call_id: sc.id,
-                content: JSON.stringify(result),
-              });
-              // Forward to client for UI rendering as well.
-              enqueue("tool_result", {
-                id: sc.id,
-                name: sc.function.name,
-                args: safeParse(sc.function.arguments),
-                result,
-              });
-              // Nudge model when search returns nothing — otherwise it tends to say
-              // "нямам подходящ шаблон" instead of falling back to prefill/outline.
-              const r = result as any;
-              if (sc.function.name === "search_templates" &&
-                  r && Array.isArray(r.items) && r.items.length === 0) {
-                convo.push({
-                  role: "system",
-                  content: "❗ SEARCH_EMPTY: `search_templates` върна 0 резултата. НЕ казвай на потребителя че нямаш шаблон. Вместо това извикай `propose_contract_outline` с разумна структура за поисканата тема ИЛИ `prefill_build_contract` (documentType='generic') и обясни, че платформата ще генерира договора от нулата чрез wizard-а.",
-                });
-              }
-            }
-
-            // Forward client tools — but they don't feed back into convo this turn.
-            // The client will execute them. The model has already produced its
-            // user-facing explanation in textThisTurn (per our system prompt).
-            // Fallback: if the model emitted a client tool WITHOUT any accompanying
-            // text (a Gemini quirk that leaves users staring at a blank bubble),
-            // inject a short human-readable preamble matched to the tool name.
-            if (clientCalls.length > 0 && textThisTurn.trim().length === 0) {
-              const firstName = clientCalls[0].function.name;
-              const preamble = (() => {
-                switch (firstName) {
-                  case "open_upload_analyzer":
-                    return "Разбрах — ще Ви пренасоча към анализатора, за да прегледам качения текст и да маркирам рискови клаузи.\n\n";
-                  case "ask_clarification":
-                    return "Имам достатъчно контекст, за да продължа, но първо нека уточним няколко ключови детайла, за да е точен документът:\n\n";
-                  case "prefill_build_contract":
-                    return "Отварям съответния договор с попълнени данни от разговора. Ще можете да прегледате и коригирате всяко поле.\n\n";
-                  case "propose_contract_outline":
-                    return "Ето предложение за структурата на договора според това, което споделихте:\n\n";
-                  case "open_template":
-                    return "Отварям шаблона в каталога, за да можете да прегледате пълния текст.\n\n";
-                  default:
-                    return "Продължавам със следваща стъпка:\n\n";
-                }
-              })();
-              enqueue(null, { delta: preamble });
-              textThisTurn += preamble;
-              fullAssistantText += preamble;
-            }
-
-            for (const cc of clientCalls) {
-              const rawArgs = safeParse(cc.function.arguments);
-              const validated = validateClientToolArgs(cc.function.name, rawArgs);
-              if (validated.ok) {
-                enqueue("tool_call", {
-                  id: cc.id,
-                  name: cc.function.name,
-                  args: validated.args,
-                });
+        for (const sc of serverCalls) {
+          let result: unknown;
+          try {
+            const args = safeParse(sc.function.arguments || "{}");
+            if (sc.function.name === "search_templates") {
+              result = await execSearchTemplates(admin, args);
+            } else if (sc.function.name === SAVED_DOCUMENT_EDIT_TOOL) {
+              if (!editToolAvailable || !resolvedContext) {
+                result = { ok: false, code: "edit_not_available" };
+              } else if (proposalThisTurn) {
+                result = { ok: false, code: "one_proposal_per_turn" };
               } else {
-                // Bad args — give the model a chance to fix on next iteration.
-                convo.push({
-                  role: "tool",
-                  tool_call_id: cc.id,
-                  content: JSON.stringify({ error: validated.reason }),
-                });
+                // САМО изчисление: записът става АТОМАРНО в commit.
+                const computed = await computeSavedDocumentEditProposal({
+                  reader: userClient,
+                  writer: admin,
+                  userId,
+                  threadId: activeThreadId,
+                  documentId: resolvedContext.entityId,
+                  contextVersion: resolvedContext.version,
+                  contextTruncated,
+                  restore: restoreLeaves,
+                }, args as any);
+                if (computed.ok) {
+                  proposalThisTurn = true;
+                  pendingProposal = computed.insert as unknown as Record<string, unknown>;
+                  result = {
+                    ok: true,
+                    proposal: {
+                      status: "pending",
+                      targetPath: computed.insert.target_path,
+                      before: computed.insert.before_text,
+                      after: computed.insert.after_text,
+                      reason: computed.insert.reason,
+                      savedDocumentId: computed.insert.saved_document_id,
+                      threadId: activeThreadId,
+                    },
+                    note: "Предложението чака изричното решение на потребителя. Документът не е променен.",
+                  };
+                } else {
+                  result = { ok: false, code: computed.code };
+                }
               }
+            } else {
+              result = { error: "unknown_tool" };
             }
-
-            // If only client tools were emitted, we can stop here.
-            if (serverCalls.length === 0 && clientCalls.length > 0) {
-              enqueue(null, "[DONE]");
-              break;
-            }
-            // Otherwise loop to give the model server tool results.
+          } catch (_e) {
+            result = { error: "tool_exec_failed" };
           }
-        } catch (err) {
-          console.error("Stream loop error:", err);
-          enqueue("error", { message: "Грешка при стрийминг" });
-        } finally {
-          // Parse followups from final text; if missing, fall back contextually.
-          const lastToolName = (() => {
-            // best-effort: scan convo backwards for the last assistant tool_calls
-            for (let i = convo.length - 1; i >= 0; i--) {
-              const m: any = convo[i];
-              if (m?.role === "assistant" && Array.isArray(m.tool_calls) && m.tool_calls.length > 0) {
-                return m.tool_calls[m.tool_calls.length - 1]?.function?.name ?? null;
-              }
-            }
-            return null;
-          })();
-          const { cleaned: rawCleaned, followups } = parseFollowups(fullAssistantText);
-          // Full post-stream sanitiser pipeline (shared with assistant-chat-anon):
-          // strips fake [Sn], чл.328/ЗЗД hallucination, injection echoes, fabricated
-          // case law when no RAG, BGN→€ conversion, double-currency cleanup, and
-          // outdated-year (2020-2025) advisory annotation. Idempotent.
-          // NB: high-risk banner is handled separately below so we can stream it.
-          let cleaned = sanitizeAssistantReply(rawCleaned, {
-            citationCount: legal.citations.length,
-            injectRiskBanner: false,
+          convo.push({ role: "tool", tool_call_id: sc.id, content: JSON.stringify(result) });
+          toolEvents.push({
+            event: "tool_result",
+            data: { id: sc.id, name: sc.function.name, args: safeParse(sc.function.arguments), result },
           });
-
-          if (needsStructuredLegalAnswer && needsLegalAnswerRepair(cleaned)) {
-            try {
-              controller.enqueue(new TextEncoder().encode(
-                `event: progress\ndata: ${JSON.stringify({ step: "repair", label: "Проверявам структурата и правните цитати", status: "active" })}\n\n`
-              ));
-            } catch { /* ignore */ }
-            const repaired = await repairLegalAnswer({
-              apiKey: LOVABLE_API_KEY,
-              model: premiumModel,
-              question: lastUserMsg,
-              draft: cleaned,
-              legalPromptBlock: legal.promptBlock,
-              citations: legal.citations,
-            }).catch(() => null);
-            cleaned = sanitizeAssistantReply(
-              normalizeLegalAnswerFallback(repaired || cleaned, lastUserMsg, legal.citations),
-              { citationCount: legal.citations.length, injectRiskBanner: false },
-            );
-            try {
-              controller.enqueue(new TextEncoder().encode(
-                `event: progress\ndata: ${JSON.stringify({ step: "repair", label: "Проверих структурата и правните цитати", status: "done" })}\n\n`
-              ));
-            } catch { /* ignore */ }
-          }
-
-          // High-risk escalation banner — inject once if the case is serious
-          // and the model didn't already recommend a lawyer/НБПП. Streamed
-          // as a delta so the client sees it in real time, then appended to
-          // the persisted text.
-          const isHighRisk = HIGH_RISK_RE.test(lastUserMsg);
-          if (isHighRisk && !HIGH_RISK_ESCALATION_MARK.test(cleaned)) {
-            const banner = highRiskBanner();
-            const bannerDelta = `\n\n${banner}\n`;
-            try {
-              controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ delta: bannerDelta })}\n\n`));
-            } catch { /* ignore */ }
-            cleaned = `${cleaned}\n\n${banner}`.trim();
-          }
-
-
-          // Безопасно възстановяване САМО на текстови листа от редакцията.
-          cleaned = restoreLeaves(cleaned);
-          const finalFollowups = followups.length >= 2 ? followups : fallbackFollowups(lastToolName);
-          if (cleaned.trim() && cleaned.trim() !== rawCleaned.trim()) {
-            try {
-              controller.enqueue(new TextEncoder().encode(`event: final_text\ndata: ${JSON.stringify({ content: cleaned })}\n\n`));
-            } catch { /* ignore */ }
-          }
-          try {
-            controller.enqueue(new TextEncoder().encode(`event: followups\ndata: ${JSON.stringify({ followups: finalFollowups })}\n\n`));
-          } catch { /* ignore */ }
-
-          // Persist cleaned assistant message (no inline tag).
-          if (cleaned.trim() && activeThreadId) {
-            await admin.from("assistant_messages").insert({
-              thread_id: activeThreadId,
-              role: "assistant",
-              content: cleaned,
+          const r = result as any;
+          if (sc.function.name === "search_templates" && r && Array.isArray(r.items) && r.items.length === 0) {
+            convo.push({
+              role: "system",
+              content: "❗ SEARCH_EMPTY: `search_templates` върна 0 резултата. Извикай `propose_contract_outline` или `prefill_build_contract` (documentType='generic').",
             });
-            await admin.from("assistant_threads")
-              .update({ updated_at: new Date().toISOString() })
-              .eq("id", activeThreadId);
           }
-
-          await logAiAudit({
-            user_id: userId, operation: "assistant-chat", model: chatModel,
-            classification: chatClassification, redaction_applied: false,
-            status: lastModelStatus === 200 ? "ok" : "error",
-            error_code: lastModelStatus === 200 ? undefined : `http_${lastModelStatus}`,
-          });
-
-          // Cost estimation (chars/4 ≈ tokens) → ai_usage with cost_eur for live dashboard.
-          try {
-            const inputChars = convo.reduce((a, m) => a + String(m.content || "").length, 0);
-            const outputChars = fullAssistantText.length;
-            const tIn = Math.ceil(inputChars / 4);
-            const tOut = Math.ceil(outputChars / 4);
-            const price = modelPrices[chatModel];
-            const costEur = price ? +(((tIn / 1000) * price.in) + ((tOut / 1000) * price.out)).toFixed(6) : null;
-            await admin.from("ai_usage").insert({
-              user_id: userId, function_name: "assistant-chat",
-              model: chatModel, tokens_in: tIn, tokens_out: tOut, cost_eur: costEur,
-            });
-          } catch (e) { console.warn("ai_usage cost insert failed", e); }
-
-          try {
-            controller.enqueue(new TextEncoder().encode(
-              `event: progress\ndata: ${JSON.stringify({ step: "done", label: "Готово", status: "done" })}\n\n`
-            ));
-          } catch { /* ignore */ }
-          controller.close();
         }
-      },
+
+        if (clientCalls.length > 0 && textThisTurn.trim().length === 0) {
+          const firstName = clientCalls[0].function.name;
+          const preamble = (() => {
+            switch (firstName) {
+              case "open_upload_analyzer":
+                return "Разбрах — ще Ви пренасоча към проверката, за да прегледаме качения текст.\n\n";
+              case "ask_clarification":
+                return "Имам достатъчно контекст, но първо нека уточним няколко детайла:\n\n";
+              case "prefill_build_contract":
+                return "Отварям документа с попълнени данни от разговора. Ще можете да прегледате всяко поле.\n\n";
+              case "propose_contract_outline":
+                return "Ето предложение за структурата според това, което споделихте:\n\n";
+              case "open_template":
+                return "Отварям документа в каталога, за да видите пълния текст.\n\n";
+              default:
+                return "Продължавам със следваща стъпка:\n\n";
+            }
+          })();
+          textThisTurn += preamble;
+          fullAssistantText += preamble;
+        }
+
+        for (const cc of clientCalls) {
+          const validated = validateClientToolArgs(cc.function.name, safeParse(cc.function.arguments));
+          if (validated.ok) {
+            toolEvents.push({ event: "tool_call", data: { id: cc.id, name: cc.function.name, args: validated.args } });
+          } else {
+            convo.push({ role: "tool", tool_call_id: cc.id, content: JSON.stringify({ error: validated.reason }) });
+          }
+        }
+
+        if (serverCalls.length === 0 && clientCalls.length > 0) break;
+      }
+    } catch (_err) {
+      providerFailed = true;
+    }
+
+    // Несигурност СЛЕД стартиран модел => изравняване, никога втори модел.
+    if (providerFailed) {
+      // БЕЗ отмяна и БЕЗ връщане на квота: моделът вече е стартиран, затова
+      // състоянието се решава от изравняването, не от тази заявка.
+      await logAiAudit({
+        user_id: userId, operation: "assistant-chat", model: chatModel,
+        classification: chatClassification, redaction_applied: false,
+        status: "error", error_code: `http_${lastModelStatus}`,
+      }).catch(() => {});
+      return ledgerStateResponse("reconciliation");
+    }
+
+    const lastToolName = (() => {
+      for (let i = toolEvents.length - 1; i >= 0; i--) {
+        const d = toolEvents[i].data as { name?: unknown };
+        if (typeof d?.name === "string") return d.name;
+      }
+      return null;
+    })();
+
+    const { cleaned: rawCleaned, followups } = parseFollowups(fullAssistantText);
+    let cleaned = sanitizeAssistantReply(rawCleaned, {
+      citationCount: verifiedLegal.citations.length,
+      injectRiskBanner: false,
     });
 
-    return new Response(stream, {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-      },
+    // Едно ОГРАНИЧЕНО поправяне в СЪЩАТА резервация (в декларирания таван).
+    let citationCheck = validateAnswerCitations(cleaned, verifiedLegal.citations as any, {
+      requireCitation: needsStructuredLegalAnswer,
     });
-  } catch (err) {
-    console.error("assistant-chat error:", err);
-    return new Response(JSON.stringify({ error: "Сървърна грешка" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const structureBroken = needsStructuredLegalAnswer && needsLegalAnswerRepair(cleaned);
+    if ((structureBroken || !citationCheck.ok) && providerRequests < MAX_CHAT_REQUESTS_PER_OPERATION) {
+      providerRequests++;
+      const repaired = await repairLegalAnswer({
+        apiKey: LOVABLE_API_KEY,
+        model: premiumModel,
+        question: lastUserMsg,
+        draft: cleaned,
+        legalPromptBlock: verifiedLegal.promptBlock,
+        citations: verifiedLegal.citations,
+      }).catch(() => null);
+      if (repaired) {
+        const candidate = sanitizeAssistantReply(repaired, {
+          citationCount: verifiedLegal.citations.length,
+          injectRiskBanner: false,
+        });
+        const recheck = validateAnswerCitations(candidate, verifiedLegal.citations as any, {
+          requireCitation: needsStructuredLegalAnswer,
+        });
+        if (recheck.ok) {
+          cleaned = candidate;
+          citationCheck = recheck;
+        }
+      }
+    }
+
+    // Непроверен цитат НИКОГА не се доставя — черновата не се показва.
+    if (!citationCheck.ok) {
+      cleaned = noVerifiedAnswerText();
+    }
+
+    if (HIGH_RISK_RE.test(lastUserMsg) && !HIGH_RISK_ESCALATION_MARK.test(cleaned)) {
+      cleaned = `${cleaned}\n\n${highRiskBanner()}`.trim();
+    }
+    cleaned = restoreLeaves(cleaned);
+
+    const finalFollowups = citationCheck.ok && followups.length >= 2
+      ? followups
+      : citationCheck.ok
+        ? fallbackFollowups(lastToolName)
+        : ["Задай по-конкретен въпрос", "Качи документ за проверка", "Намери шаблон"];
+
+    if (cleaned.trim()) emit(null, { delta: cleaned });
+    for (const te of toolEvents) {
+      if (citationCheck.ok) emit(te.event, te.data);
+    }
+    if (cleaned.trim()) emit("final_text", { content: cleaned });
+    emit("followups", { followups: finalFollowups });
+    emit("progress", { step: "done", label: "Готово", status: "done" });
+
+    const committed = await commitTurn(admin, {
+      operationId,
+      userId,
+      userMessage: newMessage,
+      assistantMessage: cleaned.trim() ? cleaned : null,
+      events,
+      proposal: citationCheck.ok ? pendingProposal : null,
     });
+    if (committed.kind !== "committed" && committed.kind !== "replay") {
+      if (committed.kind === "conflict") return ledgerStateResponse("conflict");
+      if (committed.kind === "response_expired") return ledgerStateResponse("response_expired");
+      return ledgerStateResponse("unavailable");
+    }
+
+    await logAiAudit({
+      user_id: userId, operation: "assistant-chat", model: chatModel,
+      classification: chatClassification, redaction_applied: false, status: "ok",
+    }).catch(() => {});
+    try {
+      const inputChars = convo.reduce((a, m) => a + String(m.content || "").length, 0);
+      const tIn = Math.ceil(inputChars / 4);
+      const tOut = Math.ceil(fullAssistantText.length / 4);
+      const price = modelPrices[chatModel];
+      const costEur = price ? +(((tIn / 1000) * price.in) + ((tOut / 1000) * price.out)).toFixed(6) : null;
+      await admin.from("ai_usage").insert({
+        user_id: userId, function_name: "assistant-chat",
+        model: chatModel, tokens_in: tIn, tokens_out: tOut, cost_eur: costEur,
+      });
+    } catch (_e) { /* счетоводството за разход не е част от доставката */ }
+
+    return replayResponse(committed.result);
+  } catch (_err) {
+    console.error("assistant-chat failed", corr);
+    return json({ error: "Сървърна грешка", code: "assistant_chat_failed" }, 500);
   }
 });
 
