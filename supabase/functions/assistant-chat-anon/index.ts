@@ -6,6 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, clientIp, hashIp } from "../_shared/cors.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { retrieveLegalContext, type LegalCitation } from "../_shared/legal-rag.ts";
+import { legalVerificationUnavailableResponse } from "../_shared/legal-gate.ts";
 import { sanitizeAssistantReply } from "../_shared/response-sanitizer.ts";
 
 const SYSTEM_PROMPT = `# РОЛЯ И ИДЕНТИЧНОСТ
@@ -201,26 +202,29 @@ Deno.serve(async (req) => {
       });
     }
 
-    // RAG retrieval — best-effort; if it fails, continue without citations.
+    // СТРОГО ЗАЗЕМЯВАНЕ: без поне една проверена норма за ТОЧНО тази заявка
+    // не се прави нито едно повикване към модела. Няма „общ режим“.
     let citations: LegalCitation[] = [];
-    let promptBlock = "[НОРМАТИВНА БАЗА] (няма релевантни извадки)";
-    try {
+    let promptBlock = "";
+    {
       const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
       const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      let hasMatches = false;
       if (SUPABASE_URL && SERVICE_ROLE) {
         const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
         const lastUserMsg = safe[safe.length - 1].content;
         const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, lastUserMsg, {
           matchCount: 5,
-          minSimilarity: 0.45,
         });
         if (legal.hasMatches) {
           citations = legal.citations.slice(0, 3);
           promptBlock = legal.promptBlock;
+          hasMatches = true;
         }
       }
-    } catch (e) {
-      console.warn("RAG retrieval failed (continuing without):", e instanceof Error ? e.message : String(e));
+      if (!hasMatches) {
+        return legalVerificationUnavailableResponse({ headers: corsHeaders });
+      }
     }
 
     const systemFinal = `${SYSTEM_PROMPT}\n\n${promptBlock}`;
