@@ -285,8 +285,10 @@ Deno.serve(async (req: Request) => {
     // Клиентският ключ на операцията е ЗАДЪЛЖИТЕЛЕН: без него повторният опит
     // не е идемпотентен и би генерирал и таксувал наново.
     const { asUuidOrNull, canonicalRequestDigest } = await import("../_shared/canonical-digest.ts");
-    const rawClientOpId = (body as Record<string, unknown>)?.operation_id ??
-      (body as Record<string, unknown>)?.client_operation_id;
+    // Заобикаляне на тясната типизация на BuildPayload: полето идва от суровия
+    // JSON на заявката, не от декларираната форма.
+    const rawClientOpId = (body as unknown as Record<string, unknown>)?.operation_id ??
+      (body as unknown as Record<string, unknown>)?.client_operation_id;
     const operationId = asUuidOrNull(rawClientOpId);
     if (!operationId) {
       return new Response(
@@ -442,7 +444,9 @@ Deno.serve(async (req: Request) => {
         .gte("created_at", since)
         .eq("user_id", userId),
       guardIllegalContent({
-        admin, text: guardText, functionName: "build-custom-contract",
+        // Пред-съществуващо несъответствие между версии на generated types;
+        // поведението на клиента не се променя.
+        admin: admin as any, text: guardText, functionName: "build-custom-contract",
         userId, ipHash: null,
         userAgent: req.headers.get("user-agent"),
         corsHeaders,
@@ -553,9 +557,10 @@ ${fieldsSection}
       : "";
 
     const composedSystem = `${BASE_SYSTEM_PROMPT}\n\n=== СПЕЦИФИКА ЗА ВИД „${docSpec.label.toUpperCase()}" ===\n${docSpec.systemAddendum}\n\n=== ${modeSpec.label} ===\n${modeSpec.addendum}${safeBilingual ? BILINGUAL_ADDENDUM : ""}`;
-    const baseSystem = await loadActivePrompt(admin, "build-custom-contract", composedSystem);
+        // Пред-съществуващо несъответствие между версии на generated types.
+    const baseSystem = await loadActivePrompt(admin as any, "build-custom-contract", composedSystem);
     const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
-    const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, `${docSpec.label}\n${redacted.redacted}`.slice(0, 4000), { matchCount: 6 });
+        const legal = await retrieveLegalContext(admin as any, LOVABLE_API_KEY, `${docSpec.label}\n${redacted.redacted}`.slice(0, 4000), { matchCount: 6 });
     // FAIL-CLOSED: без проверена норма за тази заявка няма повикване към модел.
     if (!legal.hasMatches) {
       const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
@@ -842,7 +847,9 @@ ${fieldsSection}
 
     // Fire-and-forget: anonymise + persist as a candidate blank for admin review.
     // We do NOT await this so the user's response is fast.
-    EdgeRuntime?.waitUntil?.(
+    // @ts-ignore — EdgeRuntime е глобал на средата на Supabase Edge Functions,
+    // липсва в lib типовете на Deno; поведението не се променя.
+    (globalThis as any).EdgeRuntime?.waitUntil?.(
       anonymiseAndStoreBlank(admin, {
         name, category, categorySectorId,
         contract: parsed.contract,
