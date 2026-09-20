@@ -8,6 +8,21 @@ import { buildCors } from "../_shared/cors.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
+import {
+  asOperationId,
+  cancelDocumentOperation,
+  canonicalDocumentBinding,
+  commitDocumentOperation,
+  ledgerBlockResponse,
+  lookupDocumentOperation,
+  markDocumentModelStarted,
+  markDocumentReconciliation,
+  ocrPageSequenceDigest,
+  operationIdRequiredResponse,
+  operationReconciliationResponse,
+  ProviderCallBudget,
+  reserveDocumentOperation,
+} from "../_shared/ai-document-ledger.ts";
 
 const OCR_SYSTEM = `Ти си високо точен OCR енджин за български правни документи.
 Получаваш изображение на страница от договор. Върни ИЗКЛЮЧИТЕЛНО извлечения текст,
