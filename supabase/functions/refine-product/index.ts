@@ -307,7 +307,15 @@ Deno.serve(async (req) => {
 
     // Оттук нататък всяка грешка минава през записа: наемът не остава увиснал и
     // включеното уточнение не се изразходва при провал.
+    // Трайно доказателство, че доставчикът е бил платен. Пази се отделно от
+    // „тази заявка извика fetch“: приключено записано извикване е доказателство
+    // и при повторение след загубен отговор.
+    let providerEvidence = false;
+
     const failRefinement = async (code: string) => {
+      // Защита на последната граница: при доказано извикване освобождаването е
+      // забранено, независимо от пътя в кода.
+      if (providerEvidence) return;
       await admin.rpc("fail_product_result_refinement", {
         p_refinement_id: refinementId,
         p_lease_token: leaseToken,
