@@ -27,7 +27,14 @@ function client(handler: (name: string, args: Record<string, unknown>) => { data
 Deno.test("чистото състояние не блокира нищо", async () => {
   const db = client(() => ({ data: { ok: true, job: null, refinement: null } }));
   const state = await readProductReconciliationState(db, "u", "e");
-  assertEquals(state, { jobRequired: false, refinementRequired: false, code: null });
+  assertEquals(state, {
+    jobRequired: false,
+    refinementRequired: false,
+    terminalJob: false,
+    terminalRefinement: false,
+    orphanRefinementCall: false,
+    code: null,
+  });
 });
 
 Deno.test("неразрешено състояние се разпознава поотделно за задача и уточнение", async () => {
