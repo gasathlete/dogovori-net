@@ -317,17 +317,21 @@ Deno.serve(async (req: Request) => {
     );
     const sessionId = asUuidOrNull(body?.session_id);
     const docKey = asTextOrNull(body?.doc_key);
-    // Клиентският ключ на операцията прави повторния опит безопасен. Стар
-    // кеширан клиент може да го пропусне — тогава не блокираме заявката, но и
-    // НЕ твърдим, че повторението е идемпотентно.
+    // Клиентският ключ на операцията е ЗАДЪЛЖИТЕЛЕН: без него повторният опит
+    // не може да бъде идемпотентен и би генерирал и таксувал наново.
     const rawClientOpId = body?.operation_id ?? body?.client_operation_id;
     const clientOperationId = asUuidOrNull(rawClientOpId);
-    if (rawClientOpId !== undefined && rawClientOpId !== null && !clientOperationId) {
+    if (!clientOperationId) {
       return new Response(
-        JSON.stringify({ error: "Невалиден идентификатор на операцията.", code: "invalid_operation_id" }),
+        JSON.stringify({
+          error: "Липсва или е невалиден идентификатор на операцията.",
+          code: rawClientOpId ? "invalid_operation_id" : "operation_id_required",
+          charge_state: "not_charged",
+        }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
 
     // Strict input validation to prevent prompt-cache poisoning. The generated
     // blank is shared globally by (sector_id, document_name), so untrusted
