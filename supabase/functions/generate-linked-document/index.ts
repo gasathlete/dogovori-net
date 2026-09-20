@@ -186,23 +186,52 @@ ${safeParentText}
     // преамбюл, клаузи, заключение), а не само по заглавието — така релевантните
     // клаузи на основния договор участват в извличането. Суровите лични данни
     // никога не достигат до извличането: използват се само редактирани полета.
-    const retrievalQuery = [
+    const corpusParts = [
       spec.label,
       safeTitle,
       safeNotes,
       redaction.fields.preamble,
       redaction.fields.clauses,
       redaction.fields.closing,
-    ]
-      .filter((part) => part && part.trim().length > 0)
-      .join("\n")
-      .slice(0, 4000);
-    const legal = await retrieveLegalContext(
-      admin,
-      LOVABLE_API_KEY,
-      retrievalQuery,
-      { matchCount: 6 },
-    );
+    ].filter((part) => part && part.trim().length > 0);
+    const corpus = corpusParts.join("\n");
+
+    // ОГРАНИЧЕНО МНОГОСЕГМЕНТНО ИЗВЛИЧАНЕ: детерминирани сегменти (начало,
+    // среда, край) вместо отрязване на първите 4000 знака. Един и същ вход дава
+    // един и същ заземен контекст, затова повторният опит ползва същия контекст.
+    const SEGMENT = 2000;
+    const segments: string[] = [];
+    const head = `${spec.label}\n${safeTitle}\n${safeNotes}`.trim().slice(0, SEGMENT);
+    if (head.length > 0) segments.push(head);
+    if (corpus.length <= SEGMENT) {
+      if (corpus.trim().length > 0 && corpus !== head) segments.push(corpus);
+    } else {
+      const mid = Math.max(0, Math.floor((corpus.length - SEGMENT) / 2));
+      segments.push(corpus.slice(0, SEGMENT));
+      segments.push(corpus.slice(mid, mid + SEGMENT));
+      segments.push(corpus.slice(Math.max(0, corpus.length - SEGMENT)));
+    }
+
+    const seenChunks = new Set<string>();
+    const mergedCitations: Array<Record<string, unknown>> = [];
+    const promptBlocks: string[] = [];
+    for (const segment of segments.slice(0, 4)) {
+      const part = await retrieveLegalContext(admin, LOVABLE_API_KEY, segment, { matchCount: 4 });
+      if (!part.hasMatches) continue;
+      for (const c of part.citations) {
+        const key = String((c as { chunk_id?: string; short_code?: string }).chunk_id ??
+          (c as { short_code?: string }).short_code ?? JSON.stringify(c));
+        if (seenChunks.has(key)) continue;
+        seenChunks.add(key);
+        mergedCitations.push(c as unknown as Record<string, unknown>);
+      }
+      if (part.promptBlock) promptBlocks.push(part.promptBlock);
+    }
+    const legal = {
+      hasMatches: mergedCitations.length > 0,
+      citations: mergedCitations,
+      promptBlock: promptBlocks.join("\n\n").slice(0, 12000),
+    };
     if (!legal.hasMatches) {
       const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
       return legalVerificationUnavailableResponse({
@@ -238,8 +267,8 @@ ${safeParentText}
           { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
         );
       }
-      const t = await aiResp.text();
-      console.error("AI gateway:", aiResp.status, t);
+      // Никога не се записва и не се връща тяло/детайл от шлюза.
+      console.error("generate-linked-document ai_failed", { status: aiResp.status, cid: correlationId });
       throw new Error("AI грешка");
     }
 
@@ -279,7 +308,11 @@ ${safeParentText}
       { headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
     );
   } catch (e) {
-    console.error(`generate-linked-document error [cid=${correlationId}]:`, e);
+    // Нормализиран запис: без сурови съобщения от шлюза или изключения.
+    console.error("generate-linked-document error", {
+      cid: correlationId,
+      name: e instanceof Error ? e.name : "unknown",
+    });
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка", correlation_id: correlationId }),
       { status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
