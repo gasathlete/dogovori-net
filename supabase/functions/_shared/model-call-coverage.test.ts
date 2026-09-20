@@ -11,6 +11,7 @@
  *     зелени.
  */
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { type AiDocumentPurpose, PROVIDER_CALL_BUDGET } from "./ai-document-ledger.ts";
 
 const ROOT = new URL("../", import.meta.url).pathname;
 
