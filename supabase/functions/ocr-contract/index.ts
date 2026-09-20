@@ -264,12 +264,28 @@ Deno.serve(async (req: Request) => {
       redaction_applied: false, status: "ok",
     });
 
-    // Per-user accounting so abuse is visible and rate-limitable downstream.
-    try {
-      await admin.from("ai_usage").insert({ user_id: userId, function_name: "ocr-contract" });
-    } catch (_) { /* non-fatal */ }
+    // Атомарно потвърждение: резултат за точно повторение, счетоводството в
+    // ai_usage и вълната от операции — заедно, най-много веднъж.
+    const payload = { text, pages: pages.length, unreadablePages };
+    const committed = await commitDocumentOperation(admin, {
+      operationId,
+      userId,
+      purpose: "ocr_contract",
+      binding,
+      result: payload,
+      resultTtlSeconds: 86400,
+      usageFunction: "ocr-contract",
+    });
+    if (committed.kind !== "committed") {
+      await markDocumentReconciliation(admin, {
+        operationId,
+        userId,
+        reason: "commit_uncertain",
+      });
+      return operationReconciliationResponse(corsHeaders, "commit_uncertain");
+    }
 
-    return new Response(JSON.stringify({ text, pages: pages.length, unreadablePages }), {
+    return new Response(JSON.stringify(payload), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
