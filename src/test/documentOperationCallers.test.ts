@@ -67,4 +67,17 @@ describe("повикващият код на документните опера
     expect(src).toContain("documentOperationScope");
     expect(src).not.toMatch(/options:\s*\{[^}]*:\s*images\s*[,}]/);
   });
+
+  it("свързаният документ не се заявява без вписан профил", () => {
+    const src = read("src/pages/DocumentWorkspace.tsx");
+    // Без профил: няма заявка към крайната точка, а покана за вписване.
+    const guard = src.indexOf('navigate("/auth")');
+    const invoke = src.indexOf('invoke(\n        "generate-linked-document"');
+    expect(guard).toBeGreaterThan(-1);
+    expect(src).toMatch(/uid\s*=\s*sessionData\.session\?\.user\?\.id/);
+    expect(guard).toBeLessThan(invoke === -1 ? src.length : invoke);
+    // Отказът за вписване (401) НЕ изчиства трайния ключ.
+    expect(src).toMatch(/ledgerStatus === 401/);
+    expect(src).not.toMatch(/401[^)]*clearDocumentOperation/);
+  });
 });
