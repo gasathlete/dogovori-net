@@ -74,58 +74,109 @@ Deno.serve(async (req: Request) => {
     // Cap at 12 pages to keep latency/cost sane (≈ first 12 pages of a contract).
     const pages = images.slice(0, 12);
 
-    // Ценообразуване: OCR на първите 3 страници е включен в цената на
-    // анализа (analyze-contract зарежда 1 операция). Всяка следваща
-    // страница струва +1 операция, за да покрие реалната AI vision цена.
-    // Резервираме допълнителните операции ПРЕДИ да пуснем OCR — така
-    // потребителят вижда ясен 402 вместо да похарчим API за нищо.
+    // ---------------------------------------------------------------------
+    // GATE 2 — ТОЧНО ЕДНО ИЗПЪЛНЕНИЕ.
+    // Обвързването покрива ПОДРЕДЕНАТА последователност страници само чрез
+    // SHA-256 на всяка страница и размера ѝ. Никакъв base64/байт не влиза в
+    // леджъра или в журналите.
+    // ---------------------------------------------------------------------
+    const operationId = asOperationId(body?.operation_id);
+    if (!operationId) return operationIdRequiredResponse(corsHeaders);
+
     const FREE_OCR_PAGES = 3;
     const extraOps = Math.max(0, pages.length - FREE_OCR_PAGES);
-    if (extraOps > 0) {
-      const userClient = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")!,
-        { global: { headers: { Authorization: auth } } },
-      );
-      for (let i = 0; i < extraOps; i++) {
-        const { data: q, error: qErr } = await userClient.rpc(
-          "consume_quota",
-          { _kind: "analysis" },
-        );
-        if (qErr) {
-          console.error("ocr extra-op consume_quota error:", qErr);
-          return new Response(
-            JSON.stringify({ error: "Грешка при резервиране на квота за OCR." }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
-        }
-        if (!(q as any)?.ok) {
-          return new Response(
-            JSON.stringify({
-              error:
-                `OCR на ${pages.length} страници изисква ${extraOps} допълнителни ` +
-                `операции (първите ${FREE_OCR_PAGES} страници са безплатни). ` +
-                `Балансът Ви не е достатъчен — добавете топ-ъп или намалете броя страници.`,
-              code: "ocr_quota_exceeded",
-              pages: pages.length,
-              free_pages: FREE_OCR_PAGES,
-              extra_ops_required: extraOps,
-            }),
-            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
-        }
-      }
+    const sequence = await ocrPageSequenceDigest(pages);
+    const binding = await canonicalDocumentBinding({
+      purpose: "ocr_contract",
+      userId,
+      resourceId: null,
+      resourceVersion: sequence.digest,
+      options: { page_count: pages.length, free_pages: FREE_OCR_PAGES, extra_ops: extraOps },
+    });
+
+    // САМО-ЧЕТЯЩО повторение — ПРЕДИ ключа на доставчика и всяка квота.
+    const existing = await lookupDocumentOperation(admin, {
+      operationId,
+      userId,
+      purpose: "ocr_contract",
+      binding,
+    });
+    if (existing.kind === "committed") {
+      return new Response(JSON.stringify({ ...existing.result, replay: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
+    const existingBlock = ledgerBlockResponse(existing, corsHeaders);
+    if (existingBlock) return existingBlock;
+
+    // Ценообразуване: OCR на първите 3 страници е включен в цената на анализа.
+    // Всяка следваща страница струва +1 операция. Резервацията е АТОМАРНА и
+    // всичко-или-нищо — няма частично таксуване страница по страница.
+    const reserved = await reserveDocumentOperation(admin, {
+      operationId,
+      userId,
+      purpose: "ocr_contract",
+      binding,
+      inputDigest: sequence.digest,
+      resourceVersion: sequence.digest,
+      leaseSeconds: 600,
+      waveOps: extraOps,
+      waveKind: "analysis",
+    });
+    if (reserved.kind === "committed") {
+      return new Response(JSON.stringify({ ...reserved.result, replay: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (reserved.kind === "quota_exhausted") {
+      return new Response(
+        JSON.stringify({
+          error:
+            `OCR на ${pages.length} страници изисква ${extraOps} допълнителни ` +
+            `операции (първите ${FREE_OCR_PAGES} страници са безплатни). ` +
+            `Балансът Ви не е достатъчен — добавете топ-ъп или намалете броя страници.`,
+          code: "ocr_quota_exceeded",
+          pages: pages.length,
+          free_pages: FREE_OCR_PAGES,
+          extra_ops_required: extraOps,
+        }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const reserveBlock = ledgerBlockResponse(reserved, corsHeaders);
+    if (reserveBlock) return reserveBlock;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
+      // Детерминистичен провал ПРЕДИ модела: отмяна с точно възстановяване.
+      await cancelDocumentOperation(admin, {
+        operationId,
+        userId,
+        reason: "provider_key_missing",
+      });
       return new Response(JSON.stringify({ error: "LOVABLE_API_KEY липсва" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const activeOcrSystem = await loadActivePrompt(admin, "ocr-contract", OCR_SYSTEM);
+
+    // Трайно начало на модела ПРЕДИ първото повикване към доставчик.
+    const started = await markDocumentModelStarted(admin, {
+      operationId,
+      userId,
+      purpose: "ocr_contract",
+      binding,
+    });
+    if (!started.ok) {
+      return ledgerBlockResponse(started.outcome, corsHeaders) ??
+        operationReconciliationResponse(corsHeaders, "model_start_unproven");
+    }
+
+    // ЦЯЛАТА партида има твърд бюджет от 12 повиквания — не 12 на опит.
+    const budget = new ProviderCallBudget("ocr_contract");
     const ocrPage = async (dataUrl: string, pageIndex: number): Promise<string> => {
+      budget.take();
       const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
