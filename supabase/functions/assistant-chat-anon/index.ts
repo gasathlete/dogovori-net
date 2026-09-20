@@ -256,6 +256,17 @@ Deno.serve(async (req) => {
         free_message_consumed: false,
       }, 409);
     }
+    if (res.kind === "expired") {
+      // Отговорът вече не се пази: НИКОГА празен или друг отговор — нужна е нова
+      // заявка с нов идентификатор.
+      return json({
+        error: "response_expired",
+        code: "response_expired",
+        message: "Отговорът вече не се пази. Изпратете въпроса отново.",
+        free_message_consumed: false,
+      }, 409);
+    }
+
     if (res.kind !== "reserved") {
       // Инфраструктурна несигурност НИКОГА не е ново право и НИКОГА не е лимит.
       return unavailable("entitlement_unavailable");
