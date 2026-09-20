@@ -319,7 +319,22 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
     // повикване. Няма вариант без проверените извадки.
     const sysGrounded = `${sys}\n\n${legal.promptBlock}`;
 
+    // Трайно записано начало на модела ПРЕДИ първото повикване.
+    const started = await markDocumentModelStarted(admin, {
+      operationId,
+      userId: user.id,
+      purpose: "negotiation_strategy",
+      binding,
+    });
+    if (!started.ok) {
+      return ledgerBlockResponse(started.outcome, cors) ??
+        operationReconciliationResponse(cors, "model_start_unproven");
+    }
+
+    // Твърд бюджет: 1 основен + най-много 1 резервен модел.
+    const budget = new ProviderCallBudget("negotiation_strategy");
     const callModel = async (model: string) => {
+      budget.take();
       const r = await fetch(GATEWAY_URL, {
         method: "POST",
         headers: {
