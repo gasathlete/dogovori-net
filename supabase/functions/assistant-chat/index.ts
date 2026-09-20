@@ -378,8 +378,7 @@ Deno.serve(async (req) => {
     // Идентичността на заявката е ТОЧНА: нищо не се отрязва тихо, за да не се
     // обвърже и запише текст, различен от изпратения.
     const rawMessage = typeof body?.message === "string" ? body.message : "";
-    const newMessage = rawMessage.trim();
-    if (!newMessage) {
+    if (!rawMessage.trim()) {
       return json({ error: "Съобщението е задължително.", code: "message_required" }, 400);
     }
     if (rawMessage.length > HISTORY_CHARS_LIMIT) {
@@ -388,6 +387,8 @@ Deno.serve(async (req) => {
         code: "message_too_long",
       }, 400);
     }
+    // Обвързва се и се записва ТОЧНО изпратеният низ, без ре-нормализация.
+    const newMessage = rawMessage;
     // Подаден, но невалиден разговор НЕ се подменя тихо с нов.
     const rawThreadId = body?.threadId;
     let requestedThreadId: string | null = null;
