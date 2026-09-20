@@ -33,7 +33,17 @@ Deno.test("всеки AI вход е класифициран в регистъ�
 
 Deno.test("регистърът не описва изчезнали функции", async () => {
   const discovered = new Set(await discoverAiEndpoints());
-  const stale = AI_ENDPOINT_POLICIES.map((p) => p.name).filter((n) => !discovered.has(n));
+  // Транзитивните входове (AI само през общ помощник) се проверяват в
+  // ai-endpoint-graph.test.ts; тук е достатъчно функцията да съществува.
+  const stale: string[] = [];
+  for (const p of AI_ENDPOINT_POLICIES) {
+    if (discovered.has(p.name)) continue;
+    try {
+      await Deno.stat(`${FUNCTIONS_DIR}${p.name}/index.ts`);
+    } catch {
+      stale.push(p.name);
+    }
+  }
   assertEquals(stale, [], `остарели записи: ${stale.join(", ")}`);
 });
 
