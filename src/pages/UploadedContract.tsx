@@ -76,6 +76,8 @@ export default function UploadedContractPage() {
 
   const [analyzing, setAnalyzing] = useState(false);
   const [correcting, setCorrecting] = useState(false);
+  // Пази от двойно изпращане при ръчен повторен опит от правната преграда.
+  const busyRef = useRef(false);
   const [corrections, setCorrections] = useState<CorrectionResult | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -175,6 +177,8 @@ export default function UploadedContractPage() {
     const startedIdentity = { docId: id, userId: user?.id ?? null };
     const scopeAtStart = scopeRef.current;
     const token = ++analyzeTokenRef.current;
+    if (busyRef.current) return;
+    busyRef.current = true;
     setAnalyzing(true);
     trackGenerate("started", { source: "reanalyze" });
     const { data, error } = await supabase.functions.invoke("analyze-contract", {
