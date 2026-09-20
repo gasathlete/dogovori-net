@@ -1,54 +1,62 @@
 {
-  "description": "Машинно четим списък на ВСИЧКИ крайни точки, при които потребителско действие може да доведе до изходящо повикване към езиков модел, заедно с механизма за точно еднократно изпълнение. Поддържа се ръчно и се проверява от model-call-coverage.test.ts. Нова крайна точка с модел ТРЯБВА да бъде добавена тук.",
+  "description": "Машинно четим списък на ВСИЧКИ крайни точки, при които потребителско действие може да доведе до изходящо повикване към езиков модел, заедно с механизма за точно еднократно изпълнение. Поддържа се ръчно и се проверява от model-call-coverage.test.ts. Нова крайна точка с модел ТРЯБВА да бъде добавена тук. Полето „modelCallSites“ отчита реалния брой изходящи повиквания към шлюза (fetch към ai.gateway.lovable.dev/v1/chat/completions) в изходния код на всяка защитена крайна точка.",
   "version": 1,
   "ledgerEnforced": [
     {
       "function": "generate-contract",
       "trigger": "user",
       "mechanism": "quota_operations",
-      "idempotency": "mandatory operation_id + canonical SHA-256 request digest, read-only committed lookup before mutable gates, reserve -> single model call -> commit"
+      "idempotency": "mandatory operation_id + canonical SHA-256 request digest, read-only committed lookup before mutable gates, reserve -> single model call -> commit",
+      "modelCallSites": 1
     },
     {
       "function": "analyze-contract",
       "trigger": "user",
       "mechanism": "quota_operations",
-      "idempotency": "mandatory operation_id + canonical SHA-256 digest with session_id/doc_key binding, read-only lookup, reserve -> single model call -> commit"
+      "idempotency": "mandatory operation_id + canonical SHA-256 digest with session_id/doc_key binding, read-only lookup, reserve -> single model call -> commit",
+      "modelCallSites": 1
     },
     {
       "function": "apply-corrections",
       "trigger": "user",
       "mechanism": "quota_operations",
-      "idempotency": "mandatory operation_id + batch_id binding + canonical SHA-256 digest, read-only lookup, reserve -> single model call -> commit"
+      "idempotency": "mandatory operation_id + batch_id binding + canonical SHA-256 digest, read-only lookup, reserve -> single model call -> commit",
+      "modelCallSites": 1
     },
     {
       "function": "build-custom-contract",
       "trigger": "user",
       "mechanism": "quota_operations",
-      "idempotency": "mandatory operation_id + canonical SHA-256 digest, read-only lookup, reserve -> single model call -> commit, review grant minted once"
+      "idempotency": "mandatory operation_id + canonical SHA-256 digest, read-only lookup, reserve -> single model call -> commit, review grant minted once",
+      "modelCallSites": 1
     },
     {
       "function": "refine-contract",
       "trigger": "user",
       "mechanism": "quota_operations",
-      "idempotency": "mandatory operation_id + canonical SHA-256 digest, committed replay before rate limit/illegal/classification/redaction/provider/legal RAG, review grant minted once before commit"
+      "idempotency": "mandatory operation_id + canonical SHA-256 digest, committed replay before rate limit/illegal/classification/redaction/provider/legal RAG, review grant minted once before commit",
+      "modelCallSites": 1
     },
     {
       "function": "review-document",
       "trigger": "user",
       "mechanism": "review_operations",
-      "idempotency": "server-issued single-use signed grant or persisted owner + read-only review_operation_lookup before abuse/classification/redaction/legal/provider, reserve -> single model call -> commit"
+      "idempotency": "server-issued single-use signed grant or persisted owner + read-only review_operation_lookup before abuse/classification/redaction/legal/provider, reserve -> single model call -> commit",
+      "modelCallSites": 1
     },
     {
       "function": "download-blank",
       "trigger": "user",
       "mechanism": "quota_operations",
-      "idempotency": "mandatory operation_id + canonical SHA-256 digest, committed replay verifies the bound artifact and re-signs only the proven path; immutable filename/citations/metadata come from result_ref"
+      "idempotency": "mandatory operation_id + canonical SHA-256 digest, committed replay verifies the bound artifact and re-signs only the proven path; immutable filename/citations/metadata come from result_ref",
+      "modelCallSites": 1
     },
     {
       "function": "assistant-chat-anon",
       "trigger": "anonymous user",
       "mechanism": "anon_delivery_operations",
-      "idempotency": "server-derived opaque identity hash + mandatory operation_id + canonical SHA-256 digest, durable anonymous ledger with exact replay; provider key required only for a new reserved operation"
+      "idempotency": "server-derived opaque identity hash + mandatory operation_id + canonical SHA-256 digest, durable anonymous ledger with exact replay; provider key required only for a new reserved operation",
+      "modelCallSites": 1
     }
   ],
   "releaseBlockingInventory": [

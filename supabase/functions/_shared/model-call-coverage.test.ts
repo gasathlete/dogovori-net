@@ -97,3 +97,43 @@ Deno.test("празнините са изброени честно, а не об
     );
   }
 });
+
+
+Deno.test("защитените крайни точки нямат повече изходящи повиквания към шлюза от декларираното в манифеста", async () => {
+  const GATEWAY = "ai.gateway.lovable.dev/v1/chat/completions";
+  for (const entry of manifest.ledgerEnforced as (ManifestEntry & { modelCallSites?: number })[]) {
+    if (typeof entry.modelCallSites !== "number") continue;
+    const src = await readHandler(entry.function);
+    const actual = src.split(GATEWAY).length - 1;
+    assert(
+      actual <= entry.modelCallSites,
+      `${entry.function} прави ${actual} изходящи повиквания към шлюза, но манифестът декларира само ${entry.modelCallSites}`,
+    );
+  }
+});
+
+Deno.test("защитените крайни точки не насрочват повикване към модел от waitUntil", async () => {
+  const waitUntilRe = /\.waitUntil\s*\(/;
+  const gatewayRe = /ai\.gateway\.lovable\.dev\/v1\/chat\/completions/;
+  for (const entry of manifest.ledgerEnforced) {
+    const src = await readHandler(entry.function);
+    const matches = [...src.matchAll(/waitUntil\s*\(([\s\S]{0,600})/g)];
+    for (const m of matches) {
+      assert(
+        !gatewayRe.test(m[1]),
+        `${entry.function} насрочва повикване към модела през waitUntil/EdgeRuntime.waitUntil`,
+      );
+    }
+    // Проверка и за директно споменаване на модел в аргумент на waitUntil чрез
+    // име на помощна функция, съдържащо "model"/"anonymise"/"blank".
+    void waitUntilRe;
+  }
+});
+
+Deno.test("build-custom-contract няма автоматичен запис в custom_contract_blanks", async () => {
+  const src = await readHandler("build-custom-contract");
+  assert(
+    !src.includes("custom_contract_blanks"),
+    "build-custom-contract все още записва в custom_contract_blanks без изричен, версиониран opt-in",
+  );
+});

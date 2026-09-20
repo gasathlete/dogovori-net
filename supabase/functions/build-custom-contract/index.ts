@@ -5,8 +5,6 @@
 // Uses Lovable AI Gateway (Gemini).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
 import { buildCors, hashIp, clientIp } from "../_shared/cors.ts";
-import { sha256Hex } from "../_shared/normalize.ts";
-import { extractJson } from "../_shared/json.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
 import { getDocumentTypeSpec, ALL_DOCUMENT_TYPE_IDS } from "../_shared/document-types.ts";
@@ -845,19 +843,11 @@ ${fieldsSection}
       function_name: "build-custom-contract",
     });
 
-    // Fire-and-forget: anonymise + persist as a candidate blank for admin review.
-    // We do NOT await this so the user's response is fast.
-    // @ts-ignore — EdgeRuntime е глобал на средата на Supabase Edge Functions,
-    // липсва в lib типовете на Deno; поведението не се променя.
-    (globalThis as any).EdgeRuntime?.waitUntil?.(
-      // Пред-съществуващо несъответствие между версии на generated types.
-      anonymiseAndStoreBlank(admin as any, {
-        name, category, categorySectorId,
-        contract: parsed.contract,
-        userId,
-        LOVABLE_API_KEY,
-      }).catch((e) => console.error("anonymiseAndStoreBlank failed:", e))
-    );
+    // Няма скрито второ повикване към модел или автоматичен запис в
+    // споделената библиотека след потвърждението. Бъдещ принос към
+    // споделената библиотека изисква ОТДЕЛНО, изрично, версионирано съгласие
+    // с ПОДРАЗБИРАЩА СЕ СТОЙНОСТ „не" и детерминиран работен процес за преглед
+    // — бъдеща задача, все още НЕреализирана.
 
     // Връща се ТОЧНО записаният отговор (ако леджърът го е върнал обратно).
     const committedPayload = settlement.resultRef ?? exactPayload;
@@ -874,84 +864,18 @@ ${fieldsSection}
       throw afterCharge;
     }
   } catch (e) {
-    console.error(`build-custom-contract error [cid=${correlationId}]:`, e instanceof Error ? e.message : "unknown");
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка", correlation_id: correlationId }),
-      { status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
-    );
+    // Нормализиран запис и отговор: без вътрешни съобщения и тела от шлюза.
+    console.error("build-custom-contract error", {
+      cid: correlationId,
+      name: e instanceof Error ? e.name : "unknown",
+    });
+    return new Response(JSON.stringify({
+      error: "Възникна вътрешна грешка. Опитайте отново.",
+      code: "internal_error",
+      correlation_id: correlationId,
+    }), {
+      status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
+    });
   }
 });
 
-const ANON_SYSTEM = `Ти си редактор на правни шаблони. Получаваш JSON на договор и връщаш СЪЩИЯ JSON, но със заменени конкретни данни (имена на лица/фирми, ЕГН/ЕИК, точни суми, точни дати, конкретни адреси, телефони, email, IBAN, специфични продукти/услуги) с плейсхолдъри в квадратни скоби: [Възложител], [Изпълнител], [сума в €], [срок], [дата], [адрес], [предмет на договора] и т.н. Запази структурата, номерацията, всички клаузи и общите формулировки. Върни СТРОГО валиден JSON със същата схема: {"title":"...","preamble":"...","clauses":[{"number":"...","title":"...","body":"..."}],"closing":"..."}.`;
-
-/**
- * ПОМОЩЕН път БЕЗ правни изводи: само замества конкретни данни с плейсхолдъри в
- * УЖЕ генериран документ. Извиква се единствено след успешната правна преграда
- * по-горе, затова не може да я заобиколи и не произвежда правно твърдение.
- */
-async function anonymiseAndStoreBlank(
-  // Заобикаляне на несъответствие в generated types за custom_contract_blanks /
-  // noop_no_such_fn — поведението остава непроменено.
-  admin: any,
-  args: {
-    name: string;
-    category: string;
-    categorySectorId: string | null;
-    contract: { title: string; preamble: string; clauses: any[]; closing: string };
-    userId: string;
-    LOVABLE_API_KEY: string;
-  },
-) {
-  const { name, category, categorySectorId, contract, userId, LOVABLE_API_KEY } = args;
-
-  const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash-lite",
-      messages: [
-        { role: "system", content: ANON_SYSTEM },
-        { role: "user", content: JSON.stringify(contract) },
-      ],
-      response_format: { type: "json_object" },
-    }),
-  });
-  if (!aiResp.ok) { console.error("anon ai status:", aiResp.status); return; }
-  const data = await aiResp.json();
-  const content: string = data.choices?.[0]?.message?.content ?? "";
-  if (!content.trim()) return;
-
-  let blank: any;
-  try { blank = extractJson(content, { fn: "build-custom-contract" }); } catch (e) { console.error("anon parse:", e); return; }
-
-  // Hash on the anonymised text to dedupe similar blanks.
-  const text = [blank.title, blank.preamble, ...(blank.clauses ?? []).map((c: any) => `${c.number} ${c.title} ${c.body}`), blank.closing].join("\n");
-  const text_hash = await sha256Hex(text.replace(/\s+/g, " ").trim().toLowerCase());
-
-  // Try insert; on conflict (duplicate text_hash) increment occurrences.
-  const { error: insErr } = await (admin.from("custom_contract_blanks") as any).insert({
-    source_user_id: userId,
-    category,
-    category_sector_id: categorySectorId,
-    name,
-    text_hash,
-    blank_payload: blank,
-  });
-  if (insErr && (insErr as any).code === "23505") {
-    // Duplicate — bump occurrences.
-    await (admin.rpc("noop_no_such_fn") as unknown as Promise<unknown>).catch(() => {});
-    const { data: existing } = await admin
-      .from("custom_contract_blanks")
-      .select("id, occurrences")
-      .eq("text_hash", text_hash)
-      .maybeSingle();
-    if (existing) {
-      await admin
-        .from("custom_contract_blanks")
-        .update({ occurrences: (existing.occurrences ?? 1) + 1 })
-        .eq("id", existing.id);
-    }
-  } else if (insErr) {
-    console.error("blank insert error:", insErr);
-  }
-}
