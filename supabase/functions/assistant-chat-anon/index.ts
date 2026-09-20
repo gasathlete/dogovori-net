@@ -498,8 +498,11 @@ Deno.serve(async (req) => {
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       } else {
-        // Записът не успя: не твърдим нищо за изразходвано право.
+        // Записът не успя: не твърдим нищо за изразходвано право и пускаме
+        // ключа, за да е възможен повторен опит.
+        await releaseAttempt();
         return new Response(
+
           JSON.stringify({
             error: "entitlement_unavailable",
             code: "entitlement_unavailable",
