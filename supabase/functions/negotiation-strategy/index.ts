@@ -7,12 +7,43 @@ import { buildCors } from "../_shared/cors.ts";
 import { extractJson } from "../_shared/json.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { redactForAI, unredact } from "../_shared/redact.ts";
+import {
+  buildStrategyEvidence,
+  type StrategySourceRef,
+  strategySigningKey,
+  verifyStrategyEvidence,
+} from "../_shared/strategy-evidence.ts";
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 interface ReqBody {
   analysis_id?: string;
   force?: boolean;
+  /** Само проверка на запазен резултат: без модел, без такса. */
+  cached_only?: boolean;
+}
+
+/**
+ * Актуални версии на цитираните извадки. Липсващ или преиздаден източник прави
+ * запазения плик остарял и резултатът се скрива.
+ */
+async function currentSourceVersions(
+  admin: ReturnType<typeof createClient>,
+  chunkIds: string[],
+): Promise<Map<string, string> | null> {
+  if (chunkIds.length === 0) return new Map();
+  const { data, error } = await admin
+    .from("legal_chunks")
+    .select("id, document_id, legal_documents!inner(version, checksum)")
+    .in("id", chunkIds);
+  if (error) return null;
+  const map = new Map<string, string>();
+  for (const row of (data as Array<Record<string, unknown>>) ?? []) {
+    const doc = row.legal_documents as { version?: string; checksum?: string } | null;
+    if (!doc?.version) continue;
+    map.set(String(row.id), `${doc.version}:${doc.checksum ?? ""}`);
+  }
+  return map;
 }
 
 Deno.serve(async (req) => {
@@ -97,9 +128,53 @@ Deno.serve(async (req) => {
         headers: { ...cors, "Content-Type": "application/json" },
       });
     }
-    // СТАР КЕШ НЕ СЕ ПОДНАСЯ: съществуващите записи в negotiation_strategy са
-    // създадени без сървърно доказуем правен манифест и не могат да бъдат
-    // проверени отново спрямо текущите версии на източниците.
+    // ЗАПАЗЕН РЕЗУЛТАТ СЕ ПОДНАСЯ САМО СЛЕД СЪРВЪРНА ПРОВЕРКА: подписан плик,
+    // обвързан със съдържанието, анализа, потребителя и актуалните версии на
+    // цитираните източници. Стар/подправен/остарял запис остава скрит.
+    const signingKey = strategySigningKey(Deno.env);
+    const stored = (a as any).negotiation_strategy;
+    if (!body.force && stored && typeof stored === "object") {
+      const storedSources = Array.isArray((stored as any)?.__evidence?.sources)
+        ? ((stored as any).__evidence.sources as StrategySourceRef[])
+        : [];
+      const currentSources = await currentSourceVersions(
+        admin,
+        storedSources.map((s) => String(s?.chunk_id ?? "")).filter(Boolean),
+      );
+      const verdict = await verifyStrategyEvidence({
+        envelope: stored,
+        analysisId,
+        userId: user.id,
+        signingKey,
+        currentSources,
+        now: new Date(),
+      });
+      if (verdict.ok) {
+        return new Response(
+          JSON.stringify({ ok: true, cached: true, strategy: stored }),
+          { headers: { ...cors, "Content-Type": "application/json" } },
+        );
+      }
+      if (body.cached_only) {
+        return new Response(
+          JSON.stringify({ ok: true, cached: false, strategy: null, reason: verdict.reason }),
+          { headers: { ...cors, "Content-Type": "application/json" } },
+        );
+      }
+    }
+    if (body.cached_only) {
+      return new Response(
+        JSON.stringify({ ok: true, cached: false, strategy: null, reason: "missing_envelope" }),
+        { headers: { ...cors, "Content-Type": "application/json" } },
+      );
+    }
+    if (!signingKey) {
+      return new Response(
+        JSON.stringify({ error: "evidence_unavailable", charged: false }),
+        { status: 503, headers: { ...cors, "Content-Type": "application/json" } },
+      );
+    }
+
 
     let contractText = "";
     if ((a as any).uploaded_contract_id) {
@@ -186,10 +261,11 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
       usedModel = "google/gemini-2.5-pro";
     }
     if (!resp.ok) {
-      const t = await resp.text().catch(() => "");
+      // Нормализирана грешка: без тяло и подробности от доставчика.
+      const status = resp.status === 429 ? 429 : 502;
       return new Response(
-        JSON.stringify({ error: "ai_failed", status: resp.status, detail: t.slice(0, 200) }),
-        { status: 502, headers: { ...cors, "Content-Type": "application/json" } },
+        JSON.stringify({ error: resp.status === 429 ? "ai_busy" : "ai_failed", charged: false }),
+        { status, headers: { ...cors, "Content-Type": "application/json" } },
       );
     }
     const data = await resp.json();
@@ -206,31 +282,54 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
       unredact(JSON.stringify(parsedStrategy), redaction.mapping),
     );
 
-    // ДОКАЗАТЕЛСТВЕН ПЛИК: записва се атомарно със стратегията, за да може
-    // клиентът да покаже само резултат с проверима правна основа.
-    const digestBytes = new TextEncoder().encode(`${analysisId}\n${userMsg}`);
-    const digestBuf = await crypto.subtle.digest("SHA-256", digestBytes);
-    const sourceDigest = Array.from(new Uint8Array(digestBuf))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-    const envelope = {
-      ...strategy,
-      __evidence: {
-        version: "v1",
-        analysis_id: analysisId,
-        source_digest: sourceDigest,
-        generated_at: new Date().toISOString(),
-        citations: legal.citations,
-      },
-    };
+    // ПОДПИСАН ДОКАЗАТЕЛСТВЕН ПЛИК: обвързан със съдържанието, анализа,
+    // потребителя и точните версии на цитираните източници.
+    const citedIds = legal.citations.map((c) => c.chunk_id);
+    const versions = await currentSourceVersions(admin, citedIds);
+    if (!versions) {
+      return new Response(
+        JSON.stringify({ error: "evidence_unavailable", charged: false }),
+        { status: 503, headers: { ...cors, "Content-Type": "application/json" } },
+      );
+    }
+    const sources: StrategySourceRef[] = legal.citations
+      .filter((c) => versions.get(c.chunk_id))
+      .map((c) => ({
+        chunk_id: c.chunk_id,
+        short_code: c.short_code,
+        version: versions.get(c.chunk_id)!,
+        snapshot_digest: null,
+      }));
+    const evidence = sources.length > 0
+      ? await buildStrategyEvidence({
+        analysisId,
+        userId: user.id,
+        strategy,
+        sources,
+        signingKey,
+      })
+      : null;
+    if (!evidence) {
+      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
+      return legalVerificationUnavailableResponse({ headers: cors });
+    }
+    const envelope = { ...strategy, __evidence: evidence };
 
-    await admin
+    const { error: upErr } = await admin
       .from("risk_analyses")
       .update({
         negotiation_strategy: envelope,
-        negotiation_generated_at: new Date().toISOString(),
+        negotiation_generated_at: evidence.generated_at,
       })
       .eq("id", analysisId);
+    if (upErr) {
+      console.error("negotiation-strategy persist error", upErr.message);
+      return new Response(
+        JSON.stringify({ error: "persist_failed", charged: false }),
+        { status: 503, headers: { ...cors, "Content-Type": "application/json" } },
+      );
+    }
+
 
     return new Response(
       JSON.stringify({

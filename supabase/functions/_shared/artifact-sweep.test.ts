@@ -1,97 +1,193 @@
-import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { isSweepableRequestPath, sweepExpiredRequestArtifacts } from "./artifact-sweep.ts";
+import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import {
+  isSweepableRequestPath,
+  sweepExpiredRequestArtifacts,
+  type ArtifactRow,
+} from "./artifact-sweep.ts";
 
-function fakeDb(rows: Array<Record<string, unknown>>, opts: { removeError?: string } = {}) {
-  const removed: string[] = [];
-  const marked: string[] = [];
-  return {
-    removed,
-    marked,
-    from(_t: string) {
-      return {
-        select: (_c: string) => ({
-          is: (_col: string, _v: null) => ({
-            lt: (_c2: string, _v2: string) => ({
-              limit: (_n: number) => Promise.resolve({ data: rows as never, error: null }),
-            }),
-          }),
-        }),
-        update: (_v: Record<string, unknown>) => ({
-          in: (_col: string, vals: string[]) => {
-            marked.push(...vals);
-            return Promise.resolve({ error: null });
-          },
-        }),
-      };
-    },
-    storage: {
-      from(_b: string) {
-        return {
-          remove: (paths: string[]) => {
-            if (opts.removeError) return Promise.resolve({ data: null, error: { message: opts.removeError } });
-            removed.push(...paths);
-            return Promise.resolve({ data: paths, error: null });
-          },
-        };
-      },
-    },
-  };
+interface FakeOpts {
+  rows: ArtifactRow[];
+  /** Обекти, които хранилището потвърждава като премахнати. */
+  confirm?: (bucket: string, paths: string[]) => string[];
+  removeError?: string;
+  markError?: string;
+  queryError?: string;
+  /** Симулира променена/дефектна заявка, която връща редове извън обхват. */
+  ignoreFilters?: boolean;
 }
 
-Deno.test("само пътища по заявка са заличими", () => {
-  assertEquals(isSweepableRequestPath("request/abc/x.docx"), true);
-  assertEquals(isSweepableRequestPath("draft/abc/x.docx"), false);
-  assertEquals(isSweepableRequestPath("v6/sector/doc.docx"), false);
+function fakeDb(opts: FakeOpts) {
+  const filters: Record<string, string> = {};
+  const removeCalls: Array<{ bucket: string; paths: string[] }> = [];
+  const updates: Array<{ values: Record<string, unknown>; ids: string[] }> = [];
+  let limitUsed = 0;
+
+  // deno-lint-ignore no-explicit-any
+  const chain: any = {
+    eq: (c: string, v: string) => ((filters[c] = v), chain),
+    like: (c: string, v: string) => ((filters[`like:${c}`] = v), chain),
+    is: () => chain,
+    lt: () => chain,
+    order: () => chain,
+    limit: (n: number) => {
+      limitUsed = n;
+      if (opts.queryError) {
+        return Promise.resolve({ data: null, error: { message: opts.queryError } });
+      }
+      // Симулира СЪРВЪРНОТО филтриране: партидата се пълни само с редове,
+      // които отговарят на филтрите, точно както прави базата.
+      const eligible = opts.ignoreFilters ? opts.rows : opts.rows.filter(
+        (r) =>
+          (!filters.scope || r.scope === filters.scope) &&
+          (!filters["like:storage_path"] ||
+            r.storage_path.startsWith(filters["like:storage_path"].replace("%", ""))),
+      );
+      return Promise.resolve({ data: eligible.slice(0, n), error: null });
+    },
+  };
+
+  // deno-lint-ignore no-explicit-any
+  const db: any = {
+    from: () => ({
+      select: () => chain,
+      update: (values: Record<string, unknown>) => ({
+        in: (_c: string, ids: string[]) => {
+          updates.push({ values, ids });
+          if (opts.markError && values.deleted_at) {
+            return Promise.resolve({ error: { message: opts.markError } });
+          }
+          return Promise.resolve({ error: null });
+        },
+      }),
+    }),
+    storage: {
+      from: (bucket: string) => ({
+        remove: (paths: string[]) => {
+          removeCalls.push({ bucket, paths });
+          if (opts.removeError) {
+            return Promise.resolve({ data: null, error: { message: opts.removeError } });
+          }
+          const confirmed = opts.confirm ? opts.confirm(bucket, paths) : paths;
+          return Promise.resolve({
+            data: confirmed.map((name) => ({ name })),
+            error: null,
+          });
+        },
+      }),
+    },
+  };
+  return { db, removeCalls, updates, filters, limitUsed: () => limitUsed };
+}
+
+function row(id: string, path: string, scope = "request", bucket = "document-blanks"): ArtifactRow {
+  return { id, bucket, storage_path: path, scope };
+}
+
+Deno.test("само пътища по заявка са в обхват", () => {
+  assert(isSweepableRequestPath("request/abc/doc.docx"));
+  assertEquals(isSweepableRequestPath("draft/abc/doc.docx"), false);
+  assertEquals(isSweepableRequestPath("public/logo.png"), false);
 });
 
-Deno.test("изтеклите файлове по заявка се трият и маркират", async () => {
-  const db = fakeDb([
-    { id: "a1", bucket: "document-blanks", storage_path: "request/u1/x.docx", scope: "request" },
-  ]);
+Deno.test("филтърът по обхват и префикс е в заявката (без изяждане на партидата)", async () => {
+  // 300 изтекли чернови + 2 файла по заявка: черновите не влизат в партидата.
+  const drafts = Array.from({ length: 300 }, (_, i) => row(`d${i}`, `draft/${i}/x.docx`, "draft"));
+  const requests = [row("r1", "request/1/a.docx"), row("r2", "request/2/b.docx")];
+  const { db, filters, removeCalls } = fakeDb({ rows: [...drafts, ...requests] });
+
+  const res = await sweepExpiredRequestArtifacts(db, { batchSize: 200 });
+
+  assertEquals(filters.scope, "request");
+  assertEquals(filters["like:storage_path"], "request/%");
+  assertEquals(res.examined, 2);
+  assertEquals(res.removed, 2);
+  assertEquals(res.marked, 2);
+  assertEquals(removeCalls[0].paths.length, 2);
+});
+
+Deno.test("различни хранилища се третират поотделно", async () => {
+  const rows = [
+    row("a", "request/1/a.docx", "request", "document-blanks"),
+    row("b", "request/2/b.docx", "request", "generated-docs"),
+  ];
+  const { db, removeCalls } = fakeDb({ rows });
   const res = await sweepExpiredRequestArtifacts(db);
-  assertEquals(res.deleted, 1);
-  assertEquals(db.removed, ["request/u1/x.docx"]);
-  assertEquals(db.marked, ["a1"]);
+  assertEquals(removeCalls.length, 2);
+  assertEquals(new Set(removeCalls.map((c) => c.bucket)).size, 2);
+  assertEquals(res.removed, 2);
 });
 
-Deno.test("публични и draft обекти не се пипат", async () => {
-  const db = fakeDb([
-    { id: "p1", bucket: "document-blanks", storage_path: "v6/sector/doc.docx", scope: "request" },
-    { id: "d1", bucket: "document-blanks", storage_path: "draft/u1/x.docx", scope: "draft" },
-  ]);
+Deno.test("вече липсващ обект се отчита отделно, но пак се маркира", async () => {
+  const rows = [row("a", "request/1/a.docx"), row("b", "request/2/b.docx")];
+  const { db, updates } = fakeDb({
+    rows,
+    confirm: () => ["request/1/a.docx"], // вторият вече липсва
+  });
   const res = await sweepExpiredRequestArtifacts(db);
-  assertEquals(res.deleted, 0);
-  assertEquals(res.skipped_not_request, 2);
-  assertEquals(db.removed.length, 0);
-  assertEquals(db.marked.length, 0);
+  assertEquals(res.removed, 1);
+  assertEquals(res.missing, 1);
+  assertEquals(res.marked, 2);
+  assertEquals(updates[0].ids.length, 2);
 });
 
-Deno.test("повторен курс не трие втори път (вече маркираните не се избират)", async () => {
-  const db = fakeDb([]);
+Deno.test("грешка при триене се записва на реда и не се твърди заличаване", async () => {
+  const rows = [row("a", "request/1/a.docx")];
+  const { db, updates } = fakeDb({ rows, removeError: "storage down" });
   const res = await sweepExpiredRequestArtifacts(db);
-  assertEquals(res, { examined: 0, deleted: 0, skipped_not_request: 0, errors: [] });
+  assertEquals(res.removed, 0);
+  assertEquals(res.marked, 0);
+  assertEquals(res.errors.length >= 1, true);
+  assertEquals(updates[0].values.delete_error, "storage down");
+  assertEquals(updates[0].values.deleted_at, undefined);
 });
 
-Deno.test("грешка при триене се отчита истинно и не се маркира като изтрито", async () => {
-  const db = fakeDb(
-    [{ id: "a1", bucket: "document-blanks", storage_path: "request/u1/x.docx", scope: "request" }],
-    { removeError: "network" },
-  );
+Deno.test("грешка при маркиране не се отчита като маркиран ред", async () => {
+  const rows = [row("a", "request/1/a.docx")];
+  const { db } = fakeDb({ rows, markError: "update failed" });
   const res = await sweepExpiredRequestArtifacts(db);
-  assertEquals(res.deleted, 0);
-  assertEquals(res.errors.length, 1);
-  assertEquals(db.marked.length, 0);
+  assertEquals(res.removed, 1);
+  assertEquals(res.marked, 0);
+  assert(res.errors.some((e) => e.includes("mark deleted")));
 });
 
-Deno.test("партидата е ограничена", async () => {
-  const rows = Array.from({ length: 10 }, (_, i) => ({
-    id: `a${i}`,
-    bucket: "document-blanks",
-    storage_path: `request/u/${i}.docx`,
-    scope: "request",
-  }));
-  const db = fakeDb(rows);
-  const res = await sweepExpiredRequestArtifacts(db, { batchSize: 1000 });
-  assertEquals(res.examined, 10);
-  assertEquals(res.deleted, 10);
+Deno.test("успешното маркиране изчиства предишна грешка", async () => {
+  const { db, updates } = fakeDb({ rows: [row("a", "request/1/a.docx")] });
+  await sweepExpiredRequestArtifacts(db);
+  assertEquals(updates[0].values.delete_error, null);
+  assert(typeof updates[0].values.deleted_at === "string");
+});
+
+Deno.test("повторен курс без изтекли редове е безопасен (идемпотентност)", async () => {
+  const { db, removeCalls } = fakeDb({ rows: [] });
+  const res = await sweepExpiredRequestArtifacts(db);
+  assertEquals(res.examined, 0);
+  assertEquals(res.removed, 0);
+  assertEquals(res.marked, 0);
+  assertEquals(removeCalls.length, 0);
+  assertEquals(res.errors.length, 0);
+});
+
+Deno.test("грешка при заявката връща истинна нулева статистика", async () => {
+  const { db } = fakeDb({ rows: [], queryError: "db down" });
+  const res = await sweepExpiredRequestArtifacts(db);
+  assertEquals(res.examined, 0);
+  assertEquals(res.marked, 0);
+  assert(res.errors[0].includes("db down"));
+});
+
+Deno.test("ред извън обхват, върнат по грешка, се пропуска в кода", async () => {
+  // Дори при променена заявка кодът не пипа чужд път.
+  const { db, removeCalls } = fakeDb({
+    rows: [row("x", "public/logo.png", "request")],
+    ignoreFilters: true,
+  });
+  const res = await sweepExpiredRequestArtifacts(db);
+  assertEquals(res.skipped_not_request, 1);
+  assertEquals(removeCalls.length, 0);
+});
+
+Deno.test("размерът на партидата се ограничава", async () => {
+  const { db, limitUsed } = fakeDb({ rows: [] });
+  await sweepExpiredRequestArtifacts(db, { batchSize: 5000 });
+  assertEquals(limitUsed(), 500);
 });

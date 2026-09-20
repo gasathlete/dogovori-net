@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Handshake, Loader2, Sparkles, Target, ShieldCheck, MessageSquareQuote, ListChecks, RefreshCw } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsPro } from "@/hooks/useIsPro";
 import { ProUpgradeDialog } from "@/components/ProUpgradeDialog";
 import { toast } from "sonner";
-import { readVerifiedStrategy } from "@/lib/strategyEvidence";
+import { fetchVerifiedStrategy, looksLikeStrategyEnvelope } from "@/lib/strategyEvidence";
 
 interface Strategy {
   summary?: string;
@@ -25,11 +25,19 @@ export function NegotiationStrategyPanel({
   initial?: Strategy | null;
 }) {
   const { isEntrepreneur } = useIsPro();
-  // Стар запис без доказателствен плик НЕ се показва: изготвя се наново през
-  // строгата правна преграда.
-  const [strategy, setStrategy] = useState<Strategy | null>(
-    () => readVerifiedStrategy<Strategy>(initial, analysisId),
-  );
+  // Запазен резултат се показва само след сървърна проверка на подписания плик.
+  // Стар, подправен или остарял запис остава скрит и се изготвя наново ръчно.
+  const [strategy, setStrategy] = useState<Strategy | null>(null);
+  useEffect(() => {
+    if (!looksLikeStrategyEnvelope(initial)) return;
+    let active = true;
+    void fetchVerifiedStrategy<Strategy>(analysisId).then((verified) => {
+      if (active && verified) setStrategy(verified);
+    });
+    return () => {
+      active = false;
+    };
+  }, [analysisId, initial]);
   const [loading, setLoading] = useState(false);
   const [paywall, setPaywall] = useState(false);
 
@@ -64,7 +72,10 @@ export function NegotiationStrategyPanel({
         }
         throw new Error(error.message);
       }
-      if (data?.strategy) setStrategy(readVerifiedStrategy<Strategy>(data.strategy, analysisId));
+      // Сървърът връща стратегия само след като е създал/удостоверил плика.
+      if (data?.strategy && typeof data.strategy === "object") {
+        setStrategy(data.strategy as Strategy);
+      }
     } catch (e: any) {
       toast.error(e?.message || "Грешка при генериране на стратегията");
     } finally {

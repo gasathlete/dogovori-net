@@ -67,9 +67,16 @@ export interface ReserveInput {
   readonly userId: string;
   readonly kind: QuotaKind;
   readonly purpose: string;
+  /** Нормализиран UUID на таба или null — НИКОГА празен текст. */
   readonly sessionId?: string | null;
   readonly docKey?: string | null;
+  /** Каноничен отпечатък на заявката: ключът е обвързан със съдържанието. */
+  readonly requestDigest?: string | null;
+  /** Наем на резервацията в секунди (изтеклите се изравняват от метача). */
+  readonly leaseSeconds?: number;
 }
+
+export const IDEMPOTENCY_KEY_CONFLICT = "idempotency_key_conflict";
 
 export type ReserveOutcome =
   | {
@@ -77,10 +84,19 @@ export type ReserveOutcome =
       readonly charged: boolean;
       readonly replay: boolean;
       readonly source: string;
+      /** Записан резултат при повторение по същия ключ (иначе null). */
+      readonly resultRef: Record<string, unknown> | null;
       readonly raw: Record<string, unknown>;
     }
   | { readonly status: "denied"; readonly reason: string; readonly raw: Record<string, unknown> }
+  /** Ключът е ползван с ДРУГ товар — нищо не се таксува и не се подава. */
+  | { readonly status: "conflict"; readonly reason: string }
   | { readonly status: "unavailable"; readonly message: string };
+
+function isConflict(message: string): boolean {
+  return message.toLowerCase().includes(IDEMPOTENCY_KEY_CONFLICT) ||
+    message.toLowerCase().includes("operation key conflict");
+}
 
 export async function reserveQuota(db: Rpc, input: ReserveInput): Promise<ReserveOutcome> {
   const { data, error } = await db.rpc("quota_reserve", {
@@ -90,33 +106,78 @@ export async function reserveQuota(db: Rpc, input: ReserveInput): Promise<Reserv
     p_purpose: input.purpose,
     p_session_id: input.sessionId ?? null,
     p_doc_key: input.docKey ?? null,
+    p_request_digest: input.requestDigest ?? null,
+    p_lease_seconds: input.leaseSeconds ?? 900,
   });
-  if (error) return { status: "unavailable", message: error.message };
+  if (error) {
+    if (isConflict(error.message)) {
+      return { status: "conflict", reason: IDEMPOTENCY_KEY_CONFLICT };
+    }
+    return { status: "unavailable", message: error.message };
+  }
   const row = (data ?? {}) as Record<string, unknown>;
   if (row.ok !== true) {
     return { status: "denied", reason: String(row.reason ?? "quota_denied"), raw: row };
   }
+  const resultRef = row.result_ref && typeof row.result_ref === "object"
+    ? (row.result_ref as Record<string, unknown>)
+    : null;
   return {
     status: "reserved",
     charged: row.charged === true,
     replay: row.replay === true,
     source: String(row.source ?? "unknown"),
+    resultRef,
     raw: row,
+  };
+}
+
+/** Изравняване на изтекли резервации (извиква се от retention-sweeper). */
+export async function reconcileStaleOperations(
+  db: Rpc,
+  limit = 50,
+): Promise<{ examined: number; cancelled: number; unresolved: number; error?: string }> {
+  const { data, error } = await db.rpc("quota_reconcile_stale", { p_limit: limit });
+  if (error) return { examined: 0, cancelled: 0, unresolved: 0, error: error.message };
+  const row = (data ?? {}) as Record<string, unknown>;
+  return {
+    examined: Number(row.examined ?? 0),
+    cancelled: Number(row.cancelled ?? 0),
+    unresolved: Number(row.unresolved ?? 0),
   };
 }
 
 export type SettleOutcome =
   /** Изходът е доказан: committed или cancelled. */
-  | { readonly status: "settled"; readonly state: LedgerState; readonly replay: boolean }
+  | {
+      readonly status: "settled";
+      readonly state: LedgerState;
+      readonly replay: boolean;
+      readonly resultRef?: Record<string, unknown> | null;
+    }
   /** Изходът НЕ е доказан — клиентът не получава „не сте таксувани". */
   | { readonly status: "unresolved"; readonly reason: string };
 
-export async function commitQuota(db: Rpc, operationId: string): Promise<SettleOutcome> {
-  const { data, error } = await db.rpc("quota_commit", { p_operation_id: operationId });
+/**
+ * Потвърждение с ОБВЪРЗВАНЕ на готовия резултат към ключа. Така повторение
+ * след загубен отговор връща същия резултат, без ново генериране и таксуване.
+ */
+export async function commitQuota(
+  db: Rpc,
+  operationId: string,
+  resultRef?: Record<string, unknown> | null,
+): Promise<SettleOutcome> {
+  const { data, error } = await db.rpc("quota_commit", {
+    p_operation_id: operationId,
+    p_result_ref: resultRef ?? null,
+  });
   if (error) return { status: "unresolved", reason: error.message };
   const row = (data ?? {}) as Record<string, unknown>;
   if (row.ok !== true) return { status: "unresolved", reason: String(row.reason ?? "commit_failed") };
-  return { status: "settled", state: "committed", replay: row.replay === true };
+  const ref = row.result_ref && typeof row.result_ref === "object"
+    ? (row.result_ref as Record<string, unknown>)
+    : null;
+  return { status: "settled", state: "committed", replay: row.replay === true, resultRef: ref };
 }
 
 /**

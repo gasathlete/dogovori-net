@@ -137,15 +137,48 @@ Deno.serve(async (req: Request) => {
         { status: 401, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
     }
+    // ЩАБНО ИЗКЛЮЧЕНИЕ: само проверена роля може ръчно да изключи проверката за
+    // лични данни. Флаг от клиента сам по себе си не е основание.
+    let staffOverride = false;
+    if (reviewUserId && request.ignorePersonalData) {
+      try {
+        const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.0");
+        const admin = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+          { auth: { persistSession: false } },
+        );
+        const { data: isAdmin } = await admin.rpc("has_role", {
+          _user_id: reviewUserId,
+          _role: "admin",
+        });
+        staffOverride = isAdmin === true;
+      } catch {
+        staffOverride = false;
+      }
+    }
+
     {
       const { checkRateLimit } = await import("../_shared/rate-limit.ts");
-      const rlKey = reviewUserId
-        ? `review-document:user:${reviewUserId}`
-        : `review-document:manifest:${request.documentText.length}`;
-      const rl = await checkRateLimit(rlKey, 20, 3600);
+      // Ключът е или удостоверен потребител, или КРАТКОТРАЕН, ОБВЪРЗАН СЪС
+      // СЪДЪРЖАНИЕТО пропуск за точно този документ. Манифестът е безсрочен и
+      // затова НЕ е пропуск за неограничени платени повиквания: без вход се
+      // допуска само еднократна ревизия на един и същ отпечатък за 24 часа.
+      const { reviewRatePolicy } = await import("./review-access.ts");
+      const policy = reviewRatePolicy({
+        userId: reviewUserId,
+        manifestContentFingerprint: trust.trusted ? trust.manifest.content_fingerprint : null,
+      });
+      const rl = await checkRateLimit(policy.key, policy.max, policy.windowSeconds);
       if (!rl.ok) {
         return new Response(
-          JSON.stringify({ error: "Твърде много заявки. Опитайте по-късно.", code: "rate_limited", retry_after_seconds: rl.retry_after_s }),
+          JSON.stringify({
+            error: reviewUserId
+              ? "Твърде много заявки. Опитайте по-късно."
+              : "Тази ревизия вече е направена. Влезте в профила си, за да продължите.",
+            code: "rate_limited",
+            retry_after_seconds: rl.retry_after_s,
+          }),
           { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
         );
       }
@@ -155,7 +188,12 @@ Deno.serve(async (req: Request) => {
       trust.trusted &&
       (trust.manifest.decisions.includes("local_completion_of_personal_data") ||
         trust.manifest.decisions.includes("placeholders_for_personal_data"));
-    const ignorePersonalData = request.ignorePersonalData || manifestDefersPersonal;
+    const { resolveIgnorePersonalData } = await import("./review-access.ts");
+    const ignorePersonalData = resolveIgnorePersonalData({
+      clientFlag: request.ignorePersonalData,
+      staffOverride,
+      manifestDefersPersonal,
+    });
     const sourceDigest = await computeReviewSourceDigest(request);
     const source = { v: REVIEW_SOURCE_VERSION, digest: sourceDigest };
 
@@ -263,7 +301,7 @@ Deno.serve(async (req: Request) => {
 
     if (!aiResp.ok) {
       await logAiAudit({
-        user_id: null, operation: "analyze-contract", model: route.model, classification,
+        user_id: reviewUserId, operation: "analyze-contract", model: route.model, classification,
         redaction_applied: route.redactionRequired,
         status: "error", error_code: `http_${aiResp.status}`,
       });
@@ -383,7 +421,7 @@ Deno.serve(async (req: Request) => {
     };
 
     await logAiAudit({
-      user_id: null, operation: "analyze-contract", model: route.model, classification,
+      user_id: reviewUserId, operation: "analyze-contract", model: route.model, classification,
       redaction_applied: route.redactionRequired, status: "ok",
       tokens_in: data?.usage?.prompt_tokens,
       tokens_out: data?.usage?.completion_tokens,

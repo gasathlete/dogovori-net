@@ -1061,7 +1061,10 @@ export default function WizardPage() {
     }
     setApplyingCorrections(true);
     try {
-      const { getOpSessionId, newOpBatchId } = await import("@/lib/opSession");
+      const { getOpSessionId, getStableOpKey, releaseStableOpKey } = await import("@/lib/opSession");
+      // Стабилен ключ за ТАЗИ вълна поправки: нов опит не таксува втори път.
+      const batchScope = `apply_corrections:${[...sel.issues, ...sel.recommendations].join("|")}`;
+      const batchId = getStableOpKey(batchScope);
       const { data, error } = await invokeEdgeFunction<{ error?: string; risk?: AIResult["risk"]; contract?: AIResult["contract"]; applied?: string[]; quality_manifest?: unknown }>("apply-corrections", {
         body: {
           contract: result.contract,
@@ -1073,10 +1076,11 @@ export default function WizardPage() {
           // заедно с точно този документ. Браузърът не го чете и не го създава.
           quality_manifest: result.quality_manifest ?? undefined,
           session_id: getOpSessionId(),
-          batch_id: newOpBatchId(),
+          batch_id: batchId,
           userConfirmed: correctionsConfirmed,
         },
       });
+      if (!error && !data?.error) releaseStableOpKey(batchScope);
       if (error || data?.error) {
         const sensitive = await parseSensitiveResponse(error, data);
         if (isSpecialCategoryBlocked(sensitive)) {
@@ -1211,7 +1215,13 @@ export default function WizardPage() {
       clearTimeout(t2);
     };
     try {
-      const { getOpSessionId, getOpDocKey } = await import("@/lib/opSession");
+      const { getOpSessionId, getOpDocKey, getStableOpKey, releaseStableOpKey } = await import(
+        "@/lib/opSession"
+      );
+      // Един и същ ключ при нов опит/двойно натискане/загубена връзка — така
+      // сървърът връща същия документ, вместо да таксува втори път.
+      const opScope = `download_blank:${sector.id}:${docName ?? sector.contractName}:${bilingualMode ? "bi" : "bg"}`;
+      const operationId = getStableOpKey(opScope);
       const { data, error } = await supabase.functions.invoke("download-blank", {
         body: {
           sector_id: sector.id,
@@ -1220,8 +1230,10 @@ export default function WizardPage() {
           bilingual: bilingualMode,
           session_id: getOpSessionId(),
           doc_key: getOpDocKey(docName ?? sector.contractName),
+          operation_id: operationId,
         },
       });
+      if (!error && !data?.error) releaseStableOpKey(opScope);
       // Правна преграда: без такса, без загуба на избора, с ръчен нов опит.
       if (
         (await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable(

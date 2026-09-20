@@ -828,7 +828,10 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     busyRef.current = true;
     setApplyingCorrections(true);
     try {
-      const { getOpSessionId, newOpBatchId } = await import("@/lib/opSession");
+      const { getOpSessionId, getStableOpKey, releaseStableOpKey } = await import("@/lib/opSession");
+      // Стабилен ключ за ТАЗИ вълна поправки: нов опит не таксува втори път.
+      const batchScope = `apply_corrections:${[...sel.issues, ...sel.recommendations].join("|")}`;
+      const batchId = getStableOpKey(batchScope);
       const { data, error } = await supabase.functions.invoke("apply-corrections", {
         body: {
           contract: result.contract,
@@ -840,12 +843,13 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
           // заедно с точно този документ. Браузърът не го чете и не го създава.
           quality_manifest: result.quality_manifest ?? undefined,
           session_id: getOpSessionId(),
-          batch_id: newOpBatchId(),
+          batch_id: batchId,
           userConfirmed: correctionsConfirmed,
         },
       });
+      if (!error && !data?.error) releaseStableOpKey(batchScope);
       // Ограничената правна преграда е възстановимо състояние: нищо не се губи.
-      // Ръчен повторен опит със същия избор на корекции (нов batch_id вътре).
+      // Ръчен повторен опит СЪС СЪЩИЯ ключ — затова не се таксува отново.
       if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable(
         { error, data },
         () => { if (!busyRef.current) void handleApplyCorrections(sel, correctionsConfirmed); },

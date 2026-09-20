@@ -64,7 +64,10 @@ export function RefineDraftBox({
     setLastSummary(null);
     setLastChanged([]);
     try {
-      const { newOpBatchId } = await import("@/lib/opSession");
+      const { getStableOpKey, releaseStableOpKey } = await import("@/lib/opSession");
+      // Стабилен ключ за ТОЗИ текст: нов опит след грешка не таксува пак.
+      const batchScope = `refine_contract:${text}`;
+      const batchId = getStableOpKey(batchScope);
       const { data, error } = await invokeEdgeFunction<{
         contract?: GeneratedContract;
         changed_clause_numbers?: string[];
@@ -76,10 +79,11 @@ export function RefineDraftBox({
           contract,
           feedback: text,
           answers,
-          batch_id: newOpBatchId(),
+          batch_id: batchId,
           userConfirmed,
         },
       });
+      if (!error && !data?.error) releaseStableOpKey(batchScope);
       if (error || data?.error) {
         const code = data?.code || "";
         const sensitive = await parseSensitiveResponse(error, data);

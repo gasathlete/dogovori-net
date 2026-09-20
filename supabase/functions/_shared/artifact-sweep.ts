@@ -5,6 +5,13 @@
  * `request/<uuid>/...` и го вписва в леджъра `storage_artifacts`. Тук се трият
  * изтеклите записи — идемпотентно, на ограничени партиди и с истинна
  * статистика. Публични/одобрени обекти и `draft/` НЕ се пипат.
+ *
+ * Два важни принципа:
+ * 1) Филтърът по обхват/път е В БАЗАТА, ПРЕДИ ограничението на партидата.
+ *    Иначе изтекли `draft/` редове могат вечно да заемат цялата партида и
+ *    файловете по заявка никога да не се изтрият.
+ * 2) „Няма грешка" НЕ значи „изтрито". Отчита се какво реално е върнало
+ *    хранилището: премахнати, вече липсващи и маркирани — поотделно.
  */
 
 export const REQUEST_PREFIX = "request/";
@@ -22,31 +29,50 @@ export interface ArtifactRow {
   readonly scope: string;
 }
 
+interface RemovedObject {
+  readonly name?: string;
+  readonly path?: string;
+}
+
+interface SelectChain {
+  eq(col: string, val: string): SelectChain;
+  is(col: string, val: null): SelectChain;
+  lt(col: string, val: string): SelectChain;
+  like(col: string, val: string): SelectChain;
+  order(col: string, opts: { ascending: boolean }): SelectChain;
+  limit(n: number): Promise<{ data: ArtifactRow[] | null; error: { message: string } | null }>;
+}
+
 interface SweepDb {
   from(table: string): {
-    select(cols: string): {
-      is(col: string, val: null): {
-        lt(col: string, val: string): {
-          limit(n: number): Promise<{ data: ArtifactRow[] | null; error: { message: string } | null }>;
-        };
-      };
-    };
+    select(cols: string): SelectChain;
     update(values: Record<string, unknown>): {
       in(col: string, vals: string[]): Promise<{ error: { message: string } | null }>;
     };
   };
   storage: {
     from(bucket: string): {
-      remove(paths: string[]): Promise<{ data: unknown; error: { message: string } | null }>;
+      remove(
+        paths: string[],
+      ): Promise<{ data: RemovedObject[] | null; error: { message: string } | null }>;
     };
   };
 }
 
 export interface SweepResult {
   readonly examined: number;
-  readonly deleted: number;
+  /** Обекти, които хранилището потвърди като премахнати в този курс. */
+  readonly removed: number;
+  /** Обекти, които вече не съществуват — логически чисти. */
+  readonly missing: number;
+  /** Редове, маркирани като заличени (removed + missing, при успешен запис). */
+  readonly marked: number;
   readonly skipped_not_request: number;
   readonly errors: string[];
+}
+
+function objectName(obj: RemovedObject): string {
+  return String(obj.name ?? obj.path ?? "");
 }
 
 export async function sweepExpiredRequestArtifacts(
@@ -56,26 +82,38 @@ export async function sweepExpiredRequestArtifacts(
   const now = opts.now ?? new Date();
   const batchSize = Math.min(Math.max(opts.batchSize ?? 200, 1), 500);
   const errors: string[] = [];
+  const empty = { removed: 0, missing: 0, marked: 0, skipped_not_request: 0 };
 
+  // Филтрите по обхват и префикс са В ЗАЯВКАТА, за да не се „изяжда" партидата
+  // от изтекли чернови и заличаването по заявка да не спира никога.
   const { data, error } = await db
     .from("storage_artifacts")
     .select("id, bucket, storage_path, scope")
+    .eq("scope", "request")
+    .like("storage_path", `${REQUEST_PREFIX}%`)
     .is("deleted_at", null)
     .lt("expires_at", now.toISOString())
+    .order("expires_at", { ascending: true })
     .limit(batchSize);
 
   if (error) {
-    return { examined: 0, deleted: 0, skipped_not_request: 0, errors: [`storage_artifacts query: ${error.message}`] };
+    return {
+      examined: 0,
+      ...empty,
+      errors: [`storage_artifacts query: ${error.message}`],
+    };
   }
 
   const rows = data ?? [];
-  const sweepable = rows.filter((r) => r.scope === "request" && isSweepableRequestPath(r.storage_path));
+  // Защитен слой и в кода: дори при променена заявка не пипаме чужди пътища.
+  const sweepable = rows.filter(
+    (r) => r.scope === "request" && isSweepableRequestPath(r.storage_path),
+  );
   const skipped = rows.length - sweepable.length;
   if (sweepable.length === 0) {
-    return { examined: rows.length, deleted: 0, skipped_not_request: skipped, errors };
+    return { examined: rows.length, ...empty, skipped_not_request: skipped, errors };
   }
 
-  // Групираме по кошер, за да е изтриването едно извикване на кошер.
   const byBucket = new Map<string, ArtifactRow[]>();
   for (const row of sweepable) {
     const list = byBucket.get(row.bucket) ?? [];
@@ -83,24 +121,54 @@ export async function sweepExpiredRequestArtifacts(
     byBucket.set(row.bucket, list);
   }
 
-  let deleted = 0;
+  let removed = 0;
+  let missing = 0;
+  let marked = 0;
+  const nowIso = new Date().toISOString();
+
   for (const [bucket, list] of byBucket) {
-    const { error: rmErr } = await db.storage.from(bucket).remove(list.map((r) => r.storage_path));
+    const { data: removedObjects, error: rmErr } = await db.storage
+      .from(bucket)
+      .remove(list.map((r) => r.storage_path));
+
     if (rmErr) {
       errors.push(`${bucket} remove: ${rmErr.message}`);
+      // Грешката се запомня НА РЕДА, за да е видима и да не се губи.
+      const { error: noteErr } = await db
+        .from("storage_artifacts")
+        .update({ delete_error: rmErr.message })
+        .in("id", list.map((r) => r.id));
+      if (noteErr) errors.push(`${bucket} record delete_error: ${noteErr.message}`);
       continue;
     }
-    // Маркирането е идемпотентно: повторен курс не трие втори път.
+
+    // Съгласуваме какво реално е върнало хранилището.
+    const confirmed = new Set((removedObjects ?? []).map(objectName).filter(Boolean));
+    const confirmedRows = list.filter((r) => confirmed.has(r.storage_path));
+    const missingRows = list.filter((r) => !confirmed.has(r.storage_path));
+    removed += confirmedRows.length;
+    missing += missingRows.length;
+
+    // Маркират се само редове с потвърдено премахване ИЛИ вече липсващ обект —
+    // и двете значат, че съдържанието вече не е достъпно.
+    const resolved = [...confirmedRows, ...missingRows];
     const { error: markErr } = await db
       .from("storage_artifacts")
-      .update({ deleted_at: new Date().toISOString() })
-      .in("id", list.map((r) => r.id));
+      .update({ deleted_at: nowIso, delete_error: null })
+      .in("id", resolved.map((r) => r.id));
     if (markErr) {
       errors.push(`${bucket} mark deleted: ${markErr.message}`);
       continue;
     }
-    deleted += list.length;
+    marked += resolved.length;
   }
 
-  return { examined: rows.length, deleted, skipped_not_request: skipped, errors };
+  return {
+    examined: rows.length,
+    removed,
+    missing,
+    marked,
+    skipped_not_request: skipped,
+    errors,
+  };
 }

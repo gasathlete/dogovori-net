@@ -204,14 +204,33 @@ const NAME_STOPWORDS = new Set([
   "Настоящият","Настоящата","Настоящото",
 ]);
 
-function makeCounter(prefix: string, mapping: RedactionMapping, stats: Record<string, number>) {
+/**
+ * Токен, устойчив на колизии: солта е различна при ВСЯКО извикване.
+ *
+ * Предвидими обозначения като `<EMAIL_1>` могат да се съдържат буквално във
+ * входния документ (или да бъдат вкарани умишлено) и при разкриването да
+ * получат чужда стойност. Солта прави това практически невъзможно, без да
+ * разваля четимостта за модела.
+ */
+function makeCallSalt(): string {
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function makeCounter(
+  prefix: string,
+  mapping: RedactionMapping,
+  stats: Record<string, number>,
+  salt: string,
+) {
   const seen = new Map<string, string>();
   let n = 0;
   return (raw: string) => {
     const norm = raw.trim();
     if (seen.has(norm)) return seen.get(norm)!;
     n += 1;
-    const placeholder = `<${prefix}_${n}>`;
+    const placeholder = `<${prefix}_${n}_${salt}>`;
     seen.set(norm, placeholder);
     mapping[placeholder] = norm;
     stats[prefix.toLowerCase()] = (stats[prefix.toLowerCase()] ?? 0) + 1;
@@ -219,24 +238,25 @@ function makeCounter(prefix: string, mapping: RedactionMapping, stats: Record<st
   };
 }
 
-export function redactForAI(input: string): RedactionResult {
+export function redactForAI(input: string, tokenSalt?: string): RedactionResult {
   if (!input) return { redacted: "", mapping: {}, stats: {} };
 
   const mapping: RedactionMapping = {};
   const stats: Record<string, number> = {};
+  const salt = tokenSalt && /^[a-z0-9]{4,32}$/i.test(tokenSalt) ? tokenSalt : makeCallSalt();
   let out = input;
 
   // Order matters: email/IBAN/ID_CARD first (съдържат цифрови серии). После
   // EGN (10 точни цифри) ПРЕДИ phone, защото EGN-та започващи с "0" (родени
   // 2000+) се хващат от phone regex и водят до грешна редакция.
-  out = out.replace(EMAIL_RE, makeCounter("EMAIL", mapping, stats));
-  out = out.replace(IBAN_RE, makeCounter("IBAN", mapping, stats));
-  out = out.replace(ID_CARD_RE, makeCounter("ID_CARD", mapping, stats));
-  out = out.replace(EGN_RE, makeCounter("EGN", mapping, stats));
-  out = out.replace(PHONE_RE, makeCounter("PHONE", mapping, stats));
-  out = out.replace(ADDRESS_RE, makeCounter("ADDRESS", mapping, stats));
+  out = out.replace(EMAIL_RE, makeCounter("EMAIL", mapping, stats, salt));
+  out = out.replace(IBAN_RE, makeCounter("IBAN", mapping, stats, salt));
+  out = out.replace(ID_CARD_RE, makeCounter("ID_CARD", mapping, stats, salt));
+  out = out.replace(EGN_RE, makeCounter("EGN", mapping, stats, salt));
+  out = out.replace(PHONE_RE, makeCounter("PHONE", mapping, stats, salt));
+  out = out.replace(ADDRESS_RE, makeCounter("ADDRESS", mapping, stats, salt));
 
-  const nameCounter = makeCounter("NAME", mapping, stats);
+  const nameCounter = makeCounter("NAME", mapping, stats, salt);
   out = out.replace(AI_NAME_RE, (match, a: string, b: string, c?: string) => {
     if (NAME_STOPWORDS.has(a) || NAME_STOPWORDS.has(b) || (c && NAME_STOPWORDS.has(c))) return match;
     return nameCounter(match);

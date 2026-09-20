@@ -182,10 +182,25 @@ ${safeParentText}
 
     // СТРОГО ЗАЗЕМЯВАНЕ преди модела и преди запис на ai_usage.
     const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
+    // Заземяването се търси по ЦЕЛИЯ редактиран корпус (вид, заглавие, указания,
+    // преамбюл, клаузи, заключение), а не само по заглавието — така релевантните
+    // клаузи на основния договор участват в извличането. Суровите лични данни
+    // никога не достигат до извличането: използват се само редактирани полета.
+    const retrievalQuery = [
+      spec.label,
+      safeTitle,
+      safeNotes,
+      redaction.fields.preamble,
+      redaction.fields.clauses,
+      redaction.fields.closing,
+    ]
+      .filter((part) => part && part.trim().length > 0)
+      .join("\n")
+      .slice(0, 4000);
     const legal = await retrieveLegalContext(
       admin,
       LOVABLE_API_KEY,
-      `${spec.label} ${safeTitle}\n${safeNotes}`.slice(0, 4000),
+      retrievalQuery,
       { matchCount: 6 },
     );
     if (!legal.hasMatches) {

@@ -62,7 +62,7 @@ Deno.test("кавички, обратни наклонени черти, нов�
 Deno.test("една и съща PII в различни полета получава ЕДИН плейсхолдър", () => {
   const c = ctxOf({ answers: { q1: "0888 123 456", q2: "Обратна връзка на 0888 123 456" } });
   const r = redact(c);
-  const ph = r.context.qa[0].answer.match(/<PHONE_\d+>/);
+  const ph = r.context.qa[0].answer.match(/<PHONE_\d+(?:_[0-9a-f]+)?>/);
   assert(ph, "трябва да има PHONE плейсхолдър");
   assert(r.context.qa[1].answer.includes(ph![0]));
 });
@@ -70,8 +70,8 @@ Deno.test("една и съща PII в различни полета получ�
 Deno.test("различни стойности остават различни плейсхолдъри", () => {
   const c = ctxOf({ answers: { q1: "0888 123 456", q2: "Резервен тел. 0899 777 888" } });
   const r = redact(c);
-  const a = r.context.qa[0].answer.match(/<PHONE_\d+>/)![0];
-  const b = r.context.qa[1].answer.match(/<PHONE_\d+>/)![0];
+  const a = r.context.qa[0].answer.match(/<PHONE_\d+(?:_[0-9a-f]+)?>/)![0];
+  const b = r.context.qa[1].answer.match(/<PHONE_\d+(?:_[0-9a-f]+)?>/)![0];
   assertNotEquals(a, b);
   assertEquals(unredact(a, r.mapping).trim(), "0888 123 456");
   assert(unredact(b, r.mapping).includes("0899 777 888"));

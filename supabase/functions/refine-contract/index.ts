@@ -77,13 +77,27 @@ Deno.serve(async (req: Request) => {
     const contract = body?.contract;
     const feedback: string = String(body?.feedback ?? "").trim();
     const answers = body?.answers ?? {};
-    const batchId: string | null = body?.batch_id ?? null;
+    const { asUuidOrNull, canonicalRequestDigest } = await import("../_shared/canonical-digest.ts");
+    // batch_id е ЗАДЪЛЖИТЕЛЕН и валиден UUID: null никога не стига до
+    // таксуващата функция, защото без ключ нямаше траен ред и „отмяната" не
+    // отменяше нищо.
+    const batchId = asUuidOrNull(body?.batch_id);
     const userConfirmed: boolean = !!body?.userConfirmed;
 
     if (!contract || !feedback) {
       return new Response(JSON.stringify({ error: "Липсва договор или обратна връзка" }), {
         status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
       });
+    }
+    if (!batchId) {
+      return new Response(
+        JSON.stringify({
+          error: "Липсва валиден идентификатор на заявката.",
+          code: "invalid_batch_id",
+          charge_state: "not_charged",
+        }),
+        { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+      );
     }
     if (feedback.length > 1500) {
       return new Response(JSON.stringify({ error: "Обратната връзка е твърде дълга (макс. 1500 символа)." }), {
@@ -176,7 +190,16 @@ ${answersStr}
     }
     const baseSystem = `${rawSystem}\n\n${legal.promptBlock}`;
 
-    // ТАКСУВАНЕ: след всички непарични проверки. Идемпотентно по batch_id.
+    // ТАКСУВАНЕ: след всички непарични проверки. Идемпотентно по batch_id,
+    // обвързано със съдържанието на заявката.
+    const requestDigest = await canonicalRequestDigest({
+      purpose: "refine_contract",
+      userId,
+      feedback,
+      answers,
+      contract,
+    });
+
     const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -198,6 +221,42 @@ ${answersStr}
       );
     }
     const batchCharged = !batchResult.cached;
+
+    // Обвързване със съдържанието + ТРАЙНО ПОВТОРЕНИЕ: същият ключ със същия
+    // товар връща вече изготвения резултат, без второ генериране.
+    const { data: bound, error: bindErr } = await admin.rpc("corrections_wave_bind", {
+      p_user_id: userId,
+      p_batch_id: batchId,
+      p_request_digest: requestDigest,
+    });
+    if (bindErr) {
+      const conflict = String(bindErr.message ?? "").includes("idempotency_key_conflict");
+      return new Response(
+        JSON.stringify({
+          error: conflict
+            ? "Този идентификатор вече е използван за друга заявка."
+            : "Грешка при проверка на заявката",
+          code: conflict ? "idempotency_key_conflict" : "bind_failed",
+        }),
+        { status: conflict ? 409 : 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+      );
+    }
+    const boundRow = (bound ?? {}) as { result_ref?: Record<string, unknown> | null };
+    if (boundRow.result_ref && typeof boundRow.result_ref === "object") {
+      const ref = boundRow.result_ref as Record<string, unknown>;
+      if (ref.contract) {
+        return new Response(
+          JSON.stringify({
+            contract: ref.contract,
+            changed_clause_numbers: ref.changed_clause_numbers ?? [],
+            change_summary: ref.change_summary ?? "",
+            citations: legal.citations,
+            replay: true,
+          }),
+          { headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+        );
+      }
+    }
 
     const { billingReconciliationResponse, recordReconciliation } = await import("../_shared/quota-ledger.ts");
 
@@ -251,11 +310,17 @@ ${answersStr}
         status: "error", error_code: `http_${aiResp.status}`,
       });
       if (unresolved) return unresolved;
-      if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Достигнат е лимитът. Опитайте по-късно.", charged: false, charge_state: "cancelled" }), { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
-      if (aiResp.status === 402) return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI.", charged: false, charge_state: "cancelled" }), { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
-      const t = await aiResp.text();
-      console.error("AI gateway:", aiResp.status, t);
-      throw new Error("AI грешка");
+      // Тялото на шлюза НЕ се връща и НЕ се логва: може да носи части от
+      // документа на потребителя.
+      const { normalizeGatewayStatus, gatewayErrorResponse } = await import(
+        "../_shared/gateway-error.ts"
+      );
+      console.error("AI gateway status:", aiResp.status);
+      return gatewayErrorResponse(
+        normalizeGatewayStatus(aiResp.status),
+        { ...corsHeaders, ...correlationHeaders(correlationId) },
+        { charged: false, charge_state: "cancelled" },
+      );
     }
 
     const raw = await aiResp.json();
@@ -323,6 +388,22 @@ ${answersStr}
 
     // ai_usage се записва САМО при успешен краен изход.
     await admin.from("ai_usage").insert({ user_id: userId, function_name: "refine-contract" });
+
+    // Резултатът се обвързва с ключа: повторен опит връща същия текст.
+    const { error: resultErr } = await admin.rpc("corrections_wave_set_result", {
+      p_user_id: userId,
+      p_batch_id: batchId,
+      p_result_ref: {
+        contract: parsed.contract,
+        changed_clause_numbers: parsed.changed_clause_numbers ?? [],
+        change_summary: parsed.change_summary ?? "",
+      },
+    });
+    if (resultErr) {
+      // Резултатът е валиден и се връща; само гаранцията за повторение липсва.
+      console.error("corrections_wave_set_result failed:", resultErr.message);
+    }
+
 
     return new Response(JSON.stringify({
       contract: parsed.contract,

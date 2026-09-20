@@ -8,9 +8,15 @@ import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { retrieveLegalContext, type LegalCitation } from "../_shared/legal-rag.ts";
 import { legalVerificationUnavailableResponse } from "../_shared/legal-gate.ts";
 import { sanitizeAssistantReply } from "../_shared/response-sanitizer.ts";
+import { gatewayErrorResponse, normalizeGatewayStatus } from "../_shared/gateway-error.ts";
+import {
+  ANON_FREE_MESSAGES,
+  consumeAnonDelivered,
+  readAnonEntitlement,
+} from "../_shared/anon-entitlement.ts";
 
 const SYSTEM_PROMPT = `# РОЛЯ И ИДЕНТИЧНОСТ
-Ти си официалният AI асистент на **Dogovori.net** — водещата българска платформа за правни документи, договори и бланки. Името ти е **"DogovaryAI"** (или просто Асистентът).
+Ти си AI асистентът на **Dogovori.net** — българска платформа за правни документи, договори и бланки. Името ти е **"DogovaryAI"** (или просто Асистентът).
 
 Основна задача: насочване към подходящи договори, обяснение на правни термини на достъпен език, помощ при подготовка на нужните данни.
 
@@ -78,7 +84,7 @@ const SYSTEM_PROMPT = `# РОЛЯ И ИДЕНТИЧНОСТ
 Никога не пропускай CTA и <followups>. Ако усетиш, че отговорът се удължава — съкрати, за да ги побереш.`;
 
 const MODEL = "google/gemini-3.7-flash";
-const MAX_MESSAGES = 5;
+// Правото на безплатни съобщения се брои сървърно (ANON_FREE_MESSAGES).
 // Анти-абюз лимит на опити (не е право на съобщения и не се показва като такова).
 const MAX_ATTEMPTS_PER_DAY = 20;
 
@@ -116,10 +122,10 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const history: ChatMsg[] = Array.isArray(body?.messages) ? body.messages : [];
 
-    // Server-side IP rate limit: 5 заявки на 24 часа (предотвратява заобикаляне
-    // на client-side history брояча чрез изпращане на по едно съобщение наведнъж).
+    // Защита от натоварване по IP (ОТДЕЛНА от правото на безплатни съобщения).
+    let ipHash: string | null = null;
     try {
-      const ipHash = await hashIp(clientIp(req));
+      ipHash = await hashIp(clientIp(req));
       const rl = await checkRateLimit(`anon-chat:${ipHash}`, MAX_ATTEMPTS_PER_DAY, 86400);
       if (!rl.ok) {
         // Това е защита от прекомерно натоварване, НЕ изразходвано право.
@@ -133,28 +139,39 @@ Deno.serve(async (req) => {
         );
       }
     } catch {
-      // Ако защитата не сработи, продължаваме — правото се брои по-долу.
+      // Ако защитата не сработи, продължаваме — правото се проверява по-долу.
     }
-
-
 
     const safe: ChatMsg[] = history
       .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
       .slice(-8)
       .map((m) => ({ role: m.role, content: String(m.content).slice(0, 2000) }));
 
-    // ПРАВО НА БЕЗПЛАТНИ СЪОБЩЕНИЯ: брои се само по ДОСТАВЕНИ отговори.
-    // Неуспешен или незаземен опит не изразходва съобщение.
-    const delivered = history.filter((m) => m?.role === "assistant").length;
-    if (delivered >= MAX_MESSAGES) {
-      return new Response(
-        JSON.stringify({
-          error: "limit_reached",
-          message: "Достигнахте лимита от 5 безплатни съобщения. Регистрирайте се и получавайте 5 + 2 безплатни съобщения всеки месец.",
-          retry_after_s: 86400,
-        }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    // ПРАВО НА БЕЗПЛАТНИ СЪОБЩЕНИЯ — СЪРВЪРНО, по ДОСТАВЕНИ отговори.
+    // Изчистване на историята в браузъра вече не дава ново право.
+    // Неуспешен или незаземен опит не изразходва съобщение (записва се след
+    // доставянето, по-долу).
+    let entitlementRemaining = ANON_FREE_MESSAGES;
+    if (ipHash) {
+      const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+      const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (SUPABASE_URL && SERVICE_ROLE) {
+        // deno-lint-ignore no-explicit-any
+        const admin = createClient(SUPABASE_URL, SERVICE_ROLE) as any;
+        const state = await readAnonEntitlement(admin, ipHash);
+        entitlementRemaining = state.remaining;
+        if (state.exhausted) {
+          return new Response(
+            JSON.stringify({
+              error: "limit_reached",
+              message:
+                "Достигнахте лимита от 5 безплатни съобщения. Регистрирайте се и получавайте 5 + 2 безплатни съобщения всеки месец.",
+              retry_after_s: 86400,
+            }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+      }
     }
 
     if (safe.length === 0 || safe[safe.length - 1].role !== "user") {
@@ -214,17 +231,11 @@ Deno.serve(async (req) => {
     for (let attempt = 0; attempt < 2; attempt++) {
       const res = await callModel();
       if (!res.ok) {
-        const errText = await res.text().catch(() => "");
+        // Тялото на gateway-а НЕ се връща и НЕ се логва — нормализирана грешка.
         // Неуспешен модел не изразходва безплатно съобщение.
-        return new Response(
-          JSON.stringify({
-            error: "ai_gateway_error",
-            status: res.status,
-            detail: errText.slice(0, 300),
-            free_message_consumed: false,
-          }),
-          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
+        return gatewayErrorResponse(normalizeGatewayStatus(res.status), corsHeaders, {
+          free_message_consumed: false,
+        });
       }
       const data = await res.json();
       const candidate: string = data?.choices?.[0]?.message?.content ?? "";
@@ -323,14 +334,41 @@ Deno.serve(async (req) => {
       }
     }
 
-    const remaining = Math.max(0, MAX_MESSAGES - (delivered + 1));
+    // ПОВТОРНА ВАЛИДАЦИЯ след sanitizer/CTA/линкове: доставя се само текст,
+    // който и в окончателния си вид няма непроверено правно обозначение.
+    if (!validateGroundedReply(reply, citations).ok) {
+      return new Response(
+        JSON.stringify({
+          error: ANON_LEGAL_ANSWER_UNAVAILABLE,
+          code: ANON_LEGAL_ANSWER_UNAVAILABLE,
+          message: ANON_LEGAL_ANSWER_UNAVAILABLE_MESSAGE_BG,
+          free_message_consumed: false,
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Правото се изразходва САМО сега — след доказано доставен отговор.
+    let remaining = Math.max(0, entitlementRemaining - 1);
+    if (ipHash) {
+      const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+      const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (SUPABASE_URL && SERVICE_ROLE) {
+        // deno-lint-ignore no-explicit-any
+        const admin = createClient(SUPABASE_URL, SERVICE_ROLE) as any;
+        const consumed = await consumeAnonDelivered(admin, ipHash);
+        if (consumed.ok) remaining = consumed.remaining;
+      }
+    }
+
     return new Response(
       JSON.stringify({ reply, followups, citations, remaining }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-  } catch (e) {
+  } catch (_e) {
+    // Без вътрешни съобщения в публичния отговор.
     return new Response(
-      JSON.stringify({ error: "internal_error", message: e instanceof Error ? e.message : String(e) }),
+      JSON.stringify({ error: "internal_error", message: "Възникна вътрешна грешка. Опитайте отново." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
