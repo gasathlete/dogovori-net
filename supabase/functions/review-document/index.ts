@@ -166,13 +166,14 @@ Deno.serve(async (req: Request) => {
       const { verifyReviewGrant, consumeReviewGrant, reviewGrantSecret } = await import(
         "./review-grant.ts"
       );
-      const { checkRateLimit } = await import("../_shared/rate-limit.ts");
+      const { checkRateLimitStrict } = await import("../_shared/rate-limit.ts");
       const contentDigest = await computeReviewSourceDigest(request);
       const verdict = await verifyReviewGrant({
         grant: rawBody?.grant ?? rawBody?.review_grant,
         secret: reviewGrantSecret(),
         contentDigest,
         subject: reviewUserId,
+        expectedOwner: reviewUserId,
       });
       if (!verdict.ok) {
         const unavailable = verdict.reason === "grant_unavailable";
@@ -189,21 +190,28 @@ Deno.serve(async (req: Request) => {
           },
         );
       }
-      const consumed = await consumeReviewGrant(checkRateLimit, verdict.payload);
+      // Консумацията е FAIL-CLOSED: недостъпна база НЕ е разрешение.
+      const consumed = await consumeReviewGrant(checkRateLimitStrict, verdict.payload);
       if (!consumed.ok) {
+        const unavailable = consumed.reason === "grant_unavailable";
         return new Response(
           JSON.stringify({
-            error: "Този пропуск вече е използван.",
-            code: "grant_already_used",
+            error: unavailable
+              ? "Проверката на пропуска е временно недостъпна. Опитайте отново."
+              : "Този пропуск вече е използван.",
+            code: unavailable ? "grant_unavailable" : "grant_already_used",
           }),
-          { status: 409, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+          {
+            status: unavailable ? 503 : 409,
+            headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
+          },
         );
       }
       grantAccepted = true;
     }
 
     if (!grantAccepted) {
-      const { checkRateLimit } = await import("../_shared/rate-limit.ts");
+      const { checkRateLimitStrict } = await import("../_shared/rate-limit.ts");
       // Ключът е или удостоверен потребител, или КРАТКОТРАЕН, ОБВЪРЗАН СЪС
       // СЪДЪРЖАНИЕТО пропуск за точно този документ. Манифестът е безсрочен и
       // затова НЕ е пропуск за неограничени платени повиквания: без вход се
@@ -213,20 +221,29 @@ Deno.serve(async (req: Request) => {
         userId: reviewUserId,
         manifestContentFingerprint: trust.trusted ? trust.manifest.content_fingerprint : null,
       });
-      const rl = await checkRateLimit(policy.key, policy.max, policy.windowSeconds);
+      // FAIL-CLOSED: платено повикване към модела не се прави, ако лимитът не
+      // може да бъде проверен.
+      const rl = await checkRateLimitStrict(policy.key, policy.max, policy.windowSeconds);
       if (!rl.ok) {
+        const unavailable = rl.unavailable === true;
         return new Response(
           JSON.stringify({
-            error: reviewUserId
-              ? "Твърде много заявки. Опитайте по-късно."
-              : "Тази ревизия вече е направена. Влезте в профила си, за да продължите.",
-            code: "rate_limited",
+            error: unavailable
+              ? "Ревизията е временно недостъпна. Опитайте отново след минута."
+              : reviewUserId
+                ? "Твърде много заявки. Опитайте по-късно."
+                : "Тази ревизия вече е направена. Влезте в профила си, за да продължите.",
+            code: unavailable ? "review_unavailable" : "rate_limited",
             retry_after_seconds: rl.retry_after_s,
           }),
-          { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+          {
+            status: unavailable ? 503 : 429,
+            headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
+          },
         );
       }
     }
+
 
     const manifestDefersPersonal =
       trust.trusted &&
