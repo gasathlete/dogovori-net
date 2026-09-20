@@ -101,6 +101,7 @@ Deno.serve(async (req: Request) => {
     // Q4a — незадължителен манифест за качество от нашия генератор. Доверява се
     // САМО при точно съвпадение на отпечатъка със РЕВИЗИРАНИЯ текст; иначе
     // документът е външен/недоверен и нищо не се потиска.
+    // ВАЖНО: манифестът доказва ПРОИЗХОД, но НИКОГА не е оторизация.
     const trust = await verifyQualityManifest({
       manifest: rawBody?.qualityManifest ?? rawBody?.quality_manifest ?? null,
       content: request.documentText,
@@ -109,9 +110,7 @@ Deno.serve(async (req: Request) => {
       // валидно и точното обвързване по отпечатък на четимия текст.
       allowPlaintextMatch: true,
     });
-    // ГРАНИЦА НА ДОСТЪПА: платен модел се вика само за удостоверен потребител
-    // или за документ, подписан от НАШИЯ генератор (сървърен манифест).
-    // Без нито едно от двете няма повикване към модел.
+
     let reviewUserId: string | null = null;
     const authHeader = req.headers.get("Authorization") ?? "";
     if (authHeader.toLowerCase().startsWith("bearer ")) {
@@ -128,26 +127,134 @@ Deno.serve(async (req: Request) => {
         reviewUserId = null;
       }
     }
-    if (!reviewUserId && !trust.trusted) {
+
+    // -----------------------------------------------------------------------
+    // ГРАНИЦА НА ДОСТЪПА (fail-closed, ПРЕДИ всяко повикване към модел):
+    //  (а) проверен собственик на точно този запазен документ/версия, или
+    //  (б) валиден еднократен пропуск, издаден от сървъра.
+    // Няма трети път: манифест или само вход в профила НЕ оторизират нищо.
+    // -----------------------------------------------------------------------
+    const {
+      authorizePersistedReview,
+      reviewDenial,
+    } = await import("./review-authorization.ts");
+    const denied = (
+      reason: Parameters<typeof reviewDenial>[0],
+      extra: Record<string, unknown> = {},
+    ) => {
+      const d = reviewDenial(reason);
       return new Response(
-        JSON.stringify({
-          error: "Ревизията е достъпна след вход в профила.",
-          code: "unauthorized",
-        }),
-        { status: 401, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+        JSON.stringify({ error: d.message, code: d.code, ...extra }),
+        {
+          status: d.status,
+          headers: {
+            ...corsHeaders,
+            ...correlationHeaders(correlationId),
+            "Content-Type": "application/json",
+          },
+        },
       );
+    };
+
+    const { createClient: createAdminClient } = await import(
+      "https://esm.sh/@supabase/supabase-js@2.45.0"
+    );
+    const admin = createAdminClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } },
+    );
+
+    const {
+      consumeReviewGrantDurable,
+      reviewContentDigest,
+      reviewGrantSecret,
+      REVIEW_GRANT_AUDIENCE,
+      verifyReviewGrant,
+    } = await import("../_shared/review-grant.ts");
+    const contentDigest = await reviewContentDigest(request.documentText);
+    const submittedGrant = rawBody?.grant ?? rawBody?.review_grant ?? null;
+    const submittedDocumentId = rawBody?.document_id ?? rawBody?.documentId ?? null;
+    let authorizedOwnerId: string | null = null;
+
+    if (submittedGrant) {
+      const verdict = await verifyReviewGrant({
+        grant: submittedGrant,
+        secret: reviewGrantSecret(),
+        contentDigest,
+        subject: reviewUserId,
+        expectedOwner: reviewUserId,
+        expectedOperation: REVIEW_GRANT_AUDIENCE,
+      });
+      if (!verdict.ok) {
+        return denied(
+          verdict.reason === "grant_unavailable" ? "grant_unavailable" : "grant_invalid",
+        );
+      }
+      // ТРАЙНА еднократност ПРЕДИ модела. Недостъпна база НЕ е разрешение.
+      const consumed = await consumeReviewGrantDurable(admin, verdict.payload);
+      if (!consumed.ok) {
+        return denied(consumed.reason === "replayed" ? "grant_replayed" : "grant_unavailable");
+      }
+      authorizedOwnerId = verdict.payload.owner ?? reviewUserId;
+    } else if (submittedDocumentId) {
+      const { renderCanonicalPlainText } = await import(
+        "../_shared/generated-document-quality.ts"
+      );
+      const verdict = await authorizePersistedReview({
+        documentId: submittedDocumentId,
+        versionNo: rawBody?.document_version_no ?? rawBody?.documentVersionNo ?? null,
+        userId: reviewUserId,
+        contentDigest,
+        digestOf: (text) => reviewContentDigest(text),
+        load: async (documentId, versionNo) => {
+          const { data: doc, error } = await admin
+            .from("saved_documents")
+            .select("id, user_id, payload")
+            .eq("id", documentId)
+            .maybeSingle();
+          if (error) return { error: true } as const;
+          if (!doc) return { found: false } as const;
+          if (versionNo === null) {
+            return {
+              found: true,
+              doc: {
+                ownerId: typeof doc.user_id === "string" ? doc.user_id : null,
+                text: renderCanonicalPlainText(doc.payload),
+              },
+            } as const;
+          }
+          const { data: ver, error: verError } = await admin
+            .from("document_versions")
+            .select("user_id, payload")
+            .eq("saved_document_id", documentId)
+            .eq("version_no", versionNo)
+            .maybeSingle();
+          if (verError) return { error: true } as const;
+          if (!ver) return { found: false } as const;
+          return {
+            found: true,
+            doc: {
+              // Собственикът на версията И на документа трябва да е един и същ.
+              ownerId: typeof ver.user_id === "string" && ver.user_id === doc.user_id
+                ? ver.user_id
+                : null,
+              text: renderCanonicalPlainText(ver.payload),
+            },
+          } as const;
+        },
+      });
+      if (!verdict.ok) return denied(verdict.reason);
+      authorizedOwnerId = verdict.ownerId;
+    } else {
+      return denied("missing_authorization");
     }
+
     // ЩАБНО ИЗКЛЮЧЕНИЕ: само проверена роля може ръчно да изключи проверката за
     // лични данни. Флаг от клиента сам по себе си не е основание.
     let staffOverride = false;
     if (reviewUserId && request.ignorePersonalData) {
       try {
-        const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.0");
-        const admin = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-          { auth: { persistSession: false } },
-        );
         const { data: isAdmin } = await admin.rpc("has_role", {
           _user_id: reviewUserId,
           _role: "admin",
@@ -158,71 +265,12 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // ЕДНОКРАТЕН ПОДПИСАН ПРОПУСК (по избор): обвързан със съдържанието, с
-    // кратък срок и nonce, който се консумира атомарно. Валидният пропуск
-    // замества ограничението по отпечатък, но не заменя щабното изключение.
-    let grantAccepted = false;
-    if (rawBody?.grant ?? rawBody?.review_grant) {
-      const { verifyReviewGrant, consumeReviewGrant, reviewGrantSecret } = await import(
-        "./review-grant.ts"
-      );
+    // Отделен ОГРАНИЧИТЕЛ ЗА НАТОВАРВАНЕ (не е оторизация) за оторизирания
+    // собственик. FAIL-CLOSED: платено повикване не се прави без проверка.
+    {
       const { checkRateLimitStrict } = await import("../_shared/rate-limit.ts");
-      const contentDigest = await computeReviewSourceDigest(request);
-      const verdict = await verifyReviewGrant({
-        grant: rawBody?.grant ?? rawBody?.review_grant,
-        secret: reviewGrantSecret(),
-        contentDigest,
-        subject: reviewUserId,
-        expectedOwner: reviewUserId,
-      });
-      if (!verdict.ok) {
-        const unavailable = verdict.reason === "grant_unavailable";
-        return new Response(
-          JSON.stringify({
-            error: unavailable
-              ? "Проверката на пропуска е временно недостъпна. Опитайте по-късно."
-              : "Пропускът за тази ревизия е невалиден или изтекъл.",
-            code: unavailable ? "grant_unavailable" : "invalid_grant",
-          }),
-          {
-            status: unavailable ? 503 : 403,
-            headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
-          },
-        );
-      }
-      // Консумацията е FAIL-CLOSED: недостъпна база НЕ е разрешение.
-      const consumed = await consumeReviewGrant(checkRateLimitStrict, verdict.payload);
-      if (!consumed.ok) {
-        const unavailable = consumed.reason === "grant_unavailable";
-        return new Response(
-          JSON.stringify({
-            error: unavailable
-              ? "Проверката на пропуска е временно недостъпна. Опитайте отново."
-              : "Този пропуск вече е използван.",
-            code: unavailable ? "grant_unavailable" : "grant_already_used",
-          }),
-          {
-            status: unavailable ? 503 : 409,
-            headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
-          },
-        );
-      }
-      grantAccepted = true;
-    }
-
-    if (!grantAccepted) {
-      const { checkRateLimitStrict } = await import("../_shared/rate-limit.ts");
-      // Ключът е или удостоверен потребител, или КРАТКОТРАЕН, ОБВЪРЗАН СЪС
-      // СЪДЪРЖАНИЕТО пропуск за точно този документ. Манифестът е безсрочен и
-      // затова НЕ е пропуск за неограничени платени повиквания: без вход се
-      // допуска само еднократна ревизия на един и същ отпечатък за 24 часа.
-      const { reviewRatePolicy } = await import("./review-access.ts");
-      const policy = reviewRatePolicy({
-        userId: reviewUserId,
-        manifestContentFingerprint: trust.trusted ? trust.manifest.content_fingerprint : null,
-      });
-      // FAIL-CLOSED: платено повикване към модела не се прави, ако лимитът не
-      // може да бъде проверен.
+      const { reviewAbusePolicy } = await import("./review-access.ts");
+      const policy = reviewAbusePolicy({ ownerId: authorizedOwnerId });
       const rl = await checkRateLimitStrict(policy.key, policy.max, policy.windowSeconds);
       if (!rl.ok) {
         const unavailable = rl.unavailable === true;
@@ -230,9 +278,7 @@ Deno.serve(async (req: Request) => {
           JSON.stringify({
             error: unavailable
               ? "Ревизията е временно недостъпна. Опитайте отново след минута."
-              : reviewUserId
-                ? "Твърде много заявки. Опитайте по-късно."
-                : "Тази ревизия вече е направена. Влезте в профила си, за да продължите.",
+              : "Твърде много заявки. Опитайте по-късно.",
             code: unavailable ? "review_unavailable" : "rate_limited",
             retry_after_seconds: rl.retry_after_s,
           }),
@@ -243,6 +289,8 @@ Deno.serve(async (req: Request) => {
         );
       }
     }
+
+
 
 
     const manifestDefersPersonal =
@@ -318,11 +366,6 @@ Deno.serve(async (req: Request) => {
 
     // СТРОГО ЗАЗЕМЯВАНЕ за точно тази (редактирана) заявка — преди всяко
     // повикване към модела. Без проверена норма ревизията спира с 503.
-    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.0");
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
     const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
     const legal = await retrieveLegalContext(
       admin,

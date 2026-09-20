@@ -116,6 +116,12 @@ interface AIResult {
    * остарял манифест (сървърът и без това би го отхвърлил по отпечатък).
    */
   quality_manifest?: unknown;
+  /**
+   * ЕДНОКРАТЕН пропуск за ревизия, издаден от СЪРВЪРА за точно този текст.
+   * Пази се само докато документът е непроменен — при локална редакция пада
+   * заедно с манифеста.
+   */
+  review_grant?: unknown;
 }
 
 export default function WizardPage() {
@@ -1065,7 +1071,7 @@ export default function WizardPage() {
       // Стабилен ключ за ТАЗИ вълна поправки: нов опит не таксува втори път.
       const batchScope = `apply_corrections:${[...sel.issues, ...sel.recommendations].join("|")}`;
       const batchId = getStableOpKey(batchScope);
-      const { data, error } = await invokeEdgeFunction<{ error?: string; risk?: AIResult["risk"]; contract?: AIResult["contract"]; applied?: string[]; quality_manifest?: unknown }>("apply-corrections", {
+      const { data, error } = await invokeEdgeFunction<{ error?: string; risk?: AIResult["risk"]; contract?: AIResult["contract"]; applied?: string[]; quality_manifest?: unknown; review_grant?: unknown }>("apply-corrections", {
         body: {
           contract: result.contract,
           risk: result.risk,
@@ -1111,6 +1117,8 @@ export default function WizardPage() {
         contract: data.contract ?? result.contract,
         // Манифестът е валиден само за документа, който сървърът е върнал.
         quality_manifest: data.quality_manifest ?? undefined,
+        // Пропускът също важи само за върнатия текст.
+        review_grant: data.review_grant ?? undefined,
       });
       setAppliedNotes(Array.isArray(data.applied) ? data.applied : ["Корекциите са приложени"]);
       setSavedDocId(undefined); // forces re-save as new version
@@ -1756,6 +1764,8 @@ export default function WizardPage() {
                             reviewContext={acceptedContextForReview}
                             ignorePersonalData={fillLaterPersonal}
                             qualityManifest={result.quality_manifest ?? null}
+                            reviewGrant={result.review_grant ?? null}
+                            savedDocumentId={savedDocId}
                           />
 
                         </>
@@ -1883,6 +1893,7 @@ export default function WizardPage() {
                       ...result,
                       contract: { ...result.contract, ...next },
                       quality_manifest: undefined,
+                      review_grant: undefined,
                     });
                     setSavedDocId(undefined);
                   }}
@@ -1906,6 +1917,7 @@ export default function WizardPage() {
                       ...result,
                       contract: { ...result.contract, ...next },
                       quality_manifest: undefined,
+                      review_grant: undefined,
                     });
                     setSavedDocId(undefined);
                   }}

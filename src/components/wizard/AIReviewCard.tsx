@@ -48,6 +48,15 @@ interface Props {
    * като външен.
    */
   qualityManifest?: unknown;
+  /**
+   * ЕДНОКРАТЕН пропуск, ИЗДАДЕН ОТ СЪРВЪРА при изготвянето на този документ.
+   * Браузърът само го препраща непроменен — не може да си издаде достъп сам.
+   */
+  reviewGrant?: unknown;
+  /** Запазен документ, чиято собственост сървърът проверява сам. */
+  savedDocumentId?: string;
+  /** Конкретна версия на запазения документ, ако потокът я знае. */
+  savedDocumentVersionNo?: number;
 }
 
 const VERDICT = {
@@ -85,6 +94,9 @@ export function AIReviewCard({
   auto = true,
   ignorePersonalData = false,
   qualityManifest = null,
+  reviewGrant = null,
+  savedDocumentId,
+  savedDocumentVersionNo,
 }: Props) {
   const { user } = useAuth();
   const userScope = user?.id ?? "";
@@ -100,8 +112,17 @@ export function AIReviewCard({
       ignorePersonalData,
       userScope,
       ...(qualityManifest ? { qualityManifest } : {}),
+      // Оторизацията е СЪРВЪРНА: пропуск, издаден при изготвянето, или запазен
+      // документ, чиято собственост сървърът проверява сам.
+      ...(reviewGrant ? { grant: reviewGrant } : {}),
+      ...(savedDocumentId ? { document_id: savedDocumentId } : {}),
+      ...(savedDocumentVersionNo ? { document_version_no: savedDocumentVersionNo } : {}),
     }),
-    [text, contract.title, documentType, documentVersion, reviewContext, ignorePersonalData, userScope, qualityManifest],
+    [
+      text, contract.title, documentType, documentVersion, reviewContext,
+      ignorePersonalData, userScope, qualityManifest, reviewGrant,
+      savedDocumentId, savedDocumentVersionNo,
+    ],
   );
 
   const life = useReviewLifecycle({ input, runner: reviewDocument, auto });

@@ -470,6 +470,20 @@ ${docTypeSpec.systemAddendum}
       parsed.risk = withIntent.risk;
       parsed.quality = { ...gated.quality, intent: { checked: intentReport.checked, satisfied: intentReport.satisfied, mismatched: intentReport.mismatched_required.length } };
       if (qualityManifest) parsed.quality_manifest = qualityManifest;
+      // СЪРВЪРНО издаден ЕДНОКРАТЕН пропуск за ревизия на ТОЧНО този текст —
+      // единственият начин ревизията да тръгне веднага след изготвянето.
+      // Клиентът не може да си „издаде" достъп сам.
+      {
+        const { issueGrantForGeneratedContent, reviewGrantSecret } = await import(
+          "../_shared/review-grant.ts"
+        );
+        const reviewGrant = await issueGrantForGeneratedContent({
+          secret: reviewGrantSecret(),
+          ownerId: userId,
+          documentText,
+        });
+        if (reviewGrant) (parsed as Record<string, unknown>).review_grant = reviewGrant;
+      }
 
       // Препоръката за попълване на личните данни локално остава — платформата
       // не събира и не съхранява лични данни.
