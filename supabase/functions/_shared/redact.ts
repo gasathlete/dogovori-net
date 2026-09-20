@@ -261,7 +261,7 @@ export function redactForAI(input: string, tokenSalt?: string): RedactionResult 
   const mapping: RedactionMapping = {};
   const stats: Record<string, number> = {};
   const salt = tokenSalt && /^[a-z0-9]{4,32}$/i.test(tokenSalt)
-    ? alphaOnlySalt(tokenSalt)
+    ? safeSalt(tokenSalt)
     : makeCallSalt();
   let out = input;
 
