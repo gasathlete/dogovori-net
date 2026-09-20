@@ -398,10 +398,18 @@ ${scopeNote}
     });
 
     // Идентичност на източника, за да може закъснял отговор да бъде проверен.
-    return new Response(
-      JSON.stringify({ ...parsed, analysis_id: analysis.id, source: currentBinding }),
-      { headers: jsonHeaders },
-    );
+    const payload = { ...parsed, analysis_id: analysis.id, source: currentBinding };
+    // АТОМАРНО: резултатът за точно повторение + дневното счетоводство наведнъж.
+    const committed = await commitDocumentOperation(admin, {
+      operationId, userId, purpose: "correct_uploaded", binding,
+      result: payload as Record<string, unknown>,
+      resultTtlSeconds: 86400,
+      usageFunction: "correct-uploaded",
+    });
+    if (committed.kind !== "committed") {
+      return await reconcileAndRespond("commit_uncertain");
+    }
+    return new Response(JSON.stringify(payload), { headers: jsonHeaders });
   } catch (e) {
     console.error(`correct-uploaded error [cid=${correlationId}]:`, e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Неизвестна грешка", correlation_id: correlationId }), {
