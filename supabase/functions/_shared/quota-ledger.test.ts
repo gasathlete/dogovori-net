@@ -71,7 +71,13 @@ function fakeDb(opts: { fail?: string; bonus?: boolean; sessionReuse?: boolean }
   };
 }
 
-const base = { operationId: "op-1", userId: "u-1", kind: "template" as const, purpose: "test" };
+const base = {
+  operationId: "op-1",
+  userId: "u-1",
+  kind: "template" as const,
+  purpose: "test",
+  requestDigest: "c".repeat(64),
+};
 
 Deno.test("чист контракт: разрешени и отхвърлени преходи", () => {
   assertEquals(nextLedgerState(null, "reserve"), { state: "reserved", ok: true, replay: false });
@@ -178,4 +184,19 @@ Deno.test("бонус и сесийно преизползване се запи
   const reuse = await reserveQuota(reuseDb, { ...base, sessionId: "s", docKey: "d" });
   assertEquals((reuse as { source: string }).source, "session_reuse");
   assertEquals((reuse as { charged: boolean }).charged, false);
+});
+
+Deno.test("невалиден отпечатък на заявката е конфликт ПРЕДИ заявка към базата", async () => {
+  let called = false;
+  const db = {
+    rpc: () => {
+      called = true;
+      return Promise.resolve({ data: null, error: null });
+    },
+  } as unknown as Parameters<typeof reserveQuota>[0];
+  for (const digest of ["", "   ", "zz", "a".repeat(63)]) {
+    const r = await reserveQuota(db, { ...base, requestDigest: digest });
+    assertEquals(r.status, "conflict");
+  }
+  assertEquals(called, false);
 });

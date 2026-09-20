@@ -70,8 +70,8 @@ export interface ReserveInput {
   /** Нормализиран UUID на таба или null — НИКОГА празен текст. */
   readonly sessionId?: string | null;
   readonly docKey?: string | null;
-  /** Каноничен отпечатък на заявката: ключът е обвързан със съдържанието. */
-  readonly requestDigest?: string | null;
+  /** ЗАДЪЛЖИТЕЛЕН каноничен SHA-256 отпечатък (64 hex) на заявката. */
+  readonly requestDigest: string;
   /** Наем на резервацията в секунди (изтеклите се изравняват от метача). */
   readonly leaseSeconds?: number;
 }
@@ -94,11 +94,19 @@ export type ReserveOutcome =
   | { readonly status: "unavailable"; readonly message: string };
 
 function isConflict(message: string): boolean {
-  return message.toLowerCase().includes(IDEMPOTENCY_KEY_CONFLICT) ||
-    message.toLowerCase().includes("operation key conflict");
+  const m = message.toLowerCase();
+  return m.includes(IDEMPOTENCY_KEY_CONFLICT) ||
+    m.includes("operation key conflict") ||
+    m.includes("request_digest_required");
 }
 
+const SHA256_HEX = /^[0-9a-f]{64}$/;
+
 export async function reserveQuota(db: Rpc, input: ReserveInput): Promise<ReserveOutcome> {
+  // Без валиден отпечатък НЕ се прави повикване към базата и нищо не се таксува.
+  if (typeof input.requestDigest !== "string" || !SHA256_HEX.test(input.requestDigest)) {
+    return { status: "conflict", reason: "request_digest_required" };
+  }
   const { data, error } = await db.rpc("quota_reserve", {
     p_operation_id: input.operationId,
     p_user_id: input.userId,
@@ -106,7 +114,7 @@ export async function reserveQuota(db: Rpc, input: ReserveInput): Promise<Reserv
     p_purpose: input.purpose,
     p_session_id: input.sessionId ?? null,
     p_doc_key: input.docKey ?? null,
-    p_request_digest: input.requestDigest ?? null,
+    p_request_digest: input.requestDigest,
     p_lease_seconds: input.leaseSeconds ?? 900,
   });
   if (error) {

@@ -158,7 +158,51 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    {
+    // ЕДНОКРАТЕН ПОДПИСАН ПРОПУСК (по избор): обвързан със съдържанието, с
+    // кратък срок и nonce, който се консумира атомарно. Валидният пропуск
+    // замества ограничението по отпечатък, но не заменя щабното изключение.
+    let grantAccepted = false;
+    if (rawBody?.grant ?? rawBody?.review_grant) {
+      const { verifyReviewGrant, consumeReviewGrant, reviewGrantSecret } = await import(
+        "./review-grant.ts"
+      );
+      const { checkRateLimit } = await import("../_shared/rate-limit.ts");
+      const contentDigest = await computeReviewSourceDigest(request);
+      const verdict = await verifyReviewGrant({
+        grant: rawBody?.grant ?? rawBody?.review_grant,
+        secret: reviewGrantSecret(),
+        contentDigest,
+        subject: reviewUserId,
+      });
+      if (!verdict.ok) {
+        const unavailable = verdict.reason === "grant_unavailable";
+        return new Response(
+          JSON.stringify({
+            error: unavailable
+              ? "Проверката на пропуска е временно недостъпна. Опитайте по-късно."
+              : "Пропускът за тази ревизия е невалиден или изтекъл.",
+            code: unavailable ? "grant_unavailable" : "invalid_grant",
+          }),
+          {
+            status: unavailable ? 503 : 403,
+            headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
+          },
+        );
+      }
+      const consumed = await consumeReviewGrant(checkRateLimit, verdict.payload);
+      if (!consumed.ok) {
+        return new Response(
+          JSON.stringify({
+            error: "Този пропуск вече е използван.",
+            code: "grant_already_used",
+          }),
+          { status: 409, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+        );
+      }
+      grantAccepted = true;
+    }
+
+    if (!grantAccepted) {
       const { checkRateLimit } = await import("../_shared/rate-limit.ts");
       // Ключът е или удостоверен потребител, или КРАТКОТРАЕН, ОБВЪРЗАН СЪС
       // СЪДЪРЖАНИЕТО пропуск за точно този документ. Манифестът е безсрочен и

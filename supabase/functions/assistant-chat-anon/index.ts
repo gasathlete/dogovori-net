@@ -3,7 +3,7 @@
 // Public endpoint; verify_jwt = false. No streaming, no persistence.
 // Grounded in the legal knowledge base via retrieveLegalContext().
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { buildCors, clientIp, hashIp } from "../_shared/cors.ts";
+import { buildCors, clientIp, hashAnonIdentity, IdentityUnavailableError } from "../_shared/cors.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { retrieveLegalContext, type LegalCitation } from "../_shared/legal-rag.ts";
 import { legalVerificationUnavailableResponse } from "../_shared/legal-gate.ts";
@@ -13,6 +13,7 @@ import {
   ANON_FREE_MESSAGES,
   consumeAnonDelivered,
   readAnonEntitlement,
+  reserveAnonOperation,
 } from "../_shared/anon-entitlement.ts";
 
 const SYSTEM_PROMPT = `# РОЛЯ И ИДЕНТИЧНОСТ
@@ -122,10 +123,32 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const history: ChatMsg[] = Array.isArray(body?.messages) ? body.messages : [];
 
-    // Защита от натоварване по IP (ОТДЕЛНА от правото на безплатни съобщения).
-    let ipHash: string | null = null;
+    // Идентичност за правото: изисква отделен сървърен ключ. Без него не се
+    // издава идентичност, не се доставя отговор и НЕ се консумира право.
+    let ipHash: string;
     try {
-      ipHash = await hashIp(clientIp(req));
+      ipHash = await hashAnonIdentity(clientIp(req));
+    } catch (e) {
+      if (e instanceof IdentityUnavailableError) {
+        return new Response(
+          JSON.stringify({
+            error: "identity_unavailable",
+            code: "identity_unavailable",
+            message: "Услугата е временно недостъпна. Опитайте отново след минута.",
+            free_message_consumed: false,
+            retry_after_seconds: 60,
+          }),
+          {
+            status: 503,
+            headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+          },
+        );
+      }
+      throw e;
+    }
+
+    // Защита от натоварване по IP (ОТДЕЛНА от правото на безплатни съобщения).
+    try {
       const rl = await checkRateLimit(`anon-chat:${ipHash}`, MAX_ATTEMPTS_PER_DAY, 86400);
       if (!rl.ok) {
         // Това е защита от прекомерно натоварване, НЕ изразходвано право.
@@ -152,12 +175,66 @@ Deno.serve(async (req) => {
     // Неуспешен или незаземен опит не изразходва съобщение (записва се след
     // доставянето, по-долу).
     let entitlementRemaining = ANON_FREE_MESSAGES;
-    if (ipHash) {
+    {
       const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
       const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-      if (SUPABASE_URL && SERVICE_ROLE) {
+      if (!SUPABASE_URL || !SERVICE_ROLE) {
+        // Без брояч правото не може да се спази: безопасен повтаряем отказ.
+        return new Response(
+          JSON.stringify({
+            error: "entitlement_unavailable",
+            code: "entitlement_unavailable",
+            message: "Услугата е временно недостъпна. Опитайте отново след минута.",
+            free_message_consumed: false,
+            retry_after_seconds: 60,
+          }),
+          {
+            status: 503,
+            headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+          },
+        );
+      }
+      {
         // deno-lint-ignore no-explicit-any
         const admin = createClient(SUPABASE_URL, SERVICE_ROLE) as any;
+        // Еднократност на опита: клиентският UUID пази от двойно генериране и
+        // двойно таксуване при загубен отговор.
+        const requestId = typeof body?.request_id === "string" &&
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.request_id)
+          ? body.request_id
+          : null;
+        if (requestId) {
+          const res = await reserveAnonOperation(admin, ipHash, requestId);
+          if (res.infraFailed) {
+            return new Response(
+              JSON.stringify({
+                error: "entitlement_unavailable",
+                code: "entitlement_unavailable",
+                message: "Услугата е временно недостъпна. Опитайте отново след минута.",
+                free_message_consumed: false,
+                retry_after_seconds: 60,
+              }),
+              {
+                status: 503,
+                headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+              },
+            );
+          }
+          if (res.replay) {
+            // Същият опит вече е обработен: не генерираме и не таксуваме пак.
+            return new Response(
+              JSON.stringify({
+                error: "already_processed",
+                code: "already_processed",
+                message:
+                  "Този въпрос вече беше обработен. Отворете отново разговора, за да видите отговора.",
+                free_message_consumed: false,
+                replay: true,
+              }),
+              { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
+          }
+        }
         const state = await readAnonEntitlement(admin, ipHash);
         entitlementRemaining = state.remaining;
         if (state.exhausted) {
@@ -350,14 +427,42 @@ Deno.serve(async (req) => {
 
     // Правото се изразходва САМО сега — след доказано доставен отговор.
     let remaining = Math.max(0, entitlementRemaining - 1);
-    if (ipHash) {
-      const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-      const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-      if (SUPABASE_URL && SERVICE_ROLE) {
-        // deno-lint-ignore no-explicit-any
-        const admin = createClient(SUPABASE_URL, SERVICE_ROLE) as any;
-        const consumed = await consumeAnonDelivered(admin, ipHash);
-        if (consumed.ok) remaining = consumed.remaining;
+    {
+      const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+      const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      // deno-lint-ignore no-explicit-any
+      const admin = createClient(SUPABASE_URL, SERVICE_ROLE) as any;
+      const consumed = await consumeAnonDelivered(admin, ipHash);
+      if (consumed.ok) {
+        remaining = consumed.remaining;
+      } else if (consumed.exhausted || consumed.remaining === 0) {
+        // Загубена надпревара за последното право: НЕ доставяме шести отговор.
+        return new Response(
+          JSON.stringify({
+            error: "limit_reached",
+            code: "limit_reached",
+            message:
+              "Достигнахте лимита от 5 безплатни съобщения. Регистрирайте се и получавайте 5 + 2 безплатни съобщения всеки месец.",
+            free_message_consumed: false,
+            retry_after_s: 86400,
+          }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      } else {
+        // Записът не успя: не твърдим нищо за изразходвано право.
+        return new Response(
+          JSON.stringify({
+            error: "entitlement_unavailable",
+            code: "entitlement_unavailable",
+            message: "Услугата е временно недостъпна. Опитайте отново след минута.",
+            free_message_consumed: false,
+            retry_after_seconds: 60,
+          }),
+          {
+            status: 503,
+            headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+          },
+        );
       }
     }
 

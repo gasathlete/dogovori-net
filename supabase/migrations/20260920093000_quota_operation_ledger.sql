@@ -167,7 +167,8 @@ CREATE TABLE IF NOT EXISTS public.quota_operations (
   doc_key text,
   batch_id uuid,
   -- Каноничен отпечатък на заявката: ключът е обвързан със СЪДЪРЖАНИЕТО.
-  request_digest text,
+  -- Задължителен: без отпечатък ключът не може да бъде обвързан с искането.
+  request_digest text NOT NULL CHECK (char_length(request_digest) = 64),
   -- Референция към готовия резултат: повторение по същия ключ връща същото.
   result_ref jsonb,
   -- Наем на резервацията: изтекли „reserved" операции се изравняват от метача.
@@ -246,6 +247,25 @@ ALTER TABLE public.storage_artifacts ENABLE ROW LEVEL SECURITY;
 -- Само сървърът пише и чете; няма клиентски политики.
 
 -- ---------------------------------------------------------------------------
+-- 4б) СЕСИЙНИ ЗАПИСИ: уникалността включва ВИДА на операцията. Един и същ
+--     документ в същия таб е безплатен само за същия вид; в друг таб не е.
+--     Мутациите са само за service_role — клиентът не може да си „подари" ред.
+-- ---------------------------------------------------------------------------
+ALTER TABLE public.quota_session_charges
+  DROP CONSTRAINT IF EXISTS quota_session_charges_user_id_session_id_doc_key_key;
+DROP INDEX IF EXISTS public.quota_session_charges_user_session_doc_key;
+CREATE UNIQUE INDEX IF NOT EXISTS quota_session_charges_user_session_doc_kind_key
+  ON public.quota_session_charges (user_id, session_id, doc_key, kind);
+
+REVOKE INSERT, UPDATE, DELETE ON public.quota_session_charges FROM authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.quota_session_charges FROM anon;
+GRANT ALL ON public.quota_session_charges TO service_role;
+
+DROP POLICY IF EXISTS "Users insert own session charges" ON public.quota_session_charges;
+DROP POLICY IF EXISTS "Users update own session charges" ON public.quota_session_charges;
+DROP POLICY IF EXISTS "Users delete own session charges" ON public.quota_session_charges;
+
+-- ---------------------------------------------------------------------------
 -- 5) reserve / commit / cancel
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.quota_reserve(
@@ -283,6 +303,12 @@ BEGIN
   IF p_kind NOT IN ('contract','template','analysis') THEN
     RAISE EXCEPTION 'invalid kind' USING ERRCODE = '22023';
   END IF;
+  -- Отпечатъкът е ЗАДЪЛЖИТЕЛЕН канoничен SHA-256 (64 шестнадесетични знака).
+  IF p_request_digest IS NULL
+     OR btrim(p_request_digest) = ''
+     OR p_request_digest !~ '^[0-9a-f]{64}$' THEN
+    RAISE EXCEPTION 'request_digest_required' USING ERRCODE = '22023';
+  END IF;
 
   -- Нормализация: празен текст НИКОГА не е ключ. "" → NULL.
   _purpose := COALESCE(NULLIF(btrim(p_purpose), ''), 'unspecified');
@@ -293,6 +319,13 @@ BEGIN
   -- края на транзакцията, затова втори паралелен опит вижда вече записания ред
   -- и връща повторение, вместо да таксува втори път.
   PERFORM pg_advisory_xact_lock(hashtextextended(p_operation_id::text, 0));
+  -- СЕРИАЛИЗАЦИЯ и по СЕСИЙНАТА ТРОЙКА: два различни operation_id за същия
+  -- потребител/сесия/документ/вид не могат да таксуват два пъти — вторият вижда
+  -- записания сесиен ред и получава session_reuse.
+  IF _doc_key IS NOT NULL AND p_session_id IS NOT NULL THEN
+    PERFORM pg_advisory_xact_lock(hashtextextended(
+      p_user_id::text || '|' || p_session_id::text || '|' || _doc_key || '|' || p_kind, 0));
+  END IF;
 
   SELECT * INTO _existing FROM public.quota_operations
    WHERE operation_id = p_operation_id FOR UPDATE;
@@ -345,7 +378,7 @@ BEGIN
     IF _doc_key IS NOT NULL AND p_session_id IS NOT NULL THEN
       INSERT INTO public.quota_session_charges (user_id, session_id, doc_key, kind)
         VALUES (p_user_id, p_session_id, _doc_key, p_kind)
-        ON CONFLICT (user_id, session_id, doc_key) DO NOTHING;
+        ON CONFLICT (user_id, session_id, doc_key, kind) DO NOTHING;
     END IF;
   END IF;
 
@@ -451,6 +484,7 @@ SET search_path TO 'public'
 AS $function$
 DECLARE
   _op public.quota_operations%ROWTYPE;
+  _updated integer := 0;
 BEGIN
   IF auth.role() <> 'service_role' AND NOT public.is_staff(auth.uid()) THEN
     RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501';
@@ -463,6 +497,8 @@ BEGIN
   IF NOT FOUND THEN
     RETURN jsonb_build_object('ok', false, 'reason', 'unknown_operation');
   END IF;
+  -- Вече доказано отменена: повторението е безопасно и НЕ таксува отново.
+  -- Ново таксуване е възможно само с НОВ operation_id (сесийният ред е паднал).
   IF _op.state = 'cancelled' THEN
     RETURN jsonb_build_object('ok', true, 'replay', true, 'state', 'cancelled', 'charged', false);
   END IF;
@@ -479,18 +515,21 @@ BEGIN
              total_used = GREATEST(0, total_used - 1),
              updated_at = now()
        WHERE user_id = _op.user_id;
+      GET DIAGNOSTICS _updated = ROW_COUNT;
     ELSIF _op.source = 'bonus' THEN
       UPDATE public.download_quota
          SET bonus_contracts = COALESCE(bonus_contracts, 0) + 1,
              total_used = GREATEST(0, total_used - 1),
              updated_at = now()
        WHERE user_id = _op.user_id;
+      GET DIAGNOSTICS _updated = ROW_COUNT;
     ELSIF _op.source = 'pro_plan' THEN
       UPDATE public.download_quota
          SET pro_monthly_used = GREATEST(0, COALESCE(pro_monthly_used, 0) - 1),
              total_used = GREATEST(0, total_used - 1),
              updated_at = now()
        WHERE user_id = _op.user_id;
+      GET DIAGNOSTICS _updated = ROW_COUNT;
     ELSIF _op.source = 'free_plan' THEN
       -- monthly_contracts_used / monthly_templates_used се увеличават САМО по
       -- безплатния план, затова САМО тук се намаляват.
@@ -505,6 +544,7 @@ BEGIN
              total_used = GREATEST(0, total_used - 1),
              updated_at = now()
        WHERE user_id = _op.user_id;
+      GET DIAGNOSTICS _updated = ROW_COUNT;
     ELSE
       -- Неизвестен източник: не гадаем. Операцията се маркира за изравняване.
       INSERT INTO public.billing_reconciliation_items (operation_id, user_id, kind, reason, detail)
@@ -516,6 +556,19 @@ BEGIN
              detail = detail || jsonb_build_object('reconciliation_required', true)
        WHERE operation_id = p_operation_id;
       RETURN jsonb_build_object('ok', false, 'reason', 'reconciliation_required', 'state', 'cancelled');
+    END IF;
+
+    -- Нула засегнати редове: няма доказателство, че връщането е станало.
+    IF _updated = 0 THEN
+      INSERT INTO public.billing_reconciliation_items (operation_id, user_id, kind, reason, detail)
+        VALUES (_op.operation_id, _op.user_id, _op.kind, 'reversal_affected_no_rows',
+                jsonb_build_object('source', _op.source, 'cancel_reason', p_reason));
+      UPDATE public.quota_operations
+         SET detail = detail || jsonb_build_object('reconciliation_required', true),
+             updated_at = now()
+       WHERE operation_id = p_operation_id;
+      RETURN jsonb_build_object('ok', false, 'reason', 'reconciliation_required',
+        'state', _op.state, 'charged', true);
     END IF;
 
     -- Пожизнените броячи по вид се увеличават при ВСЕКИ реално таксуван
@@ -537,7 +590,8 @@ BEGIN
     -- Сесийният запис също пада, за да не блокира бъдещо легитимно таксуване.
     IF _op.session_id IS NOT NULL AND _op.doc_key IS NOT NULL THEN
       DELETE FROM public.quota_session_charges
-       WHERE user_id = _op.user_id AND session_id = _op.session_id AND doc_key = _op.doc_key;
+       WHERE user_id = _op.user_id AND session_id = _op.session_id
+         AND doc_key = _op.doc_key AND kind = _op.kind;
     END IF;
   END IF;
 
@@ -857,39 +911,7 @@ REVOKE ALL ON FUNCTION public.corrections_wave_set_result(uuid, uuid, jsonb) FRO
 GRANT EXECUTE ON FUNCTION public.corrections_wave_set_result(uuid, uuid, jsonb) TO service_role;
 
 -- ---------------------------------------------------------------------------
--- 8) НЕИЗМЕНИМО ДОКАЗАТЕЛСТВО ЗА AI ГЕНЕРИРАНО СЪДЪРЖАНИЕ (редакционни
---    чернови). Записва се от сървъра при генериране и позволява на човека
---    рецензент да сравни текущия текст с генерирания.
---    verified = false винаги: съвпадение при извличане НЕ е правна проверка.
+-- 8) Доказателствата за AI генерирано съдържание са изнесени в миграция 0030
+--    (public.article_generation_evidence). Тук съзнателно НЕ се дефинира втора
+--    таблица за същото, за да няма дублиран и неползван дизайн.
 -- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.ai_generation_evidence (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  article_id uuid REFERENCES public.user_articles(id) ON DELETE CASCADE,
-  generator text NOT NULL,
-  model text,
-  content_hash text NOT NULL,
-  prompt_version text NOT NULL,
-  prompt_digest text NOT NULL,
-  sources jsonb NOT NULL DEFAULT '[]'::jsonb,
-  verified boolean NOT NULL DEFAULT false,
-  generated_at timestamptz NOT NULL DEFAULT now(),
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS ai_generation_evidence_article_idx
-  ON public.ai_generation_evidence (article_id, generated_at DESC);
-
--- Само добавяне: няма UPDATE/DELETE право за никого освен service_role.
-GRANT SELECT, INSERT ON public.ai_generation_evidence TO service_role;
-ALTER TABLE public.ai_generation_evidence ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "staff read generation evidence"
-  ON public.ai_generation_evidence FOR SELECT
-  TO authenticated
-  USING (public.is_staff(auth.uid()));
-GRANT SELECT ON public.ai_generation_evidence TO authenticated;
-
--- verified никога не става true от AI път: заключваме го на ниво таблица.
-ALTER TABLE public.ai_generation_evidence
-  ADD CONSTRAINT ai_generation_evidence_not_self_verified
-  CHECK (verified = false) NOT VALID;
