@@ -80,7 +80,9 @@ Deno.test("измислен и извънобхватен цитат се отх
   assert(idx !== null && typeof idx === "object");
 
   assertEquals(validateAnswerCitations("Отговор [ЗЗД, чл. 79] е верен.", citations as never, {}).ok, true);
-  assertEquals(validateAnswerCitations("Отговор [S1].", citations as never, {}).ok, false);
+  // РЕАЛЕН източник в обхвата се приема — точно това е форматът в подсказката.
+  assertEquals(validateAnswerCitations("Отговор [S1].", citations as never, {}).ok, true);
+  // Извън обхвата няма какво да бъде проверено: отхвърля се.
   assertEquals(validateAnswerCitations("Отговор [S7].", citations as never, {}).ok, false);
   assertEquals(
     validateAnswerCitations("Отговор [приложим общ режим по ЗЗД].", citations as never, {}).ok,

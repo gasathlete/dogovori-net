@@ -1174,7 +1174,7 @@ Deno.serve(async (req) => {
     if ((structureBroken || !citationCheck.ok) && providerRequests < MAX_CHAT_REQUESTS_PER_OPERATION) {
       providerRequests++;
       const repaired = await repairLegalAnswer({
-        apiKey: LOVABLE_API_KEY,
+        apiKey: LOVABLE_API_KEY!,
         model: premiumModel,
         question: lastUserMsg,
         draft: cleaned,
