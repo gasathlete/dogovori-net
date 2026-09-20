@@ -150,12 +150,9 @@ Deno.serve(async (req) => {
       ui_mode: "embedded_page",
       return_url: returnUrl,
       customer: customerId,
-      // Auto-applied discount: loyalty coupon takes precedence, otherwise the
-      // active September promo (−20%) is applied automatically so the price the
-      // customer saw on /plans is the price charged. Stripe does not allow
-      // `discounts` together with `allow_promotion_codes`, so the manual code
-      // field is only shown when no discount is auto-applied.
-      ...(isRecurring && !appliedCouponId && !promoCouponId && { allow_promotion_codes: true }),
+      // Auto-applied discount: само loyalty купон, когато клиентът го е
+      // спечелил. Публични промокодове няма, затова и поле за код не се
+      // показва — цената в „Планове“ е и сумата, която се плаща.
       metadata: {
         userId,
         priceId,
@@ -165,20 +162,14 @@ Deno.serve(async (req) => {
         // потвърждение, което не е дошло от интерфейса.
         ...consentMetadata(consent),
         ...(appliedCouponId ? { loyalty_coupon: appliedCouponId } : {}),
-        ...(!appliedCouponId && promoCouponId ? { promo_coupon: promoCouponId } : {}),
       },
 
-      ...(appliedCouponId
-        ? { discounts: [{ coupon: appliedCouponId }] }
-        : promoCouponId
-          ? { discounts: [{ coupon: promoCouponId }] }
-          : {}),
+      ...(appliedCouponId ? { discounts: [{ coupon: appliedCouponId }] } : {}),
       ...(isRecurring && {
         subscription_data: {
           metadata: {
             userId,
             ...(appliedCouponId ? { loyalty_coupon: appliedCouponId } : {}),
-            ...(!appliedCouponId && promoCouponId ? { promo_coupon: promoCouponId } : {}),
           },
         },
       }),
