@@ -47,3 +47,36 @@ export async function checkRateLimit(
     return { ok: true, remaining: max, retry_after_s: 0 };
   }
 }
+
+export interface StrictRateLimitResult {
+  /** true само при ДОКАЗАНО свободен слот. */
+  ok: boolean;
+  remaining: number;
+  retry_after_s: number;
+  /** Инфраструктурен отказ: НЕ е „изчерпан лимит" и не е разрешение. */
+  unavailable?: boolean;
+}
+
+/**
+ * FAIL-CLOSED вариант. Ползва се там, където лимитът е гаранция за
+ * еднократност (напр. консумация на nonce), а не удобство: при проблем с
+ * базата НЕ се разрешава действие.
+ */
+export async function checkRateLimitStrict(
+  key: string,
+  max: number,
+  window_s: number,
+): Promise<StrictRateLimitResult> {
+  try {
+    const { data, error } = await admin().rpc("rate_limit_check", {
+      _key: key, _max: max, _window_s: window_s,
+    });
+    if (error) return { ok: false, remaining: 0, retry_after_s: 5, unavailable: true };
+    const row = (data as { ok: boolean; remaining: number; retry_after_s: number } | null) ?? null;
+    if (!row) return { ok: false, remaining: 0, retry_after_s: 5, unavailable: true };
+    return { ok: row.ok === true, remaining: row.remaining ?? 0, retry_after_s: row.retry_after_s ?? 0 };
+  } catch {
+    return { ok: false, remaining: 0, retry_after_s: 5, unavailable: true };
+  }
+}
+
