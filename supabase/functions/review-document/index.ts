@@ -133,7 +133,6 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({
           error: "Ревизията е достъпна след вход в профила.",
           code: "unauthorized",
-          source,
         }),
         { status: 401, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
@@ -142,7 +141,7 @@ Deno.serve(async (req: Request) => {
       const { checkRateLimit } = await import("../_shared/rate-limit.ts");
       const rlKey = reviewUserId
         ? `review-document:user:${reviewUserId}`
-        : `review-document:manifest:${request.documentText.length}:${(request.title ?? "").slice(0, 32)}`;
+        : `review-document:manifest:${request.documentText.length}`;
       const rl = await checkRateLimit(rlKey, 20, 3600);
       if (!rl.ok) {
         return new Response(
