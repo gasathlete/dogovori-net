@@ -250,10 +250,10 @@ Deno.serve(async (req: Request) => {
       redactionRequired: route.redactionRequired,
     });
     if (!redaction.ok) {
-      return new Response(
+      return await cancelAndRespond("redaction_failed", new Response(
         JSON.stringify({ error: redaction.message, code: redaction.code }),
         { status: 409, headers: jsonHeaders },
-      );
+      ));
     }
     const safe = redaction.context;
 
