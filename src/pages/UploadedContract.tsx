@@ -280,8 +280,31 @@ export default function UploadedContractPage() {
     const scopeAtStart = scopeRef.current;
     const token = ++correctTokenRef.current;
     if (busyRef.current) return;
+    if (!user?.id) {
+      toast.error("Влезте в профила си, за да изготвим корекциите.");
+      return;
+    }
     busyRef.current = true;
     setCorrecting(true);
+    // Устойчив идентификатор на операцията: същият при двойно натискане,
+    // повторно показване, презареждане, временна грешка и загубен отговор.
+    const {
+      clearDocumentOperation, documentOperationScope, documentOperationUserKey, getOrCreateDocumentOperationId,
+    } = await import("@/lib/documentOperationKey");
+    const userKey = await documentOperationUserKey(user.id);
+    const opScopeKey = await documentOperationScope({
+      purpose: "correct_uploaded",
+      userId: user.id,
+      resourceId: id,
+      resourceVersion: payload.binding.textSha256 ?? null,
+      options: {
+        analysis_id: payload.analysisId,
+        issues: payload.selectedIssueIndices,
+        missing: payload.selectedMissingIndices,
+        user_confirmed: userConfirmed,
+      },
+    });
+    const operationId = getOrCreateDocumentOperationId("correct_uploaded", userKey, opScopeKey);
     const { data, error } = await supabase.functions.invoke("correct-uploaded", {
       body: {
         uploadedContractId: id,
@@ -290,8 +313,14 @@ export default function UploadedContractPage() {
         selectedIssueIndices: payload.selectedIssueIndices,
         selectedMissingIndices: payload.selectedMissingIndices,
         userConfirmed,
+        operation_id: operationId,
       },
     });
+    // Ключът пада САМО при доказан изход: успех, конфликт или изтекъл резултат.
+    const ledgerStatus = Number((error as { context?: { status?: number } } | null)?.context?.status ?? 0);
+    if (!error || ledgerStatus === 409 || ledgerStatus === 410) {
+      clearDocumentOperation("correct_uploaded", userKey, opScopeKey);
+    }
     busyRef.current = false;
     if (!isCurrentRequest(token, correctTokenRef, startedIdentity)) return;
     setCorrecting(false);
