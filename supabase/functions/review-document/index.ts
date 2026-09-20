@@ -377,6 +377,72 @@ Deno.serve(async (req: Request) => {
       // проверки и чак тогава резервира.
     }
 
+    // Същата САМО-ЧЕТЯЩА проверка, но за пътя на ПРОВЕРЕНИЯ собственик на
+    // запазен документ (grantPayload === null). Без нея моделът може да бъде
+    // повикан без никакъв траен запис — точно дефектът, който тук се поправя.
+    if (!grantPayload && ownedBinding) {
+      const existing = await lookupOwnedReviewOperation(admin, ownedBinding);
+      if (existing.kind === "committed") {
+        return new Response(JSON.stringify(existing.response), {
+          headers: {
+            ...corsHeaders,
+            ...correlationHeaders(correlationId),
+            "Content-Type": "application/json",
+            "X-Operation-Replay": "true",
+          },
+        });
+      }
+      if (existing.kind === "in_progress") {
+        return new Response(
+          JSON.stringify({
+            error: "Ревизията на този документ вече се обработва. Опитайте отново след малко.",
+            code: "review_in_progress",
+            retry_after_seconds: existing.retryAfterSeconds,
+          }),
+          { status: 409, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+        );
+      }
+      if (existing.kind === "conflict") {
+        return new Response(
+          JSON.stringify({
+            error: "Заявката за ревизия вече е обвързана с друг документ/версия. Изпратете отново.",
+            code: "operation_conflict",
+          }),
+          { status: 409, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+        );
+      }
+      if (existing.kind === "expired") {
+        return new Response(
+          JSON.stringify({
+            error: "Резултатът от предишната ревизия вече не е наличен. Стартирайте ревизията отново.",
+            code: "new_request_required",
+          }),
+          { status: 409, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+        );
+      }
+      if (existing.kind === "reconciliation") {
+        return new Response(
+          JSON.stringify({
+            error: "Проверяваме състоянието на предишната ревизия. Опитайте отново след малко.",
+            code: "reconciliation_required",
+            retry_after_seconds: 15,
+          }),
+          { status: 503, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+        );
+      }
+      if (existing.kind === "unavailable") {
+        return new Response(
+          JSON.stringify({
+            error: "Ревизията е временно недостъпна. Опитайте отново след малко.",
+            code: "review_unavailable",
+            retry_after_seconds: 10,
+          }),
+          { status: 503, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+        );
+      }
+      // absent: продължава през ВСИЧКИ безплатни проверки и чак тогава резервира.
+    }
+
     // ЩАБНО ИЗКЛЮЧЕНИЕ: само проверена роля може ръчно да изключи проверката за
     // лични данни. Флаг от клиента сам по себе си не е основание.
     let staffOverride = false;
@@ -575,6 +641,68 @@ Deno.serve(async (req: Request) => {
       if (reserved.kind !== "reserved") return denied("grant_unavailable");
     }
 
+    // Собственият (owned) път резервира ПО СЪЩИЯ начин, непосредствено преди
+    // платеното повикване — без резервация НЕ се стига до модела.
+    if (!grantPayload && ownedBinding) {
+      const reserved = await reserveOwnedReviewOperation(admin, ownedBinding);
+      if (reserved.kind === "replay") {
+        return new Response(JSON.stringify(reserved.response), { headers: jsonHeaders });
+      }
+      if (reserved.kind === "in_progress") {
+        return new Response(
+          JSON.stringify({
+            error: "Ревизията на този документ вече се обработва. Опитайте отново след малко.",
+            code: "review_in_progress",
+            retry_after_seconds: reserved.retryAfterSeconds,
+            source,
+          }),
+          { status: 409, headers: jsonHeaders },
+        );
+      }
+      if (reserved.kind === "expired") {
+        return new Response(
+          JSON.stringify({
+            error: "Резултатът от предишната ревизия вече не е наличен. Стартирайте ревизията отново.",
+            code: "new_request_required",
+            source,
+          }),
+          { status: 409, headers: jsonHeaders },
+        );
+      }
+      if (reserved.kind === "conflict") {
+        return new Response(
+          JSON.stringify({
+            error: "Заявката за ревизия вече е обвързана с друг документ/версия. Изпратете отново.",
+            code: "operation_conflict",
+            source,
+          }),
+          { status: 409, headers: jsonHeaders },
+        );
+      }
+      if (reserved.kind === "reconciliation") {
+        return new Response(
+          JSON.stringify({
+            error: "Проверяваме състоянието на предишната ревизия. Опитайте отново след малко.",
+            code: "reconciliation_required",
+            retry_after_seconds: 15,
+            source,
+          }),
+          { status: 503, headers: jsonHeaders },
+        );
+      }
+      if (reserved.kind !== "reserved") {
+        return new Response(
+          JSON.stringify({
+            error: "Ревизията е временно недостъпна. Опитайте отново след малко.",
+            code: "review_unavailable",
+            retry_after_seconds: 10,
+            source,
+          }),
+          { status: 503, headers: jsonHeaders },
+        );
+      }
+    }
+
     /**
      * ДОКАЗАНА отмяна при провал преди резултат: същият пропуск може да опита
      * пак. Недоказана отмяна НЕ се представя като свободен пропуск.
@@ -582,9 +710,15 @@ Deno.serve(async (req: Request) => {
     const releaseReservation = async (
       reason: string,
     ): Promise<{ readonly reconcile: boolean }> => {
-      if (!grantPayload) return { reconcile: false };
-      const out = await cancelReviewOperation(admin, grantPayload, reason);
-      return { reconcile: out.kind === "uncertain" };
+      if (grantPayload) {
+        const out = await cancelReviewOperation(admin, grantPayload, reason);
+        return { reconcile: out.kind === "uncertain" };
+      }
+      if (ownedBinding) {
+        const out = await cancelOwnedReviewOperation(admin, ownedBinding, reason);
+        return { reconcile: out.kind === "uncertain" };
+      }
+      return { reconcile: false };
     };
     const reconciliationResponse = () =>
       new Response(
@@ -754,6 +888,15 @@ Deno.serve(async (req: Request) => {
       const committed = await commitReviewOperation(
         admin,
         grantPayload,
+        review as unknown as Record<string, unknown>,
+      );
+      if (committed.kind !== "committed") return reconciliationResponse();
+      return new Response(JSON.stringify(committed.response), { headers: jsonHeaders });
+    }
+    if (ownedBinding) {
+      const committed = await commitOwnedReviewOperation(
+        admin,
+        ownedBinding,
         review as unknown as Record<string, unknown>,
       );
       if (committed.kind !== "committed") return reconciliationResponse();
