@@ -218,7 +218,19 @@ Deno.serve(async (req: Request) => {
         results[i] = await ocrPage(pages[i], i);
       }
     });
-    await Promise.all(workers);
+    try {
+      await Promise.all(workers);
+    } catch (e) {
+      // СЛЕД началото на модела няма автоматично връщане на квота и няма
+      // второ повикване към модела: отива в изравняване.
+      console.error("ocr batch uncertainty:", (e as Error)?.name ?? "error");
+      await markDocumentReconciliation(admin, {
+        operationId,
+        userId,
+        reason: "provider_uncertainty",
+      });
+      return operationReconciliationResponse(corsHeaders, "provider_uncertainty");
+    }
 
     const parts: string[] = [];
     let unreadablePages = 0;
