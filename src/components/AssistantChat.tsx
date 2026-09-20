@@ -641,6 +641,15 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
         const err = await resp.json().catch(() => ({ error: "Грешка" }));
         if (!isCurrent()) return;
         const code = String((err as { code?: unknown })?.code ?? "");
+        if (code === "legal_verification_unavailable") {
+          // Възстановимо: въпросът се връща в полето, нищо не е изразходвано.
+          const { handleLegalVerificationUnavailable } = await import("@/lib/legalGateClient");
+          setInput(text);
+          handleLegalVerificationUnavailable({ data: err }, () => { void sendMessage(text); });
+          setMessages(messages);
+          setStreaming(false);
+          return;
+        }
         if (code === "document_context_stale") {
           setStaleContext("version");
           toast.error("Документът е променен след започването на този разговор.");

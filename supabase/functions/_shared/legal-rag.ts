@@ -76,11 +76,17 @@ export async function embedText(
 }
 
 /**
- * Документирана, ненулева прагова стойност за семантично съвпадение.
- * text_rank НЕ заобикаля прага — лексикално съвпадение само по себе си не е
- * основание.
+ * Документиран, консервативен праг за издаване: под него съвпадението не се
+ * смята за достатъчно относимо и не влиза в контекста. text_rank НЕ заобикаля
+ * прага — лексикално съвпадение само по себе си не е основание.
+ *
+ * Стойността е нарочно консервативна за пускане в реална употреба. Няма
+ * калибровка в кода, която да обосновава по-нисък праг.
  */
-export const DEFAULT_MIN_SIMILARITY = 0.35;
+export const DEFAULT_MIN_SIMILARITY = 0.5;
+
+/** Детерминиран горен предел на проверките за една заявка. */
+export const MAX_VERIFIED_CANDIDATES = 12;
 
 export async function retrieveLegalContext(
   admin: SupabaseClient,
@@ -116,7 +122,11 @@ export async function retrieveLegalContext(
     return empty;
   }
 
-  const minSim = opts.minSimilarity ?? DEFAULT_MIN_SIMILARITY;
+  // Подаден по-слаб праг от точка на извикване НЕ отслабва изданието.
+  const requested = opts.minSimilarity;
+  const minSim = typeof requested === "number" && requested > DEFAULT_MIN_SIMILARITY
+    ? requested
+    : DEFAULT_MIN_SIMILARITY;
   const rows = (data as Array<Record<string, unknown>>) ?? [];
 
   // Изходът на RPC е само СПИСЪК С КАНДИДАТИ. Всеки кандидат се препрочита и
@@ -135,10 +145,21 @@ export async function retrieveLegalContext(
     content: string;
   }> = [];
 
+  // Детерминирано: дедупликация по id, най-силните съвпадения първи, таван.
+  const bySimilarity = new Map<string, number>();
   for (const r of rows) {
-    if (!(Number(r.similarity) >= minSim)) continue;
-    const chunkId = typeof r.chunk_id === "string" ? r.chunk_id : null;
+    const chunkId = typeof r.chunk_id === "string" && r.chunk_id.trim() ? r.chunk_id : null;
     if (!chunkId) continue;
+    const similarity = Number(r.similarity);
+    if (!Number.isFinite(similarity) || !(similarity >= minSim)) continue;
+    const prev = bySimilarity.get(chunkId);
+    if (prev === undefined || similarity > prev) bySimilarity.set(chunkId, similarity);
+  }
+  const candidates = [...bySimilarity.entries()]
+    .sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]))
+    .slice(0, MAX_VERIFIED_CANDIDATES);
+
+  for (const [chunkId, similarity] of candidates) {
     const verified = await verifyLegalChunk(strictDb, chunkId, opts.verifier);
     if (!verified.ok) continue;
     const v = verified.chunk;
@@ -152,7 +173,7 @@ export async function retrieveLegalContext(
       paragraph_no: v.paragraph_no,
       official_url: v.canonical_url,
       jurisdiction: v.jurisdiction,
-      similarity: Number(r.similarity) || 0,
+      similarity: similarity,
       content: v.content,
     });
   }

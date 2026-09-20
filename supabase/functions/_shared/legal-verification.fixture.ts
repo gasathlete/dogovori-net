@@ -31,6 +31,8 @@ export const SOURCE_ID = "33333333-3333-4333-8333-333333333333";
 
 export interface FixtureRows {
   chunk?: Record<string, unknown> | null;
+  /** Повече от един чънк: доказва детерминирано откриване по-късен валиден. */
+  chunks?: Array<Record<string, unknown>>;
   document?: Record<string, unknown> | null;
   source?: Record<string, unknown> | null;
   registry?: Record<string, unknown> | null;
@@ -100,10 +102,12 @@ export interface FixtureDb extends StrictLegalDb {
 /** Минимален, но верен на реалния клиент фалшив достъп до базата. */
 export function fixtureDb(rows: FixtureRows = READY_ROWS): FixtureDb {
   const calls: Record<string, number> = {};
+  const chunkRows = (): Array<Record<string, unknown>> =>
+    rows.chunks ?? (rows.chunk ? [rows.chunk] : []);
   const rowFor = (table: string): Record<string, unknown> | null => {
     switch (table) {
       case "legal_chunks":
-        return rows.chunk ?? null;
+        return rows.chunk ?? chunkRows()[0] ?? null;
       case "legal_documents":
         return rows.document ?? null;
       case "legal_sources":
@@ -122,18 +126,34 @@ export function fixtureDb(rows: FixtureRows = READY_ROWS): FixtureDb {
     calls,
     from(table: string) {
       calls[table] = (calls[table] ?? 0) + 1;
+      const filters: Record<string, unknown> = {};
+      const all = (): Array<Record<string, unknown>> => {
+        if (table === "legal_chunks") return chunkRows();
+        const row = rowFor(table);
+        return row ? [row] : [];
+      };
+      const matching = (): Array<Record<string, unknown>> =>
+        all().filter((row) =>
+          Object.entries(filters).every(([col, val]) =>
+            !(col in row) || row[col] === val
+          )
+        );
       const result = (): StrictResult => ({
-        data: rowFor(table),
+        data: matching()[0] ?? null,
         error: rows.error ?? null,
       });
-      const list = (): StrictResult => {
-        const row = rowFor(table);
-        return { data: row ? [row] : [], error: rows.error ?? null };
-      };
+      const list = (): StrictResult => ({ data: matching(), error: rows.error ?? null });
       const query: StrictQuery = {
-        eq: () => query,
+        eq: (column: string, value: unknown) => {
+          filters[column] = value;
+          return query;
+        },
         order: () => query,
         limit: () => Promise.resolve(list()),
+        range: (from: number, to: number) => Promise.resolve({
+          data: matching().slice(from, to + 1),
+          error: rows.error ?? null,
+        }),
         maybeSingle: () => Promise.resolve(result()),
       };
       return { select: () => query };

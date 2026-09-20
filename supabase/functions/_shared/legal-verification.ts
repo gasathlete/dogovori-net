@@ -86,6 +86,7 @@ export interface StrictQuery {
   eq(column: string, value: unknown): StrictQuery;
   order(column: string, opts?: { ascending?: boolean }): StrictQuery;
   limit(count: number): Promise<StrictResult>;
+  range(from: number, to: number): Promise<StrictResult>;
   maybeSingle(): Promise<StrictResult>;
 }
 
@@ -381,6 +382,11 @@ export function isInForce(from: unknown, to: unknown, now: number): boolean {
  * Готовността е БУЛЕВА и строга: активен легаси ред НИКОГА не е достатъчен.
  * Изисква поне една напълно проверена верига източник → документ → чънк.
  */
+/** Детерминирани, документирани граници на обхода при проверка на готовност. */
+export const READINESS_MAX_DOCUMENTS = 5;
+export const READINESS_CHUNK_PAGE_SIZE = 50;
+export const READINESS_MAX_CHUNK_PAGES = 4;
+
 export async function isStrictLegalKnowledgeBaseReady(
   db: StrictLegalDb,
   deps: VerifierDeps = {},
@@ -400,23 +406,52 @@ export async function isStrictLegalKnowledgeBaseReady(
     if (sources.error || !Array.isArray(sources.data)) return false;
     const rows = sources.data as Array<Record<string, unknown>>;
 
+    const d = resolveDeps(deps);
     for (const row of rows) {
       const officialUrl = str(row.official_url);
-      if (!officialUrl) continue;
+      const currentVersion = str(row.current_version);
+      if (!officialUrl || !currentVersion) continue;
       const entry = usable.find((e) => isApprovedUrl(officialUrl, e));
       if (!entry) continue;
 
-      const chunks = await db
-        .from("legal_chunks")
-        .select("id")
+      // Детерминирано: САМО документи с версия, равна на current_version на
+      // източника, и то в сила към момента. Няма произволно „първите пет“.
+      const docs = await db
+        .from("legal_documents")
+        .select("id, source_id, version, effective_from, effective_to")
         .eq("source_id", row.id)
-        .limit(5);
-      if (chunks.error || !Array.isArray(chunks.data)) continue;
-      for (const chunk of chunks.data as Array<Record<string, unknown>>) {
-        const chunkId = str(chunk.id);
-        if (!chunkId) continue;
-        const verified = await verifyLegalChunk(db, chunkId, deps);
-        if (verified.ok) return true;
+        .eq("version", currentVersion)
+        .order("id", { ascending: true })
+        .limit(READINESS_MAX_DOCUMENTS);
+      if (docs.error || !Array.isArray(docs.data)) continue;
+
+      for (const doc of docs.data as Array<Record<string, unknown>>) {
+        const documentId = str(doc.id);
+        if (!documentId) continue;
+        if (doc.source_id !== row.id) continue;
+        if (!isInForce(doc.effective_from, doc.effective_to, d.now)) continue;
+
+        // Детерминирана страница по страница обиколка на чънковете на точно
+        // този документ: невалиден първи чънк не блокира валиден по-късен.
+        for (let page = 0; page < READINESS_MAX_CHUNK_PAGES; page++) {
+          const from = page * READINESS_CHUNK_PAGE_SIZE;
+          const chunks = await db
+            .from("legal_chunks")
+            .select("id")
+            .eq("document_id", documentId)
+            .order("id", { ascending: true })
+            .range(from, from + READINESS_CHUNK_PAGE_SIZE - 1);
+          if (chunks.error || !Array.isArray(chunks.data)) break;
+          const page_rows = chunks.data as Array<Record<string, unknown>>;
+          if (page_rows.length === 0) break;
+          for (const chunk of page_rows) {
+            const chunkId = str(chunk.id);
+            if (!chunkId) continue;
+            const verified = await verifyLegalChunk(db, chunkId, deps);
+            if (verified.ok) return true;
+          }
+          if (page_rows.length < READINESS_CHUNK_PAGE_SIZE) break;
+        }
       }
     }
     return false;

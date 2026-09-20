@@ -299,3 +299,119 @@ Deno.test("every AI entry point gates before the main model and before quota", a
     }
   }
 });
+
+Deno.test("no entry point keeps a no-match fallback prompt or a cached legal serve", async () => {
+  const fns = [
+    "assistant-chat",
+    "analyze-contract",
+    "build-custom-contract",
+    "generate-contract",
+    "apply-corrections",
+    "correct-uploaded",
+  ];
+  for (const fn of fns) {
+    const src = await Deno.readTextFile(new URL(`../${fn}/index.ts`, import.meta.url));
+    assert(
+      !/hasMatches\s*\?/.test(src),
+      `${fn}: не трябва да има резервен промпт при липса на съвпадение`,
+    );
+    assert(!src.includes("общ режим — "), `${fn}: няма „общ режим“`);
+    // Непроверен/легаси кеш не може да се сервира като правен резултат.
+    assert(
+      !/from\("template_cache"\)[\s\S]{0,200}\.select\(/.test(src),
+      `${fn}: не чете стар template_cache като правен изход`,
+    );
+    // Всяко извикване на модела в пътя на заявката стои СЛЕД преградата.
+    // Помощните функции, декларирани на модулно ниво, се извикват само след
+    // успешна преграда; затова се брои само тялото на обработчика.
+    const handlerStart = src.indexOf("serve(");
+    assert(handlerStart > 0, `${fn}: липсва обработчик`);
+    const handler = src.slice(handlerStart);
+    const gateInHandler = handler.indexOf("legalVerificationUnavailableResponse");
+    assert(gateInHandler > 0, `${fn}: преградата не е в обработчика`);
+    let at = handler.indexOf("ai.gateway.lovable.dev");
+    while (at > 0) {
+      assert(gateInHandler < at, `${fn}: повикване към модел преди преградата`);
+      at = handler.indexOf("ai.gateway.lovable.dev", at + 1);
+    }
+  }
+});
+
+Deno.test("readiness finds a valid later chunk of the current in-force document", async () => {
+  const deps = { registry: APPROVED_REGISTRY, now: FIXED_NOW };
+  const db = fixtureDb({
+    ...READY_ROWS,
+    chunk: undefined,
+    chunks: [
+      // Първите редове са невалидни (липсва съдържание/документ).
+      { id: "aaaaaaaa-0000-4000-8000-000000000001", source_id: SOURCE_ID, document_id: DOCUMENT_ID, citation_label: "", content: "", article_no: null, paragraph_no: null },
+      { id: "aaaaaaaa-0000-4000-8000-000000000002", source_id: SOURCE_ID, document_id: DOCUMENT_ID, citation_label: "x", content: "", article_no: null, paragraph_no: null },
+      READY_ROWS.chunk as Record<string, unknown>,
+    ],
+  });
+  assertEquals(await isStrictLegalKnowledgeBaseReady(db, deps), true);
+});
+
+Deno.test("retrieval fails closed on embedding failure, rpc failure, no candidates and weak similarity", async () => {
+  const deps = { registry: APPROVED_REGISTRY, now: FIXED_NOW };
+  const originalFetch = globalThis.fetch;
+  const embedOk = () =>
+    Promise.resolve(
+      new Response(JSON.stringify({ data: [{ embedding: [0.1, 0.2, 0.3] }] }), { status: 200 }),
+    ) as unknown as Promise<Response>;
+
+  try {
+    // 1) Embedding се проваля → нула RPC, нула съвпадения.
+    globalThis.fetch = (() => Promise.resolve(new Response("nope", { status: 500 }))) as typeof fetch;
+    let rpcCalls = 0;
+    let admin = {
+      ...fixtureDb(READY_ROWS),
+      rpc: () => {
+        rpcCalls++;
+        return Promise.resolve({ data: [], error: null });
+      },
+    };
+    let ctx = await retrieveLegalContext(admin as never, "key", "въпрос", { verifier: deps });
+    assertEquals(ctx.hasMatches, false);
+    assertEquals(rpcCalls, 0);
+
+    globalThis.fetch = embedOk as unknown as typeof fetch;
+
+    // 2) RPC грешка.
+    admin = {
+      ...fixtureDb(READY_ROWS),
+      rpc: () => Promise.resolve({ data: null, error: { message: "boom" } }),
+    } as never;
+    ctx = await retrieveLegalContext(admin as never, "key", "въпрос", { verifier: deps });
+    assertEquals(ctx.hasMatches, false);
+
+    // 3) Няма кандидати.
+    admin = {
+      ...fixtureDb(READY_ROWS),
+      rpc: () => Promise.resolve({ data: [], error: null }),
+    } as never;
+    ctx = await retrieveLegalContext(admin as never, "key", "въпрос", { verifier: deps });
+    assertEquals(ctx.hasMatches, false);
+
+    // 4) Слабо съвпадение под прага — и подаден по-нисък праг НЕ отслабва изданието.
+    admin = {
+      ...fixtureDb(READY_ROWS),
+      rpc: () => Promise.resolve({ data: [{ chunk_id: CHUNK_ID, similarity: 0.45, text_rank: 9 }], error: null }),
+    } as never;
+    ctx = await retrieveLegalContext(admin as never, "key", "въпрос", {
+      verifier: deps,
+      minSimilarity: 0.1,
+    });
+    assertEquals(ctx.hasMatches, false);
+
+    // 5) Верига с невалиден документ → без съвпадение, макар similarity да е висока.
+    admin = {
+      ...fixtureDb({ ...READY_ROWS, document: { ...(READY_ROWS.document as Record<string, unknown>), version: "2019-01-01" } }),
+      rpc: () => Promise.resolve({ data: [{ chunk_id: CHUNK_ID, similarity: 0.95 }], error: null }),
+    } as never;
+    ctx = await retrieveLegalContext(admin as never, "key", "въпрос", { verifier: deps });
+    assertEquals(ctx.hasMatches, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

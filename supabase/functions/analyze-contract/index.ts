@@ -307,49 +307,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Fail-closed правна проверка: ПРЕДИ основния модел и ПРЕДИ всякаква
-    // промяна на квотата. Без проверена правна основа не се изпълнява нищо.
-    {
-      const { isLegalKnowledgeBaseReady } = await import("../_shared/product-legal-basis.ts");
-      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
-      const legalDb = admin as unknown as Parameters<typeof isLegalKnowledgeBaseReady>[0];
-      if (!(await isLegalKnowledgeBaseReady(legalDb))) {
-        return legalVerificationUnavailableResponse({ headers: corsHeaders });
-      }
-    }
-
-    // Use session-aware consume when the client supplied session_id + a stable
-    // doc key (we use the uploaded contract id or a client-provided slug).
-    const docKey = docKeyClient || `upload:${uploadedContractId}`;
-    const useSession = !!sessionId && !!docKey;
-    const { data: consumed, error: consumeErr } = useSession
-      ? await userClient.rpc("consume_quota_session", {
-          _kind: "analysis",
-          _doc_key: docKey,
-          _session_id: sessionId,
-        })
-      : await userClient.rpc("consume_quota", { _kind: "analysis" });
-    if (consumeErr) {
-      console.error("consume_quota error:", consumeErr);
-      throw new Error("Грешка при проверка на квотата");
-    }
-    const quotaResult = consumed as {
-      ok: boolean;
-      reason?: string;
-      is_pro: boolean;
-      charged?: boolean;
-    };
-    const isPro = !!quotaResult?.is_pro;
-    if (!quotaResult?.ok) {
-      return new Response(
-        JSON.stringify({
-          error: "Изчерпали сте безплатния си анализ. Активирайте Pro за неограничени риск-анализи.",
-          code: "quota_exceeded",
-        }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
@@ -435,9 +392,48 @@ ${payloadText}
     // RAG: ground analysis in the regulated legal knowledge base.
     const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
     const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, payloadText.slice(0, 4000), { matchCount: 6 });
-    const groundedSystemPrompt = legal.hasMatches
-      ? `${baseSystemPrompt}\n\n${legal.promptBlock}`
-      : baseSystemPrompt;
+    // FAIL-CLOSED: точно тази заявка трябва да е обоснована с поне една
+    // проверена, достатъчно релевантна норма. Без нея НЯМА повикване към модел
+    // и НЯМА никаква промяна на квотата.
+    if (!legal.hasMatches) {
+      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
+      return legalVerificationUnavailableResponse({ headers: corsHeaders });
+    }
+    const groundedSystemPrompt = `${baseSystemPrompt}\n\n${legal.promptBlock}`;
+
+    // Use session-aware consume when the client supplied session_id + a stable
+    // doc key (we use the uploaded contract id or a client-provided slug).
+    const docKey = docKeyClient || `upload:${uploadedContractId}`;
+    const useSession = !!sessionId && !!docKey;
+    const { data: consumed, error: consumeErr } = useSession
+      ? await userClient.rpc("consume_quota_session", {
+          _kind: "analysis",
+          _doc_key: docKey,
+          _session_id: sessionId,
+        })
+      : await userClient.rpc("consume_quota", { _kind: "analysis" });
+    if (consumeErr) {
+      console.error("consume_quota error:", consumeErr);
+      throw new Error("Грешка при проверка на квотата");
+    }
+    const quotaResult = consumed as {
+      ok: boolean;
+      reason?: string;
+      is_pro: boolean;
+      charged?: boolean;
+    };
+    const isPro = !!quotaResult?.is_pro;
+    if (!quotaResult?.ok) {
+      return new Response(
+        JSON.stringify({
+          error: "Изчерпали сте безплатния си анализ. Активирайте Pro за неограничени риск-анализи.",
+          code: "quota_exceeded",
+        }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+
     // Суфиксът се добавя ПОСЛЕДЕН, за да важи и когато активният промпт от
     // базата е заменил вградения fallback.
     const activeSystemPrompt = `${groundedSystemPrompt}${EVIDENCE_RULES_SUFFIX}`;
