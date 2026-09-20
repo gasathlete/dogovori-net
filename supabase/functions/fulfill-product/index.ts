@@ -60,6 +60,13 @@ import {
   readProductIntegrationConfig,
   type ResidencyDbClient,
 } from "../_shared/product-integration.ts";
+import {
+  markProductJobReconciliation,
+  PRODUCT_RECONCILIATION_MESSAGE,
+  ProductUncertainCallError,
+  readProductReconciliationState,
+  type ReconciliationRpcClient,
+} from "../_shared/product-reconciliation.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ALLOWED_BODY_KEYS = Object.freeze(["entitlement_id"]);
@@ -68,46 +75,15 @@ const ALLOWED_BODY_KEYS = Object.freeze(["entitlement_id"]);
  * Immutable production composition. Source builds deliberately have no live
  * provider; deployment must inject a reviewed adapter and verified retention.
  */
-type StoredCallRequest = ProductModelRequest & { readonly requestDigest: string; readonly cursorKey: string };
-interface RpcClient {
-  rpc(name: string, args: Record<string, unknown>): Promise<{ data: unknown; error: unknown }>;
-}
-
-export function createProductCallStore(admin: RpcClient, jobId: string, leaseToken: string): ProductCallStore {
-  return Object.freeze({
-    async reserve(request: StoredCallRequest) {
-      const { data, error } = await admin.rpc("reserve_product_generation_call", {
-        p_job_id: jobId, p_lease_token: leaseToken, p_call_id: request.callId,
-        p_cursor_key: request.cursorKey, p_stage: request.routeKey, p_model: request.model,
-        p_request_digest: request.requestDigest,
-      });
-      const row = (data ?? {}) as Record<string, unknown>;
-      if (error || row.ok !== true) throw new ProductGenerationError("invalid_cursor", true);
-      if (row.status === "pending") return { status: "pending" as const };
-      if (row.status === "complete") {
-        const response = row.response as Record<string, unknown> | undefined;
-        if (!response || !("output" in response) || !Number.isSafeInteger(response.inputTokens) || !Number.isSafeInteger(response.outputTokens)) {
-          throw new ProductGenerationError("invalid_cursor");
-        }
-        return { status: "complete" as const, response: response as unknown as Awaited<ReturnType<ProductModelPort["invoke"]>> };
-      }
-      if (row.status !== "acquired" || typeof row.reservation_token !== "string") throw new ProductGenerationError("invalid_cursor");
-      return { status: "acquired" as const, reservationToken: row.reservation_token };
-    },
-    async complete(request: StoredCallRequest, response: ProductModelResponse, reservationToken: string, costMicroUsd: number) {
-      const canonical = canonicalProductJson(response.output);
-      const artifactDigest = await productCanonicalDigest(response.output);
-      const { data, error } = await admin.rpc("complete_product_generation_call", {
-        p_job_id: jobId, p_lease_token: leaseToken, p_call_id: request.callId,
-        p_request_digest: request.requestDigest, p_reservation_token: reservationToken,
-        p_redacted_artifact: response.output, p_redacted_artifact_canonical: canonical,
-        p_artifact_digest: artifactDigest, p_usage_input_tokens: response.inputTokens,
-        p_usage_output_tokens: response.outputTokens, p_usage_cost_micro_usd: costMicroUsd,
-      });
-      if (error || (data as Record<string, unknown> | null)?.ok !== true) throw new ProductGenerationError("invalid_cursor", true);
-    },
-  });
-}
+export {
+  createProductCallStore,
+  type StoredCallRequest,
+} from "../_shared/product-call-store.ts";
+import {
+  createProductCallStore as buildProductCallStore,
+  type CallStoreRpcClient,
+  type StoredCallRequest,
+} from "../_shared/product-call-store.ts";
 
 type AdapterFactory = (model: ProductModelPort, legal: ProductLegalBasisPort, calls: ProductCallStore) => ReturnType<typeof createProductGenerationAdapter>;
 interface ProductProviderPorts {
@@ -140,6 +116,7 @@ const MESSAGES: Readonly<Record<string, string>> = Object.freeze({
   processing: "Обработваме документа. Ще видите резултата тук.",
   failed_retryable: "Обработката прекъсна. Опитайте отново.",
   failed_permanent: "Обработката не може да продължи. Свържете се с нас за решение.",
+  reconciliation_required: PRODUCT_RECONCILIATION_MESSAGE,
   internal: "Възникна неочакван проблем.",
 });
 
@@ -426,6 +403,17 @@ Deno.serve(async (req) => {
     });
 
 
+    // 6б) Неизяснен изход от предишно извикване БЛОКИРА нова задача. Четенето е
+    // само четене и стои ПРЕДИ заявяването, доставчика и всяка промяна.
+    const reconciliation = await readProductReconciliationState(
+      admin as unknown as ReconciliationRpcClient,
+      userId,
+      entitlementId,
+    );
+    if (reconciliation.jobRequired) {
+      return fail("reconciliation_required", 409, headers, cid);
+    }
+
     // 7) Атомарно заявяване на НАЙ-МНОГО една ограничена стъпка.
     // Ключът за идемпотентност се изчислява ВЪТРЕ в атомарното заявяване, от
     // правото, политиката и действително записания курсор — не от извикващия.
@@ -477,6 +465,20 @@ Deno.serve(async (req) => {
       return fail("failed_retryable", 503, headers, cid);
     };
     const handlePostClaimFailure = async (error: unknown): Promise<Response> => {
+      // Неизяснен изход на доставчик: НЕ се освобождава наем (иначе втора
+      // заявка би извикала модела пак), НЕ се обявява провал и НИКОГА не се
+      // възстановява платено право. Състоянието се замразява до ръчно изясняване.
+      if (error instanceof ProductUncertainCallError) {
+        console.error("fulfill-product provider outcome unknown", { cid, code: error.code });
+        await markProductJobReconciliation(
+          admin as unknown as ReconciliationRpcClient,
+          jobId,
+          leaseToken,
+          error.code,
+          error.callId,
+        );
+        return fail("reconciliation_required", 409, headers, cid);
+      }
       // Провалът на доставчика НИКОГА не изтича навън: нито тяло, нито подсказка,
       // нито изход на модела. Остава само затворен код.
       const gateway = error instanceof ProductModelGatewayError;
@@ -524,7 +526,7 @@ Deno.serve(async (req) => {
 
     try {
       // 8) Изпълнява се най-много една ограничена стъпка.
-      const callStore = createProductCallStore(admin as unknown as RpcClient, jobId, leaseToken);
+      const callStore = buildProductCallStore(admin as unknown as CallStoreRpcClient, jobId, leaseToken);
       const dependencies = resolveProductGenerationDependencies(() =>
         generationDependencies(callStore, ports)
       );

@@ -23,7 +23,7 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userErr } = await admin.auth.getUser(token);
     if (userErr || !userData?.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized", detail: userErr?.message }), {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -32,6 +32,37 @@ serve(async (req) => {
     const ipHash = await hashIp(clientIp(req));
 
     const body = await req.json();
+    // Тази функция обслужва САМО безплатните документи на потребителя (шаблон
+    // или генериран договор). Платеният продуктов резултат НИКОГА не минава
+    // оттук: той се чете на сървъра от платеното право и повторното сваляне е
+    // точно повторение без квота. Затова тялото е строго ограничено и всяка
+    // платена/продуктова самоличност от браузъра е отказ.
+    const ALLOWED_BODY_KEYS = [
+      "kind",
+      "title",
+      "payload",
+      "source_id",
+      "contact_id",
+      "folder_id",
+      "saved_document_id",
+      "session_id",
+      "doc_key",
+      "template_slug",
+    ];
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return new Response(JSON.stringify({ error: "invalid_body" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    for (const key of Object.keys(body as Record<string, unknown>)) {
+      if (!ALLOWED_BODY_KEYS.includes(key)) {
+        return new Response(JSON.stringify({ error: "paid_result_not_exportable" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     const { kind, title, payload, source_id, contact_id, folder_id, saved_document_id, session_id, doc_key, template_slug } = body as {
       kind: "contract" | "template";
       title: string;
@@ -187,7 +218,7 @@ serve(async (req) => {
           })
         : await userClient.rpc("consume_quota", { _kind: kind });
       if (consumeErr) {
-        return new Response(JSON.stringify({ error: consumeErr.message }), {
+        return new Response(JSON.stringify({ error: "quota_unavailable" }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -222,7 +253,7 @@ serve(async (req) => {
       if (charged) {
         await admin.rpc("refund_quota", { _user_id: userId, _kind: kind, _used_bonus: useBonus });
       }
-      return new Response(JSON.stringify({ error: saveErr.message }), {
+      return new Response(JSON.stringify({ error: "save_failed" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -247,7 +278,12 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
-    return new Response(JSON.stringify({ error: String((e as Error).message ?? e) }), {
+    // Никога навън не излиза текст на грешка, тяло на база или съдържание на
+    // документ — само затворен код и името на класа грешка в дневника.
+    console.error("download-document failed", {
+      name: e instanceof Error ? e.name : "unknown",
+    });
+    return new Response(JSON.stringify({ error: "internal" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

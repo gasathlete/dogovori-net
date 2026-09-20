@@ -169,10 +169,23 @@ export function validateProductRollout(source: RolloutSource): string[] {
     fail("base migration or review file missing");
   }
 
-  if (manifest.migrations.length !== 9) fail("migration manifest must contain exactly 0018–0026");
+  // Приложената верига и източниковите (още неприложени) миграции се проверяват
+  // поотделно: неприложена миграция НИКОГА не се брои като част от веригата.
+  const appliedChain = manifest.migrations.filter((m) => (m as { applied?: unknown }).applied !== false);
+  const pending = manifest.migrations.filter((m) => (m as { applied?: unknown }).applied === false);
+  if (appliedChain.length !== 9) fail("migration manifest must contain exactly 0018–0026");
+  for (const migration of pending) {
+    const paired = (migration as unknown as { pairedFile?: string }).pairedFile;
+    if (!paired) fail(`pending migration lacks its paired copy: ${migration.id}`);
+    try {
+      const executable = source.read(migration.file);
+      if (executable !== source.read(paired!)) fail(`pending migration pair drift: ${migration.id}`);
+      if (sha256(executable) !== migration.sha256) fail(`pending migration checksum drift: ${migration.id}`);
+    } catch { fail(`pending migration file missing: ${migration.id}`); }
+  }
   let dependency = "20260910090000_product_checkout_entitlements";
-  for (let index = 0; index < manifest.migrations.length; index++) {
-    const migration = manifest.migrations[index];
+  for (let index = 0; index < appliedChain.length; index++) {
+    const migration = appliedChain[index];
     const prefix = String(index + 18).padStart(4, "0") + "_";
     if (!migration.id.startsWith(prefix)) fail(`migration order mismatch at ${migration.id}`);
     if (migration.dependsOn !== dependency) fail(`dependency mismatch at ${migration.id}`);

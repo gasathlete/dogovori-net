@@ -45,6 +45,13 @@ import {
   validateRefinementInstruction,
 } from "../_shared/product-refinement.ts";
 import type { NegotiationPackageResult } from "../_shared/product-result-contract.ts";
+import {
+  markProductRefinementReconciliation,
+  PRODUCT_RECONCILIATION_MESSAGE,
+  type ProductReconciliationCode,
+  readProductReconciliationState,
+  type ReconciliationRpcClient,
+} from "../_shared/product-reconciliation.ts";
 import { modelPrice } from "../_shared/product-generation-policy.ts";
 
 /** Точна цена в цели micro-USD по датираната таблица на политиката. */
@@ -79,6 +86,7 @@ const MESSAGES: Readonly<Record<string, string>> = Object.freeze({
     "Резултатът е променен в друг раздел. Презаредете страницата и опитайте отново.",
   refinement_failed:
     "Уточнението не беше изготвено. Включеното уточнение остава налично, а оригиналният резултат е непокътнат.",
+  reconciliation_required: PRODUCT_RECONCILIATION_MESSAGE,
   internal: "Възникна неочакван проблем.",
 });
 
@@ -185,6 +193,17 @@ Deno.serve(async (req) => {
       return fail("not_refinable", 409, headers, cid, refinementMessage("not_refinable"));
     }
     const base = access.result as NegotiationPackageResult;
+
+    // Неизяснен изход от предишно уточнение БЛОКИРА нов опит. Четенето стои
+    // преди всяка променлива стъпка и преди доставчика.
+    const pendingReconciliation = await readProductReconciliationState(
+      admin as unknown as ReconciliationRpcClient,
+      userId,
+      entitlementId,
+    );
+    if (pendingReconciliation.refinementRequired || pendingReconciliation.jobRequired) {
+      return fail("reconciliation_required", 409, headers, cid);
+    }
 
     // Границата на интеграцията е ПРЕДИ заявяването: без пълна готовност не се
     // заема уточнението и не се докосва доставчик.
@@ -296,6 +315,28 @@ Deno.serve(async (req) => {
       });
     };
 
+    // СЛЕД като доставчикът е могъл да бъде извикан, провалът НЕ освобождава
+    // включеното уточнение: това би позволило второ платено извикване. Вписва се
+    // неизяснено състояние, което замразява записа до ръчно изясняване.
+    const reconcileRefinement = async (
+      code: ProductReconciliationCode,
+      callId: string | null,
+    ): Promise<Response> => {
+      console.error("refine-product provider outcome unknown", { cid, code });
+      await markProductRefinementReconciliation(
+        admin as unknown as ReconciliationRpcClient,
+        refinementId,
+        leaseToken,
+        code,
+        callId,
+      );
+      return fail("reconciliation_required", 409, headers, cid);
+    };
+    // Истината „доставчикът е бил докоснат“ се пази явно: само преди това
+    // включеното уточнение може да бъде освободено.
+    let providerAttempted = false;
+
+
     try {
       // Изходящият материал е редактиран детерминистично: към доставчика не
       // пътуват лични данни от документа.
@@ -356,12 +397,13 @@ Deno.serve(async (req) => {
       if (reservation.status === "complete") {
         response = reservation.response as typeof response;
       } else if (reservation.status === "pending") {
-        // Заявено, но неприключено извикване: не се прави второ.
-        await failRefinement("call_completion_unknown");
-        return fail("refinement_failed", 409, headers, cid, MESSAGES.refinement_failed);
+        // Заявено, но неприключено извикване: не се прави второ И включеното
+        // уточнение НЕ се освобождава — изходът е неизяснен.
+        return await reconcileRefinement("call_completion_unknown", callId);
       } else {
         const apiKey = Deno.env.get("LOVABLE_API_KEY") ?? "";
         const port = createProductModelPort({ apiKey, fetchImpl: fetch });
+        providerAttempted = true;
         response = await port.invoke(request);
         const responseCanonical = canonical({ output: response.output });
         const { data: recordedRow, error: recordErr } = await admin.rpc(
@@ -390,8 +432,8 @@ Deno.serve(async (req) => {
         );
         const recorded = (recordedRow ?? {}) as Record<string, unknown>;
         if (recordErr || recorded.ok !== true) {
-          await failRefinement(String(recorded.reason ?? "call_record_failed"));
-          return fail("refinement_failed", 409, headers, cid, MESSAGES.refinement_failed);
+          // Моделът вече е бил извикан, но отговорът не е записан: неизяснено.
+          return await reconcileRefinement("call_record_unknown", callId);
         }
       }
 
@@ -419,8 +461,8 @@ Deno.serve(async (req) => {
       );
       const done = (completed ?? {}) as Record<string, unknown>;
       if (completeErr || done.ok !== true) {
-        await failRefinement("persist_failed");
-        return fail("refinement_failed", 409, headers, cid, MESSAGES.refinement_failed);
+        // Резултатът е изготвен от вече платено извикване, но записът е неясен.
+        return await reconcileRefinement("persist_unknown", callId);
       }
       return json(
         {
@@ -435,6 +477,15 @@ Deno.serve(async (req) => {
         headers,
       );
     } catch (error) {
+      // След докосване на доставчика включеното уточнение НЕ се освобождава —
+      // дори при негоден изход. Освобождаване е допустимо САМО при детерминиран
+      // провал ПРЕДИ доставчика (например редакция на личните данни).
+      if (providerAttempted) {
+        const code: ProductReconciliationCode = error instanceof ProductRefinementError
+          ? "output_unusable"
+          : "provider_outcome_unknown";
+        return await reconcileRefinement(code, `${refinementId}:refinement`);
+      }
       const code = error instanceof ProductRefinementError
         ? error.reason
         : error instanceof ProductRedactionError

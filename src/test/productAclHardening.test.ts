@@ -30,8 +30,9 @@ describe("0026 — затягане на правата върху продук�
   });
 
   it("е последната миграция в точния ред с нов SHA-256", () => {
-    const last = MANIFEST.migrations[MANIFEST.migrations.length - 1];
-    expect(MANIFEST.migrations.length).toBe(9);
+    const applied = MANIFEST.migrations.filter((m) => (m as { applied?: unknown }).applied !== false);
+    const last = applied[applied.length - 1];
+    expect(applied.length).toBe(9);
     expect(last.id).toBe("0026_product_acl_hardening");
     expect(last.dependsOn).toBe("0025_product_result_selections");
     expect(last.sha256).toBe("a21afdd9bacd642601f215040b973a7fc9c2e58db2826214ffaad4a5cd00bfcf");
@@ -135,7 +136,11 @@ describe("manifest-ът и документите описват истинат�
   it("записва двете транзакции, ACL проверката и че 0026 е приложена", () => {
     expect(MANIFEST.status).toContain("applied-and-verified-2026-09-12");
     expect(MANIFEST.status).not.toMatch(/pending exact application|source-only/);
-    expect(MANIFEST.status).toContain("no migration is pending");
+    // Приложената верига остава 0018–0026; всяка следваща миграция е изрично
+    // отбелязана като НЕприложена и се вижда в състоянието.
+    expect(MANIFEST.migrations.filter((m) => (m as { applied?: unknown }).applied === false)
+      .map((m) => m.id)).toEqual(["0041_gate3_paid_fulfillment_exact_once"]);
+    expect(MANIFEST.status).toContain("PENDING (not applied)");
     const record = JSON.stringify(MANIFEST.appliedRecord);
     expect(record).toContain("2026-09-12");
     expect(record).toContain("0A000");
@@ -163,7 +168,8 @@ describe("manifest-ът и документите описват истинат�
   });
 
   it("0026 е отбелязана като приложена в точния ред", () => {
-    const last = MANIFEST.migrations[MANIFEST.migrations.length - 1] as unknown as { applied?: string };
+    const appliedChain = MANIFEST.migrations.filter((m) => (m as { applied?: unknown }).applied !== false);
+    const last = appliedChain[appliedChain.length - 1] as unknown as { applied?: string };
     expect(last.applied).toContain("2026-09-12");
     expect(last.applied).toContain("own second atomic transaction");
     expect(last.applied).toContain("no Drizzle journal entry");
