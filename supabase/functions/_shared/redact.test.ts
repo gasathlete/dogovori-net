@@ -76,3 +76,19 @@ Deno.test("redact: повтаряща се стойност ползва еди�
   assertEquals(Object.keys(r.mapping).length, 1);
   assertEquals(r.redacted.split("<EMAIL_1_salt2>").length - 1, 2);
 });
+
+Deno.test("redact: цифрова сол не се прередактира като телефон/ЕГН", () => {
+  const input = "Имейл ivan@example.com и още ana@example.org.";
+  for (const salt of ["0857851130", "1234567890", "0d08578511"]) {
+    const r = redactForAI(input, salt);
+    assertEquals(unredact(r.redacted, r.mapping), input);
+  }
+});
+
+Deno.test("redact: стотици случайни соли винаги връщат оригинала", () => {
+  const input = "Текст с <EMAIL_1>, имейл ivan@example.com, тел. 0888123456 и ЕГН 0123456789.";
+  for (let i = 0; i < 300; i++) {
+    const r = redactForAI(input);
+    assertEquals(unredact(r.redacted, r.mapping), input);
+  }
+});
