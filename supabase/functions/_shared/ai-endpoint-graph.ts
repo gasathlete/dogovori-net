@@ -62,10 +62,18 @@ function isTest(path: string): boolean {
   return path.endsWith(".test.ts");
 }
 
+/** Разрешава разширение: точен път, после `.ts`, после `/index.ts`. */
+export function resolveModule(files: Map<string, string>, path: string): string {
+  if (files.has(path)) return path;
+  if (files.has(`${path}.ts`)) return `${path}.ts`;
+  if (files.has(`${path}/index.ts`)) return `${path}/index.ts`;
+  return path;
+}
+
 /** Обхожда рекурсивно и безопасно при цикли; връща достигнатите файлове. */
 export function reachableFiles(files: Map<string, string>, entry: string): string[] {
   const seen = new Set<string>();
-  const queue = [entry];
+  const queue = [resolveModule(files, entry)];
   while (queue.length) {
     const path = queue.shift()!;
     if (seen.has(path) || isTest(path)) continue;
@@ -76,7 +84,9 @@ export function reachableFiles(files: Map<string, string>, entry: string): strin
       continue;
     }
     seen.add(path);
-    for (const rel of referencedModules(src)) queue.push(resolvePath(path, rel));
+    for (const rel of referencedModules(src)) {
+      queue.push(resolveModule(files, resolvePath(path, rel)));
+    }
   }
   return [...seen];
 }
