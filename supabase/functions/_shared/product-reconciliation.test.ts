@@ -27,7 +27,14 @@ function client(handler: (name: string, args: Record<string, unknown>) => { data
 Deno.test("чистото състояние не блокира нищо", async () => {
   const db = client(() => ({ data: { ok: true, job: null, refinement: null } }));
   const state = await readProductReconciliationState(db, "u", "e");
-  assertEquals(state, { jobRequired: false, refinementRequired: false, code: null });
+  assertEquals(state, {
+    jobRequired: false,
+    refinementRequired: false,
+    terminalJob: false,
+    terminalRefinement: false,
+    orphanRefinementCall: false,
+    code: null,
+  });
 });
 
 Deno.test("неразрешено състояние се разпознава поотделно за задача и уточнение", async () => {
@@ -87,4 +94,94 @@ Deno.test("неизясненото извикване носи затворен
   assertEquals(error.message, "provider_outcome_unknown");
   assertEquals(error.callId, "job:passport");
   assert(!/възстанов|refund/i.test(PRODUCT_RECONCILIATION_MESSAGE));
+});
+
+// --- Gate 3: пълно съответствие с product_reconciliation_state() ------------
+
+Deno.test("чисто състояние не блокира нищо", async () => {
+  const db = client(() => ({ data: { ok: true, job: null, refinement: null, terminal: null, orphan_refinement_call: null } }));
+  const state = await readProductReconciliationState(db, "u", "e");
+  assertFalse(state.jobRequired);
+  assertFalse(state.refinementRequired);
+  assertFalse(state.terminalJob);
+  assertFalse(state.terminalRefinement);
+  assertFalse(state.orphanRefinementCall);
+  assertEquals(state.code, null);
+});
+
+Deno.test("terminal job блокира нова задача", async () => {
+  const db = client(() => ({ data: { ok: true, job: null, refinement: null, terminal: ["job"], orphan_refinement_call: null } }));
+  const state = await readProductReconciliationState(db, "u", "e");
+  assert(state.jobRequired);
+  assert(state.terminalJob);
+  assertFalse(state.refinementRequired);
+  assertEquals(state.code, "reconciliation_terminal");
+});
+
+Deno.test("terminal refinement блокира ново уточнение", async () => {
+  const db = client(() => ({ data: { ok: true, terminal: ["refinement"] } }));
+  const state = await readProductReconciliationState(db, "u", "e");
+  assert(state.refinementRequired);
+  assert(state.terminalRefinement);
+  assertFalse(state.jobRequired);
+});
+
+Deno.test("terminal и за двете блокира и задача, и уточнение", async () => {
+  const db = client(() => ({ data: { ok: true, terminal: ["job", "refinement"] } }));
+  const state = await readProductReconciliationState(db, "u", "e");
+  assert(state.jobRequired);
+  assert(state.refinementRequired);
+});
+
+Deno.test("висящо извикване за уточнение блокира ново уточнение", async () => {
+  const db = client(() => ({ data: { ok: true, orphan_refinement_call: true } }));
+  const state = await readProductReconciliationState(db, "u", "e");
+  assert(state.refinementRequired);
+  assert(state.orphanRefinementCall);
+  assertFalse(state.jobRequired);
+  assertEquals(state.code, "refinement_call_orphaned");
+});
+
+Deno.test("повредена форма на terminal/orphan затваря и двете (fail closed)", async () => {
+  const shapes: unknown[] = [
+    { ok: true, terminal: "job" },
+    { ok: true, terminal: ["job", "unknown_kind"] },
+    { ok: true, terminal: [1] },
+    { ok: true, orphan_refinement_call: false },
+    { ok: true, orphan_refinement_call: "true" },
+    { ok: true, job: "pending" },
+    { ok: true, job: { code: "free_text_from_db" } },
+    { ok: true, refinement: [] },
+    [{ ok: true }],
+    "ok",
+  ];
+  for (const data of shapes) {
+    const db = client(() => ({ data }));
+    const state = await readProductReconciliationState(db, "u", "e");
+    assert(state.jobRequired, JSON.stringify(data));
+    assert(state.refinementRequired, JSON.stringify(data));
+    assertEquals(state.code, "state_unreadable");
+  }
+});
+
+Deno.test("хвърлен RPC също е нечетимо състояние", async () => {
+  const throwing = { rpc() { return Promise.reject(new Error("boom")); } };
+  const state = await readProductReconciliationState(throwing, "u", "e");
+  assert(state.jobRequired);
+  assert(state.refinementRequired);
+  assertEquals(state.code, "state_unreadable");
+});
+
+Deno.test("кодът остава от затворения набор", async () => {
+  const db = client(() => ({ data: { ok: true, refinement: { code: "provider_outcome_unknown" }, terminal: ["refinement"] } }));
+  const state = await readProductReconciliationState(db, "u", "e");
+  assertEquals(state.code, "provider_outcome_unknown");
+  assert(state.refinementRequired);
+});
+
+Deno.test("крайните точки връщат детерминирания 409 за terminal/orphan състояние", async () => {
+  const fulfill = await Deno.readTextFile(new URL("../fulfill-product/index.ts", import.meta.url));
+  const refine = await Deno.readTextFile(new URL("../refine-product/index.ts", import.meta.url));
+  assert(/reconciliation\.jobRequired[\s\S]{0,120}reconciliation_required", 409/.test(fulfill));
+  assert(/pendingReconciliation\.refinementRequired \|\| pendingReconciliation\.jobRequired[\s\S]{0,120}reconciliation_required", 409/.test(refine));
 });
