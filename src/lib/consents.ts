@@ -180,9 +180,9 @@ export async function flushPendingConsents() {
 
   // A stable batch id makes the retry idempotent. Persist the enriched payload
   // BEFORE the request, so a crash mid-flight still retries the same event.
-  let eventId = typeof data.event_id === "string" && UUID_RE.test(data.event_id)
-    ? data.event_id
-    : null;
+  // If persisting the id fails we must NOT write: a reload would then mint a
+  // second id and duplicate the consent event.
+  let eventId = typeof data.event_id === "string" ? data.event_id : null;
   if (!eventId) {
     eventId = newEventId();
     try {
@@ -190,14 +190,16 @@ export async function flushPendingConsents() {
         PENDING_CONSENTS_KEY,
         JSON.stringify({ ...data, event_id: eventId }),
       );
-    } catch { /* storage became unavailable — continue with in-memory id */ }
+    } catch {
+      return { ok: false as const, reason: "storage-unavailable" as const };
+    }
   }
 
   const records: ConsentRecord[] = [
     { consent_type: "terms", granted: true },
     { consent_type: "privacy", granted: true },
     { consent_type: "age_18", granted: true },
-    { consent_type: "operational_notifications", granted: data.operational_notifications !== false },
+    { consent_type: "operational_notifications", granted: true },
   ];
   // Explicit opt-in only. No record means no marketing consent.
   if (data.marketing === true) records.push({ consent_type: "marketing", granted: true });
