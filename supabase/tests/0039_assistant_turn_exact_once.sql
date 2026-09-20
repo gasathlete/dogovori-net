@@ -15,7 +15,7 @@
 -- товара; retention_due_counts брои и асистентските редове, само-четящо.
 -- =============================================================================
 BEGIN;
-SELECT plan(98);
+SELECT plan(123);
 
 -- ---------------------------------------------------------------------------
 -- 0) Права: само service_role пипа леджъра на асистентския ход.
@@ -628,6 +628,172 @@ SELECT is(
   (SELECT count(*) FROM public.assistant_turn_operations
     WHERE operation_id = 'a0000000-0000-4000-8000-0000000000d1'), 0::bigint,
   'невалидният вход НЕ оставя ред в леджъра');
+
+-- ---------------------------------------------------------------------------
+-- 22) ОТКАЗ при ЛИПСВАЩИ броячи: нула създадени редове (corrective P0-E2).
+--     U7 няма ред в download_quota; T2 няма ред в team_usage.
+-- ---------------------------------------------------------------------------
+INSERT INTO auth.users (id, email) VALUES
+  ('55555555-5555-4555-8555-555555555555', 'u5@example.com'),
+  ('66666666-6666-4666-8666-666666666666', 'u6@example.com'),
+  ('77777777-7777-4777-8777-777777777777', 'u7@example.com');
+INSERT INTO public.profiles (id, display_name) VALUES
+  ('55555555-5555-4555-8555-555555555555', 'Потребител Пет'),
+  ('66666666-6666-4666-8666-666666666666', 'Потребител Шест'),
+  ('77777777-7777-4777-8777-777777777777', 'Потребител Седем');
+
+INSERT INTO public.teams (id, name, owner_id, seat_count, status)
+VALUES ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'Екип без употреба',
+  '66666666-6666-4666-8666-666666666666', 1, 'active');
+INSERT INTO public.team_members (team_id, user_id, role)
+VALUES ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+  '66666666-6666-4666-8666-666666666666', 'owner');
+
+SELECT is(
+  (public.assistant_turn_reserve(
+    'a0000000-0000-4000-8000-0000000000e1', '77777777-7777-4777-8777-777777777777',
+    repeat('a', 64), NULL, 'legal_strict', true, 'pro', NULL, 180, '{}'::jsonb, 3))->>'reason',
+  'plan_not_active', 'липсващ ред за квота + платен път => отказ');
+SELECT is(
+  (SELECT count(*) FROM public.download_quota
+    WHERE user_id = '77777777-7777-4777-8777-777777777777'), 0::bigint,
+  'отказът НЕ създава ред в download_quota');
+SELECT is(
+  (SELECT count(*) FROM public.assistant_turn_operations
+    WHERE operation_id = 'a0000000-0000-4000-8000-0000000000e1'), 0::bigint,
+  'отказът при липсващ брояч НЕ оставя ред в леджъра');
+SELECT is(
+  (SELECT count(*) FROM public.assistant_threads
+    WHERE user_id = '77777777-7777-4777-8777-777777777777'), 0::bigint,
+  'отказът при липсващ брояч НЕ създава разговор');
+SELECT is(
+  (public.assistant_turn_reserve(
+    'a0000000-0000-4000-8000-0000000000e2', '77777777-7777-4777-8777-777777777777',
+    repeat('b', 64), NULL, 'legal_strict', true, 'free', NULL, 180, '{}'::jsonb, 0))->>'reason',
+  'ai_free_limit_reached', 'нулев безплатен таван при липсващ ред => отказ');
+SELECT is(
+  (SELECT count(*) FROM public.download_quota
+    WHERE user_id = '77777777-7777-4777-8777-777777777777'), 0::bigint,
+  'нулевият таван също НЕ създава ред за квота');
+SELECT is(
+  (public.assistant_turn_reserve(
+    'a0000000-0000-4000-8000-0000000000e3', '77777777-7777-4777-8777-777777777777',
+    repeat('c', 64), NULL, 'legal_strict', true, 'team',
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 180, '{}'::jsonb, 3))->>'reason',
+  'not_team_member', 'чужд екип => отказ');
+SELECT is(
+  (SELECT count(*) FROM public.team_usage
+    WHERE team_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'), 0::bigint,
+  'екипният отказ НЕ създава ред в team_usage');
+SELECT is(
+  (public.assistant_turn_reserve(
+    'a0000000-0000-4000-8000-0000000000e4', '77777777-7777-4777-8777-777777777777',
+    repeat('d', 64), NULL, 'legal_strict', true, 'free', NULL, 180, '{}'::jsonb, 3))->>'status',
+  'reserved', 'допустимата заявка създава реда за квота точно тогава');
+SELECT is(
+  (SELECT ai_messages_used FROM public.download_quota
+    WHERE user_id = '77777777-7777-4777-8777-777777777777'), 1,
+  'новосъздаденият ред носи ТОЧНО една начислена операция');
+
+-- ---------------------------------------------------------------------------
+-- 23) Превъртян прозорец: по-късна употреба НЕ се изтрива от отмяната.
+-- ---------------------------------------------------------------------------
+INSERT INTO public.download_quota (
+  user_id, plan, ai_messages_used, total_used, monthly_total_used,
+  monthly_contracts_used, monthly_templates_used, monthly_reset_at)
+VALUES
+  ('55555555-5555-4555-8555-555555555555', 'free', 0, 7, 7, 2, 5,
+    now() - interval '40 days'),
+  ('66666666-6666-4666-8666-666666666666', 'free', 0, 7, 7, 2, 5,
+    now() - interval '40 days');
+
+SELECT is(
+  (public.assistant_turn_reserve(
+    'a0000000-0000-4000-8000-0000000000f1', '55555555-5555-4555-8555-555555555555',
+    repeat('1', 64), NULL, 'legal_strict', true, 'free', NULL, 180, '{}'::jsonb, 3))->>'status',
+  'reserved', 'резервация, която превърта месечния прозорец');
+SELECT is(
+  (SELECT monthly_total_used FROM public.download_quota
+    WHERE user_id = '55555555-5555-4555-8555-555555555555'), 1,
+  'превъртеният прозорец започва от тази операция');
+
+-- Друга легитимна операция ползва СЪЩИЯ нов прозорец след резервацията.
+UPDATE public.download_quota
+   SET monthly_total_used = monthly_total_used + 1,
+       total_used = total_used + 1
+ WHERE user_id = '55555555-5555-4555-8555-555555555555';
+
+SELECT is(
+  (public.assistant_turn_cancel(
+    'a0000000-0000-4000-8000-0000000000f1', '55555555-5555-4555-8555-555555555555',
+    'proven_preflight_failure'))->>'status',
+  'reconciliation', 'недоказуемото възстановяване НЕ се прилага');
+SELECT is(
+  (public.assistant_turn_cancel(
+    'a0000000-0000-4000-8000-0000000000f1', '55555555-5555-4555-8555-555555555555',
+    'proven_preflight_failure'))->>'reason',
+  'later_usage', 'причината е по-късна употреба в същия прозорец');
+SELECT is(
+  (SELECT monthly_total_used FROM public.download_quota
+    WHERE user_id = '55555555-5555-4555-8555-555555555555'), 2,
+  'по-късната употреба НЕ е изтрита от отмяната');
+SELECT is(
+  (SELECT state FROM public.assistant_turn_operations
+    WHERE operation_id = 'a0000000-0000-4000-8000-0000000000f1'), 'reconciliation',
+  'операцията е в изравняване, не в отмяна');
+
+SELECT is(
+  (public.assistant_turn_reserve(
+    'a0000000-0000-4000-8000-0000000000f2', '66666666-6666-4666-8666-666666666666',
+    repeat('2', 64), NULL, 'legal_strict', true, 'free', NULL, 180, '{}'::jsonb, 3))->>'status',
+  'reserved', 'втора резервация с превъртане, но без по-късна употреба');
+SELECT is(
+  (public.assistant_turn_cancel(
+    'a0000000-0000-4000-8000-0000000000f2', '66666666-6666-4666-8666-666666666666',
+    'proven_preflight_failure'))->>'restored',
+  'true', 'без по-късна употреба възстановяването е точно');
+SELECT is(
+  (SELECT monthly_total_used FROM public.download_quota
+    WHERE user_id = '66666666-6666-4666-8666-666666666666'), 7,
+  'точното възстановяване връща предишния прозорец');
+SELECT is(
+  (SELECT ai_messages_used FROM public.download_quota
+    WHERE user_id = '66666666-6666-4666-8666-666666666666'), 0,
+  'точното възстановяване връща и броя AI съобщения');
+
+-- ---------------------------------------------------------------------------
+-- 24) Неразрешено изравняване ДЪРЖИ ревизията: никакъв втори ход/втори модел.
+-- ---------------------------------------------------------------------------
+SELECT is(
+  (public.assistant_turn_reserve(
+    'a0000000-0000-4000-8000-0000000000f3', '55555555-5555-4555-8555-555555555555',
+    repeat('3', 64),
+    (SELECT thread_id FROM public.assistant_turn_operations
+      WHERE operation_id = 'a0000000-0000-4000-8000-0000000000f1'),
+    'legal_strict', true, 'free', NULL, 180, '{}'::jsonb, 9))->>'status',
+  'reconciliation', 'друга операция НЕ резервира ревизия с неразрешено изравняване');
+SELECT is(
+  (public.assistant_turn_reserve(
+    'a0000000-0000-4000-8000-0000000000f4', '55555555-5555-4555-8555-555555555555',
+    repeat('4', 64),
+    (SELECT thread_id FROM public.assistant_turn_operations
+      WHERE operation_id = 'a0000000-0000-4000-8000-0000000000f1'),
+    'legal_strict', true, 'free', NULL, 180, '{}'::jsonb, 9))->>'reason',
+  'revision_unresolved', 'причината е неразрешено състояние на ревизията');
+SELECT is(
+  (SELECT count(*) FROM public.assistant_turn_operations
+    WHERE operation_id IN ('a0000000-0000-4000-8000-0000000000f3',
+                           'a0000000-0000-4000-8000-0000000000f4')), 0::bigint,
+  'блокираните заявки НЕ оставят редове в леджъра');
+SELECT is(
+  (SELECT ai_messages_used FROM public.download_quota
+    WHERE user_id = '55555555-5555-4555-8555-555555555555'), 1,
+  'блокираните заявки НЕ изразходват право');
+SELECT is(
+  (public.assistant_turn_reserve(
+    'a0000000-0000-4000-8000-0000000000f1', '55555555-5555-4555-8555-555555555555',
+    repeat('1', 64), NULL, 'legal_strict', true, 'free', NULL, 180, '{}'::jsonb, 3))->>'status',
+  'reconciliation', 'СЪЩАТА операция получава изравняване, не нова резервация');
 
 -- ЗАБЕЛЕЖКА: истинска паралелна конкурентност (две сесии едновременно на
 -- pg_advisory_xact_lock/FOR UPDATE) НЕ се доказва тук — няма dblink/паралелни
