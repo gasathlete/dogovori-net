@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useIsPro } from "@/hooks/useIsPro";
 import { ProUpgradeDialog } from "@/components/ProUpgradeDialog";
 import { toast } from "sonner";
+import { readVerifiedStrategy } from "@/lib/strategyEvidence";
 
 interface Strategy {
   summary?: string;
@@ -24,7 +25,11 @@ export function NegotiationStrategyPanel({
   initial?: Strategy | null;
 }) {
   const { isEntrepreneur } = useIsPro();
-  const [strategy, setStrategy] = useState<Strategy | null>(initial ?? null);
+  // Стар запис без доказателствен плик НЕ се показва: изготвя се наново през
+  // строгата правна преграда.
+  const [strategy, setStrategy] = useState<Strategy | null>(
+    () => readVerifiedStrategy<Strategy>(initial, analysisId),
+  );
   const [loading, setLoading] = useState(false);
   const [paywall, setPaywall] = useState(false);
 

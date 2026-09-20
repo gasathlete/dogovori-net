@@ -206,10 +206,28 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
       unredact(JSON.stringify(parsedStrategy), redaction.mapping),
     );
 
+    // ДОКАЗАТЕЛСТВЕН ПЛИК: записва се атомарно със стратегията, за да може
+    // клиентът да покаже само резултат с проверима правна основа.
+    const digestBytes = new TextEncoder().encode(`${analysisId}\n${userMsg}`);
+    const digestBuf = await crypto.subtle.digest("SHA-256", digestBytes);
+    const sourceDigest = Array.from(new Uint8Array(digestBuf))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    const envelope = {
+      ...strategy,
+      __evidence: {
+        version: "v1",
+        analysis_id: analysisId,
+        source_digest: sourceDigest,
+        generated_at: new Date().toISOString(),
+        citations: legal.citations,
+      },
+    };
+
     await admin
       .from("risk_analyses")
       .update({
-        negotiation_strategy: strategy,
+        negotiation_strategy: envelope,
         negotiation_generated_at: new Date().toISOString(),
       })
       .eq("id", analysisId);
@@ -219,7 +237,7 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
         ok: true,
         cached: false,
         model: usedModel,
-        strategy,
+        strategy: envelope,
         citations: legal.citations,
       }),
       { headers: { ...cors, "Content-Type": "application/json" } },
