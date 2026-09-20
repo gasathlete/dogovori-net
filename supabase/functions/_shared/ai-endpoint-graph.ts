@@ -25,14 +25,16 @@ export interface GraphResult {
   reached: Map<string, string[]>;
 }
 
-const STATIC_RE = /from\s+"([^"]+\.ts)"/g;
-const DYNAMIC_RE = /import\(\s*"([^"]+\.ts)"\s*\)/g;
-const INVOKE_RE = /functions\.invoke\(\s*"([a-z0-9-]+)"/g;
+// Двойни И единични кавички; `from`, странични вносове (`import "./x.ts"`),
+// реекспорт (`export ... from`) и динамични `import("./x.ts")`.
+const FROM_RE = /(?:from|import)\s+['"]([^'"]+)['"]/g;
+const DYNAMIC_RE = /import\(\s*['"]([^'"]+)['"]\s*\)/g;
+const INVOKE_RE = /functions\.invoke\(\s*['"]([a-z0-9-]+)['"]/g;
 const URL_RE = /functions\/v1\/([a-z0-9-]+)/g;
 
 export function referencedModules(src: string): string[] {
   const out = new Set<string>();
-  for (const m of src.matchAll(STATIC_RE)) out.add(m[1]);
+  for (const m of src.matchAll(FROM_RE)) out.add(m[1]);
   for (const m of src.matchAll(DYNAMIC_RE)) out.add(m[1]);
   return [...out].filter((s) => s.startsWith("."));
 }
