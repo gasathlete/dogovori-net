@@ -573,3 +573,94 @@ REVOKE ALL ON FUNCTION public.quota_reserve_no_charge(uuid, uuid, text, text, te
 REVOKE ALL ON FUNCTION public.quota_reserve_no_charge(uuid, uuid, text, text, text, text, uuid, text) FROM anon;
 REVOKE ALL ON FUNCTION public.quota_reserve_no_charge(uuid, uuid, text, text, text, text, uuid, text) FROM authenticated;
 GRANT EXECUTE ON FUNCTION public.quota_reserve_no_charge(uuid, uuid, text, text, text, text, uuid, text) TO service_role;
+
+-- ---------------------------------------------------------------------------
+-- 6) САМО-ЧЕТЯЩО търсене на анонимна доставка по подписаното обвързване.
+--
+--    Огледало на `quota_operation_lookup`/`review_operation_lookup`, но за
+--    `anon_delivery_operations`. Извиква се ПРЕДИ каквато и да е мутируема
+--    или външна проверка (незаконно съдържание, класификация, редакция,
+--    правно заземяване), за да намери вече завършен точен отговор без
+--    странични ефекти. НЕ резервира, НЕ отменя, НЕ таксува.
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.anon_delivery_lookup(
+  p_operation_id uuid,
+  p_identity_hash text,
+  p_request_digest text,
+  p_purpose text DEFAULT 'anon-assistant'
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  _row public.anon_delivery_operations%ROWTYPE;
+  _purpose text;
+BEGIN
+  IF auth.role() <> 'service_role' AND NOT public.is_staff(auth.uid()) THEN
+    RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501';
+  END IF;
+  IF p_operation_id IS NULL THEN
+    RAISE EXCEPTION 'operation_id_required' USING ERRCODE = '22023';
+  END IF;
+  IF p_identity_hash IS NULL OR p_identity_hash !~ '^[0-9a-f]{32,128}$' THEN
+    RAISE EXCEPTION 'identity_hash_required' USING ERRCODE = '22023';
+  END IF;
+  IF p_request_digest IS NULL OR p_request_digest !~ '^[0-9a-f]{64}$' THEN
+    RAISE EXCEPTION 'request_digest_required' USING ERRCODE = '22023';
+  END IF;
+
+  _purpose := COALESCE(NULLIF(btrim(p_purpose), ''), 'anon-assistant');
+
+  SELECT * INTO _row FROM public.anon_delivery_operations
+   WHERE operation_id = p_operation_id;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('status', 'absent');
+  END IF;
+
+  -- ПЪЛНО ОБВЪРЗВАНЕ: всяко разминаване е конфликт. Никога чужд резултат.
+  IF _row.identity_hash <> p_identity_hash
+     OR _row.request_digest <> p_request_digest
+     OR _row.purpose <> _purpose THEN
+    RETURN jsonb_build_object('status', 'conflict', 'reason', 'binding_conflict');
+  END IF;
+
+  IF _row.state = 'committed' THEN
+    -- Изтекъл или изчистен товар: типизирано „вече не се пази" — никога
+    -- празен и никога друг товар.
+    IF _row.response IS NULL
+       OR (_row.response_expires_at IS NOT NULL AND _row.response_expires_at <= now()) THEN
+      RETURN jsonb_build_object('status', 'response_expired', 'reason', 'new_request_required');
+    END IF;
+    RETURN jsonb_build_object('status', 'committed', 'response', _row.response);
+  END IF;
+
+  IF _row.state = 'reserved' THEN
+    IF _row.lease_expires_at > now() THEN
+      RETURN jsonb_build_object(
+        'status', 'in_progress',
+        'retry_after_seconds',
+          GREATEST(1, CEIL(EXTRACT(EPOCH FROM (_row.lease_expires_at - now()))))::int
+      );
+    END IF;
+    RETURN jsonb_build_object('status', 'reconciliation', 'reason', 'lease_expired');
+  END IF;
+
+  IF COALESCE((_row.detail->>'reconciliation_required')::boolean, false) THEN
+    RETURN jsonb_build_object('status', 'reconciliation', 'reason', 'reconciliation_required');
+  END IF;
+  IF _row.cancelled_at IS NULL THEN
+    RETURN jsonb_build_object('status', 'reconciliation', 'reason', 'cancellation_unproven');
+  END IF;
+
+  -- Доказано отменена операция: нормален нов опит по същия ключ.
+  RETURN jsonb_build_object('status', 'absent', 'reason', 'cancelled');
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.anon_delivery_lookup(uuid, text, text, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.anon_delivery_lookup(uuid, text, text, text) FROM anon;
+REVOKE ALL ON FUNCTION public.anon_delivery_lookup(uuid, text, text, text) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.anon_delivery_lookup(uuid, text, text, text) TO service_role;
