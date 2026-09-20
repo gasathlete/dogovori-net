@@ -62,6 +62,8 @@ import {
 } from "../_shared/product-integration.ts";
 import {
   markProductJobReconciliation,
+  PRODUCT_LEDGER_UNAVAILABLE_CODE,
+  PRODUCT_LEDGER_UNAVAILABLE_MESSAGE,
   PRODUCT_RECONCILIATION_MESSAGE,
   ProductUncertainCallError,
   readProductReconciliationState,
@@ -470,13 +472,24 @@ Deno.serve(async (req) => {
       // възстановява платено право. Състоянието се замразява до ръчно изясняване.
       if (error instanceof ProductUncertainCallError) {
         console.error("fulfill-product provider outcome unknown", { cid, code: error.code });
-        await markProductJobReconciliation(
+        const marked = await markProductJobReconciliation(
           admin as unknown as ReconciliationRpcClient,
           jobId,
           leaseToken,
           error.code,
           error.callId,
         );
+        // Непостигнат запис НЕ се представя за трайно състояние. Наемът пак не
+        // се освобождава и второ извикване остава невъзможно.
+        if (!marked) {
+          return fail(
+            PRODUCT_LEDGER_UNAVAILABLE_CODE,
+            503,
+            headers,
+            cid,
+            PRODUCT_LEDGER_UNAVAILABLE_MESSAGE,
+          );
+        }
         return fail("reconciliation_required", 409, headers, cid);
       }
       // Провалът на доставчика НИКОГА не изтича навън: нито тяло, нито подсказка,

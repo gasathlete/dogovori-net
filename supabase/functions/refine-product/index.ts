@@ -27,12 +27,8 @@ import {
   type ResidencyDbClient,
 } from "../_shared/product-integration.ts";
 import type { LegalDbClient } from "../_shared/product-legal-basis.ts";
+import { createProductModelPort } from "../_shared/product-model-gateway.ts";
 import {
-  createProductModelPort,
-  ProductModelGatewayError,
-} from "../_shared/product-model-gateway.ts";
-import {
-  ProductRedactionError,
   redactProductBundle,
   rehydrateProductOutput,
 } from "../_shared/product-secure-redaction.ts";
@@ -47,11 +43,18 @@ import {
 import type { NegotiationPackageResult } from "../_shared/product-result-contract.ts";
 import {
   markProductRefinementReconciliation,
+  PRODUCT_LEDGER_UNAVAILABLE_CODE,
+  PRODUCT_LEDGER_UNAVAILABLE_MESSAGE,
   PRODUCT_RECONCILIATION_MESSAGE,
   type ProductReconciliationCode,
   readProductReconciliationState,
   type ReconciliationRpcClient,
 } from "../_shared/product-reconciliation.ts";
+import {
+  decideRefinementOutcome,
+  type StoredRefinementResponse,
+  validateStoredRefinementResponse,
+} from "../_shared/product-refinement-outcome.ts";
 import { modelPrice } from "../_shared/product-generation-policy.ts";
 
 /** Точна цена в цели micro-USD по датираната таблица на политиката. */
@@ -307,7 +310,15 @@ Deno.serve(async (req) => {
 
     // Оттук нататък всяка грешка минава през записа: наемът не остава увиснал и
     // включеното уточнение не се изразходва при провал.
+    // Трайно доказателство, че доставчикът е бил платен. Пази се отделно от
+    // „тази заявка извика fetch“: приключено записано извикване е доказателство
+    // и при повторение след загубен отговор.
+    let providerEvidence = false;
+
     const failRefinement = async (code: string) => {
+      // Защита на последната граница: при доказано извикване освобождаването е
+      // забранено, независимо от пътя в кода.
+      if (providerEvidence) return;
       await admin.rpc("fail_product_result_refinement", {
         p_refinement_id: refinementId,
         p_lease_token: leaseToken,
@@ -323,18 +334,28 @@ Deno.serve(async (req) => {
       callId: string | null,
     ): Promise<Response> => {
       console.error("refine-product provider outcome unknown", { cid, code });
-      await markProductRefinementReconciliation(
+      const marked = await markProductRefinementReconciliation(
         admin as unknown as ReconciliationRpcClient,
         refinementId,
         leaseToken,
         code,
         callId,
       );
+      // Ако самото вписване не успее, отговорът НЕ твърди, че състоянието е
+      // записано. Второ извикване остава невъзможно: базата пази висящото
+      // извикване и не допуска ново уточнение по същото право.
+      if (!marked) {
+        return fail(
+          PRODUCT_LEDGER_UNAVAILABLE_CODE,
+          503,
+          headers,
+          cid,
+          PRODUCT_LEDGER_UNAVAILABLE_MESSAGE,
+        );
+      }
       return fail("reconciliation_required", 409, headers, cid);
     };
-    // Истината „доставчикът е бил докоснат“ се пази явно: само преди това
-    // включеното уточнение може да бъде освободено.
-    let providerAttempted = false;
+
 
 
     try {
@@ -390,20 +411,30 @@ Deno.serve(async (req) => {
       );
       const reservation = (reservedRow ?? {}) as Record<string, unknown>;
       if (reserveErr || reservation.ok !== true) {
+        // Негоден ЗАПИСАН отговор значи, че извикването е приключило: това е
+        // неизяснено състояние, а не освобождаване на уточнението.
+        if (String(reservation.reason ?? "") === "stored_call_invalid") {
+          providerEvidence = true;
+          return await reconcileRefinement("output_unusable", callId);
+        }
         await failRefinement(String(reservation.reason ?? "call_reserve_failed"));
         return fail("refinement_failed", 409, headers, cid, MESSAGES.refinement_failed);
       }
-      let response: { output: unknown; inputTokens: number; outputTokens: number; elapsedMs: number };
+      let response: StoredRefinementResponse;
       if (reservation.status === "complete") {
-        response = reservation.response as typeof response;
+        // Трайно доказателство: извикването е приключило и е записано. Оттук
+        // нататък включеното уточнение НЕ може да бъде освободено.
+        providerEvidence = true;
+        response = validateStoredRefinementResponse(reservation.response);
       } else if (reservation.status === "pending") {
         // Заявено, но неприключено извикване: не се прави второ И включеното
         // уточнение НЕ се освобождава — изходът е неизяснен.
+        providerEvidence = true;
         return await reconcileRefinement("call_completion_unknown", callId);
       } else {
         const apiKey = Deno.env.get("LOVABLE_API_KEY") ?? "";
         const port = createProductModelPort({ apiKey, fetchImpl: fetch });
-        providerAttempted = true;
+        providerEvidence = true;
         response = await port.invoke(request);
         const responseCanonical = canonical({ output: response.output });
         const { data: recordedRow, error: recordErr } = await admin.rpc(
@@ -477,23 +508,14 @@ Deno.serve(async (req) => {
         headers,
       );
     } catch (error) {
-      // След докосване на доставчика включеното уточнение НЕ се освобождава —
-      // дори при негоден изход. Освобождаване е допустимо САМО при детерминиран
-      // провал ПРЕДИ доставчика (например редакция на личните данни).
-      if (providerAttempted) {
-        const code: ProductReconciliationCode = error instanceof ProductRefinementError
-          ? "output_unusable"
-          : "provider_outcome_unknown";
-        return await reconcileRefinement(code, `${refinementId}:refinement`);
+      // При трайно доказателство за извикване включеното уточнение НЕ се
+      // освобождава — дори при негоден изход. Освобождаване е допустимо САМО при
+      // детерминиран провал БЕЗ доказано извикване (например редакция на данни).
+      const outcome = decideRefinementOutcome({ providerEvidence, error });
+      if (outcome.action === "reconcile") {
+        return await reconcileRefinement(outcome.code, `${refinementId}:refinement`);
       }
-      const code = error instanceof ProductRefinementError
-        ? error.reason
-        : error instanceof ProductRedactionError
-          ? "redaction_failed"
-          : error instanceof ProductModelGatewayError
-            ? error.reason
-            : "refinement_failed";
-      await failRefinement(code);
+      await failRefinement(outcome.code);
       const message = error instanceof ProductRefinementError
         ? refinementMessage(error.reason)
         : MESSAGES.refinement_failed;

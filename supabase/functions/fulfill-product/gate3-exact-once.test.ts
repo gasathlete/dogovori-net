@@ -97,20 +97,41 @@ Deno.test("неизясненото състояние на задачата Н�
   assert(!/refund|restore/i.test(branch));
 });
 
-Deno.test("уточнението не се освобождава след докосване на доставчика", () => {
-  assert(refine.includes("let providerAttempted = false;"));
-  assert(refine.includes("providerAttempted = true;"));
-  const catchStart = refine.lastIndexOf("} catch (error) {");
-  const tail = refine.slice(catchStart);
-  const guard = tail.indexOf("if (providerAttempted)");
-  const free = tail.indexOf("await failRefinement(code)");
-  assert(guard > 0 && free > guard, "освобождаването трябва да е след проверката");
+Deno.test("уточнението не се освобождава при ТРАЙНО доказано извикване", () => {
+  assert(refine.includes("let providerEvidence = false;"));
+  assert(!refine.includes("providerAttempted"), "старата подмяна на истината е премахната");
+  // Приключено записано извикване е доказателство ПРЕДИ всяка употреба.
+  const complete = refine.indexOf('if (reservation.status === "complete")');
+  const evidence = refine.indexOf("providerEvidence = true;", complete);
+  const validate = refine.indexOf("validateStoredRefinementResponse", complete);
+  assert(complete > 0 && evidence > complete && validate > evidence);
+  // Последна граница: освобождаването е невъзможно при доказано извикване.
+  const guardStart = refine.indexOf("const failRefinement = async");
+  const guard = refine.slice(guardStart, refine.indexOf("};", guardStart));
+  assert(guard.includes("if (providerEvidence) return;"));
+  // Решението кой изход е верен е на едно място и е поведенчески тествано.
+  assert(refine.includes("decideRefinementOutcome({ providerEvidence, error })"));
+  // Негоден ЗАПИСАН отговор е неизяснено състояние, не провал.
+  assert(refine.includes('=== "stored_call_invalid"'));
+  assert(refine.includes('reconcileRefinement("output_unusable", callId)'));
   // Неприключеното и незаписаното извикване вече не освобождават уточнението.
   assert(!refine.includes('await failRefinement("call_completion_unknown")'));
   assert(!refine.includes('await failRefinement("persist_failed")'));
   assert(refine.includes('reconcileRefinement("call_completion_unknown"'));
   assert(refine.includes('reconcileRefinement("call_record_unknown"'));
   assert(refine.includes('reconcileRefinement("persist_unknown"'));
+});
+
+Deno.test("пропаднало вписване НЕ се обявява за трайно състояние", () => {
+  for (const source of [fulfil, refine]) {
+    assert(source.includes("PRODUCT_LEDGER_UNAVAILABLE_CODE"));
+    assert(source.includes("503"));
+    const marked = source.indexOf("const marked = await mark");
+    assert(marked > 0, "резултатът от вписването се проверява");
+    const branch = source.slice(marked, marked + 900);
+    assert(branch.includes("if (!marked)"));
+    assert(!/release_product_job_lease|fail_product_result_refinement/.test(branch));
+  }
 });
 
 Deno.test("уточнението чете състоянието за изясняване преди наема и доставчика", () => {
