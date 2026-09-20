@@ -355,16 +355,53 @@ function AnonChat({ resetKey }: { resetKey: number }) {
       const { data, error } = await supabase.functions.invoke("assistant-chat-anon", {
         body: { messages: next, request_id: pendingRequestIdRef.current },
       });
-      if (error) throw error;
+      const payload = (data ?? {}) as {
+        reply?: string;
+        followups?: string[];
+        citations?: Citation[];
+        remaining?: number;
+        code?: string;
+        error?: string;
+        retry_after_seconds?: number;
+      };
+      if (typeof payload.remaining === "number") {
+        setServerRemaining(Math.max(0, payload.remaining));
+      }
+      if (error || payload.error || !payload.reply) {
+        const code = payload.code ?? "";
+        // Изчерпан лимит: заключваме входа с ясното съобщение на сървъра.
+        if (code === "limit_reached") {
+          setServerLimitReached(true);
+          setServerRemaining(0);
+          pendingRequestIdRef.current = null;
+          return;
+        }
+        // Временна недостъпност: ключът се пази, за да е повторният опит
+        // безплатен и без втори отговор.
+        const retryable = code === "entitlement_unavailable" ||
+          code === "identity_unavailable" || code === "too_many_attempts" || !code;
+        const content = retryable
+          ? "Услугата е временно недостъпна. Опитайте отново след малко — това съобщение не е изразходвано."
+          : "Не успяхме да обработим това запитване. Опитайте с друг въпрос или се регистрирайте за пълен достъп.";
+        if (!retryable) pendingRequestIdRef.current = null;
+        const finalMsgs: AnonMsg[] = [...next, { role: "assistant", content }];
+        setMessages(finalMsgs);
+        setFollowups([]);
+        saveAnonStored({ messages: finalMsgs, followups: [], updatedAt: Date.now() });
+        return;
+      }
       pendingRequestIdRef.current = null;
-      const reply = (data as { reply?: string })?.reply ?? "Извинете, опитайте отново.";
-      const fups = ((data as { followups?: string[] })?.followups ?? []).slice(0, 3);
-      const cits = ((data as { citations?: Citation[] })?.citations ?? []).slice(0, 3);
-      streamAssistantReply(next, reply, cits, fups);
+      const fups = (payload.followups ?? []).slice(0, 3);
+      const cits = (payload.citations ?? []).slice(0, 3);
+      streamAssistantReply(next, payload.reply, cits, fups);
     } catch {
       const finalMsgs: AnonMsg[] = [
         ...next,
-        { role: "assistant", content: "Грешка при връзка. Опитайте отново или се регистрирайте за пълен достъп." },
+        {
+          role: "assistant",
+          content:
+            "Връзката прекъсна. Опитайте отново — това съобщение не е изразходвано.",
+        },
       ];
       setMessages(finalMsgs);
       setFollowups([]);
@@ -375,6 +412,7 @@ function AnonChat({ resetKey }: { resetKey: number }) {
       requestAnimationFrame(() => inputRef.current?.focus());
     }
   };
+
 
   return (
     <div className="flex h-full min-h-0 flex-col">
