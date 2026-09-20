@@ -324,7 +324,7 @@ Deno.serve(async (req: Request) => {
     });
 
     const {
-      reserveQuota,
+      reserveQuotaNoCharge,
       commitQuota,
       cancelQuota,
       billingReconciliationResponse,
@@ -334,24 +334,25 @@ Deno.serve(async (req: Request) => {
       operationInProgressResponse,
       responseExpiredResponse,
     } = await import("../_shared/quota-ledger.ts");
-    type LedgerDb = Parameters<typeof reserveQuota>[0];
+    type LedgerDb = Parameters<typeof reserveQuotaNoCharge>[0];
     const ledgerDb = admin as unknown as LedgerDb;
     const jsonHeaders = {
       ...corsHeaders,
       ...correlationHeaders(correlationId),
       "Content-Type": "application/json",
     };
-    // Забележка за одита: build-custom-contract ИСТОРИЧЕСКИ НЕ таксуваше квота
-    // при генериране (само дневен лимит от 5 през ai_usage) — квотата „contract"
-    // се пази за самото сваляне (download-document). За да получи операцията
-    // траен точно-веднъж леджър (задължителен за идемпотентност/повторение),
-    // тя се обвързва с вида „analysis" — СЪЩИЯТ вид, ползван от generate-contract
-    // и refine-contract за AI генериране/редакция на договор. Това Е поведенческа
-    // промяна (виж отчета към задачата) и НЕ въвежда нов, изобретен вид квота.
+    // build-custom-contract ОСТАВА БЕЗПЛАТНО генериране (само дневният лимит
+    // от 5 през ai_usage важи тук) — квотата „contract" се плаща отделно, при
+    // самото сваляне (download-document). За да получи операцията траен
+    // точно-веднъж леджър (задължителен за идемпотентност/повторение) БЕЗ да
+    // въвежда ново, скрито таксуване, резервацията минава през
+    // quota_reserve_no_charge: записва се пълното обвързване с
+    // charged = false, source = 'no_charge', но НЕ се докосва download_quota
+    // и НЕ се консумира абонамент/топъп/бонус/сесийно право.
     const ledgerBinding = {
       operationId,
       userId,
-      kind: "analysis" as const,
+      kind: "contract" as const,
       purpose: "build_custom_contract",
       batchId: null,
       requestDigest,
@@ -562,9 +563,10 @@ ${fieldsSection}
     }
     const activeSystemPrompt = `${baseSystem}\n\n${legal.promptBlock}`;
 
-    // ТАКСУВАНЕ: след всички непарични проверки. ЕДИН леджър, идемпотентен по
-    // ключа на операцията и обвързан със съдържанието на заявката.
-    const reservation = await reserveQuota(ledgerDb, ledgerBinding);
+    // РЕЗЕРВАЦИЯ БЕЗ ТАКСА: след всички непарични проверки. ЕДИН леджър,
+    // идемпотентен по ключа на операцията и обвързан със съдържанието на
+    // заявката — но БЕЗ никакво ново начисляване (виж бележката по-горе).
+    const reservation = await reserveQuotaNoCharge(ledgerDb, ledgerBinding);
     if (reservation.status === "conflict") return conflictResponse();
     if (reservation.status === "reconciliation") {
       await recordReconciliation(ledgerDb, operationId, `build_custom_contract_reserve:${reservation.reason}`, {
