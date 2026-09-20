@@ -110,9 +110,6 @@ Deno.serve(async (req: Request) => {
     const route = routeModel("refine-contract", classification, { userConfirmed });
 
     if (!route.allowed) {
-      if (batchCharged) {
-        await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
-      }
       await logAiAudit({
         user_id: userId, operation: "refine-contract", model: "",
         classification, redaction_applied: false, status: "blocked",
@@ -124,9 +121,6 @@ Deno.serve(async (req: Request) => {
       }), { status: 422, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
     }
     if (route.requireConfirmation) {
-      if (batchCharged) {
-        await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
-      }
       return new Response(JSON.stringify({
         error: "needs_confirmation",
         code: "sensitive_data_confirmation_required",
