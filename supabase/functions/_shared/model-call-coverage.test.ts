@@ -242,3 +242,33 @@ Deno.test("build-custom-contract няма автоматичен запис в c
     "build-custom-contract все още записва в custom_contract_blanks без изричен, версиониран opt-in",
   );
 });
+
+Deno.test("честност на манифеста: четирите документни операции са защитени, но още блокират пускането", async () => {
+  const expected: Record<string, string> = {
+    "correct-uploaded": "correct_uploaded",
+    "generate-linked-document": "generate_linked_document",
+    "negotiation-strategy": "negotiation_strategy",
+    "ocr-contract": "ocr_contract",
+  };
+  for (const [fn, purpose] of Object.entries(expected)) {
+    const entry = (manifest.ledgerEnforced as Array<Record<string, unknown>>).find(
+      (e) => e.function === fn,
+    );
+    assert(entry, `${fn} трябва да е в защитените крайни точки`);
+    assertEquals(entry!.mechanism, "ai_document_operations");
+    assertEquals(entry!.purpose, purpose);
+    assertEquals(entry!.maxChatRequestsPerOperation, documentBudget(purpose));
+    // Защитата в кода НЕ е доказана в базата: миграцията и pgTAP не са пускани.
+    assertEquals(entry!.releaseBlocking, true, `${fn} не бива да се обявява за незаблокиращ`);
+    const blockers = entry!.releaseBlockers as string[] | undefined;
+    assert(Array.isArray(blockers) && blockers.length >= 3, `${fn} няма изброени блокери`);
+    const src = await readHandler(fn);
+    assert(src.includes("operation_id"), `${fn} трябва да изисква operation_id`);
+  }
+  for (const fn of ["download-document", "refine-product", "fulfill-product"]) {
+    assert(
+      manifest.releaseBlockingInventory.some((e) => e.function === fn),
+      `${fn} трябва да остане изброен блокер`,
+    );
+  }
+});
