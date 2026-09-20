@@ -47,11 +47,18 @@ import {
 import type { NegotiationPackageResult } from "../_shared/product-result-contract.ts";
 import {
   markProductRefinementReconciliation,
+  PRODUCT_LEDGER_UNAVAILABLE_CODE,
+  PRODUCT_LEDGER_UNAVAILABLE_MESSAGE,
   PRODUCT_RECONCILIATION_MESSAGE,
   type ProductReconciliationCode,
   readProductReconciliationState,
   type ReconciliationRpcClient,
 } from "../_shared/product-reconciliation.ts";
+import {
+  decideRefinementOutcome,
+  type StoredRefinementResponse,
+  validateStoredRefinementResponse,
+} from "../_shared/product-refinement-outcome.ts";
 import { modelPrice } from "../_shared/product-generation-policy.ts";
 
 /** Точна цена в цели micro-USD по датираната таблица на политиката. */
