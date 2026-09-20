@@ -586,8 +586,6 @@ ${answersRedacted}
     }
     compensated = true;
 
-    await logAiAudit({    compensated = true;
-
     await logAiAudit({
       user_id: userId, operation: "apply-corrections", model: route.model,
       classification, redaction_applied: route.redactionRequired,
