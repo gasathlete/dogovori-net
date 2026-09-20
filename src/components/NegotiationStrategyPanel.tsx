@@ -47,10 +47,35 @@ export function NegotiationStrategyPanel({
       return;
     }
     setLoading(true);
+    // Устойчив идентификатор на операцията: същият при двойно натискане,
+    // повторно показване, презареждане, временна грешка и загубен отговор.
+    const { data: sessionData } = await supabase.auth.getSession();
+    const uid = sessionData.session?.user?.id;
+    if (!uid) {
+      setLoading(false);
+      toast.error("Влезте в профила си, за да изготвим стратегията.");
+      return;
+    }
+    const { clearDocumentOperation, documentOperationScope, documentOperationUserKey, getOrCreateDocumentOperationId } =
+      await import("@/lib/documentOperationKey");
+    const userKey = await documentOperationUserKey(uid);
+    const scope = await documentOperationScope({
+      purpose: "negotiation_strategy",
+      userId: uid,
+      resourceId: analysisId,
+      options: { force },
+    });
+    const operationId = getOrCreateDocumentOperationId("negotiation_strategy", userKey, scope);
     try {
       const { data, error } = await supabase.functions.invoke("negotiation-strategy", {
-        body: { analysis_id: analysisId, force },
+        body: { analysis_id: analysisId, force, operation_id: operationId },
       });
+      const status = Number((error as { context?: { status?: number } } | null)?.context?.status ?? 0);
+      // Ключът се освобождава САМО при доказан изход: успех, конфликт, изтекъл
+      // резултат. Временна грешка/таймаут запазват същия ключ.
+      if (!error || status === 409 || status === 410) {
+        clearDocumentOperation("negotiation_strategy", userKey, scope);
+      }
       // Правна преграда: анализът остава на екрана, няма такса, има ръчен опит.
       if (
         (await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable(
