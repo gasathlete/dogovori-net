@@ -98,3 +98,42 @@ Deno.test("грешка при запис не твърди изразходва
   const r = await consumeAnonDelivered(db, "ip");
   assertEquals(r.ok, false);
 });
+
+Deno.test("грешка при ЧЕТЕНЕ не дава свежо право (fail-closed)", async () => {
+  // deno-lint-ignore no-explicit-any
+  const db: any = {
+    from: () => ({
+      select: () => ({
+        eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: { message: "db down" } }) }),
+      }),
+    }),
+  };
+  const state = await readAnonEntitlement(db, "ip");
+  assertEquals(state.unavailable, true);
+  assertEquals(state.remaining, 0);
+  // Недостъпността НЕ е изчерпан лимит.
+  assertEquals(state.exhausted, false);
+});
+
+Deno.test("грешка при запис се докладва като недостъпност, не като лимит", async () => {
+  // deno-lint-ignore no-explicit-any
+  const db: any = { rpc: () => Promise.resolve({ data: null, error: { message: "db down" } }) };
+  const r = await consumeAnonDelivered(db, "ip");
+  assertEquals(r.ok, false);
+  assertEquals(r.unavailable, true);
+  assertEquals(r.exhausted, false);
+});
+
+Deno.test("неуспешен опит се освобождава, за да не изгаря повторния опит", async () => {
+  const { db, rows } = fakeDb();
+  const res = await reserveAnonOperation(db, "ip", "req-1");
+  assertEquals(res.ok, true);
+  // Второ резервиране със същия ключ би било отказано...
+  assertEquals((await reserveAnonOperation(db, "ip", "req-1")).replay, true);
+  // ...но след освобождаване същият UUID работи отново.
+  const released = await releaseAnonOperation(db, "ip", "req-1");
+  assertEquals(released.released, true);
+  assertEquals(rows.has(anonOperationKey("ip", "req-1")), false);
+  assertEquals((await reserveAnonOperation(db, "ip", "req-1")).ok, true);
+});
+
