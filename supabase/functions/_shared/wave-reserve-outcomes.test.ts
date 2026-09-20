@@ -6,7 +6,7 @@
  * заявка вместо празен отговор.
  */
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { reserveQuotaWave } from "./quota-ledger.ts";
+import { reserveQuotaWave, type WaveBinding } from "./quota-ledger.ts";
 
 const DIGEST = "a".repeat(64);
 
@@ -21,7 +21,7 @@ function stubDb(row: Record<string, unknown>) {
   };
 }
 
-const binding = {
+const binding: WaveBinding = {
   operationId: "11111111-1111-4111-8111-111111111111",
   userId: "22222222-2222-4222-8222-222222222222",
   kind: "analysis",
