@@ -397,12 +397,13 @@ Deno.serve(async (req) => {
       if (reservation.status === "complete") {
         response = reservation.response as typeof response;
       } else if (reservation.status === "pending") {
-        // Заявено, но неприключено извикване: не се прави второ.
-        await failRefinement("call_completion_unknown");
-        return fail("refinement_failed", 409, headers, cid, MESSAGES.refinement_failed);
+        // Заявено, но неприключено извикване: не се прави второ И включеното
+        // уточнение НЕ се освобождава — изходът е неизяснен.
+        return await reconcileRefinement("call_completion_unknown", callId);
       } else {
         const apiKey = Deno.env.get("LOVABLE_API_KEY") ?? "";
         const port = createProductModelPort({ apiKey, fetchImpl: fetch });
+        providerAttempted = true;
         response = await port.invoke(request);
         const responseCanonical = canonical({ output: response.output });
         const { data: recordedRow, error: recordErr } = await admin.rpc(
@@ -431,8 +432,8 @@ Deno.serve(async (req) => {
         );
         const recorded = (recordedRow ?? {}) as Record<string, unknown>;
         if (recordErr || recorded.ok !== true) {
-          await failRefinement(String(recorded.reason ?? "call_record_failed"));
-          return fail("refinement_failed", 409, headers, cid, MESSAGES.refinement_failed);
+          // Моделът вече е бил извикан, но отговорът не е записан: неизяснено.
+          return await reconcileRefinement("call_record_unknown", callId);
         }
       }
 
