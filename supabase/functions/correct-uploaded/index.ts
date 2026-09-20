@@ -16,6 +16,22 @@ import { logAiAudit } from "../_shared/ai-call.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
 import { CORRECTION_PRESERVATION_SUFFIX } from "./request.ts";
 import { runCorrectionPreflight, type AnalysisRow, type ContractRow } from "./preflight.ts";
+import { canonicalize, sha256Hex } from "../_shared/canonical-digest.ts";
+import {
+  asOperationId,
+  cancelDocumentOperation,
+  canonicalDocumentBinding,
+  commitDocumentOperation,
+  ledgerBlockResponse,
+  ledgerUnavailableResponse,
+  lookupDocumentOperation,
+  markDocumentModelStarted,
+  markDocumentReconciliation,
+  operationIdRequiredResponse,
+  operationReconciliationResponse,
+  ProviderCallBudget,
+  reserveDocumentOperation,
+} from "../_shared/ai-document-ledger.ts";
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект. Получаваш СУРОВ ТЕКСТ на договор и списък от установени правни проблеми и липсващи клаузи.
 
