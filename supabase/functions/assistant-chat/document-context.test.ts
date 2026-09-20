@@ -139,7 +139,7 @@ Deno.test("системният блок ползва `redacted`, не несъ�
   assert(!built.message.content.includes("Иван Петров"));
   // Редактираният контекст присъства с разделителите.
   assert(built.message.content.includes("<UNTRUSTED_DOCUMENT>"));
-  assert(/<EMAIL_\d+(?:_[0-9a-f]+)?>/.test(built.message.content));
+  assert(/<EMAIL_\d+(?:_[0-9a-z]+)?>/.test(built.message.content));
   assert(Object.values(built.mapping).includes("ivan@example.com"));
   assertEquals(built.truncated, false);
 });

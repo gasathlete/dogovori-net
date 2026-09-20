@@ -7,10 +7,34 @@ import {
   reserveQuota,
 } from "./quota-ledger.ts";
 
-type Row = { state: string; charged: boolean; source: string };
+type Row = {
+  state: string;
+  charged: boolean;
+  source: string;
+  userId: string;
+  kind: string;
+  purpose: string;
+  sessionId: string | null;
+  docKey: string | null;
+  batchId: string | null;
+  requestDigest: string;
+  resultRef: Record<string, unknown> | null;
+  cancelledAt: string | null;
+  reconciliationRequired: boolean;
+};
 
-/** Минимален двойник на SQL семантиката, за да се тества контрактът. */
-function fakeDb(opts: { fail?: string; bonus?: boolean; sessionReuse?: boolean } = {}) {
+/** Минимален двойник на SQL семантиката (0031), за да се тества контрактът. */
+function fakeDb(
+  opts: {
+    fail?: string;
+    bonus?: boolean;
+    sessionReuse?: boolean;
+    /** Отмяната е записана, но НЕ е доказана (cancelled_at IS NULL). */
+    cancelUnproven?: boolean;
+    /** Отменена операция, маркирана за изравняване. */
+    cancelNeedsReconciliation?: boolean;
+  } = {},
+) {
   const ledger = new Map<string, Row>();
   const reconciliations: Record<string, unknown>[] = [];
   const calls: string[] = [];
@@ -27,15 +51,77 @@ function fakeDb(opts: { fail?: string; bonus?: boolean; sessionReuse?: boolean }
       if (name === "quota_reserve") {
         const existing = ledger.get(id);
         if (existing) {
+          // ПЪЛНО обвързване, включително batch_id: всяко несъответствие е конфликт.
+          const mismatch = existing.userId !== String(args.p_user_id) ||
+            existing.kind !== String(args.p_kind) ||
+            existing.purpose !== String(args.p_purpose ?? "unspecified") ||
+            existing.sessionId !== ((args.p_session_id ?? null) as string | null) ||
+            existing.docKey !== ((args.p_doc_key ?? null) as string | null) ||
+            existing.batchId !== ((args.p_batch_id ?? null) as string | null) ||
+            existing.requestDigest !== String(args.p_request_digest);
+          if (mismatch) {
+            return Promise.resolve({ data: null, error: { message: "idempotency_key_conflict" } });
+          }
+          if (existing.state !== "cancelled") {
+            return Promise.resolve({
+              data: {
+                ok: true,
+                replay: true,
+                state: existing.state,
+                charged: existing.charged,
+                source: existing.source,
+                result_ref: existing.resultRef,
+              },
+              error: null,
+            });
+          }
+          if (existing.reconciliationRequired) {
+            return Promise.resolve({
+              data: { ok: false, reason: "reconciliation_required", state: "cancelled", replay: true },
+              error: null,
+            });
+          }
+          if (existing.cancelledAt === null) {
+            return Promise.resolve({
+              data: { ok: false, reason: "cancellation_unproven", state: "cancelled", replay: true },
+              error: null,
+            });
+          }
+          // ДОКАЗАНА отмяна: нов опит по същия ключ таксува наново (retry).
+          const source = opts.bonus ? "bonus" : "free_plan";
+          Object.assign(existing, {
+            state: "reserved",
+            charged: true,
+            source,
+            resultRef: null,
+            cancelledAt: null,
+          });
           return Promise.resolve({
-            data: { ok: existing.state !== "cancelled", replay: true, state: existing.state, charged: existing.charged, source: existing.source },
+            data: { ok: true, replay: false, state: "reserved", charged: true, source, retry: true, result_ref: null },
             error: null,
           });
         }
         const source = opts.sessionReuse ? "session_reuse" : opts.bonus ? "bonus" : "free_plan";
         const charged = !opts.sessionReuse;
-        ledger.set(id, { state: "reserved", charged, source });
-        return Promise.resolve({ data: { ok: true, replay: false, state: "reserved", charged, source }, error: null });
+        ledger.set(id, {
+          state: "reserved",
+          charged,
+          source,
+          userId: String(args.p_user_id),
+          kind: String(args.p_kind),
+          purpose: String(args.p_purpose ?? "unspecified"),
+          sessionId: (args.p_session_id ?? null) as string | null,
+          docKey: (args.p_doc_key ?? null) as string | null,
+          batchId: (args.p_batch_id ?? null) as string | null,
+          requestDigest: String(args.p_request_digest),
+          resultRef: null,
+          cancelledAt: null,
+          reconciliationRequired: false,
+        });
+        return Promise.resolve({
+          data: { ok: true, replay: false, state: "reserved", charged, source, retry: false, result_ref: null },
+          error: null,
+        });
       }
       if (name === "quota_commit") {
         const row = ledger.get(id);
@@ -44,8 +130,14 @@ function fakeDb(opts: { fail?: string; bonus?: boolean; sessionReuse?: boolean }
           return Promise.resolve({ data: { ok: false, reason: "commit_after_cancel" }, error: null });
         }
         const replay = row.state === "committed";
+        if (!replay && args.p_result_ref) {
+          row.resultRef = args.p_result_ref as Record<string, unknown>;
+        }
         row.state = "committed";
-        return Promise.resolve({ data: { ok: true, replay, state: "committed", charged: row.charged }, error: null });
+        return Promise.resolve({
+          data: { ok: true, replay, state: "committed", charged: row.charged, result_ref: row.resultRef },
+          error: null,
+        });
       }
       if (name === "quota_cancel") {
         const row = ledger.get(id);
@@ -56,6 +148,9 @@ function fakeDb(opts: { fail?: string; bonus?: boolean; sessionReuse?: boolean }
         const replay = row.state === "cancelled";
         row.state = "cancelled";
         row.charged = false;
+        row.resultRef = null;
+        row.cancelledAt = opts.cancelUnproven ? null : new Date().toISOString();
+        row.reconciliationRequired = !!opts.cancelNeedsReconciliation;
         return Promise.resolve({ data: { ok: true, replay, state: "cancelled", charged: false }, error: null });
       }
       return Promise.resolve({ data: null, error: { message: "unexpected rpc" } });
@@ -199,4 +294,83 @@ Deno.test("невалиден отпечатък на заявката е кон
     assertEquals(r.status, "conflict");
   }
   assertEquals(called, false);
+});
+
+Deno.test("чист контракт: нов опит по същия ключ само при ДОКАЗАНА отмяна", () => {
+  assertEquals(
+    nextLedgerState("cancelled", "reserve", { cancellationProven: true }),
+    { state: "reserved", ok: true, replay: false, retry: true },
+  );
+  assertEquals(
+    nextLedgerState("cancelled", "reserve", { cancellationProven: false }).reason,
+    "cancellation_unproven",
+  );
+  assertEquals(nextLedgerState("cancelled", "reserve").ok, false);
+  assertEquals(
+    nextLedgerState("cancelled", "reserve", {
+      cancellationProven: true,
+      reconciliationRequired: true,
+    }).reason,
+    "reconciliation_required",
+  );
+});
+
+Deno.test("доказана отмяна: същият ключ се резервира наново точно веднъж", async () => {
+  const db = fakeDb();
+  await reserveQuota(db, base);
+  await cancelQuota(db, "op-1", "ai_gateway_500");
+  const retry = await reserveQuota(db, base);
+  assertEquals(retry.status, "reserved");
+  assertEquals((retry as { retry: boolean }).retry, true);
+  assertEquals((retry as { charged: boolean }).charged, true);
+  assertEquals((retry as { replay: boolean }).replay, false);
+  assertEquals(db.ledger.get("op-1")?.state, "reserved");
+});
+
+Deno.test("недоказана отмяна НЕ се таксува втори път, а иска изравняване", async () => {
+  const db = fakeDb({ cancelUnproven: true });
+  await reserveQuota(db, base);
+  await cancelQuota(db, "op-1", "x");
+  const again = await reserveQuota(db, base);
+  assertEquals(again.status, "reconciliation");
+  assertEquals((again as { reason: string }).reason, "cancellation_unproven");
+});
+
+Deno.test("отмяна, чакаща изравняване, блокира нов опит", async () => {
+  const db = fakeDb({ cancelNeedsReconciliation: true });
+  await reserveQuota(db, base);
+  await cancelQuota(db, "op-1", "x");
+  const again = await reserveQuota(db, base);
+  assertEquals(again.status, "reconciliation");
+  assertEquals((again as { reason: string }).reason, "reconciliation_required");
+});
+
+Deno.test("различен batch_id по същия ключ е конфликт без таксуване", async () => {
+  const db = fakeDb();
+  await reserveQuota(db, { ...base, batchId: "b-1" });
+  const conflict = await reserveQuota(db, { ...base, batchId: "b-2" });
+  assertEquals(conflict.status, "conflict");
+  assertEquals(db.ledger.get("op-1")?.batchId, "b-1");
+});
+
+Deno.test("различен отпечатък по същия ключ е конфликт", async () => {
+  const db = fakeDb();
+  await reserveQuota(db, base);
+  const conflict = await reserveQuota(db, { ...base, requestDigest: "d".repeat(64) });
+  assertEquals(conflict.status, "conflict");
+});
+
+Deno.test("потвърденият резултат се връща при загубен отговор, без ново генериране", async () => {
+  const db = fakeDb();
+  await reserveQuota(db, { ...base, batchId: "b-1" });
+  await commitQuota(db, "op-1", { contract: { title: "X" }, change_summary: "s" });
+  const replay = await reserveQuota(db, { ...base, batchId: "b-1" });
+  assertEquals(replay.status, "reserved");
+  assertEquals((replay as { replay: boolean }).replay, true);
+  assertEquals((replay as { charged: boolean }).charged, true);
+  assertEquals(
+    ((replay as { resultRef: Record<string, unknown> }).resultRef as { change_summary: string })
+      .change_summary,
+    "s",
+  );
 });

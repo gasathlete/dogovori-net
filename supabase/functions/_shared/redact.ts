@@ -212,10 +212,27 @@ const NAME_STOPWORDS = new Set([
  * получат чужда стойност. Солта прави това практически невъзможно, без да
  * разваля четимостта за модела.
  */
+/**
+ * Солта е САМО букви. Цифри в солта могат да бъдат разпознати от следващите
+ * правила (телефон/ЕГН) и токенът да бъде подменен втори път — тогава
+ * `unredact` не намира ключа и оригиналната стойност не се връща.
+ */
+function alphaOnlySalt(raw: string): string {
+  return raw.toLowerCase().replace(/[^a-z0-9]/g, "").replace(
+    /[0-9]/g,
+    (d) => String.fromCharCode(113 + Number(d)), // 0-9 -> q..z
+  );
+}
+
+/** Дълга цифрова серия в солта е рискова (телефон/ЕГН) → само тогава я обезцифряваме. */
+function safeSalt(raw: string): string {
+  return /\d{5,}/.test(raw) ? alphaOnlySalt(raw) : raw.toLowerCase();
+}
+
 function makeCallSalt(): string {
   const bytes = new Uint8Array(8);
   crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return alphaOnlySalt(Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join(""));
 }
 
 function makeCounter(
@@ -243,7 +260,9 @@ export function redactForAI(input: string, tokenSalt?: string): RedactionResult 
 
   const mapping: RedactionMapping = {};
   const stats: Record<string, number> = {};
-  const salt = tokenSalt && /^[a-z0-9]{4,32}$/i.test(tokenSalt) ? tokenSalt : makeCallSalt();
+  const salt = tokenSalt && /^[a-z0-9]{4,32}$/i.test(tokenSalt)
+    ? safeSalt(tokenSalt)
+    : makeCallSalt();
   let out = input;
 
   // Order matters: email/IBAN/ID_CARD first (съдържат цифрови серии). После
