@@ -15,7 +15,7 @@
 -- товара; retention_due_counts брои и асистентските редове, само-четящо.
 -- =============================================================================
 BEGIN;
-SELECT plan(123);
+SELECT plan(140);
 
 -- ---------------------------------------------------------------------------
 -- 0) Права: само service_role пипа леджъра на асистентския ход.
@@ -218,17 +218,16 @@ SELECT is(
 
 -- ---------------------------------------------------------------------------
 -- 8) Отмяна ПРЕДИ старт на модела: точно възстановяване, без underflow.
---    Използваме СЪЩИЯ разговор (същата ревизия 0 е свободна, защото op#1 вече
---    не е в 'reserved'/'committed').
+--    ВАЖНО: ревизията на op#1 остава ЗАЕТА, защото op#1 е за изравняване, затова
+--    тази операция върви по СОБСТВЕН нов разговор (виж секция 24).
 -- ---------------------------------------------------------------------------
 SELECT is(
   (public.assistant_turn_reserve(
     'a0000000-0000-4000-8000-000000000020', '11111111-1111-4111-8111-111111111111',
-    repeat('c', 64),
-    (SELECT thread_id FROM public.assistant_turn_operations
-      WHERE operation_id = 'a0000000-0000-4000-8000-000000000010'),
-    'platform_help', true, 'free', NULL, 180, '{}'::jsonb, 3))->>'status',
-  'reserved', 'нова резервация на СЪЩАТА ревизия е позволена след флагнатата операция');
+    repeat('c', 64), NULL,
+    'platform_help', true, 'free', NULL, 180,
+    '{"title":"Разговор за отмяна преди старт"}'::jsonb, 3))->>'status',
+  'reserved', 'резервация по нов разговор след флагнатата операция е позволена');
 SELECT is(
   (SELECT ai_messages_used FROM public.download_quota
     WHERE user_id = '11111111-1111-4111-8111-111111111111'), 2,
@@ -794,6 +793,132 @@ SELECT is(
     'a0000000-0000-4000-8000-0000000000f1', '55555555-5555-4555-8555-555555555555',
     repeat('1', 64), NULL, 'legal_strict', true, 'free', NULL, 180, '{}'::jsonb, 3))->>'status',
   'reconciliation', 'СЪЩАТА операция получава изравняване, не нова резервация');
+
+-- ---------------------------------------------------------------------------
+-- 25) PRO превъртане: по-късна легитимна употреба НЕ се изтрива от отмяната.
+-- ---------------------------------------------------------------------------
+INSERT INTO auth.users (id, email) VALUES
+  ('88888888-8888-4888-8888-888888888888', 'u8@example.com'),
+  ('99999999-9999-4999-8999-999999999999', 'u9@example.com');
+INSERT INTO public.profiles (id, display_name) VALUES
+  ('88888888-8888-4888-8888-888888888888', 'Потребител Осем'),
+  ('99999999-9999-4999-8999-999999999999', 'Потребител Девет');
+
+INSERT INTO public.download_quota (
+  user_id, plan, plan_ops_cap, pro_monthly_used, pro_period_start,
+  ai_messages_used, total_used, monthly_total_used,
+  monthly_contracts_used, monthly_templates_used, monthly_reset_at)
+VALUES (
+  '88888888-8888-4888-8888-888888888888', 'pro', 50, 9,
+  now() - interval '40 days', 4, 12, 9, 3, 6, now() - interval '40 days');
+
+SELECT is(
+  (public.assistant_turn_reserve(
+    'a0000000-0000-4000-8000-0000000000e9', '88888888-8888-4888-8888-888888888888',
+    repeat('5', 64), NULL, 'legal_strict', true, 'pro', NULL, 180,
+    '{"title":"Pro превъртане"}'::jsonb, 3))->>'status',
+  'reserved', 'pro резервация, която превърта и месечния, и pro прозореца');
+SELECT is(
+  (SELECT pro_monthly_used FROM public.download_quota
+    WHERE user_id = '88888888-8888-4888-8888-888888888888'), 1,
+  'превъртеният pro прозорец започва от тази операция');
+SELECT is(
+  (SELECT monthly_total_used FROM public.download_quota
+    WHERE user_id = '88888888-8888-4888-8888-888888888888'), 0,
+  'месечният брояч е превъртян на нула при pro път');
+
+-- Друга легитимна операция ползва СЪЩИЯ нов прозорец СЛЕД резервацията.
+UPDATE public.download_quota
+   SET pro_monthly_used = pro_monthly_used + 1,
+       monthly_total_used = monthly_total_used + 1,
+       monthly_contracts_used = monthly_contracts_used + 1,
+       total_used = total_used + 1
+ WHERE user_id = '88888888-8888-4888-8888-888888888888';
+
+SELECT is(
+  (public.assistant_turn_cancel(
+    'a0000000-0000-4000-8000-0000000000e9', '88888888-8888-4888-8888-888888888888',
+    'proven_preflight_failure'))->>'status',
+  'reconciliation', 'pro: недоказуемото възстановяване НЕ се прилага');
+SELECT is(
+  (public.assistant_turn_cancel(
+    'a0000000-0000-4000-8000-0000000000e9', '88888888-8888-4888-8888-888888888888',
+    'proven_preflight_failure'))->>'reason',
+  'later_usage', 'pro: причината е по-късна употреба в същия прозорец');
+SELECT is(
+  (SELECT pro_monthly_used FROM public.download_quota
+    WHERE user_id = '88888888-8888-4888-8888-888888888888'), 2,
+  'pro: по-късната употреба НЕ е изтрита от отмяната');
+SELECT is(
+  (SELECT monthly_total_used FROM public.download_quota
+    WHERE user_id = '88888888-8888-4888-8888-888888888888'), 1,
+  'pro: месечният брояч след резервацията е запазен');
+SELECT is(
+  (SELECT monthly_contracts_used FROM public.download_quota
+    WHERE user_id = '88888888-8888-4888-8888-888888888888'), 1,
+  'pro: броячът на договорите след резервацията е запазен');
+SELECT is(
+  (SELECT total_used FROM public.download_quota
+    WHERE user_id = '88888888-8888-4888-8888-888888888888'), 14,
+  'pro: общият брояч не е върнат назад върху по-късната употреба');
+SELECT is(
+  (SELECT state FROM public.assistant_turn_operations
+    WHERE operation_id = 'a0000000-0000-4000-8000-0000000000e9'), 'reconciliation',
+  'pro: операцията е в изравняване, не в отмяна');
+
+-- ---------------------------------------------------------------------------
+-- 26) ЕКИПНО превъртане: по-късна легитимна употреба НЕ се изтрива.
+-- ---------------------------------------------------------------------------
+INSERT INTO public.teams (id, name, owner_id, seat_count, status)
+VALUES ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'Екип на U9',
+  '99999999-9999-4999-8999-999999999999', 3, 'active');
+INSERT INTO public.team_members (team_id, user_id, role)
+VALUES ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+  '99999999-9999-4999-8999-999999999999', 'owner');
+INSERT INTO public.team_usage (team_id, ops_used, lifetime_ops, period_start)
+VALUES ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 240, 900,
+  now() - interval '40 days');
+
+SELECT is(
+  (public.assistant_turn_reserve(
+    'a0000000-0000-4000-8000-0000000000ea', '99999999-9999-4999-8999-999999999999',
+    repeat('6', 64), NULL, 'legal_strict', true, 'team',
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 180,
+    '{"title":"Екипно превъртане"}'::jsonb, 3))->>'status',
+  'reserved', 'екипна резервация, която превърта периода');
+SELECT is(
+  (SELECT ops_used FROM public.team_usage
+    WHERE team_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'), 1,
+  'превъртеният екипен период започва от тази операция');
+
+-- Друг член ползва СЪЩИЯ нов период СЛЕД резервацията.
+UPDATE public.team_usage
+   SET ops_used = ops_used + 2,
+       lifetime_ops = lifetime_ops + 2
+ WHERE team_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+
+SELECT is(
+  (public.assistant_turn_cancel(
+    'a0000000-0000-4000-8000-0000000000ea', '99999999-9999-4999-8999-999999999999',
+    'proven_preflight_failure'))->>'status',
+  'reconciliation', 'екип: недоказуемото възстановяване НЕ се прилага');
+SELECT is(
+  (public.assistant_turn_cancel(
+    'a0000000-0000-4000-8000-0000000000ea', '99999999-9999-4999-8999-999999999999',
+    'proven_preflight_failure'))->>'reason',
+  'later_usage', 'екип: причината е по-късна употреба в същия период');
+SELECT is(
+  (SELECT ops_used FROM public.team_usage
+    WHERE team_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'), 3,
+  'екип: по-късната употреба НЕ е изтрита от отмяната');
+SELECT is(
+  (SELECT lifetime_ops FROM public.team_usage
+    WHERE team_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'), 903,
+  'екип: пожизненият брояч не е върнат назад върху по-късната употреба');
+SELECT is(
+  (SELECT state FROM public.assistant_turn_operations
+    WHERE operation_id = 'a0000000-0000-4000-8000-0000000000ea'), 'reconciliation',
+  'екип: операцията е в изравняване, не в отмяна');
 
 -- ЗАБЕЛЕЖКА: истинска паралелна конкурентност (две сесии едновременно на
 -- pg_advisory_xact_lock/FOR UPDATE) НЕ се доказва тук — няма dblink/паралелни

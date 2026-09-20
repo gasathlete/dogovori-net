@@ -362,6 +362,18 @@ Deno.test("източникът: идентичността на заявкат�
     "суровото съобщение НЕ се отрязва преди обвързване и запис",
   );
   assert(
+    !/newMessage\s*=\s*rawMessage\.trim\(\)/.test(SRC),
+    "обвързаният текст НЕ се пре-нормализира с trim",
+  );
+  assert(
+    /const newMessage = rawMessage;/.test(SRC),
+    "обвързва се и се записва ТОЧНО изпратеният низ",
+  );
+  assert(
+    /!rawMessage\.trim\(\)/.test(SRC),
+    "празно съобщение се отказва по тримнатата стойност",
+  );
+  assert(
     /validateAnswerCitations\(cleaned, verifiedLegal\.chunks/.test(SRC),
     "проверката на цитатите получава подредените проверени извадки",
   );
@@ -380,4 +392,11 @@ Deno.test("клиентът: ключът на хода преживява въ�
     /setInput\(text\)/.test(inProgress.slice(0, 500)),
     "при вече течащ ход текстът се връща в полето за ръчен повторен опит",
   );
+});
+
+Deno.test("обвързването различава водещо/следващо празно място", async () => {
+  const a = await canonicalTurnBinding({ ...base, message: "Здравейте" });
+  const b = await canonicalTurnBinding({ ...base, message: " Здравейте" });
+  const c = await canonicalTurnBinding({ ...base, message: "Здравейте " });
+  assert(a !== b && a !== c && b !== c, "точната идентичност включва празното място");
 });
