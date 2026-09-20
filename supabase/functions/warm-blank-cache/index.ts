@@ -373,14 +373,9 @@ Deno.serve(async (req: Request) => {
           console.error(`[warm] upload failed ${storagePath}:`, upErr.message);
           return;
         }
-        const { error: insErr } = await admin
-          .from("document_blanks")
-          .upsert(
-            { sector_id: sectorId, document_name: documentName, storage_path: storagePath },
-            { onConflict: "sector_id,document_name" },
-          );
-        if (insErr) console.error(`[warm] index failed ${storagePath}:`, insErr.message);
-        else console.log(`[warm] generated ${storagePath}`);
+        // НЯМА вписване в document_blanks: черновата не става публична само
+        // защото съществува. Нужен е човешки преглед и проверим манифест.
+        console.log(`[warm] draft generated ${storagePath}`);
       } catch (e) {
         console.error(`[warm] generation failed ${storagePath}:`, (e as Error)?.message ?? e);
       }
