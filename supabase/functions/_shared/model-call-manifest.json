@@ -110,7 +110,7 @@
       "function": "assistant-chat",
       "trigger": "user",
       "mechanism": "assistant_turn_operations",
-      "idempotency": "mandatory client operation_id + canonical SHA-256 binding (user, requested/actual thread, prior turn revision, exact new message, context kind/entity/version, mode); read-only committed lookup before rate limit, legal embedding, provider key and any mutable gate; atomic reserve of exactly one entitlement path (team / pro-entrepreneur / free) -> mark_model_started -> buffered execution -> atomic commit that stores the exact SSE transcript and inserts at most one user message, one assistant message and one edit proposal; proven pre-provider failure cancels with exact restoration, post-start uncertainty becomes reconciliation without refund or second model call",
+      "idempotency": "mandatory client operation_id + canonical SHA-256 binding (explicit purpose assistant_chat, user, requested/actual thread marker, prior turn revision, exact new message, context kind/entity/version, mode, path); exact request identity validated before any mutable work (typed 400 message_too_long / invalid_thread_id, never a silently truncated message); read-only committed lookup before rate limit, legal embedding, provider key and any mutable gate; atomic reserve of exactly one entitlement path (team / pro-entrepreneur / free) -> mark_model_started -> buffered execution -> atomic commit that stores the exact SSE transcript and inserts at most one user message, one assistant message and one edit proposal; proven pre-provider failure cancels with exact restoration, post-start uncertainty becomes reconciliation without refund or second model call",
       "directGatewayCallSites": 2,
       "maxChatRequestsPerOperation": 9,
       "repair": {
@@ -122,9 +122,13 @@
       },
       "embedding": "separate embedding request for strict legal mode only; not a chat request and not a second entitlement",
       "deterministicModes": "platform_help allowlist and clarification turns commit exactly once with no model call and no charge",
+      "denialPurity": "denied/error/conflict reservations create no thread, no ledger row, no download_quota or team_usage row and change no counters; counter rows are inserted only after the entitlement decision",
+      "cancellationExactness": "rollover cancellation restores the whole window only when the current row still equals the exact post-reservation provenance snapshot; any later usage transitions only this operation to reconciliation without touching quota or team counters",
+      "unresolvedRevision": "an unresolved reconciliation row blocks a different operation from reserving the same thread revision (revision_unresolved); the same operation gets reconciliation",
+      "citationIntegrity": "every [S#] is validated against that exact ordered verified chunk (act, article, paragraph, case law) from its own metadata and content; out-of-range, wrong-act, wrong-article, wrong-paragraph and wrong-case references fail closed and the draft is not delivered after the single bounded repair",
       "unappliedMigration": "0039_assistant_turn_exact_once (paired drizzle + supabase copies, byte-identical) НЕ е приложена. Изходният код е пълен, но точно еднократното изпълнение НЕ Е ДОКАЗАНО в жива база.",
       "notProven": [
-        "pgTAP фикстурата supabase/tests/0039_assistant_turn_exact_once.sql (98 твърдения) НЕ е изпълнена — в тази среда няма PostgreSQL.",
+        "pgTAP фикстурата supabase/tests/0039_assistant_turn_exact_once.sql (123 твърдения) НЕ е изпълнена — в тази среда няма PostgreSQL.",
         "Реална едновременност (две сесии на СЪЩАТА ревизия на разговора) НЕ е доказана."
       ],
       "releaseBlocking": true,
