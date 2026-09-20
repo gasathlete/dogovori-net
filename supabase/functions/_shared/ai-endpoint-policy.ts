@@ -12,6 +12,8 @@
  *   основа на платените продукти;
  * - nonlegal_extraction — няма правни твърдения (например OCR);
  * - internal_test — никога не е видимо за клиент (симулации, регресии);
+ * - internal_pipeline — обработка на официални източници (embeddings), без
+ *   клиентски правен изход;
  * - editorial_draft_only — може да създава само чернова без самоодобрение.
  */
 export type AiEndpointClass =
@@ -19,7 +21,10 @@ export type AiEndpointClass =
   | "product_legal_output"
   | "nonlegal_extraction"
   | "internal_test"
-  | "editorial_draft_only";
+  | "editorial_draft_only"
+  // Вътрешен тръбопровод: изчисления върху официални източници (embeddings),
+  // без клиентски правен резултат.
+  | "internal_pipeline";
 
 export interface AiEndpointPolicy {
   readonly name: string;
@@ -31,6 +36,7 @@ export interface AiEndpointPolicy {
 }
 
 export const AI_ENDPOINT_POLICIES: readonly AiEndpointPolicy[] = Object.freeze([
+  { name: "ingest-legal-source", kind: "internal_pipeline", requiresStrictLegalGate: false, rationale: "Изчислява embeddings за официални правни източници; няма клиентски резултат." },
   { name: "assistant-chat", kind: "customer_legal_output", requiresStrictLegalGate: true, rationale: "Правни отговори към регистриран потребител." },
   { name: "assistant-chat-anon", kind: "customer_legal_output", requiresStrictLegalGate: true, rationale: "Правни отговори към анонимен посетител." },
   { name: "analyze-contract", kind: "customer_legal_output", requiresStrictLegalGate: true, rationale: "Проверка на документ преди подпис." },
