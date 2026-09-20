@@ -295,27 +295,45 @@ ${scopeNote}
     // FAIL-CLOSED: без проверена норма за тази заявка няма повикване към модел.
     if (!legal.hasMatches) {
       const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
-      return legalVerificationUnavailableResponse({ headers: { ...corsHeaders, ...correlationHeaders(correlationId) } });
+      return await cancelAndRespond(
+        "legal_unavailable",
+        legalVerificationUnavailableResponse({ headers: ledgerHeaders }),
+      );
     }
     const withLegal = `${baseSystem}\n\n${legal.promptBlock}`;
     // Ограниченията са ПОСЛЕДНИ — след активния промпт и RAG блока.
     const activeSystemPrompt = `${withLegal}\n\n${CORRECTION_PRESERVATION_SUFFIX}`;
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Lovable-API-Key": LOVABLE_API_KEY,
-        "Content-Type": "application/json",
-        "X-Lovable-AIG-SDK": "edge-function",
-      },
-      body: JSON.stringify({
-        model: route.model,
-        messages: [
-          { role: "system", content: activeSystemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        response_format: { type: "json_object" },
-      }),
+
+    // ТРАЙНО начало на модела ПРЕДИ първото повикване към доставчик.
+    const started = await markDocumentModelStarted(admin, {
+      operationId, userId, purpose: "correct_uploaded", binding,
     });
+    if (!started.ok) {
+      return ledgerBlockResponse(started.outcome, ledgerHeaders) ?? ledgerUnavailableResponse(ledgerHeaders);
+    }
+
+    budget.take();
+    let aiResp: Response;
+    try {
+      aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Lovable-API-Key": LOVABLE_API_KEY,
+          "Content-Type": "application/json",
+          "X-Lovable-AIG-SDK": "edge-function",
+        },
+        body: JSON.stringify({
+          model: route.model,
+          messages: [
+            { role: "system", content: activeSystemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          response_format: { type: "json_object" },
+        }),
+      });
+    } catch (_networkError) {
+      return await reconcileAndRespond("provider_uncertainty");
+    }
 
     if (!aiResp.ok) {
       await logAiAudit({
