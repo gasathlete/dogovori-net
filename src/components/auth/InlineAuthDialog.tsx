@@ -37,9 +37,9 @@ export function InlineAuthDialog() {
   const [privacy, setPrivacy] = useState(true);
   // Задължително съгласие за съхранение на име/имейл и вътрешни известия.
   const [notifications, setNotifications] = useState(true);
-  const [marketing, setMarketing] = useState(true);
-  // Отделен, изрично заявен отказ от имейл маркетинг.
-  const [marketingRefused, setMarketingRefused] = useState(false);
+  // Имейл маркетингът е по желание и започва ИЗКЛЮЧЕН (изричен opt-in).
+  // Неотметнато поле не създава никакъв маркетингов запис.
+  const [marketing, setMarketing] = useState(false);
   const successRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -131,8 +131,7 @@ export function InlineAuthDialog() {
       sessionStorage.setItem(
         "pending_consents",
         JSON.stringify({
-          marketing: marketing && !marketingRefused,
-          marketing_refused: marketingRefused,
+          marketing,
           operational_notifications: mode === "signup" ? notifications : true,
           terms: mode === "signup" ? terms : true,
           privacy: mode === "signup" ? privacy : true,
@@ -242,26 +241,11 @@ export function InlineAuthDialog() {
                   <Checkbox
                     id="inline-c-mkt"
                     checked={marketing}
-                    disabled={marketingRefused}
                     onCheckedChange={(v) => setMarketing(!!v)}
                     className="mt-0.5"
                   />
                   <Label htmlFor="inline-c-mkt" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
-                    Съгласявам се да получавам имейл съобщения за новости, бонуси и награди. <span className="text-muted-foreground">(по желание)</span>
-                  </Label>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Checkbox
-                    id="inline-c-mkt-refuse"
-                    checked={marketingRefused}
-                    onCheckedChange={(v) => {
-                      setMarketingRefused(!!v);
-                      if (v) setMarketing(false);
-                    }}
-                    className="mt-0.5"
-                  />
-                  <Label htmlFor="inline-c-mkt-refuse" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
-                    Изрично отказвам да получавам имейл маркетинг. <span className="text-muted-foreground">(по желание)</span>
+                    Искам да получавам имейл съобщения за новости, бонуси и награди. <span className="text-muted-foreground">(по желание — ако е празно, не Ви пишем)</span>
                   </Label>
                 </div>
               </div>

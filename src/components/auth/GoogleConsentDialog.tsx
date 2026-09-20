@@ -15,7 +15,7 @@ import { Loader2 } from "@/icons";
 interface GoogleConsentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (marketing: boolean, marketingRefused: boolean) => void;
+  onConfirm: (marketing: boolean) => void;
   busy?: boolean;
 }
 
@@ -25,9 +25,8 @@ export function GoogleConsentDialog({ open, onOpenChange, onConfirm, busy }: Goo
   const [privacy, setPrivacy] = useState(true);
   // Задължително: име и имейл за вътрешни известия и проверката при подпис.
   const [notifications, setNotifications] = useState(true);
-  // По желание — не блокира влизането с Google.
-  const [marketing, setMarketing] = useState(true);
-  const [marketingRefused, setMarketingRefused] = useState(false);
+  // По желание и изключено по подразбиране — изричен opt-in за имейл маркетинг.
+  const [marketing, setMarketing] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -35,11 +34,11 @@ export function GoogleConsentDialog({ open, onOpenChange, onConfirm, busy }: Goo
       setTerms(true);
       setPrivacy(true);
       setNotifications(true);
-      setMarketing(true);
-      setMarketingRefused(false);
+      setMarketing(false);
     }
   }, [open]);
 
+  // Маркетингът НЕ участва в готовността — влизането не се блокира заради него.
   const ready = age && terms && privacy && notifications;
 
   return (
@@ -109,33 +108,18 @@ export function GoogleConsentDialog({ open, onOpenChange, onConfirm, busy }: Goo
             <Checkbox
               id="g-mkt"
               checked={marketing}
-              disabled={marketingRefused}
               onCheckedChange={(v) => setMarketing(!!v)}
               className="mt-0.5"
             />
             <Label htmlFor="g-mkt" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
-              Съгласявам се да получавам имейл съобщения за новости, бонуси и награди. <span className="text-muted-foreground">(по желание)</span>
-            </Label>
-          </div>
-          <div className="flex items-start gap-2">
-            <Checkbox
-              id="g-mkt-refuse"
-              checked={marketingRefused}
-              onCheckedChange={(v) => {
-                setMarketingRefused(!!v);
-                if (v) setMarketing(false);
-              }}
-              className="mt-0.5"
-            />
-            <Label htmlFor="g-mkt-refuse" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
-              Изрично отказвам да получавам имейл маркетинг. <span className="text-muted-foreground">(по желание)</span>
+              Искам да получавам имейл съобщения за новости, бонуси и награди. <span className="text-muted-foreground">(по желание — ако е празно, не Ви пишем)</span>
             </Label>
           </div>
         </div>
 
         <Button
           type="button"
-          onClick={() => onConfirm(marketing && !marketingRefused, marketingRefused)}
+          onClick={() => onConfirm(marketing)}
           disabled={!ready || busy}
           className="btn-sheen w-full bg-gradient-gold text-navy hover:shadow-gold disabled:opacity-50"
         >
