@@ -138,15 +138,47 @@ Deno.serve(async (req: Request) => {
       `ЗАКЛЮЧЕНИЕ:\n${parentContract.closing ?? ""}`,
     ].join("\n\n").slice(0, 12000);
 
+    // КЛАСИФИКАЦИЯ + РЕДАКЦИЯ на ЦЯЛОТО изходящо съдържание (основен договор
+    // и указанията на потребителя) преди всяка външна заявка.
+    const outboundCorpus = `${notes}\n\n${parentText}`;
+    const classification = classifyDocumentBeforeAI(outboundCorpus);
+    if (classification.risk_level === "blocked") {
+      return new Response(
+        JSON.stringify({ error: "Съдържанието не може да бъде обработено.", code: "content_blocked", charged: false }),
+        { status: 422, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+      );
+    }
+    const redaction = redactForAI(outboundCorpus);
+    const [safeNotes, safeParentText] = (() => {
+      const parts = redaction.redacted.split("\n\n");
+      return [parts[0] ?? "", parts.slice(1).join("\n\n")];
+    })();
+
     const userPrompt = `ВИД НА СВЪРЗАНИЯ ДОКУМЕНТ: ${spec.label}${number ? ` №${number}` : ""}
-${notes ? `ДОПЪЛНИТЕЛНИ УКАЗАНИЯ ОТ ПОТРЕБИТЕЛЯ:\n${notes}\n` : ""}
+${safeNotes.trim() ? `ДОПЪЛНИТЕЛНИ УКАЗАНИЯ ОТ ПОТРЕБИТЕЛЯ:\n${safeNotes.trim()}\n` : ""}
 СПЕЦИФИКА ЗА ТОЗИ ВИД:
 ${spec.addendum}
 
 ОСНОВЕН ДОГОВОР (контекст — не преповтаряй, само реферирай):
-${parentText}
+${safeParentText}
 
 Задача: Изготви ПЪЛНИЯТ свързан документ на български според описаната по-горе структура. Върни СТРОГО валиден JSON по схемата.`;
+
+    // СТРОГО ЗАЗЕМЯВАНЕ преди модела и преди запис на ai_usage.
+    const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
+    const legal = await retrieveLegalContext(
+      admin,
+      LOVABLE_API_KEY,
+      `${spec.label} ${parentContract.title}\n${safeNotes}`.slice(0, 4000),
+      { matchCount: 6 },
+    );
+    if (!legal.hasMatches) {
+      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
+      return legalVerificationUnavailableResponse({
+        headers: { ...corsHeaders, ...correlationHeaders(correlationId) },
+      });
+    }
+    const groundedSystem = `${SYSTEM_PROMPT}\n\n${legal.promptBlock}`;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -154,12 +186,13 @@ ${parentText}
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: groundedSystem },
           { role: "user", content: userPrompt },
         ],
         response_format: { type: "json_object" },
       }),
     });
+
 
     if (!aiResp.ok) {
       if (aiResp.status === 429) {
