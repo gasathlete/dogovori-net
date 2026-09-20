@@ -177,7 +177,7 @@ describe("Изпълнението е устойчиво и остава без 
   it("свързва трайния call store и атомарния финален commit", () => {
     // Трайният запис на извикванията живее в общия модул, за да е проверим
     // мрежово тихо; функцията само го свързва с наема на задачата.
-    const CALL_STORE = read("supabase/functions/_shared/product-call-store.ts");
+    const CALL_STORE = readFileSync("supabase/functions/_shared/product-call-store.ts", "utf8");
     expect(CALL_STORE).toContain('admin.rpc("reserve_product_generation_call"');
     expect(CALL_STORE).toContain('admin.rpc("complete_product_generation_call"');
     expect(FULFILL).toContain("buildProductCallStore(admin as unknown as CallStoreRpcClient");
