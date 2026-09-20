@@ -374,6 +374,21 @@ ${answersRedacted}
       }
       return conflictResponse();
     }
+    if (reservation.status === "reconciliation") {
+      // Изтекъл лизинг или недоказано възстановяване: НЕ се резервира втори
+      // път, НЕ се таксува отново и НЕ се вика моделът.
+      await recordReconciliation(ledgerDb, operationId, `apply_corrections_wave_reserve:${reservation.reason}`, {
+        user_id: userId,
+        kind: "analysis",
+      });
+      return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+    }
+    if (reservation.status === "response_expired") {
+      return responseExpiredResponse(
+        { ...corsHeaders, ...correlationHeaders(correlationId) },
+        reservation.charged,
+      );
+    }
     if (reservation.status === "unavailable") return quotaUnavailableResponse();
     if (reservation.status === "denied") {
       return new Response(

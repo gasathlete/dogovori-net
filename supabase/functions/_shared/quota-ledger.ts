@@ -643,6 +643,10 @@ export type ReserveWaveOutcome =
     }
   | { readonly status: "in_progress"; readonly retryAfterSeconds: number }
   | { readonly status: "conflict"; readonly reason: string }
+  /** Недоказано състояние: НЕ се резервира втори път и НЕ се таксува отново. */
+  | { readonly status: "reconciliation"; readonly reason: string }
+  /** Потвърдена вълна без наличен точен товар — изисква се НОВА заявка. */
+  | { readonly status: "response_expired"; readonly charged: boolean }
   | { readonly status: "denied"; readonly reason: string; readonly raw: Record<string, unknown> }
   | { readonly status: "unavailable"; readonly message: string };
 
@@ -698,6 +702,12 @@ export async function reserveQuotaWave(
   }
   if (status === "conflict") {
     return { status: "conflict", reason: String(row.reason ?? IDEMPOTENCY_KEY_CONFLICT) };
+  }
+  if (status === "reconciliation") {
+    return { status: "reconciliation", reason: String(row.reason ?? "reconciliation_required") };
+  }
+  if (status === "response_expired") {
+    return { status: "response_expired", charged: true };
   }
   if (status === "denied") {
     return { status: "denied", reason: String(row.reason ?? "quota_denied"), raw: row };

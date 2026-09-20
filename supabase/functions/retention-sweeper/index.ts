@@ -5,6 +5,12 @@
 //   - ai_audit_log rows older than 12 months
 //   - orphaned storage objects in 'uploads' bucket
 //   - expired per-request blank artifacts listed in storage_artifacts
+//   - expired exact response payloads in ALL three layers: anon/review (0034),
+//     quota_operations.result (0035) and quota_wave_operations.result (0037).
+//     Only the payload is nulled; accounting, binding and state stay.
+//   - flags stale reserved waves for explicit reconciliation (no auto-refund)
+// `?count_only=1` reports real due counts for all three payload layers and the
+// stale-wave scan without mutating anything.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { requireServiceRole } from "../_shared/cron-auth.ts";
@@ -39,6 +45,13 @@ Deno.serve(async (req) => {
     exact_responses_examined: 0,
     exact_responses_cleared_anon: 0,
     exact_responses_cleared_review: 0,
+    quota_results_due: 0,
+    quota_results_cleared: 0,
+    wave_results_due: 0,
+    wave_results_cleared: 0,
+    // Изтекли резервации на вълни: САМО маркиране за изрично решение.
+    wave_stale_examined: 0,
+    wave_stale_flagged: 0,
     errors: [] as string[],
 
   };
@@ -163,6 +176,7 @@ Deno.serve(async (req) => {
       } catch {
         countOnly = false;
       }
+
       const { data: sweepData, error: sweepErr } = await supabase.rpc(
         "sweep_expired_exact_responses",
         { p_limit: 500, p_dry_run: countOnly },
@@ -175,6 +189,48 @@ Deno.serve(async (req) => {
         stats.exact_responses_examined = Number(r.anon_due ?? 0) + Number(r.review_due ?? 0);
         stats.exact_responses_cleared_anon = Number(r.anon_cleared ?? 0);
         stats.exact_responses_cleared_review = Number(r.review_cleared ?? 0);
+      }
+
+      // Единичните операции (0035).
+      const { data: quotaSweep, error: quotaSweepErr } = await supabase.rpc(
+        "sweep_expired_quota_results",
+        { p_limit: 500, p_dry_run: countOnly },
+      );
+      if (quotaSweepErr) {
+        stats.errors.push(`quota_result_sweep: ${quotaSweepErr.code ?? "rpc_error"}`);
+      } else {
+        const r = (quotaSweep ?? {}) as Record<string, unknown>;
+        stats.quota_results_due = Number(r.due ?? 0);
+        stats.quota_results_cleared = Number(r.cleared ?? 0);
+      }
+
+      // Вълните поправки (0037).
+      const { data: waveSweep, error: waveSweepErr } = await supabase.rpc(
+        "sweep_expired_quota_wave_results",
+        { p_limit: 500, p_dry_run: countOnly },
+      );
+      if (waveSweepErr) {
+        stats.errors.push(`quota_wave_result_sweep: ${waveSweepErr.code ?? "rpc_error"}`);
+      } else {
+        const r = (waveSweep ?? {}) as Record<string, unknown>;
+        stats.wave_results_due = Number(r.due ?? 0);
+        stats.wave_results_cleared = Number(r.cleared ?? 0);
+      }
+
+      // 7. Изтекли резервации на вълни: САМО маркиране + доказателство за
+      //    изравняване. Без автоматично връщане на квота и без пре-резервация.
+      if (!countOnly) {
+        const { data: waveStale, error: waveStaleErr } = await supabase.rpc(
+          "quota_wave_reconcile_stale",
+          { p_limit: 50 },
+        );
+        if (waveStaleErr) {
+          stats.errors.push(`quota_wave_reconcile_stale: ${waveStaleErr.code ?? "rpc_error"}`);
+        } else {
+          const r = (waveStale ?? {}) as Record<string, unknown>;
+          stats.wave_stale_examined = Number(r.examined ?? 0);
+          stats.wave_stale_flagged = Number(r.flagged ?? 0);
+        }
       }
     }
 
