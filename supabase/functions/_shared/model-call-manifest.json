@@ -105,16 +105,26 @@
         "parseAiJsonWithRetry": false,
         "regenerateAttempts": 0
       }
-    }
-  ],
-  "releaseBlockingInventory": [
+    },
     {
       "function": "assistant-chat",
       "trigger": "user",
-      "mechanism": "none",
-      "gap": "Няма трайна резервация и терминално уреждане за повикването към модела; повторното изпращане може да изпълни модела отново. Освен това ходът може да направи НЯКОЛКО заявки към доставчика (инструментални итерации и поправяне на JSON) без деклариран и наложен горен предел в трайна операция.",
-      "maxChatRequestsPerOperation": "unbounded/undeclared"
-    },
+      "mechanism": "assistant_turn_operations",
+      "idempotency": "mandatory client operation_id + canonical SHA-256 binding (user, requested/actual thread, prior turn revision, exact new message, context kind/entity/version, mode); read-only committed lookup before rate limit, legal embedding, provider key and any mutable gate; atomic reserve of exactly one entitlement path (team / pro-entrepreneur / free) -> mark_model_started -> buffered execution -> atomic commit that stores the exact SSE transcript and inserts at most one user message, one assistant message and one edit proposal; proven pre-provider failure cancels with exact restoration, post-start uncertainty becomes reconciliation without refund or second model call",
+      "directGatewayCallSites": 2,
+      "maxChatRequestsPerOperation": 9,
+      "repair": {
+        "policy": "up to MAX_TOOL_ITERATIONS=8 tool-loop chat requests plus at most one bounded legal-answer repair request in the same reservation",
+        "parseAiJsonWithRetry": false,
+        "regenerateAttempts": 0,
+        "toolIterations": 8,
+        "legalRepairRequests": 1
+      },
+      "embedding": "separate embedding request for strict legal mode only; not a chat request and not a second entitlement",
+      "deterministicModes": "platform_help allowlist and clarification turns commit exactly once with no model call and no charge"
+    }
+  ],
+  "releaseBlockingInventory": [
     {
       "function": "correct-uploaded",
       "trigger": "user",

@@ -280,6 +280,33 @@ Deno.serve(async (req) => {
       stats.wave_stale_flagged = Number(r.flagged ?? 0);
     }
 
+    // 8. Ходовете на асистента (0039): изтича САМО товарът на транскрипта;
+    //    съобщенията, обвързването и счетоводството остават.
+    const { data: turnSweep, error: turnSweepErr } = await supabase.rpc(
+      "sweep_expired_assistant_turn_results",
+      { p_limit: 500, p_dry_run: false },
+    );
+    if (turnSweepErr) {
+      fail("assistant_turn_result_sweep");
+    } else {
+      const r = (turnSweep ?? {}) as Record<string, unknown>;
+      stats.assistant_results_due = Number(r.due ?? 0);
+      stats.assistant_results_cleared = Number(r.cleared ?? 0);
+    }
+
+    // 9. Застояли ходове: САМО маркиране за изравняване, без авто-връщане.
+    const { data: turnStale, error: turnStaleErr } = await supabase.rpc(
+      "assistant_turn_reconcile_stale",
+      { p_limit: 50 },
+    );
+    if (turnStaleErr) {
+      fail("assistant_turn_reconcile_stale");
+    } else {
+      const r = (turnStale ?? {}) as Record<string, unknown>;
+      stats.assistant_stale_examined = Number(r.examined ?? 0);
+      stats.assistant_stale_flagged = Number(r.flagged ?? 0);
+    }
+
     return respond();
   } catch {
     // Без суров текст на изключението в лога и в отговора.

@@ -11,6 +11,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsPro } from "@/hooks/useIsPro";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { toast } from "sonner";
+import {
+  clearTurnOperation,
+  getOrCreateTurnOperationId,
+  turnScopeHash,
+} from "@/lib/assistantTurnKey";
 import { cn } from "@/lib/utils";
 import { Crown } from "@/icons";
 
@@ -618,6 +623,20 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
 
 
 
+    // Устойчив ключ на хода: обхват (потребител + разговор + контекст + път +
+    // точното съобщение) → един и същ идентификатор при retry/презареждане.
+    const turnPath = location.pathname.split("?")[0].split("#")[0];
+    const turnUserId = session.user?.id ?? "";
+    const turnScope = await turnScopeHash({
+      userId: turnUserId,
+      threadId: activeThreadId,
+      message: finalText,
+      contextKind: requestContext?.kind ?? null,
+      contextEntityId: requestContext?.entityId ?? null,
+      path: turnPath,
+    });
+    const turnOperationId = getOrCreateTurnOperationId(turnUserId, turnScope);
+
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistant-chat`;
     try {
       const resp = await fetch(url, {
@@ -629,11 +648,14 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
         body: JSON.stringify({
+          // Устойчива идентичност на хода: същият ключ при повторно изпращане.
+          operationId: turnOperationId,
+          // Само НОВОТО съобщение — историята е сървърна истина.
+          message: finalText,
           threadId: activeThreadId,
-          currentPath: location.pathname,
+          currentPath: turnPath,
           // Само {kind, entityId} — никакъв текст, payload или заглавие.
           documentContext: requestContext,
-          messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
         }),
       });
 
@@ -660,6 +682,18 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
           toast.error("Анализът е върху друга версия на документа.", {
             description: "Направете нов анализ, за да разговаряте по него.",
           });
+        } else if (code === "assistant_turn_in_progress") {
+          // Същият въпрос вече се обработва: не изпращаме нищо повторно.
+          toast.info("Този въпрос вече се обработва. Изчакайте отговора.");
+        } else if (code === "assistant_turn_reconciliation") {
+          toast.error("Изясняваме състоянието на предишния Ви въпрос.", {
+            description: "Опитайте отново след малко. Ако се повтори, свържете се с поддръжката.",
+          });
+        } else if (code === "assistant_turn_conflict" || code === "assistant_turn_response_expired") {
+          // Доказан конфликт/изтекъл отговор: ключът пада, текстът се връща.
+          clearTurnOperation(turnUserId, turnScope);
+          setInput(text);
+          toast.error("Изпратете съобщението отново.");
         } else if (code === "thread_unavailable" || code === "message_persist_failed") {
           toast.error((err as { error?: string }).error || "Услугата е временно недостъпна.");
         } else if (code === "document_not_found") {
@@ -802,6 +836,8 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
         setPersistedActiveThreadId(receivedThreadId);
       }
 
+      // Потвърден резултат: ключът вече не е нужен.
+      clearTurnOperation(turnUserId, turnScope);
       loadThreads();
       // Опресняваме показаното потребление след успешна заявка.
       void refreshPlan();

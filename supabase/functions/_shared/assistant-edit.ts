@@ -211,10 +211,30 @@ export interface ProposeDeps {
 
 export type ProposeResult = { ok: true; proposal: ProposalRecord } | Fail;
 
-export async function proposeSavedDocumentEdit(
+/** Редът, който ще бъде записан — БЕЗ да се записва тук. */
+export interface ProposalInsertRow {
+  user_id: string;
+  thread_id: string;
+  saved_document_id: string;
+  base_context_version: string;
+  base_updated_at: string;
+  target_path: string;
+  before_text: string;
+  after_text: string;
+  reason: string | null;
+  status: "pending";
+}
+
+export type ComputeProposalResult = { ok: true; insert: ProposalInsertRow } | Fail;
+
+/**
+ * ЧИСТА проверка без запис: доказва достъпа, точната версия и целевия лист и
+ * връща реда за по-късния АТОМАРЕН запис (вътре в commit на операцията).
+ */
+export async function computeSavedDocumentEditProposal(
   deps: ProposeDeps,
   args: EditTargetArgs,
-): Promise<ProposeResult> {
+): Promise<ComputeProposalResult> {
   if (deps.contextTruncated) return fail("edit_not_available");
 
   const path = buildTargetPath(args.target, args.index);
@@ -276,7 +296,7 @@ export async function proposeSavedDocumentEdit(
   const reason = sanitizeReason(args.reason, deps.restore);
   if (!reason.ok) return reason;
 
-  const insert = {
+  const insert: ProposalInsertRow = {
     user_id: deps.userId,
     thread_id: deps.threadId,
     saved_document_id: deps.documentId,
@@ -289,9 +309,23 @@ export async function proposeSavedDocumentEdit(
     status: "pending",
   };
 
+  return { ok: true, insert };
+}
+
+/**
+ * Съвместимост за пътища, които записват предложението веднага (не през
+ * трайния леджър на ходовете).
+ */
+export async function proposeSavedDocumentEdit(
+  deps: ProposeDeps,
+  args: EditTargetArgs,
+): Promise<ProposeResult> {
+  const computed = await computeSavedDocumentEditProposal(deps, args);
+  if (!computed.ok) return computed;
+
   const res = await deps.writer
     .from("assistant_edit_proposals")
-    .insert(insert)
+    .insert(computed.insert)
     .select("id, status, target_path, before_text, after_text, reason, saved_document_id, thread_id, created_at")
     .maybeSingle();
   if (res.error || !res.data) return fail("persist_failed");

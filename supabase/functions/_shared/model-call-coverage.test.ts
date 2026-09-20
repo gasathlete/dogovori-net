@@ -50,10 +50,10 @@ Deno.test("защитените крайни точки не използват 
 });
 
 Deno.test("защитените крайни точки имат резервация, уреждане и само-четящо търсене", async () => {
-  const reserve = /reserveQuota|reserveQuotaWave|reserveReviewOperation|reserveOwnedReviewOperation|reserveAnonDelivery/;
-  const commit = /commitQuota|commitQuotaWave|commitReviewOperation|commitOwnedReviewOperation|commitAnonDelivery/;
+  const reserve = /reserveQuota|reserveQuotaWave|reserveReviewOperation|reserveOwnedReviewOperation|reserveAnonDelivery|reserveTurn/;
+  const commit = /commitQuota|commitQuotaWave|commitReviewOperation|commitOwnedReviewOperation|commitAnonDelivery|commitTurn/;
   const lookup =
-    /lookupCommittedOperation|lookupCommittedWave|lookupReviewOperation|lookupOwnedReviewOperation|lookupAnonDelivery|reserveAnonDelivery/;
+    /lookupCommittedOperation|lookupCommittedWave|lookupReviewOperation|lookupOwnedReviewOperation|lookupAnonDelivery|reserveAnonDelivery|lookupTurn/;
   for (const entry of manifest.ledgerEnforced) {
     const src = await readHandler(entry.function);
     assert(reserve.test(src), `${entry.function} няма трайна резервация`);
@@ -104,7 +104,12 @@ Deno.test("защитените крайни точки нямат повече 
   type Entry = ManifestEntry & {
     directGatewayCallSites?: number;
     maxChatRequestsPerOperation?: number | string;
-    repair?: { parseAiJsonWithRetry?: boolean; regenerateAttempts?: number };
+    repair?: {
+      parseAiJsonWithRetry?: boolean;
+      regenerateAttempts?: number;
+      toolIterations?: number;
+      legalRepairRequests?: number;
+    };
   };
   for (const entry of manifest.ledgerEnforced as Entry[]) {
     const src = await readHandler(entry.function);
@@ -121,9 +126,30 @@ Deno.test("защитените крайни точки нямат повече 
     const usesRepair = src.includes("parseAiJsonWithRetry");
     const attemptsMatch = src.match(/regenerateAttempts:\s*(\d+)/);
     const attempts = usesRepair ? Number(attemptsMatch?.[1] ?? 1) : 0;
-    const expectedMax = (typeof entry.directGatewayCallSites === "number"
-      ? entry.directGatewayCallSites
-      : 1) + attempts;
+    // Цикълът с инструменти също праща заявки към доставчика в СЪЩАТА операция.
+    const iterMatch = src.match(/MAX_TOOL_ITERATIONS\s*=\s*(\d+)/);
+    const toolIterations = iterMatch ? Number(iterMatch[1]) : 0;
+    const legalRepair = /async function repairLegalAnswer\(/.test(src) ? 1 : 0;
+    const expectedMax = toolIterations > 0
+      ? toolIterations + legalRepair + attempts
+      : (typeof entry.directGatewayCallSites === "number" ? entry.directGatewayCallSites : 1) +
+        attempts;
+    if (toolIterations > 0) {
+      assertEquals(
+        entry.repair?.toolIterations ?? 0,
+        toolIterations,
+        `${entry.function}: декларираните итерации с инструменти не отговарят на кода`,
+      );
+      assertEquals(
+        entry.repair?.legalRepairRequests ?? 0,
+        legalRepair,
+        `${entry.function}: декларираното правно поправяне не отговаря на кода`,
+      );
+      assert(
+        src.includes("MAX_CHAT_REQUESTS_PER_OPERATION"),
+        `${entry.function}: таванът на заявките трябва да е наложен в кода`,
+      );
+    }
     assertEquals(
       entry.repair?.parseAiJsonWithRetry ?? false,
       usesRepair,
@@ -142,12 +168,26 @@ Deno.test("защитените крайни точки нямат повече 
   }
 });
 
-Deno.test("честност на манифеста: assistant-chat остава блокер с реален риск от няколко заявки", () => {
-  const entry = manifest.releaseBlockingInventory.find((e) => e.function === "assistant-chat");
-  assert(entry, "assistant-chat трябва да остане в списъка с блокери");
+Deno.test("честност на манифеста: assistant-chat е защитен с деклариран таван 9 заявки", async () => {
+  assertEquals(
+    manifest.releaseBlockingInventory.some((e) => e.function === "assistant-chat"),
+    false,
+    "assistant-chat вече не е блокер",
+  );
+  const entry = (manifest.ledgerEnforced as Array<Record<string, unknown>>).find(
+    (e) => e.function === "assistant-chat",
+  );
+  assert(entry, "assistant-chat трябва да е в защитените крайни точки");
+  assertEquals(entry!.mechanism, "assistant_turn_operations");
+  assertEquals(entry!.maxChatRequestsPerOperation, 9);
+  assertEquals(entry!.directGatewayCallSites, 2);
+  const src = await readHandler("assistant-chat");
+  assert(src.includes("MAX_CHAT_REQUESTS_PER_OPERATION = 9"));
+  // Няма ГЕНЕРИРАН измислен цитат: фразата може да се среща само в забраната
+  // към модела, никога в шаблон за низ, който се доставя на потребителя.
   assert(
-    /няколко заявки|НЯКОЛКО заявки/.test(entry!.gap),
-    "празнината на assistant-chat трябва да описва реалните няколко заявки към доставчика",
+    !/\[приложим общ режим по \$\{/.test(src),
+    "няма шаблон, който съчинява цитат „приложим общ режим“",
   );
 });
 
