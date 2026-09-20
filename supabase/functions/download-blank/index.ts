@@ -348,7 +348,8 @@ Deno.serve(async (req: Request) => {
     // СТРОГО ЗАЗЕМЯВАНЕ — ПРЕДИ таксуване и преди всяко повикване към модела.
     const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
     const legal = await retrieveLegalContext(
-      admin,
+      // Различна minor версия на клиента — структурно съвместим.
+      admin as unknown as Parameters<typeof retrieveLegalContext>[0],
       LOVABLE_API_KEY,
       `${documentName}\n${docTypeSpec.label}\n${sectorTitle || sectorId}`.slice(0, 4000),
       { matchCount: 6 },
