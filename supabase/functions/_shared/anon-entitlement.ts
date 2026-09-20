@@ -133,3 +133,28 @@ export async function reserveAnonOperation(
   const row = (data ?? {}) as { ok?: boolean };
   return { ok: row.ok === true, replay: row.ok !== true, infraFailed: false };
 }
+
+/**
+ * ОСВОБОЖДАВА резервацията на опит, когато отговорът НЕ е доставен (правна
+ * преграда, грешка в модела, липсващо заземяване). Така повторният опит със
+ * същия UUID не се отказва като „вече обработен" — неуспехът не изгаря опит.
+ *
+ * ВАЖНО (остатъчно ограничение): това НЕ е трайно повторение на точния отговор.
+ * Пълната таблица с анонимни доставки изисква нова миграция, която в този
+ * обхват не е прилагана.
+ */
+export async function releaseAnonOperation(
+  db: BucketDb,
+  ipHash: string,
+  requestId: string,
+): Promise<{ released: boolean }> {
+  try {
+    const table = db.from("rate_limit_buckets");
+    if (!table.delete) return { released: false };
+    const { error } = await table.delete().eq("key", anonOperationKey(ipHash, requestId));
+    return { released: !error };
+  } catch {
+    return { released: false };
+  }
+}
+
