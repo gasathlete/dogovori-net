@@ -304,6 +304,12 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
       matchCount: 6,
     });
     if (!legal.hasMatches) {
+      // Правното заземяване се проваля ЗАТВОРЕНО и без такса, преди модела.
+      await cancelDocumentOperation(admin, {
+        operationId,
+        userId: user.id,
+        reason: "legal_unavailable",
+      });
       const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
       return legalVerificationUnavailableResponse({ headers: cors });
     }
