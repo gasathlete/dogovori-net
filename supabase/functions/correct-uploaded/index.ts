@@ -61,6 +61,8 @@ Deno.serve(async (req: Request) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+    // Леджърът е СТРОГО service_role RPC — отделен, тесен контракт за тестваемост.
+    const ledger = admin as unknown as LedgerRpc;
 
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace(/^Bearer\s+/i, "");
@@ -136,7 +138,7 @@ Deno.serve(async (req: Request) => {
 
     // САМО-ЧЕТЯЩО повторение — преди честотния лимит, ключа на доставчика,
     // RAG и всяко счетоводно/бизнес записване.
-    const existing = await lookupDocumentOperation(admin, {
+    const existing = await lookupDocumentOperation(ledger, {
       operationId, userId, purpose: "correct_uploaded", binding,
     });
     if (existing.kind === "committed") {
@@ -160,7 +162,7 @@ Deno.serve(async (req: Request) => {
       }), { status: 429, headers: jsonHeaders });
     }
 
-    const reserved = await reserveDocumentOperation(admin, {
+    const reserved = await reserveDocumentOperation(ledger, {
       operationId, userId, purpose: "correct_uploaded", binding,
       resourceId: contract.id,
       resourceVersion: bindingInput.resourceVersion,
@@ -175,12 +177,12 @@ Deno.serve(async (req: Request) => {
 
     /** Детерминиран провал ПРЕДИ модела — резервацията се отменя. */
     const cancelAndRespond = async (reason: string, response: Response): Promise<Response> => {
-      await cancelDocumentOperation(admin, { operationId, userId, reason });
+      await cancelDocumentOperation(ledger, { operationId, userId, reason });
       return response;
     };
     /** Несигурност СЛЕД модела — без връщане и без второ повикване. */
     const reconcileAndRespond = async (reason: string): Promise<Response> => {
-      await markDocumentReconciliation(admin, { operationId, userId, reason });
+      await markDocumentReconciliation(ledger, { operationId, userId, reason });
       return operationReconciliationResponse(ledgerHeaders, reason);
     };
     const budget = new ProviderCallBudget("correct_uploaded");
@@ -321,7 +323,7 @@ ${scopeNote}
     const activeSystemPrompt = `${withLegal}\n\n${CORRECTION_PRESERVATION_SUFFIX}`;
 
     // ТРАЙНО начало на модела ПРЕДИ първото повикване към доставчик.
-    const started = await markDocumentModelStarted(admin, {
+    const started = await markDocumentModelStarted(ledger, {
       operationId, userId, purpose: "correct_uploaded", binding,
     });
     if (!started.ok) {
@@ -416,7 +418,7 @@ ${scopeNote}
     // Идентичност на източника, за да може закъснял отговор да бъде проверен.
     const payload = { ...parsed, analysis_id: analysis.id, source: currentBinding };
     // АТОМАРНО: резултатът за точно повторение + дневното счетоводство наведнъж.
-    const committed = await commitDocumentOperation(admin, {
+    const committed = await commitDocumentOperation(ledger, {
       operationId, userId, purpose: "correct_uploaded", binding,
       result: payload as Record<string, unknown>,
       resultTtlSeconds: 86400,

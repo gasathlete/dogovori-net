@@ -88,6 +88,8 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: auth } },
     });
     const admin = createClient(supaUrl, service, { auth: { persistSession: false } });
+    // Леджърът е СТРОГО service_role RPC — отделен, тесен контракт за тестваемост.
+    const ledger = admin as unknown as LedgerRpc;
 
     const { data: { user } } = await userClient.auth.getUser();
     if (!user) {
@@ -227,7 +229,7 @@ Deno.serve(async (req) => {
       options: { force: body.force === true },
     });
 
-    const existing = await lookupDocumentOperation(admin, {
+    const existing = await lookupDocumentOperation(ledger, {
       operationId,
       userId: user.id,
       purpose: "negotiation_strategy",
@@ -241,7 +243,7 @@ Deno.serve(async (req) => {
     const existingBlock = ledgerBlockResponse(existing, cors);
     if (existingBlock) return existingBlock;
 
-    const reserved = await reserveDocumentOperation(admin, {
+    const reserved = await reserveDocumentOperation(ledger, {
       operationId,
       userId: user.id,
       purpose: "negotiation_strategy",
@@ -285,7 +287,7 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
     const classification = classifyDocumentBeforeAI(rawCorpus);
     if (classification.risk_level === "blocked") {
       // Детерминистичен провал ПРЕДИ модела: отмяна, без такса.
-      await cancelDocumentOperation(admin, {
+      await cancelDocumentOperation(ledger, {
         operationId,
         userId: user.id,
         reason: "content_blocked",
@@ -305,7 +307,7 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
     });
     if (!legal.hasMatches) {
       // Правното заземяване се проваля ЗАТВОРЕНО и без такса, преди модела.
-      await cancelDocumentOperation(admin, {
+      await cancelDocumentOperation(ledger, {
         operationId,
         userId: user.id,
         reason: "legal_unavailable",
@@ -320,7 +322,7 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
     const sysGrounded = `${sys}\n\n${legal.promptBlock}`;
 
     // Трайно записано начало на модела ПРЕДИ първото повикване.
-    const started = await markDocumentModelStarted(admin, {
+    const started = await markDocumentModelStarted(ledger, {
       operationId,
       userId: user.id,
       purpose: "negotiation_strategy",
@@ -363,7 +365,7 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
     // СЛЕД началото на модела няма автоматично връщане и няма трето повикване:
     // всяка несигурност отива в изравняване.
     const reconcileAndRespond = async (reason: string): Promise<Response> => {
-      await markDocumentReconciliation(admin, {
+      await markDocumentReconciliation(ledger, {
         operationId,
         userId: user.id,
         reason,
@@ -424,7 +426,7 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
       strategy: envelope,
       citations: legal.citations,
     };
-    const committed = await commitDocumentOperation(admin, {
+    const committed = await commitDocumentOperation(ledger, {
       operationId,
       userId: user.id,
       purpose: "negotiation_strategy",

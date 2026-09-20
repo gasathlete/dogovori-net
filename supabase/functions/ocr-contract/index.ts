@@ -51,6 +51,8 @@ Deno.serve(async (req: Request) => {
     // Verify the bearer token resolves to a real Supabase user. Without this
     // check anyone can burn AI OCR credits with an arbitrary "Bearer x" header.
     const admin = createClient(
+    // Леджърът е СТРОГО service_role RPC — отделен, тесен контракт за тестваемост.
+    const ledger = admin as unknown as LedgerRpc;
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
@@ -95,7 +97,7 @@ Deno.serve(async (req: Request) => {
     });
 
     // САМО-ЧЕТЯЩО повторение — ПРЕДИ ключа на доставчика и всяка квота.
-    const existing = await lookupDocumentOperation(admin, {
+    const existing = await lookupDocumentOperation(ledger, {
       operationId,
       userId,
       purpose: "ocr_contract",
@@ -112,7 +114,7 @@ Deno.serve(async (req: Request) => {
     // Ценообразуване: OCR на първите 3 страници е включен в цената на анализа.
     // Всяка следваща страница струва +1 операция. Резервацията е АТОМАРНА и
     // всичко-или-нищо — няма частично таксуване страница по страница.
-    const reserved = await reserveDocumentOperation(admin, {
+    const reserved = await reserveDocumentOperation(ledger, {
       operationId,
       userId,
       purpose: "ocr_contract",
@@ -149,7 +151,7 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       // Детерминистичен провал ПРЕДИ модела: отмяна с точно възстановяване.
-      await cancelDocumentOperation(admin, {
+      await cancelDocumentOperation(ledger, {
         operationId,
         userId,
         reason: "provider_key_missing",
@@ -162,7 +164,7 @@ Deno.serve(async (req: Request) => {
     const activeOcrSystem = await loadActivePrompt(admin, "ocr-contract", OCR_SYSTEM);
 
     // Трайно начало на модела ПРЕДИ първото повикване към доставчик.
-    const started = await markDocumentModelStarted(admin, {
+    const started = await markDocumentModelStarted(ledger, {
       operationId,
       userId,
       purpose: "ocr_contract",
@@ -224,7 +226,7 @@ Deno.serve(async (req: Request) => {
       // СЛЕД началото на модела няма автоматично връщане на квота и няма
       // второ повикване към модела: отива в изравняване.
       console.error("ocr batch uncertainty:", (e as Error)?.name ?? "error");
-      await markDocumentReconciliation(admin, {
+      await markDocumentReconciliation(ledger, {
         operationId,
         userId,
         reason: "provider_uncertainty",
@@ -267,7 +269,7 @@ Deno.serve(async (req: Request) => {
     // Атомарно потвърждение: резултат за точно повторение, счетоводството в
     // ai_usage и вълната от операции — заедно, най-много веднъж.
     const payload = { text, pages: pages.length, unreadablePages };
-    const committed = await commitDocumentOperation(admin, {
+    const committed = await commitDocumentOperation(ledger, {
       operationId,
       userId,
       purpose: "ocr_contract",
@@ -277,7 +279,7 @@ Deno.serve(async (req: Request) => {
       usageFunction: "ocr-contract",
     });
     if (committed.kind !== "committed") {
-      await markDocumentReconciliation(admin, {
+      await markDocumentReconciliation(ledger, {
         operationId,
         userId,
         reason: "commit_uncertain",
