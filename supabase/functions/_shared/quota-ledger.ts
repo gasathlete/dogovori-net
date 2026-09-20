@@ -133,6 +133,8 @@ export type ReserveOutcome =
       readonly replay: boolean;
       /** Ново таксуване по същия ключ след ДОКАЗАНА отмяна. */
       readonly retry: boolean;
+      /** Реалното състояние в леджъра (committed при вече завършена операция). */
+      readonly ledgerState: "reserved" | "committed";
       readonly source: string;
       /** Записан резултат при повторение по същия ключ (иначе null). */
       readonly resultRef: Record<string, unknown> | null;
@@ -192,6 +194,7 @@ export async function reserveQuota(db: Rpc, input: ReserveInput): Promise<Reserv
     charged: row.charged === true,
     replay: row.replay === true,
     retry: row.retry === true,
+    ledgerState: row.state === "committed" ? "committed" : "reserved",
     source: String(row.source ?? "unknown"),
     resultRef,
     raw: row,
@@ -287,6 +290,54 @@ export async function recordReconciliation(
     // Записът за изравняване е best-effort; типизираната грешка към клиента
     // остава същата, за да не се твърди нищо невярно.
   }
+}
+
+export const OPERATION_IN_PROGRESS = "operation_in_progress";
+
+/**
+ * ЕДНОВРЕМЕННО ИЗПЪЛНЕНИЕ ПО СЪЩИЯ КЛЮЧ.
+ *
+ * Резервация, която е ПОВТОРЕНИЕ на още незавършена операция (state=reserved,
+ * без записан резултат и без доказана отмяна), НИКОГА не стартира второ
+ * генериране/повикване към модела. Доказано отменената операция има retry=true
+ * и е нормален нов опит — тя НЕ е „в ход".
+ */
+export function isOperationInProgress(
+  reservation: {
+    status: string;
+    replay?: boolean;
+    retry?: boolean;
+    resultRef?: unknown;
+    ledgerState?: string;
+  },
+): boolean {
+  return reservation.status === "reserved" &&
+    reservation.replay === true &&
+    reservation.retry !== true &&
+    reservation.ledgerState !== "committed" &&
+    (reservation.resultRef === null || reservation.resultRef === undefined);
+}
+
+/** Типизиран отговор „операцията е в ход" — повторяем, без ново таксуване. */
+export function operationInProgressResponse(
+  headers: Record<string, string>,
+  retryAfterSeconds = 4,
+): Response {
+  const wait = Math.max(1, Math.floor(retryAfterSeconds));
+  return new Response(
+    JSON.stringify({
+      error: "Същата заявка вече се обработва. Изчакайте няколко секунди.",
+      code: OPERATION_IN_PROGRESS,
+      retryable: true,
+      retry_after_seconds: wait,
+      // Резервацията вече е направена от първото изпълнение — не се таксува пак.
+      charge_state: "reserved",
+    }),
+    {
+      status: 409,
+      headers: { ...headers, "Content-Type": "application/json", "Retry-After": String(wait) },
+    },
+  );
 }
 
 /** Типизиран 5xx отговор при недоказана компенсация. */

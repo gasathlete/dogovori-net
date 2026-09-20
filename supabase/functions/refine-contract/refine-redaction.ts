@@ -38,6 +38,18 @@ export function answersToText(answers: unknown): string {
     .join("\n");
 }
 
+/**
+ * ЕДИН каноничен източник от трите полета — за проверката за незаконно
+ * съдържание и за класификацията. Никое поле не остава непроверено.
+ */
+export function buildRefineSource(payload: RefinePayload): string {
+  return [
+    `ДОГОВОР:\n${payload.contractJson}`,
+    `ОБРАТНА ВРЪЗКА:\n${payload.feedback}`,
+    `ОТГОВОРИ:\n${payload.answersText}`,
+  ].join("\n");
+}
+
 export class RefineRedactionError extends Error {}
 
 export function redactRefinePayload(

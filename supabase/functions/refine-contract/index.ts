@@ -1,6 +1,6 @@
 // Edge function: refine an already-generated contract based on a single free-text
 // user feedback message. Applies the MINIMAL change necessary and returns the
-// updated contract. Costs 1 op (via charge_corrections_wave with count=1),
+// updated contract. Costs 1 op през единния регистър (quota_reserve/commit/cancel),
 // available to all authenticated users — no Pro gate.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
@@ -108,11 +108,22 @@ Deno.serve(async (req: Request) => {
     }
 
     // ВСИЧКИ НЕТАКСУЕМИ ПРОВЕРКИ СЕ ИЗВЪРШВАТ ПРЕДИ ТАКСУВАНЕ.
-    // Illegal content guard
+    //
+    // ЕДИН каноничен източник от ДОГОВОР + ОБРАТНА ВРЪЗКА + ОТГОВОРИ. И
+    // проверката за незаконно съдържание, и класификацията виждат ВСИЧКИ три
+    // полета — иначе лични данни в отговорите от интервюто минават непроверени.
+    const { answersToText, redactRefinePayload, RefineRedactionError, buildRefineSource } =
+      await import("./refine-redaction.ts");
+    const contractJsonStr = JSON.stringify(contract);
+    const answersText = answersToText(answers);
+    const canonicalSource = buildRefineSource({
+      contractJson: contractJsonStr,
+      feedback,
+      answersText,
+    });
 
-    const guardText = [JSON.stringify(contract).slice(0, 8000), feedback].join("\n");
     const blocked = await guardIllegalContent({
-      admin, text: guardText, functionName: "refine-contract",
+      admin, text: canonicalSource.slice(0, 20000), functionName: "refine-contract",
       userId, userAgent: req.headers.get("user-agent"), corsHeaders,
     });
     if (blocked) return blocked;
@@ -120,9 +131,8 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
-    // GDPR/AI Act routing
-    const sourceText = [JSON.stringify(contract).slice(0, 20000), feedback].join("\n");
-    const classification = classifyDocumentBeforeAI(sourceText);
+    // GDPR/AI Act routing — върху същия каноничен източник.
+    const classification = classifyDocumentBeforeAI(canonicalSource.slice(0, 40000));
     const route = routeModel("refine-contract", classification, { userConfirmed });
 
     if (!route.allowed) {
@@ -144,20 +154,18 @@ Deno.serve(async (req: Request) => {
     }
 
     // ЕДНА структурирана редакция за договор + обратна връзка + отговори.
-    // Моделът, заземяването и логовете НИКОГА не виждат суров потребителски текст.
-    const { answersToText, redactRefinePayload, RefineRedactionError } = await import(
-      "./refine-redaction.ts"
-    );
-    const contractJsonStr = JSON.stringify(contract);
+    // Изпълнява се ВСЕКИ ПЪТ, независимо от маршрута: моделът, заземяването и
+    // логовете НИКОГА не виждат суров потребителски текст. Ако трите граници не
+    // могат да се запазят безопасно, отказваме ПРЕДИ резервацията.
     let redaction: { contractJson: string; feedback: string; answersText: string; mapping: Record<string, string> };
     try {
       redaction = redactRefinePayload(
         {
           contractJson: contractJsonStr,
           feedback,
-          answersText: answersToText(answers),
+          answersText,
         },
-        route.redactionRequired ? (text: string) => redactForAI(text) : null,
+        (text: string) => redactForAI(text),
       );
     } catch (redErr) {
       if (redErr instanceof RefineRedactionError) {
@@ -174,7 +182,8 @@ Deno.serve(async (req: Request) => {
     }
     const feedbackRedacted = redaction.feedback;
 
-    const redactionNote = route.redactionRequired
+    const redactionApplied = Object.keys(redaction.mapping).length > 0;
+    const redactionNote = redactionApplied
       ? "Забележка: Лични данни са заменени с плейсхолдъри <NAME_1>, <EGN_1>. Запази ги дословно.\n"
       : "";
 
@@ -295,6 +304,19 @@ ${redaction.answersText}
       );
     }
 
+    // ЕДНОВРЕМЕННО ИЗПЪЛНЕНИЕ ПО СЪЩИЯ КЛЮЧ: повторение на още незавършена
+    // резервация БЕЗ записан резултат НИКОГА не стартира второ повикване към
+    // модела. Доказано отменена резервация (retry) е нормален нов опит.
+    const { isOperationInProgress, operationInProgressResponse } = await import(
+      "../_shared/quota-ledger.ts"
+    );
+    if (isOperationInProgress(reservation)) {
+      return operationInProgressResponse(
+        { ...corsHeaders, ...correlationHeaders(correlationId) },
+        4,
+      );
+    }
+
     /**
      * ЕДИНСТВЕН КОМПЕНСИРАЩ ПАЗИТЕЛ през леджъра. „charged: false" се твърди
      * САМО при доказана отмяна; иначе типизиран billing_reconciliation_required
@@ -335,7 +357,7 @@ ${redaction.answersText}
       const unresolved = await cancelOrReport(`ai_gateway_${aiResp.status}`);
       await logAiAudit({
         user_id: userId, operation: "refine-contract", model: route.model,
-        classification, redaction_applied: route.redactionRequired,
+        classification, redaction_applied: redactionApplied,
         status: "error", error_code: `http_${aiResp.status}`,
       });
       if (unresolved) return unresolved;
@@ -423,7 +445,7 @@ ${redaction.answersText}
       );
       await logAiAudit({
         user_id: userId, operation: "refine-contract", model: route.model,
-        classification, redaction_applied: route.redactionRequired,
+        classification, redaction_applied: redactionApplied,
         status: "error", error_code: "commit_unresolved",
       });
       return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
@@ -432,7 +454,7 @@ ${redaction.answersText}
 
     await logAiAudit({
       user_id: userId, operation: "refine-contract", model: route.model,
-      classification, redaction_applied: route.redactionRequired,
+      classification, redaction_applied: redactionApplied,
       status: "ok",
       tokens_in: raw?.usage?.prompt_tokens,
       tokens_out: raw?.usage?.completion_tokens,

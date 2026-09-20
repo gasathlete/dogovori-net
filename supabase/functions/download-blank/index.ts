@@ -398,6 +398,12 @@ Deno.serve(async (req: Request) => {
       isBilingual,
     });
     const operationId = clientOperationId;
+    // ДЕТЕРМИНИРАН адрес на артефакта, обвързан с валидирания UUID на
+    // операцията. Същият ключ винаги сочи същия обект, затова качване без
+    // последващо обвързване е откриваемо, а не сирак.
+    const CACHE_VERSION = isBilingual ? "v6-bilingual" : "v6";
+    const blankBase = await buildBlankStoragePath(CACHE_VERSION, sectorId, documentName);
+    const deterministicStoragePath = `request/op/${operationId}/${blankBase}`;
     const reservation = await reserveQuota(admin as unknown as Parameters<typeof reserveQuota>[0], {
       operationId,
       userId,
@@ -417,43 +423,8 @@ Deno.serve(async (req: Request) => {
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-    // ТРАЙНО ПОВТОРЕНИЕ: същият ключ след загубен отговор връща СЪЩИЯ документ.
-    // Подписва се нов адрес към вече записания файл — без ново генериране и
-    // без второ таксуване. Ако записаният обект вече не съществува, НЕ
-    // генерираме мълчаливо наново върху вече таксувана резервация: връщаме
-    // типизирано състояние за изравняване.
-    if (reservation.status === "reserved" && reservation.replay && reservation.resultRef) {
-      const ref = reservation.resultRef as { bucket?: unknown; path?: unknown; filename?: unknown };
-      const bucket = typeof ref.bucket === "string" ? ref.bucket : "document-blanks";
-      const path = typeof ref.path === "string" ? ref.path : "";
-      if (path) {
-        const { data: again } = await admin.storage.from(bucket).createSignedUrl(path, 60 * 10);
-        if (again?.signedUrl) {
-          return new Response(
-            JSON.stringify({
-              ok: true,
-              url: again.signedUrl,
-              filename: typeof ref.filename === "string"
-                ? ref.filename
-                : `${documentName} - бланка.docx`,
-              cached: false,
-              replay: true,
-              operation_id: operationId,
-              retry_idempotent: true,
-              citations: legal.citations,
-            }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
-        }
-      }
-      await recordReconciliation(
-        admin as unknown as Parameters<typeof recordReconciliation>[0],
-        operationId,
-        "replay_artifact_missing",
-        { purpose: "download_blank", bucket, path },
-      );
-      return billingReconciliationResponse(corsHeaders);
-    }
+    // ПОВТОРЕНИЕТО се обработва ЕДИНСТВЕНО в блока за възстановяване по-долу:
+    // подпис без доказано съществуване на обекта не е доказателство.
 
     if (reservation.status === "unavailable") {
       return new Response(
@@ -482,19 +453,39 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // ВЪЗСТАНОВЯВАНЕ НА ВЕЧЕ КАЧЕНИЯ ТОЧЕН ФАЙЛ. Ако предишният опит е качил
-    // обекта, но отговорът/потвърждението са се загубили, същият ключ намира
-    // ТОЧНО този обект, потвърждава квотата идемпотентно и подписва нов адрес —
-    // без ново генериране и без второ таксуване.
+    // ВЪЗСТАНОВЯВАНЕ НА ВЕЧЕ КАЧЕНИЯ ТОЧЕН ФАЙЛ.
+    //
+    // Ако предишният опит е качил обекта, но отговорът/обвързването/
+    // потвърждението са се загубили, същият ключ намира ТОЧНО този обект,
+    // потвърждава квотата идемпотентно и подписва нов адрес — без ново
+    // генериране и без второ таксуване. Подписване без доказано съществуване
+    // НЕ е доказателство и не се прави.
     const { lookupBoundArtifact, verifyArtifactExists, bindArtifactToOperation } = await import(
       "../_shared/artifact-binding.ts"
     );
-    const bound = await lookupBoundArtifact(
-      admin as unknown as Parameters<typeof lookupBoundArtifact>[0],
-      { operationId, userId, purpose: "download_blank", requestDigest },
+    const { isOperationInProgress, operationInProgressResponse } = await import(
+      "../_shared/quota-ledger.ts"
     );
-    if (bound.status === "mismatch") {
-      return new Response(
+    const isReplay = reservation.status === "reserved" && reservation.replay === true &&
+      reservation.retry !== true;
+    const priorRef = (reservation.status === "reserved" ? reservation.resultRef : null) as
+      | { bucket?: unknown; path?: unknown; filename?: unknown }
+      | null;
+    const filenameOut = isBilingual
+      ? `${documentName} - бланка (BG-EN).docx`
+      : `${documentName} - бланка.docx`;
+
+    const reconcile = async (reason: string, extra: Record<string, unknown> = {}) => {
+      await recordReconciliation(
+        admin as unknown as Parameters<typeof recordReconciliation>[0],
+        operationId,
+        reason,
+        { purpose: "download_blank", ...extra },
+      );
+      return billingReconciliationResponse(corsHeaders);
+    };
+    const conflictResponse = () =>
+      new Response(
         JSON.stringify({
           error: "Този идентификатор вече е използван за друга заявка.",
           code: "idempotency_key_conflict",
@@ -502,75 +493,110 @@ Deno.serve(async (req: Request) => {
         }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
-    }
-    if (bound.status === "match") {
+
+    /** Потвърждава идемпотентно и връща СВЕЖ подпис върху доказан обект. */
+    const serveExisting = async (bucket: string, path: string): Promise<Response> => {
+      const settled = await commitQuota(
+        admin as unknown as Parameters<typeof commitQuota>[0],
+        operationId,
+        { bucket, path, filename: filenameOut },
+      );
+      if (settled.status !== "settled") {
+        return reconcile(`replay_commit_unresolved:${settled.reason}`, { bucket, path });
+      }
+      const { data: reSigned } = await admin.storage.from(bucket).createSignedUrl(path, 60 * 10);
+      if (!reSigned?.signedUrl) {
+        return reconcile("replay_sign_failed", { bucket, path });
+      }
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          url: reSigned.signedUrl,
+          filename: filenameOut,
+          cached: false,
+          replay: true,
+          operation_id: operationId,
+          retry_idempotent: true,
+          citations: legal.citations,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    };
+
+    const { planBoundArtifact, planBoundExistence, planDeterministicRecovery } = await import(
+      "./recovery.ts"
+    );
+
+    const bound = await lookupBoundArtifact(
+      admin as unknown as Parameters<typeof lookupBoundArtifact>[0],
+      { operationId, userId, purpose: "download_blank", requestDigest },
+    );
+    const firstPlan = planBoundArtifact({
+      bound,
+      priorRef: priorRef
+        ? {
+          bucket: typeof priorRef.bucket === "string" ? priorRef.bucket : null,
+          path: typeof priorRef.path === "string" ? priorRef.path : null,
+        }
+        : null,
+      isReplay,
+    });
+    if (firstPlan.action === "conflict") return conflictResponse();
+    if (firstPlan.action === "reconcile") return reconcile(firstPlan.reason);
+
+    if (bound.status === "match" && firstPlan.action === "check_bound") {
       const exists = await verifyArtifactExists(
         admin.storage as unknown as Parameters<typeof verifyArtifactExists>[0],
         bound.bucket,
         bound.path,
       );
-      if (exists === "present") {
-        const filenameReplay = isBilingual
-          ? `${documentName} - бланка (BG-EN).docx`
-          : `${documentName} - бланка.docx`;
-        const settled = await commitQuota(
-          admin as unknown as Parameters<typeof commitQuota>[0],
-          operationId,
-          { bucket: bound.bucket, path: bound.path, filename: filenameReplay },
-        );
-        if (settled.status !== "settled") {
-          await recordReconciliation(
-            admin as unknown as Parameters<typeof recordReconciliation>[0],
-            operationId,
-            `replay_commit_unresolved:${settled.reason}`,
-            { purpose: "download_blank", bucket: bound.bucket, path: bound.path },
-          );
-          return billingReconciliationResponse(corsHeaders);
-        }
-        const { data: reSigned } = await admin.storage
-          .from(bound.bucket)
-          .createSignedUrl(bound.path, 60 * 10);
-        if (reSigned?.signedUrl) {
-          return new Response(
-            JSON.stringify({
-              ok: true,
-              url: reSigned.signedUrl,
-              filename: filenameReplay,
-              cached: false,
-              replay: true,
-              operation_id: operationId,
-              retry_idempotent: true,
-              citations: legal.citations,
-            }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
-        }
-        await recordReconciliation(
-          admin as unknown as Parameters<typeof recordReconciliation>[0],
-          operationId,
-          "replay_sign_failed",
-          { purpose: "download_blank", bucket: bound.bucket, path: bound.path },
-        );
-        return billingReconciliationResponse(corsHeaders);
+      const plan = planBoundExistence(exists, bound.bucket, bound.path, isReplay);
+      if (plan.action === "serve_bound") return await serveExisting(plan.bucket, plan.path);
+      if (plan.action === "in_progress") return operationInProgressResponse(corsHeaders, 5);
+      if (plan.action === "reconcile") {
+        return reconcile(plan.reason, { bucket: bound.bucket, path: bound.path });
       }
-      // Обектът липсва или не може да бъде проверен: НЕ генерираме наново върху
-      // вече таксувана резервация.
-      await recordReconciliation(
-        admin as unknown as Parameters<typeof recordReconciliation>[0],
-        operationId,
-        `bound_artifact_${exists}`,
-        { purpose: "download_blank", bucket: bound.bucket, path: bound.path },
-      );
-      return billingReconciliationResponse(corsHeaders);
     }
-    if (bound.status === "unavailable") {
-      await recordReconciliation(
-        admin as unknown as Parameters<typeof recordReconciliation>[0],
-        operationId,
-        `artifact_${bound.reason}`,
-        { purpose: "download_blank" },
+
+    // Няма обвързан ред. При повторение на още незавършена операция проверяваме
+    // ДЕТЕРМИНИРАНИЯ адрес: там стои файл, качен от опит, спрял преди
+    // обвързването. Второ генериране НЕ се стартира.
+    if (bound.status === "none" && firstPlan.action === "check_bound") {
+      const orphan = await verifyArtifactExists(
+        admin.storage as unknown as Parameters<typeof verifyArtifactExists>[0],
+        "document-blanks",
+        deterministicStoragePath,
       );
-      return billingReconciliationResponse(corsHeaders);
+      const plan = planDeterministicRecovery(orphan, isOperationInProgress(reservation));
+      if (plan.action === "bind_deterministic") {
+        const rebind = await bindArtifactToOperation(
+          admin as unknown as Parameters<typeof bindArtifactToOperation>[0],
+          {
+            operationId,
+            userId,
+            bucket: "document-blanks",
+            storagePath: deterministicStoragePath,
+            purpose: "download_blank",
+            requestDigest,
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          },
+        );
+        if (rebind.status === "conflict") return conflictResponse();
+        if (rebind.status !== "bound") {
+          return reconcile(`replay_bind_unresolved:${rebind.reason}`, {
+            bucket: "document-blanks",
+            path: deterministicStoragePath,
+          });
+        }
+        return await serveExisting("document-blanks", deterministicStoragePath);
+      }
+      if (plan.action === "in_progress") return operationInProgressResponse(corsHeaders, 5);
+      if (plan.action === "reconcile") {
+        return reconcile(plan.reason, {
+          bucket: "document-blanks",
+          path: deterministicStoragePath,
+        });
+      }
     }
     const isPro = reservation.raw?.is_pro === true || undefined;
 
@@ -590,7 +616,6 @@ Deno.serve(async (req: Request) => {
     // създадени без сървърно доказуем правен манифест и не могат да бъдат
     // проверени отново. Документът се изготвя наново за тази заявка и НЕ се
     // записва като глобално преизползваема бланка.
-    const CACHE_VERSION = isBilingual ? "v6-bilingual" : "v6";
     let storagePath: string | undefined;
 
     // 3) Generate via AI Gateway with the grounded prompt.
@@ -636,8 +661,10 @@ Deno.serve(async (req: Request) => {
       const docxBytes = await buildDocx(blank, isBilingual);
       // Не се записва глобално преизползваема бланка без проверим правен
       // манифест — файлът е само за тази заявка.
-      const base = await buildBlankStoragePath(CACHE_VERSION, sectorId, documentName);
-      storagePath = `request/${crypto.randomUUID()}/${base}`;
+      // ДЕТЕРМИНИРАН адрес, обвързан с операцията: ако процесът е спрял след
+      // качването и преди обвързването, повторният опит по същия ключ намира
+      // ТОЧНО този обект — иначе той остава неоткриваем сирак.
+      storagePath = deterministicStoragePath;
 
       const { error: upErr } = await admin.storage
         .from("document-blanks")
@@ -698,21 +725,18 @@ Deno.serve(async (req: Request) => {
       { bucket: "document-blanks", path: storagePath!, filename },
     );
     if (committed.status !== "settled") {
-      // Без доказано обвързване на резултата НЕ връщаме успех: иначе повторният
-      // опит би генерирал и таксувал наново. Качественият обект се маха
-      // синхронно; ако и това не успее, се записва за изравняване.
-      const { error: rmErr } = await admin.storage
-        .from("document-blanks")
-        .remove([storagePath!]);
+      // Файлът ВЕЧЕ е трайно обвързан с операцията, затова НЕ се маха: махането
+      // би направило възстановяването по същия ключ невъзможно. Записваме случая
+      // за изравняване и връщаме типизирано състояние.
       await recordReconciliation(
         admin as unknown as Parameters<typeof recordReconciliation>[0],
         operationId,
-        `commit_failed:${committed.reason}`,
+        `commit_unresolved_artifact_retained:${committed.reason}`,
         {
           purpose: "download_blank",
           bucket: "document-blanks",
           path: storagePath,
-          cleanup: rmErr ? `remove_failed:${rmErr.message}` : "removed",
+          cleanup: "retained_for_recovery",
         },
       );
       return billingReconciliationResponse(corsHeaders);
