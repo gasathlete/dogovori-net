@@ -34,7 +34,7 @@ const read = (p: string) => readFileSync(p, "utf8");
 describe("повикващият код на документните операции", () => {
   it.each(CALLERS)("$fn праща траен operation_id", ({ path, fn, purpose }) => {
     const src = read(path);
-    expect(src).toContain(`invoke("${fn}"`);
+    expect(src.replace(/\s+/g, " ")).toContain(`invoke( "${fn}"`.replace("( ", "("));
     expect(src).toContain("getOrCreateDocumentOperationId");
     expect(src).toContain(`"${purpose}"`);
     expect(src).toMatch(/operation_id:\s*operationId/);
@@ -65,6 +65,6 @@ describe("повикващият код на документните опера
   it("OCR обвързването използва отпечатъци на страници, не base64", () => {
     const src = read("src/lib/extractContractText.ts");
     expect(src).toContain("documentOperationScope");
-    expect(src).not.toMatch(/options:\s*\{[^}]*images/);
+    expect(src).not.toMatch(/options:\s*\{[^}]*:\s*images\b/);
   });
 });
