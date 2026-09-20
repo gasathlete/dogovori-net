@@ -146,7 +146,7 @@ export async function cancelQuota(
 
 export async function recordReconciliation(
   db: Rpc,
-  operationId: string,
+  operationId: string | null,
   reason: string,
   detail: Record<string, unknown> = {},
 ): Promise<void> {
