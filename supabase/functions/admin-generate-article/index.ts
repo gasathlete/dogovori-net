@@ -3,6 +3,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
+import { escapeUntrusted } from "../_shared/untrusted-text.ts";
 import { extractJson } from "../_shared/json.ts";
 
 const TEXT_MODEL = "google/gemini-2.5-pro";
@@ -32,19 +33,6 @@ const SYSTEM = `Ти си български юрист с 15 години оп�
 async function sha256Hex(value: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-/**
- * Полетата от админ формата са ДАННИ, не инструкции. Ограждаме ги и
- * премахваме опити за затваряне на блока или за пренаписване на правилата.
- */
-export function escapeUntrusted(value: string): string {
-  return String(value ?? "")
-    .replace(/`/g, "'")
-    .replace(/"{2,}/g, "'")
-    .replace(/<\/?(system|instructions?)>/gi, "")
-    .replace(/>>>/g, ">")
-    .slice(0, 6000);
 }
 
 function buildArticlePrompt(t: AdminInput): string {

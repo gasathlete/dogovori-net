@@ -1,5 +1,5 @@
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { escapeUntrusted } from "./index.ts";
+import { escapeUntrusted } from "../_shared/untrusted-text.ts";
 
 Deno.test("опит за инжекция в темата се обезврежда като данни", () => {
   const out = escapeUntrusted(
