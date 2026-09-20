@@ -194,6 +194,17 @@ Deno.serve(async (req) => {
     }
     const base = access.result as NegotiationPackageResult;
 
+    // Неизяснен изход от предишно уточнение БЛОКИРА нов опит. Четенето стои
+    // преди всяка променлива стъпка и преди доставчика.
+    const pendingReconciliation = await readProductReconciliationState(
+      admin as unknown as ReconciliationRpcClient,
+      userId,
+      entitlementId,
+    );
+    if (pendingReconciliation.refinementRequired || pendingReconciliation.jobRequired) {
+      return fail("reconciliation_required", 409, headers, cid);
+    }
+
     // Границата на интеграцията е ПРЕДИ заявяването: без пълна готовност не се
     // заема уточнението и не се докосва доставчик.
     const config = readProductIntegrationConfig((key) => Deno.env.get(key));
@@ -303,6 +314,28 @@ Deno.serve(async (req) => {
         p_error_code: code,
       });
     };
+
+    // СЛЕД като доставчикът е могъл да бъде извикан, провалът НЕ освобождава
+    // включеното уточнение: това би позволило второ платено извикване. Вписва се
+    // неизяснено състояние, което замразява записа до ръчно изясняване.
+    const reconcileRefinement = async (
+      code: ProductReconciliationCode,
+      callId: string | null,
+    ): Promise<Response> => {
+      console.error("refine-product provider outcome unknown", { cid, code });
+      await markProductRefinementReconciliation(
+        admin as unknown as ReconciliationRpcClient,
+        refinementId,
+        leaseToken,
+        code,
+        callId,
+      );
+      return fail("reconciliation_required", 409, headers, cid);
+    };
+    // Истината „доставчикът е бил докоснат“ се пази явно: само преди това
+    // включеното уточнение може да бъде освободено.
+    let providerAttempted = false;
+
 
     try {
       // Изходящият материал е редактиран детерминистично: към доставчика не
