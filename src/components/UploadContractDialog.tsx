@@ -227,7 +227,10 @@ export function UploadContractDialog({
       });
       setAnalyzing(false);
       if (aErr) {
-        if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable({ error: aErr })) {
+        if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable(
+          { error: aErr },
+          () => { void retryAnalysisFor(newId); },
+        )) {
           onUploaded(); setOpen(false); navigate(`/uploaded/${newId}`);
           return;
         }
@@ -244,7 +247,10 @@ export function UploadContractDialog({
         navigate(`/uploaded/${newId}`);
         return;
       }
-      if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable({ data: aData })) {
+      if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable(
+        { data: aData },
+        () => { void retryAnalysisFor(newId); },
+      )) {
         onUploaded(); setOpen(false); navigate(`/uploaded/${newId}`);
         return;
       }
