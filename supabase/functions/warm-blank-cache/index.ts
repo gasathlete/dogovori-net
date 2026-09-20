@@ -379,7 +379,13 @@ Deno.serve(async (req: Request) => {
     if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(work);
 
     return new Response(
-      JSON.stringify({ status: "queued", storage_path: storagePath, bilingual: isBilingual }),
+      JSON.stringify({
+        status: "queued",
+        storage_path: storagePath,
+        bilingual: isBilingual,
+        draft_only: true,
+        legacy_unverified_ignored: legacyUnverifiedIgnored,
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
