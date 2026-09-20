@@ -13,8 +13,10 @@ import {
   ANON_FREE_MESSAGES,
   consumeAnonDelivered,
   readAnonEntitlement,
+  releaseAnonOperation,
   reserveAnonOperation,
 } from "../_shared/anon-entitlement.ts";
+
 
 const SYSTEM_PROMPT = `# РОЛЯ И ИДЕНТИЧНОСТ
 Ти си AI асистентът на **Dogovori.net** — българска платформа за правни документи, договори и бланки. Името ти е **"DogovaryAI"** (или просто Асистентът).
