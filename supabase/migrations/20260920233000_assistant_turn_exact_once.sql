@@ -73,10 +73,21 @@ CREATE TABLE IF NOT EXISTS public.assistant_turn_operations (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
--- Една активна/потвърдена операция на ТОЧНО една ревизия на разговора.
-CREATE UNIQUE INDEX IF NOT EXISTS assistant_turn_thread_revision_uniq
+-- Една активна/потвърдена/НЕРАЗРЕШЕНА операция на ТОЧНО една ревизия на
+-- разговора. Докато изравняването не е разрешено, ревизията НЕ се освобождава:
+-- иначе втори ход (например след презареждане и загубен ключ) би могъл да
+-- предизвика ВТОРО изпълнение на модела върху същата ревизия.
+DROP INDEX IF EXISTS public.assistant_turn_thread_revision_uniq;
+CREATE UNIQUE INDEX assistant_turn_thread_revision_uniq
   ON public.assistant_turn_operations (thread_id, prior_turn_revision)
-  WHERE thread_id IS NOT NULL AND state IN ('reserved', 'committed');
+  WHERE thread_id IS NOT NULL
+    AND (state IN ('reserved', 'committed', 'reconciliation')
+         OR reconciliation_required);
+
+CREATE INDEX IF NOT EXISTS assistant_turn_unresolved_revision_idx
+  ON public.assistant_turn_operations (thread_id, prior_turn_revision)
+  WHERE thread_id IS NOT NULL
+    AND (state = 'reconciliation' OR reconciliation_required);
 
 CREATE INDEX IF NOT EXISTS assistant_turn_operations_user_idx
   ON public.assistant_turn_operations (user_id, created_at DESC);
@@ -299,6 +310,18 @@ BEGIN
     _revision := COALESCE(_thread.turn_revision, 0);
   END IF;
 
+  -- ----- Неразрешено изравняване ДЪРЖИ ревизията: нула нови ходове ---------
+  -- Различна операция НЕ може да резервира същата ревизия, докато има
+  -- неразрешено изравняване. Същата операция получава изравняване по-горе.
+  IF _thread_id IS NOT NULL AND EXISTS (
+       SELECT 1 FROM public.assistant_turn_operations o
+        WHERE o.thread_id = _thread_id
+          AND o.prior_turn_revision = _revision
+          AND o.operation_id <> p_operation_id
+          AND (o.state = 'reconciliation' OR o.reconciliation_required)) THEN
+    RETURN jsonb_build_object('status', 'reconciliation', 'reason', 'revision_unresolved');
+  END IF;
+
   -- ----- Право: ТОЧНО избраният сървърно път, транзакционно ----------------
   IF COALESCE(p_charge, false) THEN
     IF p_alloc_source = 'team' THEN
@@ -315,6 +338,11 @@ BEGIN
       _cap := _team.seat_count * 100;
       SELECT * INTO _usage FROM public.team_usage WHERE team_id = p_team_id FOR UPDATE;
       IF NOT FOUND THEN
+        -- ОТКАЗЪТ настъпва ПРЕДИ всякакъв запис: липсващ ред за употреба не бива
+        -- да бъде създаден от заявка, която ще бъде отказана.
+        IF _cap <= 0 THEN
+          RETURN jsonb_build_object('status', 'denied', 'reason', 'team_limit_reached');
+        END IF;
         INSERT INTO public.team_usage (team_id) VALUES (p_team_id) RETURNING * INTO _usage;
       END IF;
       -- Периодът се превърта в СЪЩАТА промяна, която таксува: отказът настъпва
@@ -337,11 +365,26 @@ BEGIN
         'ops_used', 1, 'lifetime_ops', 1,
         'rollover', _reset_monthly,
         'window_period_start', _usage.period_start,
-        'prior', _prior);
+        'prior', _prior,
+        -- ТОЧНОТО състояние СЛЕД тази резервация. Възстановяване на цял прозорец
+        -- е допустимо само ако редът все още е ТОЧНО този.
+        'post', jsonb_build_object(
+          'period_start', _usage.period_start,
+          'ops_used', _usage.ops_used,
+          'lifetime_ops', _usage.lifetime_ops));
 
     ELSE
       SELECT * INTO _q FROM public.download_quota WHERE user_id = p_user_id FOR UPDATE;
       IF NOT FOUND THEN
+        -- ОТКАЗЪТ настъпва ПРЕДИ всякакъв запис: липсващ ред за квота не бива да
+        -- бъде създаден от заявка, която ще бъде отказана (например платен път
+        -- без активен план или нулев безплатен таван).
+        IF p_alloc_source = 'pro' THEN
+          RETURN jsonb_build_object('status', 'denied', 'reason', 'plan_not_active');
+        END IF;
+        IF COALESCE(p_free_ai_cap, 3) <= 0 THEN
+          RETURN jsonb_build_object('status', 'denied', 'reason', 'ai_free_limit_reached');
+        END IF;
         INSERT INTO public.download_quota (user_id) VALUES (p_user_id) RETURNING * INTO _q;
       END IF;
 
@@ -384,7 +427,16 @@ BEGIN
           'rollover', (_reset_monthly OR _reset_pro),
           'window_monthly_reset_at', _q.monthly_reset_at,
           'window_pro_period_start', _q.pro_period_start,
-          'prior', _prior);
+          'prior', _prior,
+          'post', jsonb_build_object(
+            'monthly_reset_at', _q.monthly_reset_at,
+            'monthly_total_used', _q.monthly_total_used,
+            'monthly_contracts_used', _q.monthly_contracts_used,
+            'monthly_templates_used', _q.monthly_templates_used,
+            'pro_period_start', _q.pro_period_start,
+            'pro_monthly_used', _q.pro_monthly_used,
+            'ai_messages_used', _q.ai_messages_used,
+            'total_used', _q.total_used));
 
       ELSE
         -- Безплатният път: същият таван на AI съобщенията и същият 30-дневен
@@ -413,7 +465,14 @@ BEGIN
           'monthly_total_used', 1, 'total_used', 1,
           'rollover', _reset_monthly,
           'window_monthly_reset_at', _q.monthly_reset_at,
-          'prior', _prior);
+          'prior', _prior,
+          'post', jsonb_build_object(
+            'monthly_reset_at', _q.monthly_reset_at,
+            'monthly_total_used', _q.monthly_total_used,
+            'monthly_contracts_used', _q.monthly_contracts_used,
+            'monthly_templates_used', _q.monthly_templates_used,
+            'ai_messages_used', _q.ai_messages_used,
+            'total_used', _q.total_used));
       END IF;
     END IF;
   END IF;
@@ -817,6 +876,21 @@ BEGIN
        WHERE operation_id = p_operation_id;
       RETURN jsonb_build_object('status', 'reconciliation', 'reason', 'window_changed');
     END IF;
+    -- Превъртян прозорец се възстановява ЦЯЛ. Това е допустимо САМО ако след
+    -- резервацията НИЩО друго не е ползвало същия прозорец — иначе по-късната
+    -- употреба би била изтрита. При недоказуемост: само изравняване.
+    IF _rolled THEN
+      IF _alloc->'post' IS NULL
+         OR _usage.period_start IS DISTINCT FROM (_alloc->'post'->>'period_start')::timestamptz
+         OR _usage.ops_used IS DISTINCT FROM (_alloc->'post'->>'ops_used')::integer
+         OR _usage.lifetime_ops IS DISTINCT FROM (_alloc->'post'->>'lifetime_ops')::integer THEN
+        UPDATE public.assistant_turn_operations
+           SET state = 'reconciliation', reconciliation_required = true,
+               detail = 'later_usage', updated_at = now()
+         WHERE operation_id = p_operation_id;
+        RETURN jsonb_build_object('status', 'reconciliation', 'reason', 'later_usage');
+      END IF;
+    END IF;
     IF _usage.lifetime_ops < COALESCE((_alloc->>'lifetime_ops')::integer, 0)
        OR (NOT _rolled AND _usage.ops_used < COALESCE((_alloc->>'ops_used')::integer, 0))
        OR (_rolled AND (_prior IS NULL OR _prior->>'period_start' IS NULL)) THEN
@@ -863,6 +937,24 @@ BEGIN
     IF _rolled THEN
       -- Прозорецът е превъртян от САМАТА тази резервация. Възстановяваме точно
       -- записания произход, вместо приблизително изваждане.
+      IF _alloc->'post' IS NULL
+         OR _q.monthly_reset_at IS DISTINCT FROM (_alloc->'post'->>'monthly_reset_at')::timestamptz
+         OR _q.monthly_total_used IS DISTINCT FROM (_alloc->'post'->>'monthly_total_used')::integer
+         OR _q.monthly_contracts_used IS DISTINCT FROM (_alloc->'post'->>'monthly_contracts_used')::integer
+         OR _q.monthly_templates_used IS DISTINCT FROM (_alloc->'post'->>'monthly_templates_used')::integer
+         OR _q.ai_messages_used IS DISTINCT FROM (_alloc->'post'->>'ai_messages_used')::integer
+         OR _q.total_used IS DISTINCT FROM (_alloc->'post'->>'total_used')::integer
+         OR (_src = 'pro' AND (
+              _q.pro_period_start IS DISTINCT FROM (_alloc->'post'->>'pro_period_start')::timestamptz
+              OR _q.pro_monthly_used IS DISTINCT FROM (_alloc->'post'->>'pro_monthly_used')::integer)) THEN
+        -- По-късна употреба в същия прозорец: ЦЯЛОСТНО възстановяване би я
+        -- изтрило. Затова няма никаква промяна по квотата — само изравняване.
+        UPDATE public.assistant_turn_operations
+           SET state = 'reconciliation', reconciliation_required = true,
+               detail = 'later_usage', updated_at = now()
+         WHERE operation_id = p_operation_id;
+        RETURN jsonb_build_object('status', 'reconciliation', 'reason', 'later_usage');
+      END IF;
       IF _prior IS NULL
          OR _prior->>'monthly_reset_at' IS NULL
          OR _q.ai_messages_used < COALESCE((_alloc->>'ai_messages_used')::integer, 0)
