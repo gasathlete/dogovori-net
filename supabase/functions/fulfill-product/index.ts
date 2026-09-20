@@ -90,7 +90,12 @@ export function createProductCallStore(admin: RpcClient, jobId: string, leaseTok
       });
       const row = (data ?? {}) as Record<string, unknown>;
       if (error || row.ok !== true) throw new ProductGenerationError("invalid_cursor", true);
-      if (row.status === "pending") return { status: "pending" as const };
+      // Заявено, но неприключено извикване: доставчикът МОЖЕ да е бил изпълнен.
+      // Това НЕ е повторим провал — второ извикване по същата самоличност е
+      // забранено. Състоянието става изрично неизяснено.
+      if (row.status === "pending") {
+        throw new ProductUncertainCallError("call_completion_unknown", request.callId);
+      }
       if (row.status === "complete") {
         const response = row.response as Record<string, unknown> | undefined;
         if (!response || !("output" in response) || !Number.isSafeInteger(response.inputTokens) || !Number.isSafeInteger(response.outputTokens)) {
@@ -111,7 +116,11 @@ export function createProductCallStore(admin: RpcClient, jobId: string, leaseTok
         p_artifact_digest: artifactDigest, p_usage_input_tokens: response.inputTokens,
         p_usage_output_tokens: response.outputTokens, p_usage_cost_micro_usd: costMicroUsd,
       });
-      if (error || (data as Record<string, unknown> | null)?.ok !== true) throw new ProductGenerationError("invalid_cursor", true);
+      // Доставчикът вече е бил извикан. Ако записът не успее, изходът е
+      // неизяснен: нито се повтаря, нито се обявява за провал.
+      if (error || (data as Record<string, unknown> | null)?.ok !== true) {
+        throw new ProductUncertainCallError("call_record_unknown", request.callId);
+      }
     },
   });
 }
