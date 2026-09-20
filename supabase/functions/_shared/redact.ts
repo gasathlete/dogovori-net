@@ -224,6 +224,11 @@ function alphaOnlySalt(raw: string): string {
   );
 }
 
+/** Дълга цифрова серия в солта е рискова (телефон/ЕГН) → само тогава я обезцифряваме. */
+function safeSalt(raw: string): string {
+  return /\d{5,}/.test(raw) ? alphaOnlySalt(raw) : raw.toLowerCase();
+}
+
 function makeCallSalt(): string {
   const bytes = new Uint8Array(8);
   crypto.getRandomValues(bytes);
