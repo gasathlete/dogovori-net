@@ -212,6 +212,9 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   };
 
   const [generating, setGenerating] = useState(false);
+  // Пази от двойно изпращане при ръчен повторен опит от съобщението на
+  // правната преграда (никога автоматично).
+  const busyRef = useRef(false);
   const [genStepIdx, setGenStepIdx] = useState(0);
   // Диалог за лични / чувствителни данни (GDPR потвърждение преди генериране).
   const [sensitiveOpen, setSensitiveOpen] = useState(false);
@@ -519,6 +522,8 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
       }
     }
 
+    if (busyRef.current) return;
+    busyRef.current = true;
     setGenerating(true);
     setGenStepIdx(0);
     const interval = setInterval(() => setGenStepIdx((i) => (i + 1) % GEN_STEPS.length), 5000);
