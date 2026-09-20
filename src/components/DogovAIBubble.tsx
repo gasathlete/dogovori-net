@@ -240,9 +240,14 @@ function AnonChat({ resetKey }: { resetKey: number }) {
     try { localStorage.removeItem(ANON_STORAGE_KEY); } catch { /* ignore */ }
   }, [resetKey]);
 
+  // Сървърът е източникът на истината за оставащите съобщения. Локалният брояч
+  // е само предварителна оценка, докато не пристигне отговор.
+  const [serverRemaining, setServerRemaining] = useState<number | null>(null);
+  const [serverLimitReached, setServerLimitReached] = useState(false);
   const userTurns = messages.filter((m) => m.role === "user").length;
-  const remaining = Math.max(0, ANON_LIMIT - userTurns);
-  const limitReached = remaining <= 0;
+  const remaining = serverRemaining ?? Math.max(0, ANON_LIMIT - userTurns);
+  const limitReached = serverLimitReached || remaining <= 0;
+
 
   // Smart auto-scroll — follow the writing when the user is already near
   // the bottom; leave them alone if they scrolled up to re-read something.
