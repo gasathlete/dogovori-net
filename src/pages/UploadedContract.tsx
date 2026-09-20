@@ -249,6 +249,8 @@ export default function UploadedContractPage() {
     const startedIdentity = { docId: id, userId: user?.id ?? null };
     const scopeAtStart = scopeRef.current;
     const token = ++correctTokenRef.current;
+    if (busyRef.current) return;
+    busyRef.current = true;
     setCorrecting(true);
     const { data, error } = await supabase.functions.invoke("correct-uploaded", {
       body: {
