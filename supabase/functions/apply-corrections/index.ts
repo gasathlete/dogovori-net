@@ -700,6 +700,33 @@ ${answersRedacted}
       charge_state: "charged",
     };
 
+    // ПОТВЪРЖДЕНИЕ на ДОПЪЛНИТЕЛНИТЕ такса-единици ПЪРВО (без съдържание, само
+    // {wave_unit, primary_operation_id}) — те не носят точния отговор и НЕ е
+    // проблем да бъдат потвърдени преди първичната. Вече потвърдените от
+    // предходен опит единици се прескачат (идемпотентност).
+    for (let i = 1; i < opsForWave; i++) {
+      const unitId = opsUnitIds[i];
+      if (alreadyCommittedUnitIds.includes(unitId)) continue;
+      const unitSettlement = await commitQuota(ledgerDb, unitId, {
+        wave_unit: i,
+        primary_operation_id: operationId,
+      });
+      if (unitSettlement.status !== "settled") {
+        await recordReconciliation(
+          ledgerDb,
+          operationId,
+          `apply_corrections_unit_commit_unresolved:${unitSettlement.reason}`,
+          { user_id: userId, kind: "analysis", unit_operation_id: unitId },
+        );
+        await logAiAudit({
+          user_id: userId, operation: "apply-corrections", model: route.model,
+          classification, redaction_applied: route.redactionRequired,
+          status: "error", error_code: "unit_commit_unresolved",
+        });
+        return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+      }
+    }
+
     // ПОТВЪРЖДЕНИЕ + ОБВЪРЗВАНЕ на резултата ПРЕДИ 200: повторен опит по същия
     // ключ връща точно този текст. Недоказано потвърждение НЕ дава 200.
     const settlement = await commitQuota(ledgerDb, operationId, exactPayload);
