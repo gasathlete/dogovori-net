@@ -150,22 +150,38 @@ Deno.serve(async (req) => {
       throw e;
     }
 
-    // Защита от натоварване по IP (ОТДЕЛНА от правото на безплатни съобщения).
-    try {
-      const rl = await checkRateLimit(`anon-chat:${ipHash}`, MAX_ATTEMPTS_PER_DAY, 86400);
+    // ОТДЕЛЕН ограничител за прекомерно натоварване — НЕ е право и НЕ е
+    // резервация. FAIL-CLOSED: недостъпен ограничител спира заявката с 503,
+    // никога не я пропуска „наужким".
+    {
+      const rl = await checkRateLimitStrict(
+        `anon-chat-abuse:${ipHash}`,
+        MAX_ATTEMPTS_PER_DAY,
+        86400,
+      );
       if (!rl.ok) {
-        // Това е защита от прекомерно натоварване, НЕ изразходвано право.
+        const unavailable = rl.unavailable === true;
         return new Response(
           JSON.stringify({
-            error: "too_many_attempts",
-            message: "Твърде много заявки за кратко време. Опитайте отново по-късно.",
-            retry_after_s: rl.retry_after_s ?? 86400,
+            error: unavailable ? "entitlement_unavailable" : "too_many_attempts",
+            code: unavailable ? "entitlement_unavailable" : "too_many_attempts",
+            message: unavailable
+              ? "Услугата е временно недостъпна. Опитайте отново след минута."
+              : "Твърде много заявки за кратко време. Опитайте отново по-късно.",
+            free_message_consumed: false,
+            retry_after_seconds: rl.retry_after_s ?? (unavailable ? 60 : 86400),
+            retry_after_s: rl.retry_after_s ?? (unavailable ? 60 : 86400),
           }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          {
+            status: unavailable ? 503 : 429,
+            headers: {
+              ...corsHeaders,
+              "Content-Type": "application/json",
+              "Retry-After": String(rl.retry_after_s ?? (unavailable ? 60 : 86400)),
+            },
+          },
         );
       }
-    } catch {
-      // Ако защитата не сработи, продължаваме — правото се проверява по-долу.
     }
 
     const safe: ChatMsg[] = history
