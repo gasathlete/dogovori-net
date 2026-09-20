@@ -175,6 +175,29 @@ Deno.serve(async (req: Request) => {
     ].filter(Boolean).join("\n");
 
 
+    // СТРОГО ЗАЗЕМЯВАНЕ за точно тази (редактирана) заявка — преди всяко
+    // повикване към модела. Без проверена норма ревизията спира с 503.
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
+    const legal = await retrieveLegalContext(
+      admin,
+      LOVABLE_API_KEY,
+      `${s.type || ""} ${s.title}\n${s.text}`.slice(0, 4000),
+      { matchCount: 6 },
+    );
+    if (!legal.hasMatches) {
+      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
+      return legalVerificationUnavailableResponse({
+        headers: { ...corsHeaders, ...correlationHeaders(correlationId) },
+      });
+    }
+    // Един заземен системен промпт за основното повикване И за поправката на JSON.
+    const groundedSystem = `${SYSTEM_PROMPT}\n\n${legal.promptBlock}`;
+
     const callModel = async (messages: Array<{ role: string; content: string }>) => {
       const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
