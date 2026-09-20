@@ -17,12 +17,18 @@ export interface GraphInput {
 }
 
 export interface GraphResult {
-  /** Имена на функции (директории), които достигат AI повикване. */
+  /** Функции, които достигат AI повикване пряко ИЛИ чрез делегиране. */
   aiEndpoints: string[];
+  /** Функции с пряко AI повикване по веригата от вносове. */
+  directAiEndpoints: string[];
   /** Функция -> функции, към които делегира. */
   delegations: Map<string, string[]>;
   /** Функция -> достигнати файлове (за диагностика). */
   reached: Map<string, string[]>;
+  /** Достигнати локални модули, които липсват в корпуса. */
+  unknownModules: string[];
+  /** Делегирания към непознати функции. */
+  unknownDelegates: string[];
 }
 
 // Двойни И единични кавички; `from`, странични вносове (`import "./x.ts"`),
