@@ -126,6 +126,7 @@ Deno.serve(async (req: Request) => {
       commitQuotaWave,
       cancelQuotaWave,
       lookupCommittedWave,
+      responseExpiredResponse,
       billingReconciliationResponse,
       recordReconciliation,
     } = await import("../_shared/quota-ledger.ts");
