@@ -41,6 +41,41 @@ export function buildCors(req: Request, methods = "POST, OPTIONS") {
   };
 }
 
+/** Липсващ ключ = недостъпна инфраструктура за идентичност, не разрешение. */
+export class IdentityUnavailableError extends Error {
+  constructor() {
+    super("identity_unavailable");
+    this.name = "IdentityUnavailableError";
+  }
+}
+
+/**
+ * Идентичност за безплатни права (анонимен чат): изисква ОТДЕЛЕН сървърен ключ.
+ * Без ключ не се издава идентичност и не се консумира право.
+ */
+export async function hashAnonIdentity(
+  ip: string,
+  env: { get(name: string): string | undefined } = Deno.env,
+): Promise<string> {
+  const secret = env.get("ANON_IDENTITY_SECRET");
+  if (typeof secret !== "string" || secret.trim().length < 16) {
+    throw new IdentityUnavailableError();
+  }
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`anon-identity|${ip}`));
+  return Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 32);
+}
+
+/** Само за одитни записи (не носи права). */
 export async function hashIp(ip: string): Promise<string> {
   const buf = await crypto.subtle.digest(
     "SHA-256",

@@ -65,10 +65,9 @@ export async function sha256Hex(input: string): Promise<string> {
 
 /** Само сървърът разполага с ключа; липсата му е недостъпност, не разрешение. */
 export function strategySigningKey(env: { get(name: string): string | undefined }): string | null {
+  // Само отделен ключ: service-role ключът НЕ е резервен вариант.
   const explicit = env.get("STRATEGY_EVIDENCE_SECRET");
-  if (isNonEmptyString(explicit)) return explicit;
-  const service = env.get("SUPABASE_SERVICE_ROLE_KEY");
-  return isNonEmptyString(service) ? service : null;
+  return isNonEmptyString(explicit) && explicit.trim().length >= 16 ? explicit : null;
 }
 
 async function hmacHex(key: string, message: string): Promise<string> {
