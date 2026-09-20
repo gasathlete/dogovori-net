@@ -26,6 +26,9 @@ interface BucketDb {
         }>;
       };
     };
+    delete?(): {
+      eq(col: string, val: string): Promise<{ error: { message: string } | null }>;
+    };
   };
   rpc(
     name: string,
@@ -41,9 +44,14 @@ export interface EntitlementState {
   readonly used: number;
   readonly remaining: number;
   readonly exhausted: boolean;
+  /**
+   * Инфраструктурен отказ. НЕ е ново право и НЕ е изчерпан лимит — извикващият
+   * ТРЯБВА да върне повторяем 503.
+   */
+  readonly unavailable?: boolean;
 }
 
-/** Само ЧЕТЕ състоянието — не изразходва право. */
+/** Само ЧЕТЕ състоянието — не изразходва право. FAIL-CLOSED при грешка. */
 export async function readAnonEntitlement(
   db: BucketDb,
   ipHash: string,
@@ -55,7 +63,12 @@ export async function readAnonEntitlement(
     .eq("key", anonEntitlementKey(ipHash))
     .maybeSingle();
 
-  if (error || !data) {
+  // Грешка при четене НЕ дава свежо право (иначе всеки срив = безкраен достъп).
+  if (error) {
+    return { used: 0, remaining: 0, exhausted: false, unavailable: true };
+  }
+  // Липсващ запис = наистина нов посетител.
+  if (!data) {
     return { used: 0, remaining: ANON_FREE_MESSAGES, exhausted: false };
   }
   const started = new Date(data.window_start).getTime();
@@ -65,6 +78,7 @@ export async function readAnonEntitlement(
   const remaining = Math.max(0, ANON_FREE_MESSAGES - used);
   return { used, remaining, exhausted: remaining <= 0 };
 }
+
 
 /**
  * Изразходва ЕДНО съобщение — извиква се СЛЕД доказано доставен отговор.
