@@ -615,7 +615,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         if (gen.code === "operation_conflict") {
           releaseStableOpKey(buildOpScope);
           toast.error("Заявката се промени. Изпратете отново.", {
-            description: "Данните Ви са запазени — натиснете отново „Изготви", за да продължим.",
+            description: "Данните Ви са запазени — натиснете отново „Изготви“, за да продължим.",
           });
           return;
         }
