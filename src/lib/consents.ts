@@ -21,29 +21,63 @@ export interface ConsentRecord {
   metadata?: Record<string, unknown>;
 }
 
+export const PENDING_CONSENTS_KEY = "pending_consents";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function newEventId(): string {
+  try {
+    const c = globalThis.crypto;
+    if (c && typeof c.randomUUID === "function") return c.randomUUID();
+  } catch { /* crypto unavailable */ }
+  // Deterministic-length fallback; only used when crypto is missing.
+  const hex = (n: number) =>
+    Array.from({ length: n }, () => Math.floor(Math.random() * 16).toString(16)).join("");
+  return `${hex(8)}-${hex(4)}-4${hex(3)}-a${hex(3)}-${hex(12)}`;
+}
+
 /**
  * Record one or more consents for the currently logged-in user.
- * Silently no-ops when not authenticated (anonymous browsing).
+ *
+ * The write is idempotent per (user, consent_type, consent_event_id): retrying
+ * the same batch after a network failure cannot create a second consent event.
+ * Failures are returned, never swallowed as success.
  */
-export async function recordConsents(records: ConsentRecord[]) {
+export async function recordConsents(
+  records: ConsentRecord[],
+  options: { eventId?: string } = {},
+) {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { ok: false, reason: "no-user" as const };
+    if (!user) return { ok: false as const, reason: "no-user" as const };
+    if (records.length === 0) return { ok: true as const, eventId: options.eventId };
+
+    const eventId = options.eventId && UUID_RE.test(options.eventId)
+      ? options.eventId
+      : newEventId();
 
     const rows = records.map((r) => ({
       user_id: user.id,
       consent_type: r.consent_type,
+      consent_event_id: eventId,
       document_version: CONSENT_VERSIONS[r.consent_type],
       granted: r.granted,
       user_agent: typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 500) : null,
-      metadata: (r.metadata ?? null) as any,
+      metadata: r.metadata ?? null,
     }));
 
-    const { error } = await supabase.from("user_consents").insert(rows);
-    if (error) return { ok: false, reason: error.message };
-    return { ok: true };
+    // `consent_event_id` is added by migration 0028; generated types are
+    // regenerated with that migration, so the row shape is cast until then.
+    const { error } = await supabase
+      .from("user_consents")
+      .upsert(rows as never, {
+        onConflict: "user_id,consent_type,consent_event_id",
+        ignoreDuplicates: true,
+      });
+    if (error) return { ok: false as const, reason: error.message, eventId };
+    return { ok: true as const, eventId };
   } catch (e) {
-    return { ok: false, reason: String(e) };
+    return { ok: false as const, reason: String(e) };
   }
 }
 
@@ -70,32 +104,87 @@ export async function hasConsent(type: ConsentType): Promise<boolean> {
   }
 }
 
+export interface PendingConsentPayload {
+  event_id: string;
+  operational_notifications?: boolean;
+  marketing?: boolean;
+  terms?: boolean;
+  privacy?: boolean;
+  age_18?: boolean;
+  [key: string]: unknown;
+}
+
+/** Strict validation: anything that is not a consent object is discarded. */
+function parsePending(raw: string): Record<string, unknown> | null {
+  try {
+    const data = JSON.parse(raw) as unknown;
+    if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+    return data as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Flush consents stashed at signup (`pending_consents` in sessionStorage) to
- * the server on first authenticated session. Runs once per browser — the
- * stash is removed before the request so a failure cannot double-record.
+ * the server on first authenticated session.
  *
- * Marketing is recorded only on an explicit signal:
- *  - `marketing === true`         → granted = true (opt-in);
- *  - `marketing_refused === true` → granted = false (explicit opt-out,
- *    shown as „−" in the admin panel; everyone without such a record is „+").
+ * Durability rules:
+ *  - the stash is removed ONLY after the server write succeeded, so a network
+ *    or database failure leaves the evidence retryable;
+ *  - the payload carries a stable `event_id`, so a retry writes the same
+ *    consent event instead of a duplicate;
+ *  - a malformed payload is discarded after strict validation — never turned
+ *    into fabricated consent.
+ *
+ * Marketing is recorded ONLY as an explicit opt-in (`marketing === true`).
+ * An unchecked box records nothing at all; a later unsubscribe action records
+ * `granted = false`.
  */
 export async function flushPendingConsents() {
+  let raw: string | null = null;
   try {
-    const raw = sessionStorage.getItem("pending_consents");
-    if (!raw) return;
-    sessionStorage.removeItem("pending_consents");
-    const data = JSON.parse(raw) as Record<string, unknown>;
-    const records: ConsentRecord[] = [
-      { consent_type: "terms", granted: true },
-      { consent_type: "privacy", granted: true },
-      { consent_type: "age_18", granted: true },
-      { consent_type: "operational_notifications", granted: data.operational_notifications !== false },
-    ];
-    if (data.marketing === true) records.push({ consent_type: "marketing", granted: true });
-    if (data.marketing_refused === true) records.push({ consent_type: "marketing", granted: false });
-    await recordConsents(records);
-  } catch { /* storage unavailable or malformed payload — ignore */ }
+    raw = sessionStorage.getItem(PENDING_CONSENTS_KEY);
+  } catch {
+    return { ok: false as const, reason: "storage-unavailable" as const };
+  }
+  if (!raw) return { ok: true as const, reason: "nothing-pending" as const };
+
+  const data = parsePending(raw);
+  if (!data) {
+    try { sessionStorage.removeItem(PENDING_CONSENTS_KEY); } catch { /* ignore */ }
+    return { ok: false as const, reason: "malformed" as const };
+  }
+
+  // A stable batch id makes the retry idempotent. Persist the enriched payload
+  // BEFORE the request, so a crash mid-flight still retries the same event.
+  let eventId = typeof data.event_id === "string" && UUID_RE.test(data.event_id)
+    ? data.event_id
+    : null;
+  if (!eventId) {
+    eventId = newEventId();
+    try {
+      sessionStorage.setItem(
+        PENDING_CONSENTS_KEY,
+        JSON.stringify({ ...data, event_id: eventId }),
+      );
+    } catch { /* storage became unavailable — continue with in-memory id */ }
+  }
+
+  const records: ConsentRecord[] = [
+    { consent_type: "terms", granted: true },
+    { consent_type: "privacy", granted: true },
+    { consent_type: "age_18", granted: true },
+    { consent_type: "operational_notifications", granted: data.operational_notifications !== false },
+  ];
+  // Explicit opt-in only. No record means no marketing consent.
+  if (data.marketing === true) records.push({ consent_type: "marketing", granted: true });
+
+  const result = await recordConsents(records, { eventId });
+  if (!result.ok) return result;
+
+  try { sessionStorage.removeItem(PENDING_CONSENTS_KEY); } catch { /* ignore */ }
+  return { ok: true as const, eventId };
 }
 
 /* Note: anonymous AI-disclaimer persistence is handled by

@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 // Леки константи вместо целия CATALOG/SECTORS (~1 MB JSON) — виж src/data/catalogCounts.ts
 import { TEMPLATES_COUNT, SECTORS_COUNT } from "@/data/catalogCounts";
-import { useCountUp } from "@/hooks/useCountUp";
 import { storageThumb } from "@/lib/imageThumb";
 
 
@@ -38,16 +37,14 @@ async function fetchRegisteredUsers(): Promise<number> {
   return n;
 }
 
-/** Плавно, кратко представяне на точния брой; помощните технологии четат крайното число. */
-function AnimatedCount({ value, className }: { value: number; className?: string }) {
-  const { ref, value: current } = useCountUp(value, { duration: 900 });
-  const shown = current >= value ? value : current;
+/**
+ * Точният проверен брой се показва директно след индикатора за зареждане —
+ * без анимация от видима нула, за да не изглежда като по-малко потребители.
+ */
+function ExactCount({ value, className }: { value: number; className?: string }) {
   return (
-    <span ref={ref as any} className={className}>
-      <span aria-hidden="true" className="tabular-nums">
-        {shown.toLocaleString("bg-BG")}
-      </span>
-      <span className="sr-only">{value.toLocaleString("bg-BG")}</span>
+    <span className={className}>
+      <span className="tabular-nums">{value.toLocaleString("bg-BG")}</span>
     </span>
   );
 }
@@ -108,7 +105,7 @@ export function SocialProofStrip() {
             {hasUsers ? (
               <>
                 Използвана от{" "}
-                <AnimatedCount
+                <ExactCount
                   value={registeredUsers as number}
                   className="font-semibold text-foreground"
                 />{" "}
@@ -186,7 +183,7 @@ export function SocialProofStrip() {
                   className="font-serif text-xl text-foreground sm:text-2xl"
                   aria-label={`${(registeredUsers as number).toLocaleString("bg-BG")} регистрирани потребители`}
                 >
-                  <AnimatedCount value={registeredUsers as number} />
+                  <ExactCount value={registeredUsers as number} />
                 </dd>
                 <span className="text-center text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                   регистрирани потребители

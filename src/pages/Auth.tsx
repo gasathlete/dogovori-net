@@ -57,13 +57,12 @@ export default function AuthPage() {
   const [acceptTerms, setAcceptTerms] = useState(true);
   const [acceptPrivacy, setAcceptPrivacy] = useState(true);
   const [acceptAge, setAcceptAge] = useState(true);
-  // Маркетинговото съгласие е по желание — стартира изключено и НЕ участва
+  // Маркетинговото съгласие е по желание — стартира ИЗКЛЮЧЕНО и НЕ участва
   // в готовността за регистрация (GDPR: свободно, конкретно съгласие).
-  const [acceptMarketing, setAcceptMarketing] = useState(true);
+  // Неотметнато поле не записва нищо — нито съгласие, нито отказ.
+  const [acceptMarketing, setAcceptMarketing] = useState(false);
   // Задължително: име и имейл се пазят за вътрешни известия и проверката при подпис.
   const [acceptNotifications, setAcceptNotifications] = useState(true);
-  // Отделно, изрично заявен отказ от имейл маркетинг.
-  const [refuseMarketing, setRefuseMarketing] = useState(false);
   const [tab, setTab] = useState<"login" | "signup">(
     params.get("tab") === "signup" ? "signup" : "login",
   );
@@ -165,8 +164,7 @@ export default function AuthPage() {
       sessionStorage.setItem(
         "pending_consents",
         JSON.stringify({
-          marketing: acceptMarketing && !refuseMarketing,
-          marketing_refused: refuseMarketing,
+          marketing: acceptMarketing,
           operational_notifications: acceptNotifications,
           terms: true,
           privacy: true,
@@ -184,18 +182,19 @@ export default function AuthPage() {
   };
 
 
-  const startGoogleOAuth = async (marketing: boolean, marketingRefused = false) => {
+  const startGoogleOAuth = async (marketing: boolean) => {
     setBusy(true);
     try {
       sessionStorage.setItem("post_login_redirect", redirect);
-      // Always stash consents — recordConsents on the server side is idempotent
-      // for existing users (won't duplicate), and ensures new accounts created
-      // via Google have the required terms/privacy/age records.
+      // Always stash consents — the write is idempotent per consent event, and
+      // ensures new accounts created via Google have the required
+      // terms/privacy/age records. Marketing is passed through only when the
+      // user explicitly opted in, so existing Google users are never marked
+      // as consenting.
       sessionStorage.setItem(
         "pending_consents",
         JSON.stringify({
-          marketing: marketing && !marketingRefused,
-          marketing_refused: marketingRefused,
+          marketing,
           operational_notifications: true,
           terms: true,
           privacy: true,
@@ -223,7 +222,7 @@ export default function AuthPage() {
         toast.error("Преди регистрация с Google, моля приемете задължителните условия");
         return;
       }
-      await startGoogleOAuth(acceptMarketing, refuseMarketing);
+      await startGoogleOAuth(acceptMarketing);
       return;
     }
     // Login tab: open consent dialog before OAuth to close the gap where
@@ -231,9 +230,9 @@ export default function AuthPage() {
     setGoogleConsentOpen(true);
   };
 
-  const handleGoogleConsentConfirm = async (marketing: boolean, marketingRefused = false) => {
+  const handleGoogleConsentConfirm = async (marketing: boolean) => {
     setGoogleConsentOpen(false);
-    await startGoogleOAuth(marketing, marketingRefused);
+    await startGoogleOAuth(marketing);
   };
 
   const handleReset = async () => {
@@ -397,26 +396,11 @@ export default function AuthPage() {
                     <Checkbox
                       id="c-mkt"
                       checked={acceptMarketing}
-                      disabled={refuseMarketing}
                       onCheckedChange={(v) => setAcceptMarketing(!!v)}
                       className="mt-0.5"
                     />
                     <Label htmlFor="c-mkt" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
-                      Съгласявам се да получавам имейл съобщения за новости, бонуси и награди. <span className="text-muted-foreground">(по желание)</span>
-                    </Label>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Checkbox
-                      id="c-mkt-refuse"
-                      checked={refuseMarketing}
-                      onCheckedChange={(v) => {
-                        setRefuseMarketing(!!v);
-                        if (v) setAcceptMarketing(false);
-                      }}
-                      className="mt-0.5"
-                    />
-                    <Label htmlFor="c-mkt-refuse" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
-                      Изрично отказвам да получавам имейл маркетинг. <span className="text-muted-foreground">(по желание)</span>
+                      Искам да получавам имейл съобщения за новости, бонуси и награди. <span className="text-muted-foreground">(по желание — ако е празно, не Ви пишем)</span>
                     </Label>
                   </div>
                 </div>
