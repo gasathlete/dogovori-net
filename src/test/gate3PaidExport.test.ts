@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 
 const read = (path: string) => readFileSync(path, "utf8");
 const productResult = read("src/pages/ProductResult.tsx");
-const resultState = read("src/lib/productResultState.ts");
+const resultState = read("src/lib/productResultApi.ts");
 const downloadLib = read("src/lib/downloadDocument.ts");
 const downloadFn = read("supabase/functions/download-document/index.ts");
 
