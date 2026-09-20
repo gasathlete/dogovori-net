@@ -1917,6 +1917,7 @@ export default function WizardPage() {
                       ...result,
                       contract: { ...result.contract, ...next },
                       quality_manifest: undefined,
+                      review_grant: undefined,
                     });
                     setSavedDocId(undefined);
                   }}
