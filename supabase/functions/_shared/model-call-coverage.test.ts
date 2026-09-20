@@ -130,10 +130,28 @@ Deno.test("защитените крайни точки нямат повече 
     const iterMatch = src.match(/MAX_TOOL_ITERATIONS\s*=\s*(\d+)/);
     const toolIterations = iterMatch ? Number(iterMatch[1]) : 0;
     const legalRepair = /async function repairLegalAnswer\(/.test(src) ? 1 : 0;
-    const expectedMax = toolIterations > 0
+    // Документните операции имат ТВЪРД бюджет за повиквания към доставчика,
+    // наложен в кода чрез ProviderCallBudget. Манифестът трябва да повтаря
+    // точно същото число, което стои в PROVIDER_CALL_BUDGET.
+    const docPurpose = (entry as unknown as { purpose?: string }).purpose;
+    const isDocumentOperation = entry.mechanism === "ai_document_operations";
+    const expectedMax = isDocumentOperation
+      ? documentBudget(docPurpose ?? "")
+      : toolIterations > 0
       ? toolIterations + legalRepair + attempts
       : (typeof entry.directGatewayCallSites === "number" ? entry.directGatewayCallSites : 1) +
         attempts;
+    if (isDocumentOperation) {
+      assert(
+        src.includes("ProviderCallBudget"),
+        `${entry.function}: бюджетът за повиквания трябва да е наложен в кода`,
+      );
+      assertEquals(
+        (entry as unknown as { providerCallBudget?: number }).providerCallBudget,
+        expectedMax,
+        `${entry.function}: декларираният бюджет не отговаря на PROVIDER_CALL_BUDGET`,
+      );
+    }
     if (toolIterations > 0) {
       assertEquals(
         entry.repair?.toolIterations ?? 0,
