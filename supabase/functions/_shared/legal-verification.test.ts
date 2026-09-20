@@ -415,3 +415,101 @@ Deno.test("retrieval fails closed on embedding failure, rpc failure, no candidat
     globalThis.fetch = originalFetch;
   }
 });
+
+Deno.test("готовността намира валидна верига и след бившите тавани", async () => {
+  // 260 невалидни чънка преди валидния: старите тавани (5 документа, 4×50
+  // чънка) биха го скрили. Пълният обхват го намира.
+  const noise = Array.from({ length: 260 }, (_, i) => ({
+    id: `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
+    source_id: SOURCE_ID,
+    document_id: DOCUMENT_ID,
+    citation_label: "",
+    content: "",
+    article_no: null,
+    paragraph_no: null,
+  }));
+  const chunks = [...noise, READY_ROWS.chunk as Record<string, unknown>];
+  assert(chunks.length > 200, "наборът е по-голям от бившия таван");
+  assert(
+    await isStrictLegalKnowledgeBaseReady(fixtureDb(rows({ chunks })), deps),
+    "валиден чънк след бившия таван трябва да бъде намерен",
+  );
+});
+
+Deno.test("извличането не обхожда корпуса преди RPC и не плаща за неготов контрол", async () => {
+  const originalFetch = globalThis.fetch;
+  let embedCalls = 0;
+  globalThis.fetch = (() => {
+    embedCalls += 1;
+    return Promise.resolve(
+      new Response(JSON.stringify({ data: [{ embedding: [0.1, 0.2] }] }), { status: 200 }),
+    );
+  }) as typeof fetch;
+  try {
+    // 1) Готов контролен слой: преди RPC няма нито едно изброяване на чънкове.
+    const base = fixtureDb(READY_ROWS);
+    let chunkCallsAtRpc = -1;
+    const admin = {
+      ...base,
+      rpc: () => {
+        chunkCallsAtRpc = base.calls["legal_chunks"] ?? 0;
+        return Promise.resolve({ data: [{ chunk_id: CHUNK_ID, similarity: 0.91 }], error: null });
+      },
+    };
+    const ctx = await retrieveLegalContext(admin as never, "key", "въпрос", { verifier: deps });
+    assert(ctx.hasMatches, "проверен кандидат дава съвпадение");
+    assertEquals(chunkCallsAtRpc, 0);
+    assertEquals(embedCalls, 1);
+
+    // 2) Неготов контролен слой (застоял регистърен ред) → нула embedding, нула RPC.
+    embedCalls = 0;
+    let rpcCalls = 0;
+    const stale = {
+      ...fixtureDb(rows({ registry: { ...READY_ROWS.registry!, freshness_state: "stale" } })),
+      rpc: () => {
+        rpcCalls += 1;
+        return Promise.resolve({ data: [], error: null });
+      },
+    };
+    const blocked = await retrieveLegalContext(stale as never, "key", "въпрос", { verifier: deps });
+    assertFalse(blocked.hasMatches);
+    assertEquals(embedCalls, 0);
+    assertEquals(rpcCalls, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("лекият контролен слой не зависи от корпуса, но остава строг", async () => {
+  const { isLegalControlPlaneReady } = await import("./legal-verification.ts");
+  assert(await isLegalControlPlaneReady(fixtureDb(READY_ROWS), deps));
+  // Без одобрен code-owned източник — нула заявки.
+  const db = fixtureDb();
+  assertFalse(await isLegalControlPlaneReady(db));
+  assertEquals(Object.keys(db.calls).length, 0);
+  // Неприето последно изпълнение → отказ.
+  assertFalse(
+    await isLegalControlPlaneReady(
+      fixtureDb(rows({ run: { ...READY_ROWS.run!, outcome: "failed" } })),
+      deps,
+    ),
+  );
+});
+
+Deno.test("отказът на веригата на кандидата остава без съвпадение", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (() =>
+    Promise.resolve(
+      new Response(JSON.stringify({ data: [{ embedding: [0.1] }] }), { status: 200 }),
+    )) as typeof fetch;
+  try {
+    const admin = {
+      ...fixtureDb(rows({ source: { ...READY_ROWS.source!, official_url: LEX_URL } })),
+      rpc: () => Promise.resolve({ data: [{ chunk_id: CHUNK_ID, similarity: 0.99 }], error: null }),
+    };
+    const ctx = await retrieveLegalContext(admin as never, "key", "въпрос", { verifier: deps });
+    assertFalse(ctx.hasMatches);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
