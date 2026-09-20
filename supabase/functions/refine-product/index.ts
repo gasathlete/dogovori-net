@@ -45,6 +45,13 @@ import {
   validateRefinementInstruction,
 } from "../_shared/product-refinement.ts";
 import type { NegotiationPackageResult } from "../_shared/product-result-contract.ts";
+import {
+  markProductRefinementReconciliation,
+  PRODUCT_RECONCILIATION_MESSAGE,
+  type ProductReconciliationCode,
+  readProductReconciliationState,
+  type ReconciliationRpcClient,
+} from "../_shared/product-reconciliation.ts";
 import { modelPrice } from "../_shared/product-generation-policy.ts";
 
 /** Точна цена в цели micro-USD по датираната таблица на политиката. */
@@ -79,6 +86,7 @@ const MESSAGES: Readonly<Record<string, string>> = Object.freeze({
     "Резултатът е променен в друг раздел. Презаредете страницата и опитайте отново.",
   refinement_failed:
     "Уточнението не беше изготвено. Включеното уточнение остава налично, а оригиналният резултат е непокътнат.",
+  reconciliation_required: PRODUCT_RECONCILIATION_MESSAGE,
   internal: "Възникна неочакван проблем.",
 });
 
