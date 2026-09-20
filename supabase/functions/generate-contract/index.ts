@@ -13,6 +13,7 @@ import {
   anonRequestDigest as _unusedAnonRequestDigest,
   cancelAnonDelivery,
   commitAnonDelivery,
+  lookupAnonDelivery,
   reserveAnonDelivery,
 } from "../_shared/anon-delivery-ledger.ts";
 import { checkRateLimitStrict } from "../_shared/rate-limit.ts";
@@ -334,10 +335,7 @@ Deno.serve(async (req: Request) => {
       // -----------------------------------------------------------------------
       // АНОНИМЕН ПЪТ: сървърно-извлечена опаковата идентичност (БЕЗ IP навън),
       // ЗАДЪЛЖИТЕЛЕН operation_id (вече проверен по-горе), същият каноничен
-      // отпечатък на заявката, и ТРАЕН анонимен леджър за доставка (reserve →
-      // точно едно повикване към модела → commit; типизирана отмяна при
-      // доказан провал; изравняване при неясен изход). Fail-closed при липсващ
-      // сървърен идентичност-ключ.
+      // отпечатък на заявката. Fail-closed при липсващ сървърен идентичност-ключ.
       // -----------------------------------------------------------------------
       try {
         anonIdentityHash = await hashAnonIdentity(clientIp(req));
@@ -356,64 +354,38 @@ Deno.serve(async (req: Request) => {
         throw e;
       }
 
-      const anonRes = await reserveAnonDelivery(ledgerDb, {
+      // САМО-ЧЕТЯЩА проверка: без резервация, без освобождаване, без такса.
+      // Извиква се ПРЕДИ каквато и да е мутируема/външна проверка (незаконно
+      // съдържание, класификация, редакция, правно заземяване), за да намери
+      // вече завършен точен отговор, без да заема място в леджъра.
+      const anonLookup = await lookupAnonDelivery(ledgerDb, {
         operationId,
         identityHash: anonIdentityHash,
         requestDigest,
         purpose: "generate_contract_anon",
-        cap: 1,
-        windowSeconds: 24 * 3600,
       });
-      if (anonRes.kind === "replay") {
-        return exactReplayResponse(anonRes.response);
-      }
-      if (anonRes.kind === "in_progress") {
+      if (anonLookup.status === "conflict") return conflictResponse();
+      if (anonLookup.status === "unavailable") return quotaUnavailableResponse();
+      if (anonLookup.status === "in_progress") {
         return operationInProgressResponse(
           { ...corsHeaders, ...correlationHeaders(correlationId) },
-          anonRes.retryAfterSeconds,
+          anonLookup.retryAfterSeconds,
         );
       }
-      if (anonRes.kind === "limit_reached") {
-        return new Response(
-          JSON.stringify({
-            error: "За да генерирате договор, влезте безплатно с email или Google.",
-            code: "rate_limited",
-            requires_login: true,
-            charge_state: "not_charged",
-          }),
-          { status: 429, headers: jsonHeaders },
-        );
+      if (anonLookup.status === "reconciliation") {
+        await recordReconciliation(ledgerDb, operationId, `generate_contract_anon_lookup:${anonLookup.reason}`, {
+          user_id: null,
+          kind: "analysis",
+        });
+        return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
       }
-      if (anonRes.kind === "conflict") return conflictResponse();
-      if (anonRes.kind === "expired") {
+      if (anonLookup.status === "response_expired") {
         return responseExpiredResponse({ ...corsHeaders, ...correlationHeaders(correlationId) }, false);
       }
-      if (anonRes.kind !== "reserved") return quotaUnavailableResponse();
-
-      settleKind = "anon";
-      compensated = false;
-
-      // Отделен анти-абюз лимит — НЕ е правото за доставка, а защита срещу
-      // прекомерни опити/атака по същата идентичност. Fail-closed.
-      const abuse = await checkRateLimitStrict(
-        `generate-contract-anon-abuse:${anonIdentityHash}`,
-        15,
-        86400,
-      );
-      if (!abuse.ok) {
-        const unresolved = await cancelOrReport(abuse.unavailable ? "limiter_unavailable" : "rate_limited");
-        if (unresolved) return unresolved;
-        return new Response(
-          JSON.stringify({
-            error: abuse.unavailable
-              ? "Услугата е временно недостъпна. Опитайте отново по-късно."
-              : "Твърде много опити. Опитайте отново по-късно.",
-            code: abuse.unavailable ? "entitlement_unavailable" : "too_many_attempts",
-            charge_state: "not_charged",
-          }),
-          { status: abuse.unavailable ? 503 : 429, headers: jsonHeaders },
-        );
+      if (anonLookup.status === "committed") {
+        return exactReplayResponse(anonLookup.response);
       }
+      // status === "absent" → нормален нов опит, продължаваме надолу.
     }
 
     // Illegal content guard — block before AI call, log + alert admin.
@@ -550,6 +522,75 @@ ${docTypeSpec.systemAddendum}
       return legalVerificationUnavailableResponse({ headers: { ...corsHeaders, ...correlationHeaders(correlationId) } });
     }
     const activeSystemPrompt = `${baseSystem}\n\n${legal.promptBlock}`;
+
+    // -----------------------------------------------------------------------
+    // АНОНИМЕН ПЪТ (продължение): резервацията в трайния леджър за доставка
+    // се прави ЕДВА СЕГА — след ВСИЧКИ безплатни проверки (незаконно
+    // съдържание, класификация, редакция, правно заземяване), точно както
+    // при удостоверените потребители по-долу. Точно едно повикване към
+    // модела → commit; типизирана отмяна при доказан провал; изравняване
+    // при неясен изход.
+    // -----------------------------------------------------------------------
+    if (!userId) {
+      const anonRes = await reserveAnonDelivery(ledgerDb, {
+        operationId,
+        identityHash: anonIdentityHash!,
+        requestDigest,
+        purpose: "generate_contract_anon",
+        cap: 1,
+        windowSeconds: 24 * 3600,
+      });
+      if (anonRes.kind === "replay") {
+        return exactReplayResponse(anonRes.response);
+      }
+      if (anonRes.kind === "in_progress") {
+        return operationInProgressResponse(
+          { ...corsHeaders, ...correlationHeaders(correlationId) },
+          anonRes.retryAfterSeconds,
+        );
+      }
+      if (anonRes.kind === "limit_reached") {
+        return new Response(
+          JSON.stringify({
+            error: "За да генерирате договор, влезте безплатно с email или Google.",
+            code: "rate_limited",
+            requires_login: true,
+            charge_state: "not_charged",
+          }),
+          { status: 429, headers: jsonHeaders },
+        );
+      }
+      if (anonRes.kind === "conflict") return conflictResponse();
+      if (anonRes.kind === "expired") {
+        return responseExpiredResponse({ ...corsHeaders, ...correlationHeaders(correlationId) }, false);
+      }
+      if (anonRes.kind !== "reserved") return quotaUnavailableResponse();
+
+      settleKind = "anon";
+      compensated = false;
+
+      // Отделен анти-абюз лимит — НЕ е правото за доставка, а защита срещу
+      // прекомерни опити/атака по същата идентичност. Fail-closed.
+      const abuse = await checkRateLimitStrict(
+        `generate-contract-anon-abuse:${anonIdentityHash}`,
+        15,
+        86400,
+      );
+      if (!abuse.ok) {
+        const unresolved = await cancelOrReport(abuse.unavailable ? "limiter_unavailable" : "rate_limited");
+        if (unresolved) return unresolved;
+        return new Response(
+          JSON.stringify({
+            error: abuse.unavailable
+              ? "Услугата е временно недостъпна. Опитайте отново по-късно."
+              : "Твърде много опити. Опитайте отново по-късно.",
+            code: abuse.unavailable ? "entitlement_unavailable" : "too_many_attempts",
+            charge_state: "not_charged",
+          }),
+          { status: abuse.unavailable ? 503 : 429, headers: jsonHeaders },
+        );
+      }
+    }
 
     // ТАКСУВАНЕ: след всички непарични проверки. ЕДИН леджър, идемпотентен по
     // ключа на операцията и обвързан със съдържанието на заявката. Само за
