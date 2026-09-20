@@ -398,7 +398,7 @@ Deno.serve(async (req: Request) => {
     if (lookup.status === "reconciliation") {
       await recordReconciliation(ledgerDb, operationId, `build_custom_contract_lookup:${lookup.reason}`, {
         user_id: userId,
-        kind: "analysis",
+        kind: "contract",
       });
       return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
     }
@@ -417,7 +417,7 @@ Deno.serve(async (req: Request) => {
       }
       await recordReconciliation(ledgerDb, operationId, "build_custom_contract_committed_without_result", {
         user_id: userId,
-        kind: "analysis",
+        kind: "contract",
       });
       return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
     }
@@ -571,7 +571,7 @@ ${fieldsSection}
     if (reservation.status === "reconciliation") {
       await recordReconciliation(ledgerDb, operationId, `build_custom_contract_reserve:${reservation.reason}`, {
         user_id: userId,
-        kind: "analysis",
+        kind: "contract",
       });
       return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
     }
@@ -615,7 +615,7 @@ ${fieldsSection}
           ledgerDb,
           operationId,
           `build_custom_contract_cancel_failed:${outcome.reason}`,
-          { user_id: userId, kind: "analysis" },
+          { user_id: userId, kind: "contract" },
         );
         return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
       }
@@ -815,7 +815,7 @@ ${fieldsSection}
         ledgerDb,
         operationId,
         `build_custom_contract_commit_unresolved:${settlement.reason}`,
-        { user_id: userId, kind: "analysis" },
+        { user_id: userId, kind: "contract" },
       );
       await logAiAudit({
         user_id: userId, operation: "build-custom-contract", model: route.model,
