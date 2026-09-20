@@ -565,12 +565,15 @@ Deno.serve(async (req: Request) => {
       { bucket: "document-blanks", path: storagePath!, filename },
     );
     if (committed.status !== "settled") {
+      // Без доказано обвързване на резултата НЕ връщаме успех: иначе повторният
+      // опит би генерирал и таксувал наново.
       await recordReconciliation(
         admin as unknown as Parameters<typeof recordReconciliation>[0],
         operationId,
         `commit_failed:${committed.reason}`,
-        { purpose: "download_blank" },
+        { purpose: "download_blank", bucket: "document-blanks", path: storagePath },
       );
+      return billingReconciliationResponse(corsHeaders);
     }
 
     return new Response(
@@ -595,9 +598,14 @@ Deno.serve(async (req: Request) => {
       throw afterCharge;
     }
   } catch (e) {
-    return new Response(JSON.stringify({ error: String((e as Error)?.message ?? e) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // Нормализиран отговор: без вътрешни съобщения и без тела от шлюза.
+    console.error("download-blank error", { name: e instanceof Error ? e.name : "unknown" });
+    return new Response(
+      JSON.stringify({
+        error: "Възникна вътрешна грешка. Опитайте отново.",
+        code: "internal_error",
+      }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 });
