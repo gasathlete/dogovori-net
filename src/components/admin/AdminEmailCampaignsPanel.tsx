@@ -80,13 +80,22 @@ export function AdminEmailCampaignsPanel() {
   };
 
   const sendTopic = async (t: Topic) => {
-    if (!confirm(`Изпращане на вътрешно известие „${t.title}“ до всички потребители с „+“?`)) return;
+    if (recipients.length === 0) {
+      toast.error("Няма потребители с изрично съгласие — няма на кого да се изпрати.");
+      return;
+    }
+    if (!confirm(
+      `Изпращане на „${t.title}“ само до потребителите с изрично съгласие за имейл маркетинг?`,
+    )) return;
     setBusyId(t.id);
+    // Базата е окончателният филтър: дори този списък да е остарял, сървърът
+    // изпраща само на изрично съгласилите се.
     const { data, error } = await supabase.rpc("admin_send_campaign_topic", { _topic_id: t.id });
     setBusyId(null);
     if (error) { toast.error("Изпращането не е извършено", { description: error.message }); return; }
-    toast.success(`Изпратено до ${Number(data ?? 0)} потребители`);
+    toast.success(`Изпратено до ${Number(data ?? 0)} потребители с изрично съгласие`);
     loadTopics();
+    loadRecipients(search);
   };
 
   const removeTopic = async (id: string) => {

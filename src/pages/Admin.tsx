@@ -20,6 +20,12 @@ import { AdminEmailCampaignsPanel } from "@/components/admin/AdminEmailCampaigns
 import { AdminAdsPanel } from "@/components/admin/AdminAdsPanel";
 import { BlankCacheWarmer } from "@/components/admin/BlankCacheWarmer";
 import { AdminMFAGuard } from "@/components/admin/AdminMFAGuard";
+import {
+  type MarketingStatus,
+  marketingStatusLabel,
+  marketingStatusTitle,
+  normalizeMarketingStatus,
+} from "@/lib/marketingConsent";
 
 type Row = {
   user_id: string;
