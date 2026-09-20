@@ -93,3 +93,27 @@ export async function consumeAnonDelivered(
     exhausted: remaining <= 0,
   };
 }
+
+/**
+ * ЕДНОКРАТНОСТ НА ОПИТА (повторение при загубен отговор).
+ * Ключът е обвързан с идентичността и клиентския UUID на заявката. Резервира се
+ * ПРЕДИ модела: повторен опит със същия ключ не генерира и не таксува отново.
+ */
+export function anonOperationKey(ipHash: string, requestId: string): string {
+  return `anon-chat-op:${ipHash}:${requestId}`;
+}
+
+export async function reserveAnonOperation(
+  db: BucketDb,
+  ipHash: string,
+  requestId: string,
+): Promise<{ ok: boolean; replay: boolean; infraFailed: boolean }> {
+  const { data, error } = await db.rpc("rate_limit_check", {
+    _key: anonOperationKey(ipHash, requestId),
+    _max: 1,
+    _window_s: 3600,
+  });
+  if (error) return { ok: false, replay: false, infraFailed: true };
+  const row = (data ?? {}) as { ok?: boolean };
+  return { ok: row.ok === true, replay: row.ok !== true, infraFailed: false };
+}

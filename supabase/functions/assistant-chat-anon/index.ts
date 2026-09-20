@@ -3,7 +3,7 @@
 // Public endpoint; verify_jwt = false. No streaming, no persistence.
 // Grounded in the legal knowledge base via retrieveLegalContext().
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { buildCors, clientIp, hashIp } from "../_shared/cors.ts";
+import { buildCors, clientIp, hashAnonIdentity, IdentityUnavailableError } from "../_shared/cors.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { retrieveLegalContext, type LegalCitation } from "../_shared/legal-rag.ts";
 import { legalVerificationUnavailableResponse } from "../_shared/legal-gate.ts";
@@ -13,6 +13,7 @@ import {
   ANON_FREE_MESSAGES,
   consumeAnonDelivered,
   readAnonEntitlement,
+  reserveAnonOperation,
 } from "../_shared/anon-entitlement.ts";
 
 const SYSTEM_PROMPT = `# РОЛЯ И ИДЕНТИЧНОСТ
@@ -122,10 +123,32 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const history: ChatMsg[] = Array.isArray(body?.messages) ? body.messages : [];
 
-    // Защита от натоварване по IP (ОТДЕЛНА от правото на безплатни съобщения).
-    let ipHash: string | null = null;
+    // Идентичност за правото: изисква отделен сървърен ключ. Без него не се
+    // издава идентичност, не се доставя отговор и НЕ се консумира право.
+    let ipHash: string;
     try {
-      ipHash = await hashIp(clientIp(req));
+      ipHash = await hashAnonIdentity(clientIp(req));
+    } catch (e) {
+      if (e instanceof IdentityUnavailableError) {
+        return new Response(
+          JSON.stringify({
+            error: "identity_unavailable",
+            code: "identity_unavailable",
+            message: "Услугата е временно недостъпна. Опитайте отново след минута.",
+            free_message_consumed: false,
+            retry_after_seconds: 60,
+          }),
+          {
+            status: 503,
+            headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+          },
+        );
+      }
+      throw e;
+    }
+
+    // Защита от натоварване по IP (ОТДЕЛНА от правото на безплатни съобщения).
+    try {
       const rl = await checkRateLimit(`anon-chat:${ipHash}`, MAX_ATTEMPTS_PER_DAY, 86400);
       if (!rl.ok) {
         // Това е защита от прекомерно натоварване, НЕ изразходвано право.
