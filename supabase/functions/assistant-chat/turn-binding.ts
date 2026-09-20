@@ -12,7 +12,7 @@
  *    строг правен режим с проверени източници.
  */
 
-export type TurnMode = "platform_help" | "legal_strict";
+export type TurnMode = "platform_help" | "legal_strict" | "clarification";
 
 export interface TurnBindingInput {
   userId: string;
@@ -124,4 +124,60 @@ export function platformHelpAnswer(text: string): string {
     return `${intro}Каталогът съдържа готови документи, подредени по тема. Търсите по ключова дума, отваряте документа и го попълвате стъпка по стъпка.`;
   }
   return `${intro}Мога да Ви помогна да намерите готов документ в каталога, да изготвите нов стъпка по стъпка или да проверите свой документ преди подпис. Кажете ми с какво да започнем.`;
+}
+
+/* -------------------------------------------------------------------------
+ * Детерминистично уточняване. Решава се ПРЕДИ резервацията, САМО от точното
+ * ново съобщение и СЪРВЪРНАТА история. Клиентски препис не се приема.
+ * ------------------------------------------------------------------------- */
+
+const LEGAL_CASE_INTENT_RE =
+  /(съди|съдят|заплашв|призовк|производств|обвин|разследв|жалба\s+срещу|подадена\s+жалба|нарушен|нападн|насил|развод|издръжк|запор|глоб|дискриминац|тормоз|мобинг|имам\s+ли\s+право|могат\s+ли\s+да|какво\s+да\s+правя|какви\s+са\s+ми\s+правата|какво\s+ми\s+грози|как\s+да\s+се\s+защит|заповед\s+за\s+защита|домашно\s+насилие)/i;
+
+const DOC_BUILD_INTENT_RE =
+  /(изготв(и|ете)|направ(и|ете)|създа(й|йте)|попълн(и|ете)|generate|шаблон|бланк|prefill)/i;
+
+const CLARIFIED_ASSISTANT_RE = /уточн|нека уточним|моля посочете|моля уточнете/i;
+const CLARIFIED_USER_RE =
+  /Ето\s+уточненията\s+по\s+казуса|Продължи\s+с\s+дълъг\s+структуриран\s+правен\s+отговор/i;
+
+/** Потребителят е поставил конкретен текст/клауза или иска проверка. */
+export function analysisIntentOf(message: string): boolean {
+  const text = message || "";
+  const lower = text.toLowerCase();
+  const longQuotedBlock = /(['"„][^'"„“]{120,}['"“”])/.test(text);
+  const multilineLegalBlock = text.length > 400 && /\n/.test(text) &&
+    /(чл\.?\s*\d+|ал\.?\s*\d+|неустой|отговорн|прекрат|страни(те)?\s+се\s+съглас|настоящ(ия|ият)\s+договор)/i
+      .test(lower);
+  const asked =
+    /(провер(и|ете)|анализира(й|йте)|прегледа(й|йте)|коректен ли е|валиден ли е|има ли риск|ревизира(й|йте))/i
+      .test(text) &&
+    /'[^']{40,}'|"[^"]{40,}"|„[^"]{40,}“|клауз|договор|текст/i.test(lower);
+  return asked || longQuotedBlock || multilineLegalBlock;
+}
+
+export interface ClarificationInput {
+  message: string;
+  history: Array<{ role: "user" | "assistant"; content: string }>;
+}
+
+/**
+ * `true` когато първият ход по правен казус ТРЯБВА да е уточняване. Това е
+ * детерминистичен ход: без модел и без такса, но със същата строга проверка за
+ * наличие на правна основа.
+ */
+export function needsLegalClarification(input: ClarificationInput): boolean {
+  const message = input.message || "";
+  if (!LEGAL_CASE_INTENT_RE.test(message)) return false;
+  if (DOC_BUILD_INTENT_RE.test(message)) return false;
+  if (analysisIntentOf(message)) return false;
+  const history = Array.isArray(input.history) ? input.history : [];
+  const priorClarified = history.some((m) =>
+    m.role === "assistant" && CLARIFIED_ASSISTANT_RE.test(String(m.content || ""))
+  );
+  if (priorClarified) return false;
+  const userClarified = history.some((m) =>
+    m.role === "user" && CLARIFIED_USER_RE.test(String(m.content || ""))
+  );
+  return !userClarified;
 }

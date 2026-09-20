@@ -39,16 +39,20 @@ import {
   type ThreadBinding,
 } from "./orchestration.ts";
 import {
+  analysisIntentOf,
   canonicalTurnBinding,
   decideTurnMode,
+  needsLegalClarification,
   platformHelpAnswer,
   sanitizeChatPath,
+  type TurnMode,
 } from "./turn-binding.ts";
 import {
   cancelTurn,
   commitTurn,
   lookupTurn,
   markTurnModelStarted,
+  markTurnReconciliation,
   reserveTurn,
 } from "./turn-ledger.ts";
 import { HISTORY_CHARS_LIMIT, loadThreadHistory } from "./history.ts";
@@ -234,28 +238,25 @@ interface ChatMsg {
   tool_call_id?: string;
 }
 
-/** Само РЕАЛЕН извлечен цитат. Няма „общ режим“ и няма измислен акт. */
+/**
+ * Пример за цитат в подсказката. Връща САМО референция към реално извлечена
+ * извадка (`[S1]`), защото това е единствената форма, гарантирано покрита от
+ * подадената нормативна база. Никога не конструира акт или член.
+ */
 function makeCitation(citations: any[]): string | null {
-  const first = (citations || []).find((c) => c?.short_code || c?.citation_label);
-  if (first?.short_code && first?.article_no) {
-    const paragraph = first.paragraph_no
-      ? `, ал. ${String(first.paragraph_no).replace(/^ал\.\s*/i, "")}`
-      : "";
-    return `[${first.short_code}, чл. ${first.article_no}${paragraph}]`;
-  }
-  if (first?.citation_label) {
-    const label = String(first.citation_label).replace(/^\[|\]$/g, "").slice(0, 120);
-    return `[${label}]`;
-  }
-  return null;
+  return Array.isArray(citations) && citations.length > 0 ? "[S1]" : null;
 }
 
+/** Инлайн цитат: номер на реална извадка или етикет на нормативен акт. */
+const INLINE_CITATION_RE =
+  /\[(?:S\d{1,3}|[А-ЯA-Z]{2,}|Регламент|GDPR|ТР\s*№|Решение\s*№)[^\]\n]{0,120}\]/;
+
 function hasInlineLegalCitation(text: string): boolean {
-  return /\[(?:[А-ЯA-Z]{2,}|Регламент|GDPR|ТР\s*№|Решение\s*№|приложим\s+общ\s+режим)[^\]\n]{0,120}\]/.test(text);
+  return INLINE_CITATION_RE.test(text);
 }
 
 function needsLegalAnswerRepair(text: string): boolean {
-  const citationCount = (text.match(/\[(?:[А-ЯA-Z]{2,}|Регламент|GDPR|ТР\s*№|Решение\s*№|приложим\s+общ\s+режим)[^\]\n]{0,120}\]/g) || []).length;
+  const citationCount = (text.match(new RegExp(INLINE_CITATION_RE.source, "g")) || []).length;
   return !/^\s*1[.)]\s+/m.test(text)
     || !/\*\*[^*]{3,}\*\*/.test(text)
     || !/Практически/i.test(text)
@@ -349,11 +350,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json", ...(extra ?? {}) },
     });
 
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
-    return json({ error: "Услугата е временно недостъпна.", code: "ai_gateway_unconfigured" }, 503);
-  }
-
+  // Ключът на доставчика СЕ ЧЕТЕ по-късно: удостоверяване, валидация на тялото,
+  // собственост и само-четящо търсене трябва да работят и без него.
   try {
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -447,53 +445,43 @@ Deno.serve(async (req) => {
       else resolutionFailure = resolution.code;
     }
 
-    // Право и валидност на контекста — типизирана безплатна грешка при отказ.
-    const { data: quota } = await admin
-      .from("download_quota")
-      .select("plan, pro_until, pro_monthly_used")
-      .eq("user_id", userId)
-      .maybeSingle();
-    const isPro = quota?.plan === "pro" || (quota?.pro_until && new Date(quota.pro_until) > new Date());
-
-    let isEntrepreneur = false;
-    if (isPro) {
-      const { data: subRow } = await admin
-        .from("subscriptions")
-        .select("price_id, status")
-        .eq("user_id", userId)
-        .in("status", ["active", "trialing", "past_due"])
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      isEntrepreneur = String((subRow as any)?.price_id || "").startsWith("entrepreneur");
-    }
-
-    let teamId: string | null = null;
-    if (!isPro) {
-      const { data: tm } = await admin
-        .from("team_members")
-        .select("team_id, teams!inner(status)")
-        .eq("user_id", userId)
-        .limit(1)
-        .maybeSingle();
-      const t: any = tm;
-      if (t && t.teams?.status === "active") teamId = t.team_id;
-    }
-
-    const decision = decideAssistantOrchestration({
+    // ---- Валидност и собственост на контекста: безплатна типизирана грешка --
+    // Тази проверка НЕ чете план, квота или екип: правата се избират едва след
+    // като само-четящото търсене покаже, че ходът наистина е нов.
+    const contextGate = decideAssistantOrchestration({
       userId,
       requestedContext,
       existingThread,
       resolved: resolvedContext ? { version: resolvedContext.version } : null,
       resolutionFailure,
-      plan: { teamId, isPro: !!isPro },
+      plan: { teamId: null, isPro: false },
     });
-    if (!decision.ok) {
-      return json({ error: decision.error, code: decision.code }, decision.status);
+    if (!contextGate.ok) {
+      return json({ error: contextGate.error, code: contextGate.code }, contextGate.status);
     }
 
-    // ---- Режим и канонично обвързване --------------------------------------
+    // ---- Сървърна история: САМО четене, безплатно, преди обвързването -------
+    // Клиентски препис НЕ се приема. Историята участва в решението за режим,
+    // затова се чете преди каноничното обвързване и преди резервацията.
+    const history = requestedThreadId ? await loadThreadHistory(admin, requestedThreadId) : [];
+    if (history === null) {
+      return json({
+        error: "Разговорът не може да бъде прочетен в момента. Опитайте отново след минута.",
+        code: "history_unavailable",
+      }, 503);
+    }
+    const safeMessages: Array<{ role: "user" | "assistant"; content: string }> = [
+      ...history,
+      { role: "user", content: newMessage },
+    ];
+    const lastUserMsg = newMessage;
+
+    // ---- Режим: помощ / детерминистично уточняване / строг правен режим -----
     const modeDecision = decideTurnMode(newMessage, !!resolvedContext);
+    const clarificationTurn = modeDecision.mode === "legal_strict" &&
+      needsLegalClarification({ message: newMessage, history });
+    const turnMode: TurnMode = clarificationTurn ? "clarification" : modeDecision.mode;
+
     const binding = await canonicalTurnBinding({
       userId,
       requestedThreadId,
@@ -503,7 +491,7 @@ Deno.serve(async (req) => {
       contextEntityId: resolvedContext?.entityId ?? null,
       contextVersion: resolvedContext?.version ?? null,
       priorTurnRevision,
-      mode: modeDecision.mode,
+      mode: turnMode,
       path: currentPath,
     });
 
@@ -563,15 +551,71 @@ Deno.serve(async (req) => {
       }, 503);
     };
 
-    // ---- САМО-ЧЕТЯЩО търсене ПРЕДИ ограничения, правна база и доставчик ----
+    // ---- САМО-ЧЕТЯЩО търсене ПРЕДИ права, ключ на доставчика и правна база --
+    // Завършен ход се възпроизвежда дори когато ключът на доставчика липсва и
+    // когато нормативната база е недостъпна: това е вече платен резултат.
     const lookup = await lookupTurn(admin, operationId, userId, binding);
     if (lookup.kind === "committed") return replayResponse(lookup.result);
     if (lookup.kind !== "absent") return ledgerStateResponse(lookup.kind);
 
-    // ---- Правната основа: САМО за строгия режим, fail-closed ---------------
+    // ---- Ключ на доставчика: нужен е само когато наистина ще има модел или
+    // строга проверка на нормативната база. Помощта за платформата работи и без.
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY && turnMode !== "platform_help") {
+      return json({ error: "Услугата е временно недостъпна.", code: "ai_gateway_unconfigured" }, 503);
+    }
+
+    // ---- Права и разпределение: СЛЕД като ходът е доказано нов --------------
+    const { data: quota } = await admin
+      .from("download_quota")
+      .select("plan, pro_until, pro_monthly_used")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const isPro = quota?.plan === "pro" || (quota?.pro_until && new Date(quota.pro_until) > new Date());
+
+    let isEntrepreneur = false;
+    if (isPro) {
+      const { data: subRow } = await admin
+        .from("subscriptions")
+        .select("price_id, status")
+        .eq("user_id", userId)
+        .in("status", ["active", "trialing", "past_due"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      isEntrepreneur = String((subRow as any)?.price_id || "").startsWith("entrepreneur");
+    }
+
+    let teamId: string | null = null;
+    if (!isPro) {
+      const { data: tm } = await admin
+        .from("team_members")
+        .select("team_id, teams!inner(status)")
+        .eq("user_id", userId)
+        .limit(1)
+        .maybeSingle();
+      const t: any = tm;
+      if (t && t.teams?.status === "active") teamId = t.team_id;
+    }
+
+    const decision = decideAssistantOrchestration({
+      userId,
+      requestedContext,
+      existingThread,
+      resolved: resolvedContext ? { version: resolvedContext.version } : null,
+      resolutionFailure,
+      plan: { teamId, isPro: !!isPro },
+    });
+    if (!decision.ok) {
+      return json({ error: decision.error, code: decision.code }, decision.status);
+    }
+
+    // ---- Правната основа: fail-closed за всяко правно твърдение -------------
+    // Важи и за детерминистичното уточняване: ако няма проверена основа, не
+    // задаваме правни въпроси и НЕ таксуваме.
     let legal: Awaited<ReturnType<typeof retrieveLegalContext>> | null = null;
-    if (modeDecision.mode === "legal_strict") {
-      legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, newMessage, { matchCount: 10 });
+    if (turnMode === "legal_strict" || turnMode === "clarification") {
+      legal = await retrieveLegalContext(admin, LOVABLE_API_KEY!, newMessage, { matchCount: 10 });
       if (!legal.hasMatches) {
         const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
         return legalVerificationUnavailableResponse({ headers: corsHeaders });
@@ -579,13 +623,14 @@ Deno.serve(async (req) => {
     }
 
     // ---- Резервация: точно едно право, точно една ревизия -------------------
-    const charge = modeDecision.mode === "legal_strict";
+    // Уточняващият ход НЕ се таксува: няма извикване на модел.
+    const charge = turnMode === "legal_strict";
     const reserved = await reserveTurn(admin, {
       operationId,
       userId,
       binding,
       requestedThreadId,
-      mode: modeDecision.mode,
+      mode: turnMode,
       charge,
       allocationSource: charge ? decision.path : null,
       teamId,
@@ -637,21 +682,6 @@ Deno.serve(async (req) => {
       return ledgerStateResponse("unavailable");
     };
 
-    // ---- Сървърна история: клиентски препис НЕ се приема --------------------
-    const history = await loadThreadHistory(admin, activeThreadId);
-    if (history === null) {
-      return await cancelAndRespond(
-        "history_unavailable",
-        "Разговорът не може да бъде прочетен в момента. Опитайте отново след минута.",
-        503,
-      );
-    }
-    const safeMessages: Array<{ role: "user" | "assistant"; content: string }> = [
-      ...history,
-      { role: "user", content: newMessage },
-    ];
-    const lastUserMsg = newMessage;
-
     // ---- Буфериран транскрипт: НИЩО не се доставя преди commit -------------
     const events: Array<{ event: string | null; data: unknown }> = [];
     const emit = (event: string | null, data: unknown) => { events.push({ event, data }); };
@@ -670,18 +700,13 @@ Deno.serve(async (req) => {
         : null,
     });
 
-    // ---- РЕЖИМ „помощ за платформата“: без модел, без такса ----------------
-    if (modeDecision.mode === "platform_help") {
-      const answer = modeDecision.deterministicAnswer ?? platformHelpAnswer(newMessage);
-      emit("progress", { step: "done", label: "Готово", status: "done" });
-      emit(null, { delta: answer });
-      emit("final_text", { content: answer });
-      emit("followups", { followups: modeDecision.followups ?? [] });
+    /** Едно атомарно записване на точно една двойка съобщения. */
+    const commitDeterministic = async (assistantMessage: string): Promise<Response> => {
       const committed = await commitTurn(admin, {
         operationId,
         userId,
         userMessage: newMessage,
-        assistantMessage: answer,
+        assistantMessage,
         events,
         proposal: null,
       });
@@ -691,7 +716,40 @@ Deno.serve(async (req) => {
       if (committed.kind === "response_expired") return ledgerStateResponse("response_expired");
       if (committed.kind === "conflict") return ledgerStateResponse("conflict");
       return ledgerStateResponse("unavailable");
+    };
+
+    // ---- РЕЖИМ „помощ за платформата“: без модел, без такса ----------------
+    if (turnMode === "platform_help") {
+      const answer = modeDecision.deterministicAnswer ?? platformHelpAnswer(newMessage);
+      emit("progress", { step: "done", label: "Готово", status: "done" });
+      emit(null, { delta: answer });
+      emit("final_text", { content: answer });
+      emit("followups", { followups: modeDecision.followups ?? [] });
+      return await commitDeterministic(answer);
     }
+
+    // ---- РЕЖИМ „уточняване“: детерминистично, без модел, без такса ---------
+    if (turnMode === "clarification") {
+      const clarificationArgs = buildLegalCaseClarificationArgs(lastUserMsg);
+      const preamble =
+        "Преди да дам правен отговор, трябва да уточним няколко факта. Те променят приложимия режим, сроковете и това дали говорим за превенция, защита или вече започнала процедура.\n\n";
+      emit(null, { delta: preamble });
+      emit("tool_call", {
+        id: `tc_legal_${crypto.randomUUID()}`,
+        name: "ask_clarification",
+        args: clarificationArgs,
+      });
+      emit("followups", {
+        followups: ["Отговори на въпросите", "Опиши документите", "Посочи спешността"],
+      });
+      emit("progress", { step: "done", label: "Готово", status: "done" });
+      await logAiAudit({
+        user_id: userId, operation: "assistant-chat", model: "forced-clarification",
+        classification: chatClassification, redaction_applied: false, status: "ok",
+      }).catch(() => {});
+      return await commitDeterministic(preamble);
+    }
+
 
     // =====================  СТРОГ ПРАВЕН РЕЖИМ  =============================
     const verifiedLegal = legal!;
@@ -699,7 +757,17 @@ Deno.serve(async (req) => {
       `Потребителски статус: ${teamId ? "Екип" : isEntrepreneur ? "Предприемач" : isPro ? "Професионалист" : "Безплатен"}.`,
       currentPath ? `Текуща страница: ${currentPath}.` : "",
     ].filter(Boolean).join(" ");
-    const activePrompt = await loadActivePromptMeta(admin, "assistant-chat", SYSTEM_PROMPT);
+    // Провал ПРЕДИ доставчика: доказана отмяна с точно връщане на правото.
+    let activePrompt: Awaited<ReturnType<typeof loadActivePromptMeta>>;
+    try {
+      activePrompt = await loadActivePromptMeta(admin, "assistant-chat", SYSTEM_PROMPT);
+    } catch (_) {
+      return await cancelAndRespond(
+        "prompt_unavailable",
+        "Услугата е временно недостъпна. Опитайте отново след минута.",
+        503,
+      );
+    }
     const uniqueActs = new Set(verifiedLegal.chunks.map((c) => c.short_code).filter(Boolean)).size;
     const chunkCount = verifiedLegal.chunks.length;
     const systemFinal = `${activePrompt.content}\n\n[КОНТЕКСТ] ${ctxLines}\n\n${verifiedLegal.promptBlock}`;
@@ -731,13 +799,9 @@ Deno.serve(async (req) => {
     let tools = toolSchemasFor(FULL_TOOL_NAMES);
 
     const lastLower = lastUserMsg.toLowerCase();
-    const longQuotedBlock = /(['"„][^'"„"]{120,}['"""])/.test(lastUserMsg);
-    const multilineLegalBlock = lastUserMsg.length > 400 && /\n/.test(lastUserMsg) &&
-      /(чл\.?\s*\d+|ал\.?\s*\d+|неустой|отговорн|прекрат|страни(те)?\s+се\s+съглас|настоящ(ия|ият)\s+договор)/i.test(lastLower);
-    const analysisIntent =
-      (/(провер(и|ете)|анализира(й|йте)|прегледа(й|йте)|коректен ли е|валиден ли е|има ли риск|ревизира(й|йте))/i.test(lastUserMsg) &&
-        (/'[^']{40,}'|"[^"]{40,}"|„[^"]{40,}"|клауз|договор|текст/i.test(lastLower))) ||
-      longQuotedBlock || multilineLegalBlock;
+    // Едно определение за „потребителят е дал текст за проверка“ — същото, което
+    // решава дали ходът е уточняване. Без две разминаващи се евристики.
+    const analysisIntent = analysisIntentOf(lastUserMsg);
     const hasBgn = /\b(лв\.?|лева|BGN|стотинки)\b/i.test(lastUserMsg);
     const hasNumber = /\b\d{2,}\b/.test(lastUserMsg);
     const isBroadLegalQ = /(мрз|минимална\s+(работна\s+)?заплата|ддс|осигуров|дневн(и|о)\s+пар|обезщет|командиров)/i.test(lastLower);
@@ -789,7 +853,7 @@ Deno.serve(async (req) => {
       );
     }
     intentNudges.push(
-      "❗ ЦИТАТИ (СТРИКТНО): НИКОГА не пиши [S1], [источник N] или „приложим общ режим“. Използвай САМО цитат, който присъства в [НОРМАТИВНА БАЗА] — например `[ЗЗД, чл. 79]`. Ако нормата не е в базата, не цитирай нищо.",
+      "❗ ЦИТАТИ (СТРИКТНО): цитирай САМО източник, който е подаден в [НОРМАТИВНА БАЗА] — или с номера на извадката (`[S1]`, `[S2]`), или с точния етикет на нормата (`[ЗЗД, чл. 79]`). ЗАБРАНЕНО е да измисляш номер извън подадените извадки, да пишеш „източник N“ или „приложим общ режим“. Ако нормата не е в базата, не цитирай нищо.",
     );
 
     const legalCaseIntent =
@@ -804,15 +868,11 @@ Deno.serve(async (req) => {
     const userProvidedLegalClarifications = safeMessages.some((m) =>
       m.role === "user" && /Ето\s+уточненията\s+по\s+казуса|Продължи\s+с\s+дълъг\s+структуриран\s+правен\s+отговор/i.test(String(m.content || ""))
     );
-    const needsForcedLegalClarification = legalCaseIntent && !docBuildIntent &&
-      !priorClarifiedInThread && !userProvidedLegalClarifications && !analysisIntent;
-    if (needsForcedLegalClarification) {
-      intentNudges.push(
-        "❗ РЕЖИМ A (ПРАВЕН КАЗУС): ЗАДЪЛЖИТЕЛЕН ПЪРВИ ХОД `ask_clarification` с 2–3 кратки въпроса с опции.",
-      );
-    }
-    const needsStructuredLegalAnswer = (legalCaseIntent || priorClarifiedInThread || userProvidedLegalClarifications) &&
-      !docBuildIntent && !needsForcedLegalClarification;
+    // Детерминистичното уточняване се решава ПРЕДИ резервацията и излиза по
+    // собствен път, затова тук е винаги изключено.
+    const needsStructuredLegalAnswer =
+      (legalCaseIntent || priorClarifiedInThread || userProvidedLegalClarifications) &&
+      !docBuildIntent;
     if (needsStructuredLegalAnswer) {
       intentNudges.push(
         "❗ STRUCTURED_ANSWER: (1) 2–3 въвеждащи изречения; (2) НОМЕРИРАН списък 5–10 точки с **удебелена теза**; (3) BULLET списък „Практически:“; (4) „Кога адвокат“.",
@@ -870,38 +930,19 @@ Deno.serve(async (req) => {
       status: "done",
     });
 
-    // ---- Детерминистичен ход с уточнения: БЕЗ модел, но точно едно записване
-    if (needsForcedLegalClarification) {
-      const clarificationArgs = buildLegalCaseClarificationArgs(lastUserMsg);
-      const preamble = "Преди да дам правен отговор, трябва да уточним няколко факта. Те променят приложимия режим, сроковете и това дали говорим за превенция, защита или вече започнала процедура.\n\n";
-      emit(null, { delta: preamble });
-      emit("tool_call", {
-        id: `tc_legal_${crypto.randomUUID()}`,
-        name: "ask_clarification",
-        args: clarificationArgs,
-      });
-      emit("followups", { followups: ["Отговори на въпросите", "Опиши документите", "Посочи спешността"] });
-      emit("progress", { step: "done", label: "Готово", status: "done" });
-      const committed = await commitTurn(admin, {
-        operationId, userId, userMessage: newMessage, assistantMessage: preamble,
-        events, proposal: null,
-      });
-      await logAiAudit({
-        user_id: userId, operation: "assistant-chat", model: "forced-clarification",
-        classification: chatClassification, redaction_applied: false, status: "ok",
-      }).catch(() => {});
-      if (committed.kind === "committed" || committed.kind === "replay") {
-        return replayResponse(committed.result);
-      }
-      if (committed.kind === "response_expired") return ledgerStateResponse("response_expired");
-      if (committed.kind === "conflict") return ledgerStateResponse("conflict");
-      return ledgerStateResponse("unavailable");
-    }
-
     // ---- Доставчик: ТОЧНО ЕДНО изпълнение, с деклариран таван --------------
     const started = await markTurnModelStarted(admin, operationId, userId);
     if (!started.ok) {
-      return ledgerStateResponse(started.conflict ? "in_progress" : "unavailable");
+      // Доказан конфликт (вече стартиран/не е резервиран) е изравняване, защото
+      // друго изпълнение може вече да е извикало модела. Неясен отговор от
+      // самото маркиране също е изравняване, никога втори модел.
+      await markTurnReconciliation(
+        admin,
+        operationId,
+        userId,
+        started.conflict ? "model_start_conflict" : "model_start_unknown",
+      );
+      return ledgerStateResponse("reconciliation");
     }
 
     let providerRequests = 0;
@@ -1100,7 +1141,9 @@ Deno.serve(async (req) => {
     // Несигурност СЛЕД стартиран модел => изравняване, никога втори модел.
     if (providerFailed) {
       // БЕЗ отмяна и БЕЗ връщане на квота: моделът вече е стартиран, затова
-      // състоянието се решава от изравняването, не от тази заявка.
+      // състоянието се решава от изравняването, не от тази заявка. Записваме
+      // ДОКАЗУЕМ преход в леджъра — не само HTTP отговор.
+      await markTurnReconciliation(admin, operationId, userId, `provider_${lastModelStatus}`);
       await logAiAudit({
         user_id: userId, operation: "assistant-chat", model: chatModel,
         classification: chatClassification, redaction_applied: false,
