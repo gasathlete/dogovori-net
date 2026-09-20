@@ -34,7 +34,13 @@ Deno.serve(async (req) => {
     stale_operations_examined: 0,
     stale_operations_cancelled: 0,
     stale_operations_unresolved: 0,
+    // Изтекли точни отговори: заличава се САМО товарът, счетоводните и
+    // anti-replay данни остават.
+    exact_responses_examined: 0,
+    exact_responses_cleared_anon: 0,
+    exact_responses_cleared_review: 0,
     errors: [] as string[],
+
   };
 
   try {
