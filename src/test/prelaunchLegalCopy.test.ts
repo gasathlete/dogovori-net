@@ -27,12 +27,17 @@ describe("FAQ — премахнати категорични твърдения
   it("няма твърдение за несподеляне с трети лица, а език за обработващи", () => {
     expect(allText).not.toContain("Не споделяме съдържанието");
     expect(allText).toMatch(/обработващи/);
-    expect(allText).toContain("/legal/privacy");
+    expect(allText).toContain("подизпълнителите по обработването (подпроцесори)");
+    expect(allText).not.toContain("подобработващи");
+    expect(allText).toContain("/privacy");
   });
 
   it("разграничението по чл. 25 eIDAS е налице и QES не е приравнен на SES", () => {
-    expect(allText).toContain("чл. 25");
+    expect(allText).toContain("чл. 25, § 2");
+    expect(allText).not.toContain("чл. 25, ал. 2");
     expect(allText).toMatch(/квалифицираният електронен подпис \(QES\)/);
+    expect(allText).toContain("не е доставчик на квалифицирани удостоверителни услуги");
+    expect(allText).not.toMatch(/Подписването в браузър[^.]*е SES/);
     expect(allText).not.toMatch(/Прост, усъвършенстван и квалифициран електронен подпис имат правна сила/);
   });
 });
@@ -44,6 +49,16 @@ describe("правни връзки", () => {
     expect(page).toContain('href="/legal/model-routing"');
     const app = readFileSync("src/App.tsx", "utf8");
     expect(app).toContain('path="/legal/model-routing"');
+  });
+
+  it("всеки маршрут, споменат във FAQ, съществува в App.tsx", () => {
+    const app = readFileSync("src/App.tsx", "utf8");
+    const routes = [...new Set(allText.match(/\/[a-z0-9-]+(?:\/[a-z0-9-]+)*/g) ?? [])]
+      .filter((r) => r.startsWith("/privacy") || r.startsWith("/legal/"));
+    expect(routes.length).toBeGreaterThan(0);
+    for (const route of routes) {
+      expect(app, `липсва маршрут ${route}`).toContain(`path="${route}"`);
+    }
   });
 });
 
