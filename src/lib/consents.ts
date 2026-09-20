@@ -114,15 +114,37 @@ export interface PendingConsentPayload {
   [key: string]: unknown;
 }
 
-/** Strict validation: anything that is not a consent object is discarded. */
-function parsePending(raw: string): Record<string, unknown> | null {
+/**
+ * Strict validation of the signup evidence shape. A payload is accepted only
+ * when every required flag is literally `true`; an empty or partially
+ * corrupted object is malformed and must produce NO consent record at all.
+ *
+ * - terms / privacy / age_18 / operational_notifications: must be `true`
+ * - marketing: `true`, `false` or absent
+ * - event_id: a valid UUID, or absent for legacy payloads
+ * - any other metadata (e.g. `ts`) is ignored, not rejected
+ */
+export function parsePending(raw: string): Record<string, unknown> | null {
+  let data: unknown;
   try {
-    const data = JSON.parse(raw) as unknown;
-    if (!data || typeof data !== "object" || Array.isArray(data)) return null;
-    return data as Record<string, unknown>;
+    data = JSON.parse(raw);
   } catch {
     return null;
   }
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  const obj = data as Record<string, unknown>;
+
+  for (const key of ["terms", "privacy", "age_18", "operational_notifications"]) {
+    if (obj[key] !== true) return null;
+  }
+  if (!(obj.marketing === true || obj.marketing === false || obj.marketing === undefined)) {
+    return null;
+  }
+  if (obj.event_id !== undefined
+      && !(typeof obj.event_id === "string" && UUID_RE.test(obj.event_id))) {
+    return null;
+  }
+  return obj;
 }
 
 /**
