@@ -10,6 +10,7 @@ import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import {
   asOperationId,
+  type LedgerRpc,
   cancelDocumentOperation,
   canonicalDocumentBinding,
   commitDocumentOperation,

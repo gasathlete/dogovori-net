@@ -16,6 +16,7 @@ import {
 import { canonicalize, sha256Hex } from "../_shared/canonical-digest.ts";
 import {
   asOperationId,
+  type LedgerRpc,
   cancelDocumentOperation,
   canonicalDocumentBinding,
   commitDocumentOperation,
