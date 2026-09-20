@@ -427,15 +427,31 @@ function AnonChat({ resetKey }: { resetKey: number }) {
           setSendNotice(null);
           return;
         }
-        // Повтаряеми състояния — ключът се ЗАПАЗВА (включително при сблъсък и
-        // изравняване), за да е повторният опит същата заявка.
+        // ДОКАЗАН СБЛЪСЪК НА КЛЮЧА (или изтекъл запазен отговор): същият ключ
+        // никога няма да върне резултат. Пуска се САМО локалният ключ за тази
+        // чакаща заявка — без автоматично повторно изпращане и без празен ход
+        // на асистента. Следващият ИЗРИЧЕН клик създава НОВ идентификатор.
+        const CONFLICT_ESCAPE = new Set([
+          "request_binding_conflict",
+          "binding_conflict",
+          "idempotency_key_conflict",
+          "response_expired",
+          "new_request_required",
+        ]);
+        if (CONFLICT_ESCAPE.has(code)) {
+          releaseStableOpKey(scope);
+          pendingRequestIdRef.current = null;
+          pendingScopeRef.current = null;
+          restoreForRetry("Сесията/мрежата се промени. Изпратете отново.");
+          return;
+        }
+        // Повтаряеми състояния — ключът се ЗАПАЗВА, за да е повторният опит
+        // точно същата заявка.
         const retryNotice: Record<string, string> = {
           operation_in_progress:
             "Обработваме същия въпрос. Изпратете го отново след малко — не е изразходвано съобщение.",
           reconciliation_required:
             "Проверяваме състоянието на заявката. Изпратете същия въпрос отново — не е изразходвано съобщение.",
-          request_binding_conflict:
-            "Заявката още се обработва. Изпратете същия въпрос отново — не е изразходвано съобщение.",
           entitlement_unavailable:
             "Услугата е временно недостъпна. Изпратете въпроса отново след малко — не е изразходвано съобщение.",
           identity_unavailable:
@@ -448,6 +464,7 @@ function AnonChat({ resetKey }: { resetKey: number }) {
           restoreForRetry(notice);
           return;
         }
+
         // Неповтаряема грешка: ключът се пуска и въпросът остава наличен.
         releaseStableOpKey(scope);
         pendingRequestIdRef.current = null;
