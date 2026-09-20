@@ -293,7 +293,9 @@ Deno.test("every AI entry point gates before the main model and before quota", a
     if (fn !== "assistant-chat" && model > 0) {
       assert(gate < model, `${fn}: прегради преди основния модел`);
     }
-    for (const marker of ["consume_quota", "charge_corrections_wave", "consumeQuota("]) {
+    // Наследените квотни RPC са премахнати от тези обработчици; преградата се
+    // сравнява с трайната резервация в леджъра.
+    for (const marker of ["reserveQuota(", "reserveQuotaNoCharge(", "reserveAnonDelivery("]) {
       const q = src.indexOf(marker);
       if (q > 0) assert(gate < q, `${fn}: прегради преди ${marker}`);
     }

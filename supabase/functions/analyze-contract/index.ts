@@ -280,7 +280,7 @@ Deno.serve(async (req: Request) => {
 
 
     // Обвързването с (session_id, doc_key) идва СЕГА от самия леджър — не от
-    // `consume_quota_session`. Едно и също повторно ползване по тази двойка
+    // трайния леджър. Едно и също повторно ползване по тази двойка
     // остава безплатно, защото `reserveQuota`/`lookupCommittedOperation`
     // виждат същия отпечатък и същото обвързване.
     const docKey = docKeyClient || `upload:${uploadedContractId}`;
