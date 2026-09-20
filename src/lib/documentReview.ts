@@ -213,12 +213,30 @@ export function parseDocumentReview(v: unknown): DocumentReview | null {
 export const REVIEW_MALFORMED_MESSAGE =
   "Резултатът от проверката не е разчетен. Направете нова проверка.";
 
-export async function reviewDocument(input: ReviewRequestInput): Promise<ReviewOutcome> {
+export async function reviewDocument(
+  input: ReviewRequestInput,
+  onRetry?: () => void,
+): Promise<ReviewOutcome> {
   const requestedDigest = await computeReviewSourceDigest(input);
   const { data, error } = await invokeEdgeFunction<Record<string, unknown>>(
     "review-document",
     { body: input },
   );
+
+  // Правна преграда: документът остава запазен, няма такса, има ръчен опит.
+  if (
+    (await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable(
+      { data, error },
+      onRetry,
+    )
+  ) {
+    return {
+      review: null,
+      error: null,
+      requestedDigest,
+      confirmationRequired: false,
+    };
+  }
 
   if (error || !data || typeof data.error === "string") {
     return {
