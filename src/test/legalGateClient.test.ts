@@ -29,7 +29,7 @@ describe("правната преграда е възстановимо съст
   it("съобщението казва, че данните са запазени и няма таксуване", () => {
     const msg = generationErrorMessage("legal_verification_unavailable");
     expect(msg).toContain("запазени");
-    expect(msg).toMatch(/не е удържана операция/);
+    expect(msg).toMatch(/не е използвана квота и няма плащане/);
     expect(msg).not.toMatch(/загуб/i);
   });
 
@@ -45,5 +45,27 @@ describe("правната преграда е възстановимо съст
     const [, opts] = toastInfo.mock.calls[0] as [string, { action?: { label: string } }];
     expect(opts.action?.label).toBe("Опитайте отново");
     expect(handleLegalVerificationUnavailable({ error: { message: "друго" } })).toBe(false);
+  });
+});
+
+describe("всички клиенти на правните функции разпознават преградата", () => {
+  const files = [
+    "src/components/AssistantChat.tsx",
+    "src/components/UploadContractDialog.tsx",
+    "src/pages/BuildContract.tsx",
+    "src/pages/UploadedContract.tsx",
+  ];
+  it("използват общия обработчик", async () => {
+    const { readFileSync } = await import("node:fs");
+    for (const f of files) {
+      const src = readFileSync(f, "utf8");
+      expect(src).toContain("handleLegalVerificationUnavailable");
+    }
+  });
+
+  it("съобщението казва, че няма таксуване и работата е запазена", async () => {
+    const { LEGAL_GATE_MESSAGE } = await import("@/lib/legalGateClient");
+    expect(LEGAL_GATE_MESSAGE).toMatch(/квота/);
+    expect(LEGAL_GATE_MESSAGE).toMatch(/плащан/);
   });
 });

@@ -227,22 +227,16 @@ ${scopeNote}
 Задача: пренапиши договора, като отстраниш проблемите и добавиш липсващите клаузи. Връщай само JSON.`;
 
     const baseSystem = await loadActivePrompt(admin, "correct-uploaded", SYSTEM_PROMPT);
-    // Fail-closed правна проверка: ПРЕДИ основния модел и ПРЕДИ всякаква
-    // промяна на квотата. Без проверена правна основа не се изпълнява нищо.
-    {
-      const { isLegalKnowledgeBaseReady } = await import("../_shared/product-legal-basis.ts");
-      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
-      const legalDb = admin as unknown as Parameters<typeof isLegalKnowledgeBaseReady>[0];
-      if (!(await isLegalKnowledgeBaseReady(legalDb))) {
-        return legalVerificationUnavailableResponse({ headers: { ...corsHeaders, ...correlationHeaders(correlationId) } });
-      }
-    }
-
     const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
     // Заявката към RAG също минава само през редактирани стойности.
     const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, `${safe.contractType} ${safe.summary}\n${safe.sourceText}`.slice(0, 4000), { matchCount: 6 });
 
-    const withLegal = legal.hasMatches ? `${baseSystem}\n\n${legal.promptBlock}` : baseSystem;
+    // FAIL-CLOSED: без проверена норма за тази заявка няма повикване към модел.
+    if (!legal.hasMatches) {
+      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
+      return legalVerificationUnavailableResponse({ headers: { ...corsHeaders, ...correlationHeaders(correlationId) } });
+    }
+    const withLegal = `${baseSystem}\n\n${legal.promptBlock}`;
     // Ограниченията са ПОСЛЕДНИ — след активния промпт и RAG блока.
     const activeSystemPrompt = `${withLegal}\n\n${CORRECTION_PRESERVATION_SUFFIX}`;
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

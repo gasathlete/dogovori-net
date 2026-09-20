@@ -434,15 +434,15 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } },
     );
 
-    // Fail-closed правна проверка: ПРЕДИ основния модел и ПРЕДИ всякаква
-    // промяна на квотата. Без проверена правна основа не се изпълнява нищо.
-    {
-      const { isLegalKnowledgeBaseReady } = await import("../_shared/product-legal-basis.ts");
+    // FAIL-CLOSED ПРЕДИ резервация на операция и преди всякакъв модел:
+    // точно този въпрос трябва да е обоснован с поне една проверена,
+    // достатъчно релевантна норма. Няма „общ режим“.
+    const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, lastUserMsg, {
+      matchCount: 10,
+    });
+    if (!legal.hasMatches) {
       const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
-      const legalDb = admin as unknown as Parameters<typeof isLegalKnowledgeBaseReady>[0];
-      if (!(await isLegalKnowledgeBaseReady(legalDb))) {
-        return legalVerificationUnavailableResponse({ headers: corsHeaders });
-      }
+      return legalVerificationUnavailableResponse({ headers: corsHeaders });
     }
 
     // Paid individual / team gate
@@ -578,17 +578,12 @@ Deno.serve(async (req) => {
       currentPath ? `Текуща страница: ${currentPath}.` : "",
     ].filter(Boolean).join(" ");
     const activePrompt = await loadActivePromptMeta(admin, "assistant-chat", SYSTEM_PROMPT);
-    const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, lastUserMsg, {
-      matchCount: 10,
-      minSimilarity: 0.4,
-    });
     const uniqueActs = new Set(
       legal.chunks.map((c) => c.short_code).filter(Boolean),
     ).size;
     const chunkCount = legal.chunks.length;
-    const systemFinal = legal.hasMatches
-      ? `${activePrompt.content}\n\n[КОНТЕКСТ] ${ctxLines}\n\n${legal.promptBlock}`
-      : `${activePrompt.content}\n\n[КОНТЕКСТ] ${ctxLines}\n\n[НОРМАТИВНА БАЗА] Няма намерени релевантни нормативни извадки.`;
+    const systemFinal =
+      `${activePrompt.content}\n\n[КОНТЕКСТ] ${ctxLines}\n\n${legal.promptBlock}`;
 
     const standardModel = activePrompt.model || MODEL_STANDARD;
     const premiumModel = activePrompt.premiumModel || MODEL_PREMIUM;
@@ -811,9 +806,8 @@ Deno.serve(async (req) => {
         // Steps stream one-by-one so the user sees the assistant "working".
         // The RAG has already run; we replay the pipeline as visible steps.
         const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-        const foundLabel = legal.hasMatches
-          ? `Намерих ${uniqueActs} нормативни акта и ${chunkCount} релевантни извадки`
-          : "Няма конкретни съвпадения в базата — ще отговоря на общ режим";
+        const foundLabel =
+          `Намерих ${uniqueActs} нормативни акта и ${chunkCount} релевантни извадки`;
         const progressSteps: Array<{ step: string; label: string; delay: number }> = [
           { step: "analyze",  label: "Анализ на въпроса", delay: 250 },
           { step: "sources",  label: "Прецених какви източници са необходими", delay: 300 },
@@ -1159,7 +1153,7 @@ Deno.serve(async (req) => {
               model: premiumModel,
               question: lastUserMsg,
               draft: cleaned,
-              legalPromptBlock: legal.hasMatches ? legal.promptBlock : "[НОРМАТИВНА БАЗА] Няма намерени релевантни нормативни извадки.",
+              legalPromptBlock: legal.promptBlock,
               citations: legal.citations,
             }).catch(() => null);
             cleaned = sanitizeAssistantReply(

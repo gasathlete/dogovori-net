@@ -5,7 +5,7 @@
 // Uses Lovable AI Gateway (Gemini).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
 import { buildCors, hashIp, clientIp } from "../_shared/cors.ts";
-import { sha256Hex, stableStringify } from "../_shared/normalize.ts";
+import { sha256Hex } from "../_shared/normalize.ts";
 import { extractJson } from "../_shared/json.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
@@ -283,17 +283,6 @@ Deno.serve(async (req: Request) => {
       : [];
 
     const PROMPT_VERSION = "v6-bilingual-cols";
-    const cacheKeyInput = stableStringify({
-      v: PROMPT_VERSION, kind: "custom",
-      documentType: safeDocumentType,
-      buildMode: safeBuildMode,
-      bilingual: safeBilingual,
-      parentContext: parentContext ?? null,
-      name, category,
-      partiesA, partiesB,
-      customFields: safeCustomFields,
-      subject, term, prices, obligations, other,
-    });
     const guardText = [
       name, category,
       ...(partiesA ?? []), ...(partiesB ?? []),
@@ -303,12 +292,9 @@ Deno.serve(async (req: Request) => {
 
     const ipHash = await hashIp(clientIp(req));
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const cacheCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-
-    // Run rate-limit count, illegal-content guard, and cache lookup in
-    // parallel. They are independent of each other, so we save ~2 RTTs
-    // versus the previous sequential pipeline.
-    const [countRes, blocked, cacheHash] = await Promise.all([
+    // Rate-limit count и проверката за забранено съдържание са независими и
+    // вървят паралелно. Кеш вече не се търси (виж бележката по-долу).
+    const [countRes, blocked] = await Promise.all([
       admin
         .from("ai_usage")
         .select("id", { count: "exact", head: true })
@@ -321,7 +307,6 @@ Deno.serve(async (req: Request) => {
         userAgent: req.headers.get("user-agent"),
         corsHeaders,
       }),
-      sha256Hex(cacheKeyInput),
     ]);
 
     if ((countRes.count ?? 0) >= 5) {
@@ -338,19 +323,9 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
-    const { data: cachedRow } = await admin
-      .from("template_cache")
-      .select("payload")
-      .eq("hash", cacheHash)
-      .gte("created_at", cacheCutoff)
-      .maybeSingle();
-    if (cachedRow?.payload) {
-      return new Response(JSON.stringify(cachedRow.payload), {
-        headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
-      });
-    }
-
-
+    // КЕШЪТ СЕ ЗАОБИКАЛЯ: записите в template_cache не носят сървърни
+    // доказателства кои проверени норми стоят зад тях, затова не се сервират.
+    // Документ се връща само след успешно извличане за ТОЧНО тази заявка.
 
     const partyALabel = docSpec.partyAName || "Страна А";
     const partyBLabel = docSpec.partyBName || "Страна Б";
@@ -439,20 +414,14 @@ ${fieldsSection}
 
     const composedSystem = `${BASE_SYSTEM_PROMPT}\n\n=== СПЕЦИФИКА ЗА ВИД „${docSpec.label.toUpperCase()}" ===\n${docSpec.systemAddendum}\n\n=== ${modeSpec.label} ===\n${modeSpec.addendum}${safeBilingual ? BILINGUAL_ADDENDUM : ""}`;
     const baseSystem = await loadActivePrompt(admin, "build-custom-contract", composedSystem);
-    // Fail-closed правна проверка: ПРЕДИ основния модел и ПРЕДИ всякаква
-    // промяна на квотата. Без проверена правна основа не се изпълнява нищо.
-    {
-      const { isLegalKnowledgeBaseReady } = await import("../_shared/product-legal-basis.ts");
-      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
-      const legalDb = admin as unknown as Parameters<typeof isLegalKnowledgeBaseReady>[0];
-      if (!(await isLegalKnowledgeBaseReady(legalDb))) {
-        return legalVerificationUnavailableResponse({ headers: { ...corsHeaders, ...correlationHeaders(correlationId) } });
-      }
-    }
-
     const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
     const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, `${docSpec.label}\n${redacted.redacted}`.slice(0, 4000), { matchCount: 6 });
-    const activeSystemPrompt = legal.hasMatches ? `${baseSystem}\n\n${legal.promptBlock}` : baseSystem;
+    // FAIL-CLOSED: без проверена норма за тази заявка няма повикване към модел.
+    if (!legal.hasMatches) {
+      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
+      return legalVerificationUnavailableResponse({ headers: { ...corsHeaders, ...correlationHeaders(correlationId) } });
+    }
+    const activeSystemPrompt = `${baseSystem}\n\n${legal.promptBlock}`;
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -631,9 +600,7 @@ ${fieldsSection}
     });
 
     // Cache successful result.
-    try {
-      await admin.from("template_cache").upsert({ hash: cacheHash, payload: parsed, created_at: new Date().toISOString() });
-    } catch (e) { console.error("template_cache upsert:", e); }
+    // Без кеш: запис без доказана правна основа не може да бъде преизползван.
 
     // Fire-and-forget: anonymise + persist as a candidate blank for admin review.
     // We do NOT await this so the user's response is fast.
@@ -660,6 +627,11 @@ ${fieldsSection}
 
 const ANON_SYSTEM = `Ти си редактор на правни шаблони. Получаваш JSON на договор и връщаш СЪЩИЯ JSON, но със заменени конкретни данни (имена на лица/фирми, ЕГН/ЕИК, точни суми, точни дати, конкретни адреси, телефони, email, IBAN, специфични продукти/услуги) с плейсхолдъри в квадратни скоби: [Възложител], [Изпълнител], [сума в €], [срок], [дата], [адрес], [предмет на договора] и т.н. Запази структурата, номерацията, всички клаузи и общите формулировки. Върни СТРОГО валиден JSON със същата схема: {"title":"...","preamble":"...","clauses":[{"number":"...","title":"...","body":"..."}],"closing":"..."}.`;
 
+/**
+ * ПОМОЩЕН път БЕЗ правни изводи: само замества конкретни данни с плейсхолдъри в
+ * УЖЕ генериран документ. Извиква се единствено след успешната правна преграда
+ * по-горе, затова не може да я заобиколи и не произвежда правно твърдение.
+ */
 async function anonymiseAndStoreBlank(
   admin: ReturnType<typeof createClient>,
   args: {

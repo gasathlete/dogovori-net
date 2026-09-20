@@ -173,71 +173,10 @@ Deno.serve(async (req: Request) => {
     // Версията на Q4a политиката влиза в кеш-идентичността: стари, НЕПОДПИСАНИ
     // резултати не могат да бъдат сервирани под настоящия договор за качество.
     const PROMPT_VERSION = `${isBilingual ? "v3-doc-type-bilingual" : "v3-doc-type"}|${GENERATED_QUALITY_POLICY_VERSION}`;
-    const cacheKeyInput = buildGeneratorCacheIdentity({
-      context: userContext,
-      promptVersion: PROMPT_VERSION,
-      docTypeId: docTypeSpec.id,
-      bilingual: isBilingual,
-      arbitrationEnabled: arbitration?.enabled === true,
-      callerKey: userId ? `user:${userId}` : `ip:${ipHash}`,
-    });
-    const cacheHash = await sha256Hex(cacheKeyInput);
-    const cacheCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: cachedRow } = await admin
-      .from("template_cache")
-      .select("payload")
-      .eq("hash", cacheHash)
-      .gte("created_at", cacheCutoff)
-      .maybeSingle();
-    // Fail-closed правна проверка: ПРЕДИ основния модел и ПРЕДИ всякаква
-    // промяна на квотата. Без проверена правна основа не се изпълнява нищо.
-    {
-      const { isLegalKnowledgeBaseReady } = await import("../_shared/product-legal-basis.ts");
-      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
-      const legalDb = admin as unknown as Parameters<typeof isLegalKnowledgeBaseReady>[0];
-      if (!(await isLegalKnowledgeBaseReady(legalDb))) {
-        return legalVerificationUnavailableResponse({ headers: { ...corsHeaders, ...correlationHeaders(correlationId) } });
-      }
-    }
-
-    // Session-aware quota consumption — same (session_id, doc_key) in tab = free.
-    // Skipped for anonymous calls; userId is guaranteed by the rate-limit branch above
-    // (anonymous get limit=0).
-    async function consumeQuota(): Promise<{ ok: boolean; quota?: unknown }> {
-      if (!userId) return { ok: true };
-      const useSession = !!session_id && !!doc_key;
-      const { data: consumed, error: consumeErr } = useSession
-        ? await userClient.rpc("consume_quota_session", {
-            _kind: "analysis",
-            _doc_key: String(doc_key),
-            _session_id: String(session_id),
-          })
-        : await userClient.rpc("consume_quota", { _kind: "analysis" });
-      if (consumeErr) {
-        console.error("consume_quota error:", consumeErr);
-        return { ok: false, quota: { reason: "consume_error" } };
-      }
-      const q = consumed as { ok: boolean; reason?: string; is_pro?: boolean; charged?: boolean };
-      return { ok: !!q?.ok, quota: q };
-    }
-
-    if (cachedRow?.payload) {
-      const q = await consumeQuota();
-      if (!q.ok) {
-        return new Response(
-          JSON.stringify({
-            error: "Изчерпан е безплатният ви лимит. Активирайте Pro за неограничени анализи.",
-            code: "quota_exceeded",
-          }),
-          { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
-        );
-      }
-      return new Response(JSON.stringify(cachedRow.payload), {
-        headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
-      });
-    }
-
-
+    // КЕШЪТ СЕ ЗАОБИКАЛЯ: старите записи в template_cache не носят сървърни
+    // доказателства за правната си основа (цитирани норми, версия на политиката),
+    // затова не могат да бъдат преизползвани. Резултат се връща само след
+    // успешно извличане на проверена норма за ТОЧНО тази заявка.
     const bilingualLine = isBilingual
       ? `\nБИЛИНГВАЛЕН РЕЖИМ: ЗАДЪЛЖИТЕЛНО върни паралелен английски превод. За contract добави полета: "title_en", "preamble_en", "closing_en" и за всяка клауза в "clauses" — "title_en" и "body_en". Преводът да е професионален легален английски (US/UK неутрален), номерацията на членовете да е "Art. N." и да съответства 1:1 на българския текст. Поставяй "bilingual": true на root на contract. Английският текст НЕ заменя българския — те съществуват паралелно.`
       : "";
@@ -327,7 +266,34 @@ ${docTypeSpec.systemAddendum}
     const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
     // Заявката към RAG също минава САМО през санитирания контекст.
     const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, `${docTypeSpec.label} ${s.contractName}\n${userPrompt}`.slice(0, 4000), { matchCount: 6 });
-    const activeSystemPrompt = legal.hasMatches ? `${baseSystem}\n\n${legal.promptBlock}` : baseSystem;
+    // FAIL-CLOSED: без проверена норма за тази заявка няма модел и няма квота.
+    if (!legal.hasMatches) {
+      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
+      return legalVerificationUnavailableResponse({ headers: { ...corsHeaders, ...correlationHeaders(correlationId) } });
+    }
+    const activeSystemPrompt = `${baseSystem}\n\n${legal.promptBlock}`;
+
+    // Session-aware quota consumption — same (session_id, doc_key) in tab = free.
+    // Skipped for anonymous calls; userId is guaranteed by the rate-limit branch above
+    // (anonymous get limit=0).
+    async function consumeQuota(): Promise<{ ok: boolean; quota?: unknown }> {
+      if (!userId) return { ok: true };
+      const useSession = !!session_id && !!doc_key;
+      const { data: consumed, error: consumeErr } = useSession
+        ? await userClient.rpc("consume_quota_session", {
+            _kind: "analysis",
+            _doc_key: String(doc_key),
+            _session_id: String(session_id),
+          })
+        : await userClient.rpc("consume_quota", { _kind: "analysis" });
+      if (consumeErr) {
+        console.error("consume_quota error:", consumeErr);
+        return { ok: false, quota: { reason: "consume_error" } };
+      }
+      const q = consumed as { ok: boolean; reason?: string; is_pro?: boolean; charged?: boolean };
+      return { ok: !!q?.ok, quota: q };
+    }
+
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -558,9 +524,8 @@ ${docTypeSpec.systemAddendum}
     });
 
     // Persist to cache for future identical requests (best-effort).
-    try {
-      await admin.from("template_cache").upsert({ hash: cacheHash, payload: parsed, created_at: new Date().toISOString() });
-    } catch (e) { console.error("template_cache upsert:", e); }
+    // Не записваме кеш: без сървърни доказателства за правната основа такъв
+    // запис не може да бъде преизползван безопасно.
 
     // Charge operation AFTER successful AI generation so failed attempts don't
     // burn the quota. Same (session_id, doc_key) in tab → server returns free.

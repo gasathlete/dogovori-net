@@ -122,40 +122,6 @@ Deno.serve(async (req: Request) => {
     const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
-    // Fail-closed правна проверка: ПРЕДИ основния модел и ПРЕДИ всякаква
-    // промяна на квотата. Без проверена правна основа не се изпълнява нищо.
-    {
-      const { isLegalKnowledgeBaseReady } = await import("../_shared/product-legal-basis.ts");
-      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
-      const legalDb = admin as unknown as Parameters<typeof isLegalKnowledgeBaseReady>[0];
-      if (!(await isLegalKnowledgeBaseReady(legalDb))) {
-        return legalVerificationUnavailableResponse({ headers: { ...corsHeaders, ...correlationHeaders(correlationId) } });
-      }
-    }
-
-    const { data: batchCharge, error: batchErr } = await userClient.rpc(
-      "charge_corrections_wave",
-      { p_user_id: userId, p_batch_id: batchId ?? null, p_count: Math.max(1, correctionsCount) },
-    );
-    if (batchErr) {
-      console.error("charge_corrections_wave error:", batchErr);
-      return new Response(JSON.stringify({ error: "Грешка при проверка на квотата" }), {
-        status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
-      });
-    }
-    const batchResult = batchCharge as {
-      ok: boolean;
-      reason?: string;
-      ops_charged?: number;
-      cached?: boolean;
-    };
-    if (!batchResult?.ok) {
-      return new Response(
-        JSON.stringify({ error: "quota_exceeded", reason: batchResult?.reason }),
-        { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
-      );
-    }
-    const batchCharged = !batchResult.cached;
 
 
     // Illegal content guard
@@ -192,9 +158,7 @@ Deno.serve(async (req: Request) => {
     const route = routeModel("apply-corrections", classification, { userConfirmed });
 
     if (!route.allowed) {
-      if (batchCharged) {
-        await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
-      }
+      // Няма таксуване преди правната проверка — няма и какво да се възстановява.
       await logAiAudit({
         user_id: userId, operation: "apply-corrections", model: "",
         classification, redaction_applied: false, status: "blocked",
@@ -212,9 +176,6 @@ Deno.serve(async (req: Request) => {
     }
 
     if (route.requireConfirmation) {
-      if (batchCharged) {
-        await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
-      }
       return new Response(JSON.stringify({
         error: "needs_confirmation",
         code: "sensitive_data_confirmation_required",
@@ -264,7 +225,38 @@ ${answersRedacted}
     const baseSystem = await loadActivePrompt(admin, "apply-corrections", SYSTEM_PROMPT);
     const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
     const legal = await retrieveLegalContext(admin, LOVABLE_API_KEY, `${issuesBlock}\n${recsBlock}`.slice(0, 4000), { matchCount: 6 });
-    const activeSystemPrompt = legal.hasMatches ? `${baseSystem}\n\n${legal.promptBlock}` : baseSystem;
+    // FAIL-CLOSED: без проверена, релевантна на ТАЗИ заявка норма няма нито
+    // повикване към модел, нито таксуване на вълна от поправки.
+    if (!legal.hasMatches) {
+      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
+      return legalVerificationUnavailableResponse({ headers: { ...corsHeaders, ...correlationHeaders(correlationId) } });
+    }
+    const activeSystemPrompt = `${baseSystem}\n\n${legal.promptBlock}`;
+
+    const { data: batchCharge, error: batchErr } = await userClient.rpc(
+      "charge_corrections_wave",
+      { p_user_id: userId, p_batch_id: batchId ?? null, p_count: Math.max(1, correctionsCount) },
+    );
+    if (batchErr) {
+      console.error("charge_corrections_wave error:", batchErr);
+      return new Response(JSON.stringify({ error: "Грешка при проверка на квотата" }), {
+        status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
+      });
+    }
+    const batchResult = batchCharge as {
+      ok: boolean;
+      reason?: string;
+      ops_charged?: number;
+      cached?: boolean;
+    };
+    if (!batchResult?.ok) {
+      return new Response(
+        JSON.stringify({ error: "quota_exceeded", reason: batchResult?.reason }),
+        { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+      );
+    }
+    const batchCharged = !batchResult.cached;
+
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
