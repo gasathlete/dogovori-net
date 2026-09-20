@@ -81,6 +81,7 @@ export {
 } from "../_shared/product-call-store.ts";
 import {
   createProductCallStore as buildProductCallStore,
+  type CallStoreRpcClient,
   type StoredCallRequest,
 } from "../_shared/product-call-store.ts";
 
@@ -525,7 +526,7 @@ Deno.serve(async (req) => {
 
     try {
       // 8) Изпълнява се най-много една ограничена стъпка.
-      const callStore = createProductCallStore(admin as unknown as RpcClient, jobId, leaseToken);
+      const callStore = buildProductCallStore(admin as unknown as CallStoreRpcClient, jobId, leaseToken);
       const dependencies = resolveProductGenerationDependencies(() =>
         generationDependencies(callStore, ports)
       );

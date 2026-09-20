@@ -6,7 +6,7 @@
  * функции по платения път.
  */
 import { assert, assertEquals, assertRejects } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { createProductCallStore } from "./index.ts";
+import { createProductCallStore } from "../_shared/product-call-store.ts";
 import { ProductUncertainCallError } from "../_shared/product-reconciliation.ts";
 
 const REQUEST = Object.freeze({
