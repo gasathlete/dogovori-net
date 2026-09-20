@@ -65,21 +65,8 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { count } = await admin
-      .from("ai_usage")
-      .select("id", { count: "exact", head: true })
-      .eq("function_name", "correct-uploaded")
-      .eq("user_id", userId)
-      .gte("created_at", since);
-    if ((count ?? 0) >= DAILY_LIMIT) {
-      return new Response(JSON.stringify({
-        error: `Достигнахте дневния лимит от ${DAILY_LIMIT} корекции. Опитайте отново след 24 часа.`,
-        code: "rate_limited",
-      }), { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
-    }
-
     const jsonHeaders = { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" };
+    const ledgerHeaders = { ...corsHeaders, ...correlationHeaders(correlationId) };
 
     let rawBody: unknown = null;
     try { rawBody = await req.json(); } catch { rawBody = null; }
