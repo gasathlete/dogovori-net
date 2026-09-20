@@ -6,6 +6,12 @@
  * тази заявка. Ако отговорът не издържи проверката, се прави ЕДИН опит със
  * същия заземен промпт, а след това се връща безопасна грешка без правен
  * отговор.
+ *
+ * Два капана, които се избягват изрично:
+ * 1) Markdown връзки като [Регистрирайте се](/auth) НЕ са правни цитати. Ако се
+ *    четат като цитати, всеки коректен отговор с покана би бил отхвърлен.
+ * 2) Отговор по правен въпрос БЕЗ нито един реален цитат не е заземен и не се
+ *    приема, дори да няма измислени обозначения.
  */
 
 export interface MinimalCitation {
@@ -18,7 +24,13 @@ export interface MinimalCitation {
 /** Забранени „общи режими" — това са измислени основания. */
 const FORBIDDEN_MARKER_RE = /\[\s*приложим\s+общ\s+режим[^\]]*\]/i;
 
+/** Markdown връзка: етикетът ѝ е интерфейс, не правно твърдение. */
+const MD_LINK_RE = /\[([^\]\n]{1,200})\]\(([^)\s]{1,400})\)/g;
+
 const MARKER_RE = /\[([^\]\n]{2,160})\]/g;
+
+/** Вътрешна референция към извлечен източник по номер: [S1], [S2] … */
+const SOURCE_REF_RE = /^S(\d{1,3})$/i;
 
 function normalize(value: string): string {
   return value.toLowerCase().replace(/[\s.,;]+/g, " ").trim();
@@ -34,42 +46,78 @@ export function allowedCitationKeys(citations: MinimalCitation[]): string[] {
   return keys.filter((k) => k.length > 1);
 }
 
+/** Премахва Markdown връзките, за да не се броят етикетите им за цитати. */
+export function stripMarkdownLinks(text: string): string {
+  return text.replace(MD_LINK_RE, (_m, _label, _href) => "\u0000LINK\u0000");
+}
+
 export interface ReplyValidation {
   readonly ok: boolean;
   readonly reasons: string[];
+  /** Брой разпознати валидни препратки към реално извлечени източници. */
+  readonly validCitations: number;
+}
+
+export interface ValidateOptions {
+  /**
+   * Дали отговорът е ПРАВЕН по същество. Такъв отговор изисква поне един
+   * реален цитат. Кратък отказ/пояснение не изисква цитат.
+   */
+  readonly requiresCitation?: boolean;
 }
 
 /**
- * Цитат е валиден, когато съдържа обозначение на извлечен източник. Маркерите
- * за вътрешни бележки (например [S1]) не се броят за правно твърдение и се
- * игнорират, но измислените „общи режими" водят до отхвърляне.
+ * Валиден цитат е:
+ *  - [S<n>], където 1 <= n <= брой извлечени източници; или
+ *  - обозначение, което ТОЧНО съвпада с нормализиран код/етикет на извлечен
+ *    източник (без разхлабено „съдържа се в").
+ * Всичко останало в квадратни скоби, което не е Markdown връзка, е непроверено
+ * правно твърдение и отхвърля отговора.
  */
 export function validateGroundedReply(
   reply: string,
   citations: MinimalCitation[],
+  options: ValidateOptions = {},
 ): ReplyValidation {
   const reasons: string[] = [];
   const text = String(reply ?? "");
   if (!text.trim()) {
-    return { ok: false, reasons: ["empty_reply"] };
+    return { ok: false, reasons: ["empty_reply"], validCitations: 0 };
   }
   if (FORBIDDEN_MARKER_RE.test(text)) {
     reasons.push("fabricated_general_regime_marker");
   }
 
-  const allowed = allowedCitationKeys(citations);
-  const markers = [...text.matchAll(MARKER_RE)].map((m) => m[1]);
-  const legalMarkers = markers.filter((m) => !/^S\d+$/i.test(m.trim()));
+  const allowed = new Set(allowedCitationKeys(citations));
+  // Връзките се изваждат ПРЕДИ търсенето на обозначения.
+  const withoutLinks = stripMarkdownLinks(text);
+  const markers = [...withoutLinks.matchAll(MARKER_RE)].map((m) => m[1].trim());
 
-  for (const marker of legalMarkers) {
-    const norm = normalize(marker);
-    const matched = allowed.some((key) => norm.includes(key) || key.includes(norm));
-    if (!matched) {
-      reasons.push(`citation_not_retrieved:${marker.slice(0, 60)}`);
+  let validCitations = 0;
+  for (const marker of markers) {
+    const refMatch = SOURCE_REF_RE.exec(marker);
+    if (refMatch) {
+      const index = Number(refMatch[1]);
+      if (index >= 1 && index <= citations.length) {
+        validCitations += 1;
+      } else {
+        reasons.push(`source_ref_out_of_range:${marker.slice(0, 20)}`);
+      }
+      continue;
     }
+    if (allowed.has(normalize(marker))) {
+      validCitations += 1;
+      continue;
+    }
+    reasons.push(`citation_not_retrieved:${marker.slice(0, 60)}`);
   }
 
-  return { ok: reasons.length === 0, reasons };
+  // Правен отговор без нито един реален цитат не е заземен.
+  if (options.requiresCitation !== false && validCitations === 0) {
+    reasons.push("no_retrieved_citation");
+  }
+
+  return { ok: reasons.length === 0, reasons, validCitations };
 }
 
 export const ANON_LEGAL_ANSWER_UNAVAILABLE = "legal_answer_unavailable";

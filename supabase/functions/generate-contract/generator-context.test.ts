@@ -75,7 +75,7 @@ Deno.test("една и съща стойност навсякъде получа
   });
   const r = redactGeneratorContext(c, { redactionRequired: true });
   assert(r.ok);
-  const ph = r.context.qa[0].answer.match(/<EMAIL_\d+>/)![0];
+  const ph = r.context.qa[0].answer.match(/<EMAIL_\d+(?:_[0-9a-f]+)?>/)![0];
   assertEquals(r.context.qa[1].answer.includes(ph), true);
   assert(r.context.partyA.includes(ph));
   assert(!r.context.partyB.includes(ph));

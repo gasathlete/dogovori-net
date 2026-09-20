@@ -269,21 +269,63 @@ Deno.serve(async (req: Request) => {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    // Неизменими доказателства за човешкия проверител: хеш на съдържанието,
+    // дайджест на промпта и политиката, точните източници с версия и снапшот.
+    // verified остава false — съвпадение при извличането НЕ значи проверено.
+    const { buildArticleEvidence, toArticleSourceRefs } = await import("../_shared/article-evidence.ts");
+    const chunkIds = legal.citations.map((c) => c.chunk_id).filter(Boolean);
+    const versions = new Map<string, { version: string | null; snapshot_digest: string | null }>();
+    if (chunkIds.length) {
+      const { data: rows } = await admin
+        .from("legal_chunks")
+        .select("id, legal_documents!inner(version, checksum)")
+        .in("id", chunkIds);
+      for (const row of rows ?? []) {
+        const doc = (row as { legal_documents?: { version?: string; checksum?: string } }).legal_documents;
+        versions.set((row as { id: string }).id, {
+          version: doc?.version ?? null,
+          snapshot_digest: doc?.checksum ?? null,
+        });
+      }
+    }
+    const evidence = await buildArticleEvidence({
+      articleId: created.id,
+      article,
+      activeSystemPrompt: activeSystem,
+      model: TEXT_MODEL,
+      generator: "admin-generate-article",
+      sources: toArticleSourceRefs(legal.citations, versions),
+    });
+    const { error: evErr } = await admin.from("article_generation_evidence").insert({
+      article_id: evidence.article_id,
+      content_hash: evidence.content_hash,
+      prompt_version: evidence.prompt_version,
+      prompt_digest: evidence.prompt_digest,
+      policy_version: evidence.policy_version,
+      model: evidence.model,
+      generator: evidence.generator,
+      sources: evidence.sources,
+      generated_at: evidence.generated_at,
+      verified: false,
+    });
+    if (evErr) {
+      return new Response(JSON.stringify({
+        error: "evidence_persist_failed",
+        id: created.id,
+        slug: created.slug,
+        status: "pending",
+        requires_human_review: true,
+      }), {
+        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     return new Response(JSON.stringify({
       ok: true,
       id: created.id,
       slug: created.slug,
       status: "pending",
       requires_human_review: true,
-      // Неизменими доказателства за човешкия проверител. Съвпадение при
-      // извличането НЕ означава, че черновата е проверена.
-      evidence: {
-        generated_at: new Date().toISOString(),
-        prompt_version: "admin-article-v2-grounded",
-        prompt_digest: await sha256Hex(activeSystem),
-        sources: legal.citations,
-        verified: false,
-      },
+      evidence,
       citations: legal.citations,
     }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -89,8 +89,14 @@ Deno.test("нова резервация + потвърждение", async () =
   const r = await reserveQuota(db, base);
   assertEquals(r.status, "reserved");
   assertEquals((r as { charged: boolean }).charged, true);
-  const c = await commitQuota(db, "op-1");
-  assertEquals(c, { status: "settled", state: "committed", replay: false });
+  const c = await commitQuota(db, "op-1") as {
+    status: string;
+    state: string;
+    replay: boolean;
+  };
+  assertEquals(c.status, "settled");
+  assertEquals(c.state, "committed");
+  assertEquals(c.replay, false);
 });
 
 Deno.test("нова резервация + отмяна", async () => {

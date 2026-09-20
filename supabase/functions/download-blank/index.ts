@@ -311,8 +311,23 @@ Deno.serve(async (req: Request) => {
     const rawDocumentName = String(body?.document_name ?? "").trim();
     const rawSectorTitle = String(body?.sector_title ?? "").trim();
     const isBilingual = Boolean(body?.bilingual);
-    const sessionId = typeof body?.session_id === "string" ? body.session_id : "";
-    const docKey = typeof body?.doc_key === "string" ? body.doc_key : "";
+    // Празен текст НИКОГА не се подава на UUID параметър: "" става SQL NULL.
+    const { asUuidOrNull, asTextOrNull, canonicalRequestDigest } = await import(
+      "../_shared/canonical-digest.ts"
+    );
+    const sessionId = asUuidOrNull(body?.session_id);
+    const docKey = asTextOrNull(body?.doc_key);
+    // Клиентският ключ на операцията прави повторния опит безопасен. Стар
+    // кеширан клиент може да го пропусне — тогава не блокираме заявката, но и
+    // НЕ твърдим, че повторението е идемпотентно.
+    const rawClientOpId = body?.operation_id ?? body?.client_operation_id;
+    const clientOperationId = asUuidOrNull(rawClientOpId);
+    if (rawClientOpId !== undefined && rawClientOpId !== null && !clientOperationId) {
+      return new Response(
+        JSON.stringify({ error: "Невалиден идентификатор на операцията.", code: "invalid_operation_id" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     // Strict input validation to prevent prompt-cache poisoning. The generated
     // blank is shared globally by (sector_id, document_name), so untrusted
@@ -370,15 +385,61 @@ Deno.serve(async (req: Request) => {
       recordReconciliation,
     } = await import("../_shared/quota-ledger.ts");
 
-    const operationId = crypto.randomUUID();
+    // Ключът се обвързва със СЪДЪРЖАНИЕТО на заявката.
+    const requestDigest = await canonicalRequestDigest({
+      purpose: "download_blank",
+      sectorId,
+      documentName,
+      sectorTitle,
+      isBilingual,
+    });
+    const hasClientKey = Boolean(clientOperationId);
+    const operationId = clientOperationId ?? crypto.randomUUID();
     const reservation = await reserveQuota(admin as unknown as Parameters<typeof reserveQuota>[0], {
       operationId,
       userId,
       kind: "template",
       purpose: "download_blank",
-      sessionId: sessionId ?? null,
-      docKey: docKey ?? null,
+      sessionId,
+      docKey,
+      requestDigest,
     });
+    if (reservation.status === "conflict") {
+      return new Response(
+        JSON.stringify({
+          error: "Този идентификатор вече е използван за друга заявка.",
+          code: "idempotency_key_conflict",
+          charge_state: "not_charged",
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    // ТРАЙНО ПОВТОРЕНИЕ: същият ключ след загубен отговор връща СЪЩИЯ документ.
+    // Подписва се нов адрес към вече записания файл — без ново генериране и
+    // без второ таксуване.
+    if (reservation.status === "reserved" && reservation.replay && reservation.resultRef) {
+      const ref = reservation.resultRef as { bucket?: unknown; path?: unknown; filename?: unknown };
+      const bucket = typeof ref.bucket === "string" ? ref.bucket : "document-blanks";
+      const path = typeof ref.path === "string" ? ref.path : "";
+      if (path) {
+        const { data: again } = await admin.storage.from(bucket).createSignedUrl(path, 60 * 10);
+        if (again?.signedUrl) {
+          return new Response(
+            JSON.stringify({
+              ok: true,
+              url: again.signedUrl,
+              filename: typeof ref.filename === "string"
+                ? ref.filename
+                : `${documentName} - бланка.docx`,
+              cached: false,
+              replay: true,
+              citations: legal.citations,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+      }
+    }
     if (reservation.status === "unavailable") {
       return new Response(
         JSON.stringify({ error: "Квотата не може да бъде проверена в момента. Опитайте отново.", charge_state: "not_charged" }),
@@ -438,23 +499,18 @@ Deno.serve(async (req: Request) => {
         }),
       });
 
-      if (aiRes.status === 429 || aiRes.status === 402) {
+      // Грешките на шлюза се нормализират: тялото му НИКОГА не стига до клиента.
+      if (!aiRes.ok) {
+        const { normalizeGatewayStatus, gatewayErrorResponse } = await import(
+          "../_shared/gateway-error.ts"
+        );
+        const normalized = normalizeGatewayStatus(aiRes.status);
         const unresolved = await cancelOrReport(`ai_gateway_${aiRes.status}`);
         if (unresolved) return unresolved;
-        return new Response(
-          JSON.stringify({
-            error: aiRes.status === 429
-              ? "AI лимитът е достигнат. Опитайте след малко."
-              : "Изчерпан AI кредит. Опитайте по-късно.",
-            charged: false,
-            charge_state: "cancelled",
-          }),
-          { status: aiRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-      if (!aiRes.ok) {
-        const errText = await aiRes.text();
-        throw new Error(`AI Gateway: ${aiRes.status} ${errText}`);
+        return gatewayErrorResponse(normalized, corsHeaders, {
+          charged: false,
+          charge_state: "cancelled",
+        });
       }
 
       const aiJson = await aiRes.json();
@@ -497,8 +553,17 @@ Deno.serve(async (req: Request) => {
       .createSignedUrl(storagePath!, 60 * 10);
     if (signErr || !signed?.signedUrl) throw new Error(signErr?.message ?? "sign failed");
 
-    // Успешен изход — потвърждаваме таксуването точно веднъж.
-    const committed = await commitQuota(admin as unknown as Parameters<typeof commitQuota>[0], operationId);
+    const filename = isBilingual
+      ? `${documentName} - бланка (BG-EN).docx`
+      : `${documentName} - бланка.docx`;
+
+    // Успешен изход — потвърждаваме таксуването точно веднъж И обвързваме
+    // готовия файл с ключа, за да може повторен опит да върне същия документ.
+    const committed = await commitQuota(
+      admin as unknown as Parameters<typeof commitQuota>[0],
+      operationId,
+      { bucket: "document-blanks", path: storagePath!, filename },
+    );
     if (committed.status !== "settled") {
       await recordReconciliation(
         admin as unknown as Parameters<typeof recordReconciliation>[0],
@@ -512,12 +577,14 @@ Deno.serve(async (req: Request) => {
       JSON.stringify({
         ok: true,
         url: signed.signedUrl,
-        filename: isBilingual
-          ? `${documentName} - бланка (BG-EN).docx`
-          : `${documentName} - бланка.docx`,
+        filename,
         cached: false,
         is_pro: !!isPro,
         citations: legal.citations,
+        // Сървърният ключ се връща, за да може клиентът да повтори безопасно.
+        operation_id: operationId,
+        // Стар клиент без ключ НЕ получава гаранция за идемпотентно повторение.
+        retry_idempotent: hasClientKey,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

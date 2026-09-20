@@ -26,8 +26,14 @@ Deno.serve(async (req) => {
     audit_log_deleted: 0,
     storage_deleted: 0,
     request_artifacts_examined: 0,
-    request_artifacts_deleted: 0,
+    // Истинна статистика: потвърдено премахнати, вече липсващи и маркирани.
+    request_artifacts_removed: 0,
+    request_artifacts_missing: 0,
+    request_artifacts_marked: 0,
     request_artifacts_skipped: 0,
+    stale_operations_examined: 0,
+    stale_operations_cancelled: 0,
+    stale_operations_unresolved: 0,
     errors: [] as string[],
   };
 
@@ -122,9 +128,23 @@ Deno.serve(async (req) => {
       supabase as unknown as Parameters<typeof sweepExpiredRequestArtifacts>[0],
     );
     stats.request_artifacts_examined = sweep.examined;
-    stats.request_artifacts_deleted = sweep.deleted;
+    stats.request_artifacts_removed = sweep.removed;
+    stats.request_artifacts_missing = sweep.missing;
+    stats.request_artifacts_marked = sweep.marked;
     stats.request_artifacts_skipped = sweep.skipped_not_request;
     for (const err of sweep.errors) stats.errors.push(err);
+
+    // 5. Изравняване на изтекли резервации на квота: точно едно връщане,
+    //    заключени редове, потвърдените операции остават непокътнати.
+    const { reconcileStaleOperations } = await import("../_shared/quota-ledger.ts");
+    const stale = await reconcileStaleOperations(
+      supabase as unknown as Parameters<typeof reconcileStaleOperations>[0],
+      50,
+    );
+    stats.stale_operations_examined = stale.examined;
+    stats.stale_operations_cancelled = stale.cancelled;
+    stats.stale_operations_unresolved = stale.unresolved;
+    if (stale.error) stats.errors.push(`quota_reconcile_stale: ${stale.error}`);
 
     return new Response(JSON.stringify({ ok: true, stats }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

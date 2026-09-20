@@ -87,7 +87,7 @@ Deno.test("една и съща стойност в различни полет�
     },
   });
   const out = redact(r);
-  const ph = out.context.decisions[0].value.match(/<PHONE_\d+>/);
+  const ph = out.context.decisions[0].value.match(/<PHONE_\d+(?:_[0-9a-f]+)?>/);
   assert(ph, "трябва да има PHONE плейсхолдър");
   assert(out.context.decisions[1].value.includes(ph![0]));
 });
@@ -102,8 +102,8 @@ Deno.test("РАЗЛИЧНИ стойности остават РАЗЛИЧНИ �
     },
   });
   const out = redact(r);
-  const a = out.context.decisions[0].value.match(/<PHONE_\d+>/)![0];
-  const b = out.context.decisions[1].value.match(/<PHONE_\d+>/)![0];
+  const a = out.context.decisions[0].value.match(/<PHONE_\d+(?:_[0-9a-f]+)?>/)![0];
+  const b = out.context.decisions[1].value.match(/<PHONE_\d+(?:_[0-9a-f]+)?>/)![0];
   assertNotEquals(a, b);
   assert(unredact(a, out.mapping).includes("0888 123 456"));
   assert(unredact(b, out.mapping).includes("0899 777 888"));

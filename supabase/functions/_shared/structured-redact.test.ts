@@ -48,3 +48,25 @@ Deno.test("картата на заместванията е обща за вс�
   const shared = placeholders.filter((ph) => r.fields.a.includes(ph) && r.fields.b.includes(ph));
   assertEquals(shared.length >= 1, true);
 });
+
+Deno.test("буквален плейсхолдър във входа не се бърка с истински токен", () => {
+  const r = redactFields({
+    notes: "Клиентът написа <EMAIL_1> в указанията.",
+    body: "имейл ivan@example.com",
+  });
+  const tokens = Object.keys(r.mapping);
+  // Истинските токени носят соленост и затова не съвпадат с буквалния текст.
+  assertEquals(tokens.includes("<EMAIL_1>"), false);
+  assert(tokens.some((t) => r.fields.body.includes(t)));
+});
+
+Deno.test("пълен кръг: редакция и възстановяване връщат точния текст", async () => {
+  const { unredact } = await import("./redact.ts");
+  const input = {
+    notes: "Иван Петров, ivan@example.com, тел. 0888123456",
+    clauses: "Същият имейл ivan@example.com се повтаря.",
+  };
+  const r = redactFields(input);
+  assertEquals(unredact(r.fields.notes, r.mapping), input.notes);
+  assertEquals(unredact(r.fields.clauses, r.mapping), input.clauses);
+});
