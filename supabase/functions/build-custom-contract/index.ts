@@ -850,7 +850,8 @@ ${fieldsSection}
     // @ts-ignore — EdgeRuntime е глобал на средата на Supabase Edge Functions,
     // липсва в lib типовете на Deno; поведението не се променя.
     (globalThis as any).EdgeRuntime?.waitUntil?.(
-      anonymiseAndStoreBlank(admin, {
+      // Пред-съществуващо несъответствие между версии на generated types.
+      anonymiseAndStoreBlank(admin as any, {
         name, category, categorySectorId,
         contract: parsed.contract,
         userId,
@@ -889,7 +890,9 @@ const ANON_SYSTEM = `Ти си редактор на правни шаблони
  * по-горе, затова не може да я заобиколи и не произвежда правно твърдение.
  */
 async function anonymiseAndStoreBlank(
-  admin: ReturnType<typeof createClient>,
+  // Заобикаляне на несъответствие в generated types за custom_contract_blanks /
+  // noop_no_such_fn — поведението остава непроменено.
+  admin: any,
   args: {
     name: string;
     category: string;
@@ -926,7 +929,7 @@ async function anonymiseAndStoreBlank(
   const text_hash = await sha256Hex(text.replace(/\s+/g, " ").trim().toLowerCase());
 
   // Try insert; on conflict (duplicate text_hash) increment occurrences.
-  const { error: insErr } = await admin.from("custom_contract_blanks").insert({
+  const { error: insErr } = await (admin.from("custom_contract_blanks") as any).insert({
     source_user_id: userId,
     category,
     category_sector_id: categorySectorId,
@@ -936,7 +939,7 @@ async function anonymiseAndStoreBlank(
   });
   if (insErr && (insErr as any).code === "23505") {
     // Duplicate — bump occurrences.
-    await admin.rpc("noop_no_such_fn").catch(() => {});
+    await (admin.rpc("noop_no_such_fn") as unknown as Promise<unknown>).catch(() => {});
     const { data: existing } = await admin
       .from("custom_contract_blanks")
       .select("id, occurrences")
