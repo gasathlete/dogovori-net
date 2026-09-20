@@ -240,6 +240,17 @@ Deno.serve(async (req) => {
     const existingBlock = ledgerBlockResponse(existing, cors);
     if (existingBlock) return existingBlock;
 
+    // Ключът на доставчика — след повторението и ПРЕДИ резервацията, за да
+    // няма резервирана квота при липсваща настройка.
+    const apiKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: "ai_misconfigured" }), {
+        status: 500,
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+
+
     const reserved = await reserveDocumentOperation(ledger, {
       operationId,
       userId: user.id,
