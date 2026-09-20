@@ -28,7 +28,6 @@ import {
   buildFreshAnalysisPayload,
   buildTitleContext,
   computeAnalysisCacheKey,
-  resolveCachedAnalysis,
 } from "../_shared/analysis-source-binding.ts";
 
 // PROMPT_VERSION — bump to invalidate cached analyses produced by older prompts.
@@ -261,51 +260,22 @@ Deno.serve(async (req: Request) => {
       promptVersion: `${PROMPT_VERSION}|q4a-trust:${trustIdentity}`,
       binding: sourceBinding,
     });
-    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: cached } = await admin
-      .from("risk_analyses")
-      .select("*")
-      .eq("user_id", userId)
-      .eq("text_hash", normalizedHash)
-      .gte("created_at", cutoff)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    // Доверен кеш-хит изисква СТРИКТНО валидни доказателствени метаданни И
-    // обвързване, РАВНО на текущата снимка. Само форматът не е достатъчен.
-    const resolution = await resolveCachedAnalysis({
-      cached: cached as Record<string, unknown> | null,
-      currentBinding: sourceBinding,
-      uploadedContractId: contract.id as string,
-      userId,
-      cloneAnalysis: async (payload) => {
-        const { data: cloned, error: cloneErr } = await admin
-          .from("risk_analyses")
-          .insert(payload)
-          .select()
-          .single();
-        if (cloneErr) {
-          console.error("clone cached analysis:", cloneErr);
-          return null;
-        }
-        return cloned ?? null;
-      },
-    });
-    if (resolution.kind === "clone_failed") {
-      // НИКОГА не връщаме анализ на друг uploaded_contract_id като успех.
-      return new Response(
-        JSON.stringify({
-          error: "Анализът не можа да бъде записан за този документ. Опитайте отново.",
-          code: "analysis_clone_failed",
-        }),
-        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-    if (resolution.kind === "reuse" || resolution.kind === "cloned") {
-      return new Response(JSON.stringify({ analysis: resolution.row, cached: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // КЕШЪТ НА АНАЛИЗИТЕ НЕ СЕ ОБСЛУЖВА (строго правно заземяване).
+    //
+    // Нито един ред в `risk_analyses` не носи сървърно създаден и повторно
+    // проверим манифест за ПРАВНА обосновка: записите от политика
+    // `v6-evidence-q2a` и по-стари са създадени преди строгата преграда.
+    // Манифестът за структурно качество доказва произход на ТЕКСТА, а не
+    // правна верига източник → документ → чънк, затова не може да го замени.
+    //
+    // Следствие: няма ранно връщане и няма клониране на стар ред. Всяка заявка
+    // минава през извличане на правен контекст за ТОЧНО тази заявка (по-долу)
+    // и през преградата `legal_verification_unavailable`, ако няма съвпадение.
+    // Заобиколен кеш никога не се таксува — квотата се удържа само след като
+    // правната преграда е премината успешно.
+    //
+    // `normalizedHash` се запазва само като версиониран ключ при ЗАПИС.
+
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");

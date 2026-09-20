@@ -6,7 +6,7 @@
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import {
-  isStrictLegalKnowledgeBaseReady,
+  isLegalControlPlaneReady,
   type StrictLegalDb,
   verifyLegalChunk,
   type VerifierDeps,
@@ -101,10 +101,12 @@ export async function retrieveLegalContext(
     hasMatches: false,
   };
 
-  // Fail-closed ПРЕДИ всякаква мрежа: без строга готовност няма embedding,
-  // няма RPC, няма доставчик.
+  // Fail-closed ПРЕДИ всякаква мрежа: лека проверка на контролния слой (одобрен
+  // източник + доверен регистър + приет последен ingestion + скорошен snapshot).
+  // Без нея няма embedding, няма RPC, няма доставчик. Корпусът НЕ се обхожда
+  // тук — авторитетната верига за заявката е проверката на кандидатите по-долу.
   const strictDb = admin as unknown as StrictLegalDb;
-  if (!(await isStrictLegalKnowledgeBaseReady(strictDb, opts.verifier))) return empty;
+  if (!(await isLegalControlPlaneReady(strictDb, opts.verifier))) return empty;
 
   const vec = await embedText(apiKey, query);
   if (!vec) return empty;

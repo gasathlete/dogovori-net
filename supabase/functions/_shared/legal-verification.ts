@@ -379,13 +379,62 @@ export function isInForce(from: unknown, to: unknown, now: number): boolean {
 }
 
 /**
+ * ЛЕКА проверка на „контролния слой“ (преди embedding).
+ *
+ * Отговаря само на въпроса: има ли ПОНЕ ЕДИН одобрен официален източник с
+ * доверен регистърен ред, приет последен ingestion и скорошен snapshot. НЕ
+ * обхожда корпуса и НЕ проверява чънкове — това е задача на извличането, което
+ * проверява само реално относимите кандидати за конкретната заявка.
+ *
+ * Използва се на всяка AI заявка, за да няма embedding при неготов контрол.
+ */
+export async function isLegalControlPlaneReady(
+  db: StrictLegalDb,
+  deps: VerifierDeps = {},
+): Promise<boolean> {
+  const usable = usableRegistryEntries(deps);
+  // Нито един одобрен официален източник → нула заявки към базата.
+  if (usable.length === 0) return false;
+  for (const entry of usable) {
+    const verified = await verifyRegisteredSource(db, entry.sourceKey, deps);
+    if (verified.ok) return true;
+  }
+  return false;
+}
+
+/**
  * Готовността е БУЛЕВА и строга: активен легаси ред НИКОГА не е достатъчен.
  * Изисква поне една напълно проверена верига източник → документ → чънк.
+ *
+ * Обхватът е ПЪЛЕН: обхожда се страница по страница до изчерпване, защото
+ * произволен таван прави валидна верига след него невидима. Използва се за
+ * проверки на здравето/продукта, НЕ на всяка AI заявка.
  */
-/** Детерминирани, документирани граници на обхода при проверка на готовност. */
-export const READINESS_MAX_DOCUMENTS = 5;
-export const READINESS_CHUNK_PAGE_SIZE = 50;
-export const READINESS_MAX_CHUNK_PAGES = 4;
+/** Размери на страниците при обхождане (пагинация, не таван на верността). */
+export const READINESS_PAGE_SIZE = 200;
+export const READINESS_CHUNK_PAGE_SIZE = 200;
+/** Твърда защита срещу безкраен цикъл при неизправна пагинация. */
+const MAX_PAGES_GUARD = 100_000;
+
+/** Детерминирано обхождане на всички страници на една заявка. */
+async function forEachPage(
+  build: (from: number, to: number) => Promise<StrictResult>,
+  pageSize: number,
+  visit: (row: Record<string, unknown>) => Promise<boolean>,
+): Promise<boolean> {
+  for (let page = 0; page < MAX_PAGES_GUARD; page++) {
+    const from = page * pageSize;
+    const res = await build(from, from + pageSize - 1);
+    if (res.error || !Array.isArray(res.data)) return false;
+    const rows = res.data as Array<Record<string, unknown>>;
+    for (const row of rows) {
+      if (await visit(row)) return true;
+    }
+    if (rows.length < pageSize) return false;
+  }
+  return false;
+}
+
 
 export async function isStrictLegalKnowledgeBaseReady(
   db: StrictLegalDb,
@@ -395,66 +444,67 @@ export async function isStrictLegalKnowledgeBaseReady(
   // Нито един одобрен официален източник → нула заявки към базата.
   if (usable.length === 0) return false;
 
+  const d = resolveDeps(deps);
   try {
-    const sources = await db
-      .from("legal_sources")
-      .select(
-        "id, active, official_url, current_version, last_indexed_at, short_code, title, jurisdiction",
-      )
-      .eq("active", true)
-      .limit(200);
-    if (sources.error || !Array.isArray(sources.data)) return false;
-    const rows = sources.data as Array<Record<string, unknown>>;
+    // Всички активни легаси източници — до изчерпване на страниците.
+    return await forEachPage(
+      (from, to) =>
+        db
+          .from("legal_sources")
+          .select(
+            "id, active, official_url, current_version, last_indexed_at, short_code, title, jurisdiction",
+          )
+          .eq("active", true)
+          .order("id", { ascending: true })
+          .range(from, to),
+      READINESS_PAGE_SIZE,
+      async (row) => {
+        const officialUrl = str(row.official_url);
+        const currentVersion = str(row.current_version);
+        if (!officialUrl || !currentVersion) return false;
+        const entry = usable.find((e) => isApprovedUrl(officialUrl, e));
+        if (!entry) return false;
 
-    const d = resolveDeps(deps);
-    for (const row of rows) {
-      const officialUrl = str(row.official_url);
-      const currentVersion = str(row.current_version);
-      if (!officialUrl || !currentVersion) continue;
-      const entry = usable.find((e) => isApprovedUrl(officialUrl, e));
-      if (!entry) continue;
+        // САМО документи с версия, равна на current_version, и в сила сега —
+        // но БЕЗ таван: всички такива документи, страница по страница.
+        return await forEachPage(
+          (from, to) =>
+            db
+              .from("legal_documents")
+              .select("id, source_id, version, effective_from, effective_to")
+              .eq("source_id", row.id)
+              .eq("version", currentVersion)
+              .order("id", { ascending: true })
+              .range(from, to),
+          READINESS_PAGE_SIZE,
+          async (doc) => {
+            const documentId = str(doc.id);
+            if (!documentId) return false;
+            if (doc.source_id !== row.id) return false;
+            if (!isInForce(doc.effective_from, doc.effective_to, d.now)) return false;
 
-      // Детерминирано: САМО документи с версия, равна на current_version на
-      // източника, и то в сила към момента. Няма произволно „първите пет“.
-      const docs = await db
-        .from("legal_documents")
-        .select("id, source_id, version, effective_from, effective_to")
-        .eq("source_id", row.id)
-        .eq("version", currentVersion)
-        .order("id", { ascending: true })
-        .limit(READINESS_MAX_DOCUMENTS);
-      if (docs.error || !Array.isArray(docs.data)) continue;
-
-      for (const doc of docs.data as Array<Record<string, unknown>>) {
-        const documentId = str(doc.id);
-        if (!documentId) continue;
-        if (doc.source_id !== row.id) continue;
-        if (!isInForce(doc.effective_from, doc.effective_to, d.now)) continue;
-
-        // Детерминирана страница по страница обиколка на чънковете на точно
-        // този документ: невалиден първи чънк не блокира валиден по-късен.
-        for (let page = 0; page < READINESS_MAX_CHUNK_PAGES; page++) {
-          const from = page * READINESS_CHUNK_PAGE_SIZE;
-          const chunks = await db
-            .from("legal_chunks")
-            .select("id")
-            .eq("document_id", documentId)
-            .order("id", { ascending: true })
-            .range(from, from + READINESS_CHUNK_PAGE_SIZE - 1);
-          if (chunks.error || !Array.isArray(chunks.data)) break;
-          const page_rows = chunks.data as Array<Record<string, unknown>>;
-          if (page_rows.length === 0) break;
-          for (const chunk of page_rows) {
-            const chunkId = str(chunk.id);
-            if (!chunkId) continue;
-            const verified = await verifyLegalChunk(db, chunkId, deps);
-            if (verified.ok) return true;
-          }
-          if (page_rows.length < READINESS_CHUNK_PAGE_SIZE) break;
-        }
-      }
-    }
-    return false;
+            // Всички чънкове на точно този документ: невалиден по-ранен чънк
+            // не скрива валиден по-късен, независимо колко са.
+            return await forEachPage(
+              (from, to) =>
+                db
+                  .from("legal_chunks")
+                  .select("id")
+                  .eq("document_id", documentId)
+                  .order("id", { ascending: true })
+                  .range(from, to),
+              READINESS_CHUNK_PAGE_SIZE,
+              async (chunk) => {
+                const chunkId = str(chunk.id);
+                if (!chunkId) return false;
+                const verified = await verifyLegalChunk(db, chunkId, deps);
+                return verified.ok;
+              },
+            );
+          },
+        );
+      },
+    );
   } catch {
     return false;
   }

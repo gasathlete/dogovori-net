@@ -76,6 +76,8 @@ export default function UploadedContractPage() {
 
   const [analyzing, setAnalyzing] = useState(false);
   const [correcting, setCorrecting] = useState(false);
+  // Пази от двойно изпращане при ръчен повторен опит от правната преграда.
+  const busyRef = useRef(false);
   const [corrections, setCorrections] = useState<CorrectionResult | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -175,15 +177,21 @@ export default function UploadedContractPage() {
     const startedIdentity = { docId: id, userId: user?.id ?? null };
     const scopeAtStart = scopeRef.current;
     const token = ++analyzeTokenRef.current;
+    if (busyRef.current) return;
+    busyRef.current = true;
     setAnalyzing(true);
     trackGenerate("started", { source: "reanalyze" });
     const { data, error } = await supabase.functions.invoke("analyze-contract", {
       body: { uploadedContractId: id, userConfirmed },
     });
+    busyRef.current = false;
     if (!isCurrentRequest(token, analyzeTokenRef, startedIdentity)) return;
     setAnalyzing(false);
     // Ограничената правна преграда е възстановимо състояние: нищо не се губи.
-    if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable({ error, data })) return;
+    if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable(
+      { error, data },
+      () => { if (!busyRef.current) void runAnalyze(userConfirmed); },
+    )) return;
     if (error || (data as { error?: string } | null)?.error) {
       const sensitive = await parseSensitiveResponse(error, data);
       if (!isCurrentRequest(token, analyzeTokenRef, startedIdentity)) return;
@@ -241,6 +249,8 @@ export default function UploadedContractPage() {
     const startedIdentity = { docId: id, userId: user?.id ?? null };
     const scopeAtStart = scopeRef.current;
     const token = ++correctTokenRef.current;
+    if (busyRef.current) return;
+    busyRef.current = true;
     setCorrecting(true);
     const { data, error } = await supabase.functions.invoke("correct-uploaded", {
       body: {
@@ -252,10 +262,14 @@ export default function UploadedContractPage() {
         userConfirmed,
       },
     });
+    busyRef.current = false;
     if (!isCurrentRequest(token, correctTokenRef, startedIdentity)) return;
     setCorrecting(false);
     // Ограничената правна преграда е възстановимо състояние: нищо не се губи.
-    if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable({ error, data })) return;
+    if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable(
+      { error, data },
+      () => { if (!busyRef.current) void runCorrect(payload, userConfirmed); },
+    )) return;
     if (error || (data as { error?: string } | null)?.error) {
       const sensitive = await parseSensitiveResponse(error, data);
       if (!isCurrentRequest(token, correctTokenRef, startedIdentity)) return;

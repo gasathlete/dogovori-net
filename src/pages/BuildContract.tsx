@@ -212,6 +212,9 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   };
 
   const [generating, setGenerating] = useState(false);
+  // Пази от двойно изпращане при ръчен повторен опит от съобщението на
+  // правната преграда (никога автоматично).
+  const busyRef = useRef(false);
   const [genStepIdx, setGenStepIdx] = useState(0);
   // Диалог за лични / чувствителни данни (GDPR потвърждение преди генериране).
   const [sensitiveOpen, setSensitiveOpen] = useState(false);
@@ -519,6 +522,8 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
       }
     }
 
+    if (busyRef.current) return;
+    busyRef.current = true;
     setGenerating(true);
     setGenStepIdx(0);
     const interval = setInterval(() => setGenStepIdx((i) => (i + 1) % GEN_STEPS.length), 5000);
@@ -586,7 +591,11 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         return;
       }
       // Ограничената правна преграда е възстановимо състояние: нищо не се губи.
-      if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable({ error, data })) return;
+      // Точен ръчен повторен опит: същите данни от формата, същото потвърждение.
+      if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable(
+        { error, data },
+        () => { if (!busyRef.current) void handleGenerate(userConfirmed); },
+      )) return;
       if (error || !data || data.error) {
         const gen = classifyGenerationError({ error, data: data ?? null });
         if (gen.code === "requires_login") {
@@ -641,6 +650,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     } finally {
       clearInterval(interval);
       toast.dismiss("build-retry");
+      busyRef.current = false;
       setGenerating(false);
     }
   };
@@ -814,6 +824,8 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
       toast.message("Изберете поне една препоръка за корекция");
       return;
     }
+    if (busyRef.current) return;
+    busyRef.current = true;
     setApplyingCorrections(true);
     try {
       const { getOpSessionId, newOpBatchId } = await import("@/lib/opSession");
@@ -833,7 +845,11 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         },
       });
       // Ограничената правна преграда е възстановимо състояние: нищо не се губи.
-      if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable({ error, data })) return;
+      // Ръчен повторен опит със същия избор на корекции (нов batch_id вътре).
+      if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable(
+        { error, data },
+        () => { if (!busyRef.current) void handleApplyCorrections(sel, correctionsConfirmed); },
+      )) return;
       if (error || data?.error) {
         const sensitive = await parseSensitiveResponse(error, data);
         if (isSpecialCategoryBlocked(sensitive)) {
@@ -870,6 +886,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
       if (await (await import("@/lib/blockedContent")).handleBlockedIllegalContent(e)) return;
       toast.error("Грешка при корекция", { description: String(e?.message ?? e) });
     } finally {
+      busyRef.current = false;
       setApplyingCorrections(false);
     }
   };

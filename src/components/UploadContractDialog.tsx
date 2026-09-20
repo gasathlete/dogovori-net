@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileUp, FileText, ClipboardPaste, Loader2 } from "@/icons";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,33 @@ export function UploadContractDialog({
   const [phase, setPhase] = useState<string>("");
   const [analyzing, setAnalyzing] = useState(false);
   const [tip, setTip] = useState<string>("");
+  // Ръчен повторен опит след правната преграда: документът вече е качен и
+  // запазен, затова се повтаря САМО анализът, без ново качване и без цикъл.
+  const retryingRef = useRef(false);
+  const retryAnalysisFor = async (contractId: string) => {
+    if (retryingRef.current) return;
+    retryingRef.current = true;
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-contract", {
+        body: { uploadedContractId: contractId },
+      });
+      const gate = await import("@/lib/legalGateClient");
+      if (gate.handleLegalVerificationUnavailable(
+        { error, data },
+        () => { void retryAnalysisFor(contractId); },
+      )) return;
+      const failed = (error as { message?: string } | null)?.message
+        ?? (data as { error?: string } | null)?.error;
+      if (failed) {
+        toast.error("Грешка при анализа", { description: failed });
+        return;
+      }
+      toast.success("Готово! Анализът е изготвен.");
+      onUploaded();
+    } finally {
+      retryingRef.current = false;
+    }
+  };
 
   // Rotating reassuring phrases shown while the AI risk analysis runs.
   useEffect(() => {
@@ -200,7 +227,10 @@ export function UploadContractDialog({
       });
       setAnalyzing(false);
       if (aErr) {
-        if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable({ error: aErr })) {
+        if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable(
+          { error: aErr },
+          () => { void retryAnalysisFor(newId); },
+        )) {
           onUploaded(); setOpen(false); navigate(`/uploaded/${newId}`);
           return;
         }
@@ -217,7 +247,10 @@ export function UploadContractDialog({
         navigate(`/uploaded/${newId}`);
         return;
       }
-      if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable({ data: aData })) {
+      if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable(
+        { data: aData },
+        () => { void retryAnalysisFor(newId); },
+      )) {
         onUploaded(); setOpen(false); navigate(`/uploaded/${newId}`);
         return;
       }
