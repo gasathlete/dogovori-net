@@ -115,7 +115,6 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const history: ChatMsg[] = Array.isArray(body?.messages) ? body.messages : [];
-    const userTurns = history.filter((m) => m.role === "user").length;
 
     // Server-side IP rate limit: 5 заявки на 24 часа (предотвратява заобикаляне
     // на client-side history брояча чрез изпращане на по едно съобщение наведнъж).
