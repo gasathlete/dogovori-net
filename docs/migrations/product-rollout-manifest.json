@@ -264,7 +264,7 @@
       "file": "drizzle/migrations/0041_gate3_paid_fulfillment_exact_once.sql",
       "pairedFile": "supabase/migrations/20260921013000_gate3_paid_fulfillment_exact_once.sql",
       "parity": "byte-identical copies",
-      "sha256": "f47485c65f17707773522bd9b1fa04f8ad80ca4099f7ea4823de6b761f0454cc",
+      "sha256": "f28b0c015a52a361e62c941f6d835a9fefbd7c6ba357ad06e9dea6c449d5f34b",
       "applied": false,
       "dependsOn": "0026_product_acl_hardening",
       "purpose": "Durable, DB-enforced reconciliation state for uncertain provider outcomes on the paid fulfilment and included-refinement paths.",
@@ -276,6 +276,10 @@
         "product_fulfillment_jobs_one_unresolved",
         "product_result_refinements_one_unresolved",
         "product_reconciliation_events",
+        "product_reconciliation_resolutions",
+        "product_reconciliation_terminal_calls",
+        "enforce_product_generation_call_not_consumed",
+        "enforce_product_refinement_call_not_consumed",
         "enforce_product_job_reconciliation_freeze",
         "enforce_product_refinement_reconciliation_freeze",
         "enforce_product_job_no_unresolved",
@@ -285,7 +289,7 @@
         "product_reconciliation_state",
         "resolve_product_reconciliation"
       ],
-      "pgTap": "supabase/tests/0041_gate3_paid_fulfillment_exact_once.sql — 35 assertions, plan(35), AUTHORED BUT NOT RUN (migration unapplied)",
+      "pgTap": "supabase/tests/0041_gate3_paid_fulfillment_exact_once.sql — 68 assertions, plan(68), behavioural (consume/denied release/conflict/orphan call/closed audit), AUTHORED BUT NOT RUN (migration unapplied)",
       "preapply": [
         "0018-0026 applied and verified",
         "maintenance write freeze",
@@ -297,7 +301,7 @@
         "mark/resolve/state functions are service_role only",
         "product_reconciliation_state is STABLE and cannot write"
       ],
-      "recovery": "forward-fix only; resolution requires resolve_product_reconciliation with an explicit operator note"
+      "recovery": "forward-fix only; resolution requires resolve_product_reconciliation(kind, subject, release|consume, closed reason_code, optional opaque ticket_ref). release is permitted only with provider_no_execution_proven AND no durable provider call; consume is terminal and makes a further provider call impossible. No free-text operator note is stored."
     }
   ],
   "gate3": {
