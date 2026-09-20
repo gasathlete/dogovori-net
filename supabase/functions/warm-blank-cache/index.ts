@@ -354,7 +354,10 @@ Deno.serve(async (req: Request) => {
 
     const systemPrompt = `${SYSTEM_PROMPT}\n\n--- Специфика за този вид документ (${docTypeSpec.label}) ---\n${docTypeSpec.systemAddendum}${isBilingual ? BILINGUAL_ADDENDUM : ""}\n\n${legal.promptBlock}`;
     const userPrompt = `Сектор: ${sectorTitle || sectorId}\nВид документ: ${docTypeSpec.label}\nКонкретен документ: ${documentName}\n\nГенерирай професионална българска правна БЛАНКА (празен шаблон) за този КОНКРЕТЕН ВИД документ. Спазвай структурата за „${docTypeSpec.label}" — не я смесвай с друг вид документ.${isBilingual ? "\n\nЗАДЪЛЖИТЕЛНО: добави паралелен английски превод в полетата title_en, preamble_en, closing_en и в clauses[].title_en/body_en (виж системния промпт за билингвален режим)." : ""}`;
-    const storagePath = await buildBlankStoragePath(CACHE_VERSION, sectorId, documentName);
+    // САМО ЧЕРНОВА: предварителното генериране не може да създава бланка, която
+    // се поднася на клиент. Пише се в отделно draft пространство и НЕ се вписва
+    // в document_blanks, докато няма проверим правен манифест и човешки преглед.
+    const storagePath = `draft/${await buildBlankStoragePath(CACHE_VERSION, sectorId, documentName)}`;
 
     const work = (async () => {
       try {
