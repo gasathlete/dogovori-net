@@ -11,6 +11,7 @@
 import { redactForAI, type RedactionMapping } from "./redact.ts";
 
 /** Контролни символи, които се изчистват от входа, за да е разделителят уникален. */
+// eslint-disable-next-line no-control-regex -- нужно е точно изчистване на контролни символи
 const CONTROL_RE = /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g;
 const SEP = "\u0000\u0001\u0000";
 
