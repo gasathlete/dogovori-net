@@ -66,6 +66,23 @@ function writeAll(rows: StoredOperation[]): void {
 }
 
 /**
+ * РЕКУРСИВНО канонично представяне: подредбата на ключовете е детерминирана на
+ * ВСЯКО ниво, а `undefined` се изхвърля. Така вложени опции или различен ред на
+ * ключовете не могат да завъртят запазения идентификатор на операцията.
+ */
+function canonicalJson(value: unknown): string {
+  if (value === null || value === undefined) return "null";
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+/**
  * Отпечатък на ПЪЛНИЯ обхват: предназначение, профил, точният ресурс, неговата
  * непроменима версия и всички опции, които влияят на резултата. Подавайте вече
  * непрозрачни стойности (отпечатъци), не сурово съдържание.
@@ -77,15 +94,13 @@ export async function documentOperationScope(parts: {
   resourceVersion?: string | null;
   options?: Record<string, unknown>;
 }): Promise<string> {
-  const options = parts.options ?? {};
-  const orderedOptions = Object.keys(options).sort().map((k) => [k, options[k]]);
-  return await sha256Hex(JSON.stringify([
+  return await sha256Hex(canonicalJson([
     "ai_document_scope_v1",
     parts.purpose,
     parts.userId,
     parts.resourceId ?? "",
     parts.resourceVersion ?? "",
-    orderedOptions,
+    parts.options ?? {},
   ]));
 }
 
