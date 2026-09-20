@@ -191,6 +191,14 @@ Deno.serve(async (req: Request) => {
     const lookup = await lookupCommittedWave(ledgerDb, waveBinding);
     if (lookup.status === "conflict") return conflictResponse();
     if (lookup.status === "unavailable") return quotaUnavailableResponse();
+    // Точният отговор се пази 24 часа; след това се изисква НОВА заявка, а не
+    // празен или различен резултат.
+    if (lookup.status === "response_expired") {
+      return responseExpiredResponse(
+        { ...corsHeaders, ...correlationHeaders(correlationId) },
+        lookup.charged,
+      );
+    }
     if (lookup.status === "in_progress") return inProgressResponse(lookup.retryAfterSeconds);
     if (lookup.status === "reconciliation") {
       await recordReconciliation(ledgerDb, operationId, `apply_corrections_wave_lookup:${lookup.reason}`, {
