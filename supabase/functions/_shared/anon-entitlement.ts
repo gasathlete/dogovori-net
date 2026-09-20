@@ -95,9 +95,11 @@ export async function consumeAnonDelivered(
     _window_s: ANON_ENTITLEMENT_WINDOW_S,
   });
   if (error) {
-    // Записът не успя: правото не се твърди за изразходвано.
-    return { ok: false, used: 0, remaining: 0, exhausted: false };
+    // Записът не успя: правото не се твърди за изразходвано И това НЕ е
+    // изчерпан лимит — извикващият връща повторяем 503.
+    return { ok: false, used: 0, remaining: 0, exhausted: false, unavailable: true };
   }
+
   const row = (data ?? {}) as { ok?: boolean; remaining?: number };
   const remaining = Math.max(0, Number(row.remaining ?? 0));
   return {
