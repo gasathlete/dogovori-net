@@ -36,6 +36,11 @@ import {
   type ResultStateAccess,
 } from "@/lib/productResultApi";
 import {
+  clearProductOperationKey,
+  getOrCreateProductOperationKey,
+  productOperationScope,
+} from "@/lib/productOperationKey";
+import {
   buildChangeReportPdf,
   buildCorrectedDocx,
   buildCorrectedPdf,
