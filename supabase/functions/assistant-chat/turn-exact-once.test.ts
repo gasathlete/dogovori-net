@@ -233,7 +233,12 @@ Deno.test("SQL: отказът не оставя празен разговор, 
 });
 
 Deno.test("SQL: отмяната възстановява точно и не маскира недостиг", () => {
-  const cancel = SQL.slice(SQL.indexOf("FUNCTION public.assistant_turn_cancel"));
+  const cancelStart = SQL.indexOf("FUNCTION public.assistant_turn_cancel");
+  const cancel = SQL.slice(
+    cancelStart,
+    SQL.indexOf("CREATE OR REPLACE FUNCTION", cancelStart + 60),
+  );
+  assert(cancel.length > 500);
   assert(!/GREATEST\(/.test(cancel), "няма маскиране на недостиг");
   assert(/window_changed/.test(cancel), "различен прозорец => изравняване");
   assert(/provenance_missing/.test(cancel));

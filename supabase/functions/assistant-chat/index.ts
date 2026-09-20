@@ -1266,7 +1266,11 @@ Deno.serve(async (req) => {
     console.error("assistant-chat failed", corr);
     if (reconcileOnUnexpected) {
       await reconcileOnUnexpected("unexpected_after_model").catch(() => {});
-      return ledgerStateResponse("reconciliation");
+      return json({
+        error:
+          "Изясняваме състоянието на предишния Ви въпрос. Опитайте отново след малко — ако се повтори, свържете се с поддръжката.",
+        code: "assistant_turn_reconciliation",
+      }, 503);
     }
     return json({ error: "Сървърна грешка", code: "assistant_chat_failed" }, 500);
   }
