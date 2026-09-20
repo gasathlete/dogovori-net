@@ -252,6 +252,16 @@ Deno.test("gateway requires an api key", () => {
 const PROVISION = "11111111-1111-4111-8111-111111111111";
 const VERSION = "22222222-2222-4222-8222-222222222222";
 const SOURCE = "33333333-3333-4333-8333-333333333333";
+import {
+  APPROVED_REGISTRY,
+  CHUNK_ID,
+  DOCUMENT_ID,
+  FIXED_NOW,
+  fixtureDb,
+  OFFICIAL_URL,
+  SOURCE_ID,
+} from "./legal-verification.fixture.ts";
+
 const URL_OK = "https://lex.bg/laws/zzd";
 
 interface Rows {
@@ -313,12 +323,17 @@ const CANDIDATE: LegalBasis = Object.freeze({
   label: "чл. 79, ал. 1 ЗЗД",
 });
 
+const STRICT_DEPS = { registry: APPROVED_REGISTRY, now: FIXED_NOW };
+
 Deno.test("legal resolver returns exactly the active server-owned tuple", async () => {
-  const port = createProductLegalBasisPort(legalDb(ACTIVE));
+  const port = createProductLegalBasisPort(fixtureDb() as never, {
+    now: FIXED_NOW,
+    verifier: STRICT_DEPS,
+  });
   const resolved = await port.resolve(CANDIDATE);
   assert(resolved);
   assertEquals(resolved?.active, true);
-  assertEquals(resolved?.canonical_url, URL_OK);
+  assertEquals(resolved?.canonical_url, OFFICIAL_URL);
   assertEquals(resolved?.label, "чл. 79, ал. 1 ЗЗД");
 });
 
@@ -340,24 +355,46 @@ Deno.test("legal resolver fails closed on retired, superseded, missing, ambiguou
   const missing: Rows = { ...ACTIVE, chunk: null };
   const dbError: Rows = { ...ACTIVE, error: { message: "db down" } };
   for (const rows of [superseded, notYet, inactive, wrongDoc, wrongSource, missing, dbError]) {
-    const port = createProductLegalBasisPort(legalDb(rows));
+    // Строгият проверяващ модул отказва и при инжектиран одобрен регистър.
+    const port = createProductLegalBasisPort(legalDb(rows), {
+      now: FIXED_NOW,
+      verifier: STRICT_DEPS,
+    });
     assertEquals(await port.resolve(CANDIDATE), null);
   }
 });
 
 Deno.test("a model-supplied label or url never creates authority", async () => {
-  const port = createProductLegalBasisPort(legalDb(ACTIVE));
-  assertEquals(await port.resolve({ ...CANDIDATE, label: "чл. 999 ЗЗД" }), null);
-  assertEquals(
-    await port.resolve({ ...CANDIDATE, canonical_url: "https://example.com/x" }),
-    null,
-  );
-  assertEquals(await port.resolve({ ...CANDIDATE, canonical_url: "http://lex.bg" }), null);
+  // Легаси Lex.bg източникът никога не поражда авторитет, независимо какво
+  // твърди моделът.
+  const lexPort = createProductLegalBasisPort(legalDb(ACTIVE), {
+    now: FIXED_NOW,
+    verifier: STRICT_DEPS,
+  });
+  assertEquals(await lexPort.resolve(CANDIDATE), null);
+
+  const port = createProductLegalBasisPort(fixtureDb() as never, {
+    now: FIXED_NOW,
+    verifier: STRICT_DEPS,
+  });
+  // Изходът е САМО сървърен: измислен етикет/връзка не се връщат.
+  const forged = await port.resolve({
+    provision_id: CHUNK_ID,
+    version_id: DOCUMENT_ID,
+    source_id: SOURCE_ID,
+    label: "чл. 999 ЗЗД",
+    canonical_url: "https://example.com/x",
+  });
+  assertEquals(forged?.label, "чл. 79, ал. 1 ЗЗД");
+  assertEquals(forged?.canonical_url, OFFICIAL_URL);
   assertEquals(await port.resolve({ ...CANDIDATE, provision_id: "not-a-uuid" }), null);
 });
 
-Deno.test("legal knowledge base readiness is a boolean over active sources only", async () => {
-  assert(await isLegalKnowledgeBaseReady(legalDb(ACTIVE)));
+Deno.test("legal knowledge base readiness requires a fully verified chain", async () => {
+  // Активен легаси ред сам по себе си НЕ е готовност (днешното състояние).
+  assertFalse(await isLegalKnowledgeBaseReady(legalDb(ACTIVE)));
+  assertFalse(await isLegalKnowledgeBaseReady(fixtureDb() as never));
+  assert(await isLegalKnowledgeBaseReady(fixtureDb() as never, STRICT_DEPS));
   assertFalse(await isLegalKnowledgeBaseReady(legalDb({})));
   const inventory = await loadActiveLegalInventory(legalDb(ACTIVE));
   assertEquals(inventory.length, 1);
@@ -492,7 +529,8 @@ Deno.test("migration is proven only by the server, never by a constant", async (
 Deno.test("prepayment gate fails closed on legal, migration and residency", async () => {
   const config = readProductIntegrationConfig(reader());
   const open = {
-    legalDb: legalDb(ACTIVE),
+    legalDb: fixtureDb() as never,
+    legalVerifier: STRICT_DEPS,
     rpc: rpcProbe(MIGRATION_CAPABILITY_OK),
     residencyDb: profileDb({ allow_third_country_ai: true }),
     userId: "u1",
@@ -530,8 +568,9 @@ Deno.test("prepayment gate fails closed on legal, migration and residency", asyn
 Deno.test("readiness exposes only safe booleans and codes", async () => {
   const readiness = await productIntegrationReadiness(
     readProductIntegrationConfig(reader()),
-    legalDb(ACTIVE),
+    fixtureDb() as never,
     rpcProbe(MIGRATION_CAPABILITY_OK),
+    STRICT_DEPS,
   );
   assert(readiness.fulfillment_ready);
   assert(readiness.checkout_ready.live);

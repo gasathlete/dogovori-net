@@ -189,6 +189,17 @@ Deno.serve(async (req: Request) => {
       .eq("hash", cacheHash)
       .gte("created_at", cacheCutoff)
       .maybeSingle();
+    // Fail-closed правна проверка: ПРЕДИ основния модел и ПРЕДИ всякаква
+    // промяна на квотата. Без проверена правна основа не се изпълнява нищо.
+    {
+      const { isLegalKnowledgeBaseReady } = await import("../_shared/product-legal-basis.ts");
+      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
+      const legalDb = admin as unknown as Parameters<typeof isLegalKnowledgeBaseReady>[0];
+      if (!(await isLegalKnowledgeBaseReady(legalDb))) {
+        return legalVerificationUnavailableResponse({ headers: { ...corsHeaders, ...correlationHeaders(correlationId) } });
+      }
+    }
+
     // Session-aware quota consumption — same (session_id, doc_key) in tab = free.
     // Skipped for anonymous calls; userId is guaranteed by the rate-limit branch above
     // (anonymous get limit=0).

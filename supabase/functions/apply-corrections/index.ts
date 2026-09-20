@@ -122,6 +122,17 @@ Deno.serve(async (req: Request) => {
     const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
+    // Fail-closed правна проверка: ПРЕДИ основния модел и ПРЕДИ всякаква
+    // промяна на квотата. Без проверена правна основа не се изпълнява нищо.
+    {
+      const { isLegalKnowledgeBaseReady } = await import("../_shared/product-legal-basis.ts");
+      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
+      const legalDb = admin as unknown as Parameters<typeof isLegalKnowledgeBaseReady>[0];
+      if (!(await isLegalKnowledgeBaseReady(legalDb))) {
+        return legalVerificationUnavailableResponse({ headers: { ...corsHeaders, ...correlationHeaders(correlationId) } });
+      }
+    }
+
     const { data: batchCharge, error: batchErr } = await userClient.rpc(
       "charge_corrections_wave",
       { p_user_id: userId, p_batch_id: batchId ?? null, p_count: Math.max(1, correctionsCount) },

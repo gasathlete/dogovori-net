@@ -42,11 +42,15 @@ describe("правното основание е сървърен факт", () 
     expect(LEGAL).not.toContain("await fetch(");
   });
 
-  it("изисква активен източник, действаща версия и точен етикет", () => {
-    expect(LEGAL).toContain('sourceRow.active !== true');
-    expect(LEGAL).toContain("chunkRow.citation_label.trim() !== label.trim()");
-    expect(LEGAL).toContain("officialUrl !== canonical_url");
-    expect(LEGAL).toContain("inForce(documentRow, now())");
+  it("минава през общия строг проверяващ модул и връща само сървърни стойности", () => {
+    expect(LEGAL).toContain("verifyLegalChunk(");
+    expect(LEGAL).toContain("isStrictLegalKnowledgeBaseReady(");
+    expect(LEGAL).toContain("chunk.document_id !== version_id");
+    expect(LEGAL).toContain("chunk.source_id !== source_id");
+    expect(LEGAL).toContain("canonical_url: chunk.canonical_url");
+    expect(LEGAL).toContain("label: chunk.citation_label");
+    // Активен легаси ред сам по себе си вече не е готовност.
+    expect(LEGAL).not.toContain("return inventory.length > 0");
   });
 });
 

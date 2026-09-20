@@ -585,6 +585,8 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         setSensitiveOpen(true);
         return;
       }
+      // Ограничената правна преграда е възстановимо състояние: нищо не се губи.
+      if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable({ error, data })) return;
       if (error || !data || data.error) {
         const gen = classifyGenerationError({ error, data: data ?? null });
         if (gen.code === "requires_login") {
@@ -830,6 +832,8 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
           userConfirmed: correctionsConfirmed,
         },
       });
+      // Ограничената правна преграда е възстановимо състояние: нищо не се губи.
+      if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable({ error, data })) return;
       if (error || data?.error) {
         const sensitive = await parseSensitiveResponse(error, data);
         if (isSpecialCategoryBlocked(sensitive)) {

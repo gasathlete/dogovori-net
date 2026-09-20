@@ -182,6 +182,8 @@ export default function UploadedContractPage() {
     });
     if (!isCurrentRequest(token, analyzeTokenRef, startedIdentity)) return;
     setAnalyzing(false);
+    // Ограничената правна преграда е възстановимо състояние: нищо не се губи.
+    if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable({ error, data })) return;
     if (error || (data as { error?: string } | null)?.error) {
       const sensitive = await parseSensitiveResponse(error, data);
       if (!isCurrentRequest(token, analyzeTokenRef, startedIdentity)) return;
@@ -252,6 +254,8 @@ export default function UploadedContractPage() {
     });
     if (!isCurrentRequest(token, correctTokenRef, startedIdentity)) return;
     setCorrecting(false);
+    // Ограничената правна преграда е възстановимо състояние: нищо не се губи.
+    if ((await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable({ error, data })) return;
     if (error || (data as { error?: string } | null)?.error) {
       const sensitive = await parseSensitiveResponse(error, data);
       if (!isCurrentRequest(token, correctTokenRef, startedIdentity)) return;
