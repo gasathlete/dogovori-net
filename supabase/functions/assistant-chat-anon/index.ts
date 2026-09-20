@@ -193,7 +193,8 @@ Deno.serve(async (req) => {
     const lastUserForMode = safe[safe.length - 1].content;
     const clarifiedLegalCase = /Ето\s+уточненията\s+по\s+казуса|структуриран\s+правен\s+отговор/i.test(lastUserForMode);
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Един и същ ЗАЗЕМЕН промпт за първия опит и за евентуалния повторен.
+    const callModel = () => fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -207,16 +208,46 @@ Deno.serve(async (req) => {
       }),
     });
 
-    if (!res.ok) {
-      const errText = await res.text().catch(() => "");
-      return new Response(
-        JSON.stringify({ error: "ai_gateway_error", status: res.status, detail: errText.slice(0, 300) }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    const { validateGroundedReply, ANON_LEGAL_ANSWER_UNAVAILABLE, ANON_LEGAL_ANSWER_UNAVAILABLE_MESSAGE_BG } =
+      await import("../_shared/anon-legal-validation.ts");
+
+    let rawReply = "";
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const res = await callModel();
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        // Неуспешен модел не изразходва безплатно съобщение.
+        return new Response(
+          JSON.stringify({
+            error: "ai_gateway_error",
+            status: res.status,
+            detail: errText.slice(0, 300),
+            free_message_consumed: false,
+          }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const data = await res.json();
+      const candidate: string = data?.choices?.[0]?.message?.content ?? "";
+      if (validateGroundedReply(candidate, citations).ok) {
+        rawReply = candidate;
+        break;
+      }
     }
 
-    const data = await res.json();
-    const rawReply: string = data?.choices?.[0]?.message?.content ?? "";
+    if (!rawReply) {
+      // Няма ръчно сглобен правен отговор: връщаме безопасна грешка без
+      // правно съдържание и без изразходвано безплатно съобщение.
+      return new Response(
+        JSON.stringify({
+          error: ANON_LEGAL_ANSWER_UNAVAILABLE,
+          code: ANON_LEGAL_ANSWER_UNAVAILABLE,
+          message: ANON_LEGAL_ANSWER_UNAVAILABLE_MESSAGE_BG,
+          free_message_consumed: false,
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     let reply = rawReply;
     let followups: string[] = [];
@@ -262,14 +293,6 @@ Deno.serve(async (req) => {
       reply = `${sanitizedBody}\n\n${cta.trim()}`;
     } else {
       reply = sanitizeAssistantReply(reply, {
-        citationCount: citations.length,
-        userMsg: lastUserContent,
-        injectRiskBanner: true,
-      });
-    }
-
-    if (clarifiedLegalCase && needsLegalRepair(reply)) {
-      reply = sanitizeAssistantReply(forceAnonLegalStructure(reply, lastUserContent, citations), {
         citationCount: citations.length,
         userMsg: lastUserContent,
         injectRiskBanner: true,
