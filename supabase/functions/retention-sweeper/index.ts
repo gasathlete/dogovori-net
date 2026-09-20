@@ -172,7 +172,7 @@ Deno.serve(async (req) => {
         stats.errors.push(`exact_response_sweep: ${sweepErr.code ?? "rpc_error"}`);
       } else {
         const r = (sweepData ?? {}) as Record<string, unknown>;
-        stats.exact_responses_examined = Number(r.examined ?? 0);
+        stats.exact_responses_examined = Number(r.anon_due ?? 0) + Number(r.review_due ?? 0);
         stats.exact_responses_cleared_anon = Number(r.anon_cleared ?? 0);
         stats.exact_responses_cleared_review = Number(r.review_cleared ?? 0);
       }
