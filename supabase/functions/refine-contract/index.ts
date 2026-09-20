@@ -202,6 +202,100 @@ ${redaction.answersText}
 
     const rawSystem = await loadActivePrompt(admin, "refine-contract", SYSTEM_PROMPT);
 
+    // КАНОНИЧЕН ОТПЕЧАТЪК на заявката — СЛЕД локалните проверки и редакцията,
+    // но ПРЕДИ правното заземяване. Така вече завършена и вече таксувана
+    // операция може да бъде разпозната, без да зависи от наличността на
+    // правната база.
+    const requestDigest = await canonicalRequestDigest({
+      purpose: "refine_contract",
+      userId,
+      feedback,
+      answers,
+      contract,
+      batchId,
+    });
+
+    const {
+      reserveQuota,
+      commitQuota,
+      cancelQuota,
+      billingReconciliationResponse,
+      recordReconciliation,
+      lookupCommittedOperation,
+      isOperationInProgress,
+      operationInProgressResponse,
+    } = await import("../_shared/quota-ledger.ts");
+    type LedgerDb = Parameters<typeof reserveQuota>[0];
+    const ledgerDb = admin as unknown as LedgerDb;
+    const jsonHeaders = {
+      ...corsHeaders,
+      ...correlationHeaders(correlationId),
+      "Content-Type": "application/json",
+    };
+    const ledgerBinding = {
+      operationId,
+      userId,
+      kind: "analysis" as const,
+      purpose: "refine_contract",
+      batchId,
+      requestDigest,
+    };
+    const conflictResponse = () =>
+      new Response(
+        JSON.stringify({
+          error: "Този идентификатор вече е използван за друга заявка.",
+          code: "idempotency_key_conflict",
+          charge_state: "not_charged",
+        }),
+        { status: 409, headers: jsonHeaders },
+      );
+    const quotaUnavailableResponse = () =>
+      new Response(
+        JSON.stringify({
+          error: "Проверката на квотата е временно недостъпна. Опитайте отново.",
+          code: "quota_unavailable",
+          charge_state: "not_charged",
+        }),
+        { status: 503, headers: jsonHeaders },
+      );
+    /** Точният записан отговор се връща такъв, какъвто е потвърден. */
+    const exactReplayResponse = (payload: Record<string, unknown>) =>
+      new Response(
+        JSON.stringify({ ...payload, replay: true, charge_state: "charged" }),
+        { headers: jsonHeaders },
+      );
+
+    // САМО-ЧЕТЯЩА проверка: без резервация, без освобождаване, без такса.
+    const lookup = await lookupCommittedOperation(ledgerDb, ledgerBinding);
+    if (lookup.status === "conflict") return conflictResponse();
+    if (lookup.status === "unavailable") return quotaUnavailableResponse();
+    if (lookup.status === "in_progress") {
+      return operationInProgressResponse(
+        { ...corsHeaders, ...correlationHeaders(correlationId) },
+        lookup.retryAfterSeconds,
+      );
+    }
+    if (lookup.status === "reconciliation") {
+      await recordReconciliation(ledgerDb, operationId, `refine_contract_lookup:${lookup.reason}`, {
+        user_id: userId,
+        kind: "analysis",
+      });
+      return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+    }
+    if (lookup.status === "committed") {
+      const stored = lookup.resultRef;
+      if (stored && stored.contract) {
+        // Никакво заземяване, никакъв модел, никаква нова такса и НИКАКЪВ нов
+        // пропуск за ревизия: правото е издадено веднъж при потвърждението.
+        return exactReplayResponse(stored);
+      }
+      await recordReconciliation(ledgerDb, operationId, "refine_contract_committed_without_result", {
+        user_id: userId,
+        kind: "analysis",
+      });
+      return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+    }
+
     // СТРОГО ЗАЗЕМЯВАНЕ за точно тази (редактирана) заявка — ПРЕДИ таксуване
     // и преди всяко повикване към модела.
     const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
@@ -221,48 +315,8 @@ ${redaction.answersText}
 
     // ТАКСУВАНЕ: след всички непарични проверки. ЕДИН леджър, идемпотентен по
     // ключа на операцията и обвързан със съдържанието на заявката.
-    const requestDigest = await canonicalRequestDigest({
-      purpose: "refine_contract",
-      userId,
-      feedback,
-      answers,
-      contract,
-      batchId,
-    });
-
-    const {
-      reserveQuota,
-      commitQuota,
-      cancelQuota,
-      billingReconciliationResponse,
-      recordReconciliation,
-    } = await import("../_shared/quota-ledger.ts");
-    type LedgerDb = Parameters<typeof reserveQuota>[0];
-    const ledgerDb = admin as unknown as LedgerDb;
-
-    const reservation = await reserveQuota(ledgerDb, {
-      operationId,
-      userId,
-      kind: "analysis",
-      purpose: "refine_contract",
-      batchId,
-      requestDigest,
-    });
-    const jsonHeaders = {
-      ...corsHeaders,
-      ...correlationHeaders(correlationId),
-      "Content-Type": "application/json",
-    };
-    if (reservation.status === "conflict") {
-      return new Response(
-        JSON.stringify({
-          error: "Този идентификатор вече е използван за друга заявка.",
-          code: reservation.reason,
-          charge_state: "not_charged",
-        }),
-        { status: 409, headers: jsonHeaders },
-      );
-    }
+    const reservation = await reserveQuota(ledgerDb, ledgerBinding);
+    if (reservation.status === "conflict") return conflictResponse();
     if (reservation.status === "reconciliation") {
       await recordReconciliation(ledgerDb, operationId, `refine_contract_reserve:${reservation.reason}`, {
         user_id: userId,
@@ -270,16 +324,7 @@ ${redaction.answersText}
       });
       return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
     }
-    if (reservation.status === "unavailable") {
-      return new Response(
-        JSON.stringify({
-          error: "Проверката на квотата е временно недостъпна. Опитайте отново.",
-          code: "quota_unavailable",
-          charge_state: "not_charged",
-        }),
-        { status: 503, headers: jsonHeaders },
-      );
-    }
+    if (reservation.status === "unavailable") return quotaUnavailableResponse();
     if (reservation.status === "denied") {
       return new Response(
         JSON.stringify({ error: "quota_exceeded", reason: reservation.reason, charge_state: "not_charged" }),
@@ -290,7 +335,8 @@ ${redaction.answersText}
     /**
      * НОВ пропуск за ревизия на ПРОМЕНЕНИЯ текст. Старият пропуск е обвързан с
      * предишното съдържание и не бива да важи след прецизиране. Липсващ ключ не
-     * е грешка тук — ревизията просто ще поиска запазен документ.
+     * е грешка тук — ревизията просто ще поиска запазен документ. Издава се
+     * ТОЧНО ВЕДНЪЖ, преди потвърждението, и се запазва в отговора.
      */
     const reviewGrantForRefinedContract = async (
       ownerId: string | null,
@@ -315,30 +361,17 @@ ${redaction.answersText}
       }
     };
 
-    // ТОЧНО ПОВТОРЕНИЕ при загубен отговор: същият ключ със същия товар връща
-    // вече изготвения резултат, без ново генериране и без второ таксуване.
+    // ТОЧНО ПОВТОРЕНИЕ, ако операцията е завършила между четенето и
+    // резервацията: връща се точно записаният отговор, без ново генериране,
+    // без второ таксуване и без нов пропуск.
     const priorRef = reservation.resultRef;
     if (priorRef && priorRef.contract) {
-      return new Response(
-        JSON.stringify({
-          contract: priorRef.contract,
-          changed_clause_numbers: priorRef.changed_clause_numbers ?? [],
-          change_summary: priorRef.change_summary ?? "",
-          citations: legal.citations,
-          replay: true,
-          ...(await reviewGrantForRefinedContract(userId, priorRef.contract)),
-          charge_state: "charged",
-        }),
-        { headers: jsonHeaders },
-      );
+      return exactReplayResponse(priorRef);
     }
 
     // ЕДНОВРЕМЕННО ИЗПЪЛНЕНИЕ ПО СЪЩИЯ КЛЮЧ: повторение на още незавършена
     // резервация БЕЗ записан резултат НИКОГА не стартира второ повикване към
     // модела. Доказано отменена резервация (retry) е нормален нов опит.
-    const { isOperationInProgress, operationInProgressResponse } = await import(
-      "../_shared/quota-ledger.ts"
-    );
     if (isOperationInProgress(reservation)) {
       return operationInProgressResponse(
         { ...corsHeaders, ...correlationHeaders(correlationId) },
@@ -458,13 +491,23 @@ ${redaction.answersText}
     // и се преоценява там, където реално се прави анализ. Манифест не се издава
     // за отговор без risk — иначе бихме удостоверили нещо непроверено.
 
-    // ПОТВЪРЖДЕНИЕ + ОБВЪРЗВАНЕ на резултата ПРЕДИ 200: повторен опит по същия
-    // ключ връща точно този текст. Недоказано потвърждение НЕ дава 200.
-    const settlement = await commitQuota(ledgerDb, operationId, {
+    // ЕДИН ТОЧЕН ОТГОВОР: сглобява се ВЕДНЪЖ, включително НОВИЯ пропуск за
+    // ревизия на променения текст, и се записва ЦЯЛОСТНО при потвърждението.
+    // Така повторен опит връща същия отговор и същия пропуск, без ново право.
+    const exactPayload: Record<string, unknown> = {
       contract: parsed.contract,
       changed_clause_numbers: parsed.changed_clause_numbers ?? [],
       change_summary: parsed.change_summary ?? "",
-    });
+      citations: legal.citations,
+      // Прецизирането ПРОМЕНЯ текста, затова старият пропуск за ревизия вече не
+      // важи: издава се НОВ пропуск за точно този нов текст — точно веднъж.
+      ...(await reviewGrantForRefinedContract(userId, parsed.contract)),
+      charge_state: "charged",
+    };
+
+    // ПОТВЪРЖДЕНИЕ + ОБВЪРЗВАНЕ на резултата ПРЕДИ 200: повторен опит по същия
+    // ключ връща точно този текст. Недоказано потвърждение НЕ дава 200.
+    const settlement = await commitQuota(ledgerDb, operationId, exactPayload);
     if (settlement.status !== "settled") {
       await recordReconciliation(
         ledgerDb,
@@ -492,20 +535,12 @@ ${redaction.answersText}
     // ai_usage се записва САМО при успешен краен изход.
     await admin.from("ai_usage").insert({ user_id: userId, function_name: "refine-contract" });
 
-    const committedRef = settlement.resultRef ?? null;
-    const finalContract = committedRef?.contract ?? parsed.contract;
-    return new Response(JSON.stringify({
-      contract: finalContract,
-      changed_clause_numbers: committedRef?.changed_clause_numbers ?? parsed.changed_clause_numbers ?? [],
-      change_summary: committedRef?.change_summary ?? parsed.change_summary ?? "",
-      citations: legal.citations,
-      charge_state: "charged",
-      // Прецизирането ПРОМЕНЯ текста, затова старият пропуск за ревизия вече не
-      // важи: издава се НОВ пропуск за точно този нов текст.
-      ...(await reviewGrantForRefinedContract(userId, finalContract)),
-    }), {
+    // Връща се ТОЧНО записаният отговор (ако леджърът го е върнал обратно).
+    const committedPayload = settlement.resultRef ?? exactPayload;
+    return new Response(JSON.stringify(committedPayload), {
       headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
     });
+
     } catch (afterCharge) {
       // Всеки неуспешен краен изход след таксуване отменя вълната точно веднъж.
       const unresolved = await cancelOrReport(

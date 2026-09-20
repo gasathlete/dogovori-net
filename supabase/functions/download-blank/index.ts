@@ -364,32 +364,9 @@ Deno.serve(async (req: Request) => {
     // Match the document type so the AI doesn't render every blank as a contract.
     const docTypeSpec = getDocumentTypeSpec(inferDocumentType(documentName));
 
-    // СТРОГО ЗАЗЕМЯВАНЕ — ПРЕДИ таксуване и преди всяко повикване към модела.
-    const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
-    const legal = await retrieveLegalContext(
-      // Различна minor версия на клиента — структурно съвместим.
-      admin as unknown as Parameters<typeof retrieveLegalContext>[0],
-      LOVABLE_API_KEY,
-      `${documentName}\n${docTypeSpec.label}\n${sectorTitle || sectorId}`.slice(0, 4000),
-      { matchCount: 6 },
-    );
-    if (!legal.hasMatches) {
-      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
-      return legalVerificationUnavailableResponse({ headers: corsHeaders });
-    }
-
-    // 1) РЕЗЕРВАЦИЯ на квота СЛЕД всички безплатни проверки и заземяването.
-    // Леджърът (quota_operations) пази точния източник на таксуването, за да е
-    // отмяната доказуема, идемпотентна и точно веднъж.
-    const {
-      reserveQuota,
-      commitQuota,
-      cancelQuota,
-      billingReconciliationResponse,
-      recordReconciliation,
-    } = await import("../_shared/quota-ledger.ts");
-
-    // Ключът се обвързва със СЪДЪРЖАНИЕТО на заявката.
+    // Ключът се обвързва със СЪДЪРЖАНИЕТО на заявката — изчислява се ПРЕДИ
+    // заземяването, за да може вече завършена операция да бъде разпозната без
+    // зависимост от наличността на правната база.
     const requestDigest = await canonicalRequestDigest({
       purpose: "download_blank",
       sectorId,
@@ -404,76 +381,34 @@ Deno.serve(async (req: Request) => {
     const CACHE_VERSION = isBilingual ? "v6-bilingual" : "v6";
     const blankBase = await buildBlankStoragePath(CACHE_VERSION, sectorId, documentName);
     const deterministicStoragePath = `request/op/${operationId}/${blankBase}`;
-    const reservation = await reserveQuota(admin as unknown as Parameters<typeof reserveQuota>[0], {
+    const filenameOut = isBilingual
+      ? `${documentName} - бланка (BG-EN).docx`
+      : `${documentName} - бланка.docx`;
+
+    // Леджърът (quota_operations) пази точния източник на таксуването, за да е
+    // отмяната доказуема, идемпотентна и точно веднъж.
+    const {
+      reserveQuota,
+      commitQuota,
+      cancelQuota,
+      billingReconciliationResponse,
+      recordReconciliation,
+      lookupCommittedOperation,
+      isOperationInProgress,
+      operationInProgressResponse,
+    } = await import("../_shared/quota-ledger.ts");
+    const { lookupBoundArtifact, verifyArtifactExists, bindArtifactToOperation } = await import(
+      "../_shared/artifact-binding.ts"
+    );
+    const ledgerBinding = {
       operationId,
       userId,
-      kind: "template",
+      kind: "template" as const,
       purpose: "download_blank",
       sessionId,
       docKey,
       requestDigest,
-    });
-    if (reservation.status === "conflict") {
-      return new Response(
-        JSON.stringify({
-          error: "Този идентификатор вече е използван за друга заявка.",
-          code: "idempotency_key_conflict",
-          charge_state: "not_charged",
-        }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-    // ПОВТОРЕНИЕТО се обработва ЕДИНСТВЕНО в блока за възстановяване по-долу:
-    // подпис без доказано съществуване на обекта не е доказателство.
-
-    if (reservation.status === "unavailable") {
-      return new Response(
-        JSON.stringify({ error: "Квотата не може да бъде проверена в момента. Опитайте отново.", charge_state: "not_charged" }),
-        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-    // Неизравнена/недоказана отмяна: НЕ се таксува наново и НЕ се твърди нищо.
-    if (reservation.status === "reconciliation") {
-      await recordReconciliation(
-        admin as unknown as Parameters<typeof recordReconciliation>[0],
-        operationId,
-        `reserve_${reservation.reason}`,
-        { purpose: "download_blank" },
-      );
-      return billingReconciliationResponse(corsHeaders);
-    }
-    if (reservation.status === "denied") {
-      return new Response(
-        JSON.stringify({
-          error: "quota_exceeded",
-          reason: reservation.reason,
-          next_reset: reservation.raw?.next_reset ?? null,
-        }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    // ВЪЗСТАНОВЯВАНЕ НА ВЕЧЕ КАЧЕНИЯ ТОЧЕН ФАЙЛ.
-    //
-    // Ако предишният опит е качил обекта, но отговорът/обвързването/
-    // потвърждението са се загубили, същият ключ намира ТОЧНО този обект,
-    // потвърждава квотата идемпотентно и подписва нов адрес — без ново
-    // генериране и без второ таксуване. Подписване без доказано съществуване
-    // НЕ е доказателство и не се прави.
-    const { lookupBoundArtifact, verifyArtifactExists, bindArtifactToOperation } = await import(
-      "../_shared/artifact-binding.ts"
-    );
-    const { isOperationInProgress, operationInProgressResponse } = await import(
-      "../_shared/quota-ledger.ts"
-    );
-    const isReplay = reservation.status === "reserved" && reservation.replay === true &&
-      reservation.retry !== true;
-    const priorRef = (reservation.status === "reserved" ? reservation.resultRef : null) as
-      | { bucket?: unknown; path?: unknown; filename?: unknown }
-      | null;
-    const filenameOut = isBilingual
-      ? `${documentName} - бланка (BG-EN).docx`
-      : `${documentName} - бланка.docx`;
+    };
 
     const reconcile = async (reason: string, extra: Record<string, unknown> = {}) => {
       await recordReconciliation(
@@ -493,14 +428,148 @@ Deno.serve(async (req: Request) => {
         }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    const quotaUnavailableResponse = () =>
+      new Response(
+        JSON.stringify({
+          error: "Квотата не може да бъде проверена в момента. Опитайте отново.",
+          charge_state: "not_charged",
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+
+    /**
+     * ВЕЧЕ ЗАВЪРШЕНА ОПЕРАЦИЯ — САМО ЧЕТЕНЕ, ПРЕДИ заземяването. Клиент с готов
+     * и вече таксуван файл получава своя файл дори когато правната база е
+     * временно недостъпна. Подписва се САМО доказаният обвързан обект; нищо не
+     * се генерира наново и нищо не се таксува повторно.
+     */
+    const committedLookup = await lookupCommittedOperation(
+      admin as unknown as Parameters<typeof lookupCommittedOperation>[0],
+      ledgerBinding,
+    );
+    if (committedLookup.status === "conflict") return conflictResponse();
+    if (committedLookup.status === "unavailable") return quotaUnavailableResponse();
+    if (committedLookup.status === "in_progress") {
+      return operationInProgressResponse(corsHeaders, committedLookup.retryAfterSeconds);
+    }
+    if (committedLookup.status === "reconciliation") {
+      return await reconcile(`lookup_${committedLookup.reason}`);
+    }
+    if (committedLookup.status === "committed") {
+      const stored = (committedLookup.resultRef ?? {}) as Record<string, unknown>;
+      const storedBucket = typeof stored.bucket === "string" ? stored.bucket : null;
+      const storedPath = typeof stored.path === "string" ? stored.path : null;
+      if (!storedBucket || !storedPath) {
+        return await reconcile("committed_without_artifact_reference");
+      }
+      const boundCommitted = await lookupBoundArtifact(
+        admin as unknown as Parameters<typeof lookupBoundArtifact>[0],
+        { operationId, userId, purpose: "download_blank", requestDigest },
+      );
+      if (
+        boundCommitted.status !== "match" ||
+        boundCommitted.bucket !== storedBucket ||
+        boundCommitted.path !== storedPath
+      ) {
+        return await reconcile("committed_artifact_not_bound", {
+          bucket: storedBucket,
+          path: storedPath,
+        });
+      }
+      const existsCommitted = await verifyArtifactExists(
+        admin.storage as unknown as Parameters<typeof verifyArtifactExists>[0],
+        storedBucket,
+        storedPath,
+      );
+      if (!existsCommitted) {
+        return await reconcile("committed_artifact_missing", {
+          bucket: storedBucket,
+          path: storedPath,
+        });
+      }
+      // Адресът НЕ е неизменен: подписва се наново за кратко.
+      const { data: signedCommitted } = await admin.storage
+        .from(storedBucket)
+        .createSignedUrl(storedPath, 60 * 10);
+      if (!signedCommitted?.signedUrl) {
+        return await reconcile("committed_sign_failed", {
+          bucket: storedBucket,
+          path: storedPath,
+        });
+      }
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          url: signedCommitted.signedUrl,
+          filename: typeof stored.filename === "string" ? stored.filename : filenameOut,
+          cached: false,
+          replay: true,
+          operation_id: operationId,
+          retry_idempotent: true,
+          citations: Array.isArray(stored.citations) ? stored.citations : [],
+          ...(stored.metadata && typeof stored.metadata === "object"
+            ? { metadata: stored.metadata }
+            : {}),
+          charge_state: "charged",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // СТРОГО ЗАЗЕМЯВАНЕ — ПРЕДИ таксуване и преди всяко повикване към модела.
+    const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
+    const legal = await retrieveLegalContext(
+      // Различна minor версия на клиента — структурно съвместим.
+      admin as unknown as Parameters<typeof retrieveLegalContext>[0],
+      LOVABLE_API_KEY,
+      `${documentName}\n${docTypeSpec.label}\n${sectorTitle || sectorId}`.slice(0, 4000),
+      { matchCount: 6 },
+    );
+    if (!legal.hasMatches) {
+      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
+      return legalVerificationUnavailableResponse({ headers: corsHeaders });
+    }
+
+    // 1) РЕЗЕРВАЦИЯ на квота СЛЕД всички безплатни проверки и заземяването.
+    const reservation = await reserveQuota(
+      admin as unknown as Parameters<typeof reserveQuota>[0],
+      ledgerBinding,
+    );
+    if (reservation.status === "conflict") return conflictResponse();
+    // ПОВТОРЕНИЕТО се обработва ЕДИНСТВЕНО в блока за възстановяване по-долу:
+    // подпис без доказано съществуване на обекта не е доказателство.
+    if (reservation.status === "unavailable") return quotaUnavailableResponse();
+    // Неизравнена/недоказана отмяна: НЕ се таксува наново и НЕ се твърди нищо.
+    if (reservation.status === "reconciliation") {
+      return await reconcile(`reserve_${reservation.reason}`);
+    }
+    if (reservation.status === "denied") {
+      return new Response(
+        JSON.stringify({
+          error: "quota_exceeded",
+          reason: reservation.reason,
+          next_reset: reservation.raw?.next_reset ?? null,
+        }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+
 
     /** Потвърждава идемпотентно и връща СВЕЖ подпис върху доказан обект. */
     const serveExisting = async (bucket: string, path: string): Promise<Response> => {
       const settled = await commitQuota(
         admin as unknown as Parameters<typeof commitQuota>[0],
         operationId,
-        { bucket, path, filename: filenameOut },
+        {
+          bucket,
+          path,
+          filename: filenameOut,
+          citations: legal.citations,
+          metadata: { bilingual: isBilingual, document_name: documentName },
+        },
       );
+
       if (settled.status !== "settled") {
         return reconcile(`replay_commit_unresolved:${settled.reason}`, { bucket, path });
       }
@@ -718,12 +787,20 @@ Deno.serve(async (req: Request) => {
       : `${documentName} - бланка.docx`;
 
     // Успешен изход — потвърждаваме таксуването точно веднъж И обвързваме
-    // готовия файл с ключа, за да може повторен опит да върне същия документ.
+    // готовия файл с ключа, заедно с НЕИЗМЕННИТЕ данни за повторен опит.
+    // Адресът за изтегляне НЕ е неизменен и се подписва наново при всеки опит.
     const committed = await commitQuota(
       admin as unknown as Parameters<typeof commitQuota>[0],
       operationId,
-      { bucket: "document-blanks", path: storagePath!, filename },
+      {
+        bucket: "document-blanks",
+        path: storagePath!,
+        filename,
+        citations: legal.citations,
+        metadata: { is_pro: !!isPro, bilingual: isBilingual, document_name: documentName },
+      },
     );
+
     if (committed.status !== "settled") {
       // Файлът ВЕЧЕ е трайно обвързан с операцията, затова НЕ се маха: махането
       // би направило възстановяването по същия ключ невъзможно. Записваме случая
