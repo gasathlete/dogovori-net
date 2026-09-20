@@ -345,29 +345,34 @@ ${scopeNote}
         status: "error",
         error_code: `http_${aiResp.status}`,
       });
-      if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Лимитът е достигнат." }), { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
-      if (aiResp.status === 402) return new Response(JSON.stringify({ error: "Изчерпани кредити." }), { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
-      throw new Error("AI грешка");
+      // Моделът може да е бил задействан: изравняване, без връщане и без ново
+      // повикване към доставчика.
+      return await reconcileAndRespond(`provider_http_${aiResp.status}`);
     }
 
-    await admin.from("ai_usage").insert({ user_id: userId, function_name: "correct-uploaded" });
-
-    const raw = await aiResp.json();
-    const content: string = raw.choices?.[0]?.message?.content ?? "";
-    if (!content.trim()) throw new Error("Празен AI отговор");
+    const raw = await aiResp.json().catch(() => null);
+    const content: string = raw?.choices?.[0]?.message?.content ?? "";
+    if (!content.trim()) return await reconcileAndRespond("empty_response");
     const { parseAiJsonWithRetry } = await import("../_shared/ai-json-retry.ts");
-    const parsed = (await parseAiJsonWithRetry({
-      content,
-      messages: [
-        { role: "system", content: activeSystemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      model: route.model,
-      apiKey: LOVABLE_API_KEY,
-      fn: "correct-uploaded",
-      correlationId,
-      regenerateAttempts: 1,
-    })).parsed;
+    // Поправката на JSON е ВТОРОТО и последно повикване в бюджета (2).
+    let parsed: { corrected_text?: string; changes?: unknown[] } | null = null;
+    try {
+      budget.take();
+      parsed = (await parseAiJsonWithRetry({
+        content,
+        messages: [
+          { role: "system", content: activeSystemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        model: route.model,
+        apiKey: LOVABLE_API_KEY,
+        fn: "correct-uploaded",
+        correlationId,
+        regenerateAttempts: 1,
+      })).parsed;
+    } catch (_parseError) {
+      return await reconcileAndRespond("malformed_response");
+    }
 
     // Unredact AI output before returning to user.
     if (Object.keys(redaction.mapping).length > 0) {
