@@ -24,24 +24,30 @@ export interface LegalGateResponseInit {
   readonly retryAfterSeconds?: number;
 }
 
-export function legalVerificationUnavailableBody() {
+/** Ограничава интервала до разумни граници; при нечисло → стойността по подразбиране. */
+export function boundedRetryAfterSeconds(value?: number): number {
+  const parsed = Math.trunc(Number(value ?? LEGAL_RETRY_AFTER_SECONDS));
+  if (!Number.isFinite(parsed)) return LEGAL_RETRY_AFTER_SECONDS;
+  return Math.max(1, Math.min(3600, parsed));
+}
+
+export function legalVerificationUnavailableBody(retryAfterSeconds?: number) {
   return {
     error: LEGAL_VERIFICATION_MESSAGE_BG,
     code: LEGAL_VERIFICATION_UNAVAILABLE,
     retryable: true as const,
     charged: false as const,
     saved: true as const,
+    // В ТЯЛОТО, защото повечето клиенти виждат само JSON (без заглавия).
+    retry_after_seconds: boundedRetryAfterSeconds(retryAfterSeconds),
   };
 }
 
 export function legalVerificationUnavailableResponse(
   init: LegalGateResponseInit = {},
 ): Response {
-  const retryAfter = Math.max(
-    1,
-    Math.min(3600, Math.trunc(init.retryAfterSeconds ?? LEGAL_RETRY_AFTER_SECONDS)),
-  );
-  return new Response(JSON.stringify(legalVerificationUnavailableBody()), {
+  const retryAfter = boundedRetryAfterSeconds(init.retryAfterSeconds);
+  return new Response(JSON.stringify(legalVerificationUnavailableBody(retryAfter)), {
     status: 503,
     headers: {
       ...(init.headers ?? {}),
