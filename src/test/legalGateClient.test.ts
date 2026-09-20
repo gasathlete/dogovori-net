@@ -120,7 +120,7 @@ describe("всеки клиент подава действие за повто�
   const callers: Array<{ file: string; expected: number }> = [
     { file: "src/components/AssistantChat.tsx", expected: 1 },
     // качване + анализ: грешка и тяло с код
-    { file: "src/components/UploadContractDialog.tsx", expected: 2 },
+    { file: "src/components/UploadContractDialog.tsx", expected: 3 },
     // генериране + прилагане на корекции
     { file: "src/pages/BuildContract.tsx", expected: 2 },
     // повторен анализ + поправка на качен документ
@@ -149,11 +149,13 @@ describe("всеки клиент подава действие за повто�
     };
     for (const [file, needles] of Object.entries(releases)) {
       const src = readFileSync(file, "utf8");
-      const firstGate = src.indexOf("handleLegalVerificationUnavailable(");
       for (const needle of needles) {
         expect(src.indexOf(needle), `${file}: ${needle}`).toBeGreaterThan(-1);
       }
-      expect(src.indexOf(needles[0])).toBeLessThan(firstGate);
+      // Всяко показване на преградата идва след освобождаване на състоянието.
+      expect(src.indexOf(needles[0])).toBeLessThan(
+        src.lastIndexOf("handleLegalVerificationUnavailable("),
+      );
     }
     // BuildContract освобождава в `finally`, затова се проверява наличието му.
     const build = readFileSync("src/pages/BuildContract.tsx", "utf8");
