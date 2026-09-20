@@ -57,13 +57,12 @@ export default function AuthPage() {
   const [acceptTerms, setAcceptTerms] = useState(true);
   const [acceptPrivacy, setAcceptPrivacy] = useState(true);
   const [acceptAge, setAcceptAge] = useState(true);
-  // Маркетинговото съгласие е по желание — стартира изключено и НЕ участва
+  // Маркетинговото съгласие е по желание — стартира ИЗКЛЮЧЕНО и НЕ участва
   // в готовността за регистрация (GDPR: свободно, конкретно съгласие).
-  const [acceptMarketing, setAcceptMarketing] = useState(true);
+  // Неотметнато поле не записва нищо — нито съгласие, нито отказ.
+  const [acceptMarketing, setAcceptMarketing] = useState(false);
   // Задължително: име и имейл се пазят за вътрешни известия и проверката при подпис.
   const [acceptNotifications, setAcceptNotifications] = useState(true);
-  // Отделно, изрично заявен отказ от имейл маркетинг.
-  const [refuseMarketing, setRefuseMarketing] = useState(false);
   const [tab, setTab] = useState<"login" | "signup">(
     params.get("tab") === "signup" ? "signup" : "login",
   );
@@ -165,8 +164,7 @@ export default function AuthPage() {
       sessionStorage.setItem(
         "pending_consents",
         JSON.stringify({
-          marketing: acceptMarketing && !refuseMarketing,
-          marketing_refused: refuseMarketing,
+          marketing: acceptMarketing,
           operational_notifications: acceptNotifications,
           terms: true,
           privacy: true,
