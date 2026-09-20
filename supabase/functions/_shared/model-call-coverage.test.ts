@@ -50,10 +50,10 @@ Deno.test("защитените крайни точки не използват 
 });
 
 Deno.test("защитените крайни точки имат резервация, уреждане и само-четящо търсене", async () => {
-  const reserve = /reserveQuota|reserveReviewOperation|reserveAnonDelivery/;
-  const commit = /commitQuota|commitReviewOperation|commitAnonDelivery/;
+  const reserve = /reserveQuota|reserveQuotaWave|reserveReviewOperation|reserveOwnedReviewOperation|reserveAnonDelivery/;
+  const commit = /commitQuota|commitQuotaWave|commitReviewOperation|commitOwnedReviewOperation|commitAnonDelivery/;
   const lookup =
-    /lookupCommittedOperation|lookupReviewOperation|lookupAnonDelivery|reserveAnonDelivery/;
+    /lookupCommittedOperation|lookupCommittedWave|lookupReviewOperation|lookupOwnedReviewOperation|lookupAnonDelivery|reserveAnonDelivery/;
   for (const entry of manifest.ledgerEnforced) {
     const src = await readHandler(entry.function);
     assert(reserve.test(src), `${entry.function} няма трайна резервация`);
