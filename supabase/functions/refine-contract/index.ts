@@ -299,13 +299,22 @@ ${answersStr}
       tokens_out: raw?.usage?.completion_tokens,
     });
 
+    // ai_usage се записва САМО при успешен краен изход.
+    await admin.from("ai_usage").insert({ user_id: userId, function_name: "refine-contract" });
+
     return new Response(JSON.stringify({
       contract: parsed.contract,
       changed_clause_numbers: parsed.changed_clause_numbers ?? [],
       change_summary: parsed.change_summary ?? "",
+      citations: legal.citations,
     }), {
       headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
     });
+    } catch (afterCharge) {
+      // Всеки неуспешен краен изход след таксуване връща операцията точно веднъж.
+      await refundOnce();
+      throw afterCharge;
+    }
   } catch (e) {
 
     console.error(`refine-contract error [cid=${correlationId}]:`, e);
