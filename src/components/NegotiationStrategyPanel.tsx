@@ -64,7 +64,7 @@ export function NegotiationStrategyPanel({
         }
         throw new Error(error.message);
       }
-      if (data?.strategy) setStrategy(data.strategy);
+      if (data?.strategy) setStrategy(readVerifiedStrategy<Strategy>(data.strategy, analysisId));
     } catch (e: any) {
       toast.error(e?.message || "Грешка при генериране на стратегията");
     } finally {
