@@ -359,47 +359,53 @@ Deno.serve(async (req: Request) => {
       return legalVerificationUnavailableResponse({ headers: corsHeaders });
     }
 
-    // 1) Consume template quota AFTER all non-billable checks and grounding.
-    // Must be called with a user-scoped client so auth.uid() resolves inside the RPC.
-    // If client provided session_id + doc_key, route through the session-aware
-    // RPC so a blank download is free when the user has already paid for the
-    // contract (or another blank) for the same document in the same tab.
-    const userClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-    const useSession = !!sessionId && !!docKey;
-    const { data: quotaRes, error: quotaErr } = useSession
-      ? await userClient.rpc("consume_quota_session", {
-          _kind: "template",
-          _doc_key: docKey,
-          _session_id: sessionId,
-        })
-      : await userClient.rpc("consume_quota", { _kind: "template" });
-    if (quotaErr) throw new Error(quotaErr.message);
-    const quota = quotaRes as {
-      ok: boolean;
-      reason?: string;
-      next_reset?: string;
-      is_pro?: boolean;
-      charged?: boolean;
-      reused_session_charge?: boolean;
-    };
-    if (!quota?.ok) {
+    // 1) РЕЗЕРВАЦИЯ на квота СЛЕД всички безплатни проверки и заземяването.
+    // Леджърът (quota_operations) пази точния източник на таксуването, за да е
+    // отмяната доказуема, идемпотентна и точно веднъж.
+    const {
+      reserveQuota,
+      commitQuota,
+      cancelQuota,
+      billingReconciliationResponse,
+      recordReconciliation,
+    } = await import("../_shared/quota-ledger.ts");
+
+    const operationId = crypto.randomUUID();
+    const reservation = await reserveQuota(admin as unknown as Parameters<typeof reserveQuota>[0], {
+      operationId,
+      userId,
+      kind: "template",
+      purpose: "download_blank",
+      sessionId: sessionId ?? null,
+      docKey: docKey ?? null,
+    });
+    if (reservation.status === "unavailable") {
       return new Response(
-        JSON.stringify({ error: "quota_exceeded", reason: quota?.reason, next_reset: quota?.next_reset }),
+        JSON.stringify({ error: "Квотата не може да бъде проверена в момента. Опитайте отново.", charge_state: "not_charged" }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (reservation.status === "denied") {
+      return new Response(
+        JSON.stringify({
+          error: "quota_exceeded",
+          reason: reservation.reason,
+          next_reset: reservation.raw?.next_reset ?? null,
+        }),
         { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+    const isPro = reservation.raw?.is_pro === true || undefined;
 
-    // ЕДИНСТВЕН ВЪЗСТАНОВЯВАЩ ПАЗИТЕЛ след таксуване — най-много веднъж.
-    const chargedNow = quota.charged !== false && !quota.reused_session_charge;
-    let refunded = false;
-    const refundOnce = async () => {
-      if (!chargedNow || refunded) return;
-      refunded = true;
-      await admin.rpc("refund_quota", { _user_id: userId, _kind: "template", _used_bonus: false });
+    /**
+     * Единствен пазител за компенсация. Твърдим „charged: false" САМО когато
+     * отмяната е потвърдена от базата. При неясен изход връщаме типизиран
+     * billing_reconciliation_required и записваме траен запис за изравняване.
+     */
+    const cancelOrReport = async (reason: string): Promise<Response | null> => {
+      const settled = await cancelQuota(admin as unknown as Parameters<typeof cancelQuota>[0], operationId, reason);
+      if (settled.status === "settled") return null;
+      return billingReconciliationResponse(corsHeaders);
     };
 
     try {
@@ -423,9 +429,6 @@ Deno.serve(async (req: Request) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          // First-time blank generation is cached forever per (sector, document) —
-          // worth investing in higher quality. gemini-2.5-pro produces more
-          // legally precise wording and respects per-document-type structure.
           model: "google/gemini-2.5-pro",
           messages: [
             { role: "system", content: systemPrompt },
@@ -435,19 +438,19 @@ Deno.serve(async (req: Request) => {
         }),
       });
 
-      if (aiRes.status === 429) {
-        await refundOnce();
-        return new Response(JSON.stringify({ error: "AI лимитът е достигнат. Опитайте след малко.", charged: false }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (aiRes.status === 402) {
-        await refundOnce();
-        return new Response(JSON.stringify({ error: "Изчерпан AI кредит. Опитайте по-късно.", charged: false }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      if (aiRes.status === 429 || aiRes.status === 402) {
+        const unresolved = await cancelOrReport(`ai_gateway_${aiRes.status}`);
+        if (unresolved) return unresolved;
+        return new Response(
+          JSON.stringify({
+            error: aiRes.status === 429
+              ? "AI лимитът е достигнат. Опитайте след малко."
+              : "Изчерпан AI кредит. Опитайте по-късно.",
+            charged: false,
+            charge_state: "cancelled",
+          }),
+          { status: aiRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
       if (!aiRes.ok) {
         const errText = await aiRes.text();
@@ -471,6 +474,21 @@ Deno.serve(async (req: Request) => {
           upsert: true,
         });
       if (upErr) throw new Error(`upload: ${upErr.message}`);
+
+      // Записваме файла в леджъра за изтриване (retention-sweeper). Ако записът
+      // не успее, обектът се маха веднага, за да няма „осиротял" файл.
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const { error: ledgerErr } = await admin.from("storage_artifacts").insert({
+        user_id: userId,
+        bucket: "document-blanks",
+        storage_path: storagePath,
+        scope: "request",
+        expires_at: expiresAt,
+      });
+      if (ledgerErr) {
+        await admin.storage.from("document-blanks").remove([storagePath]);
+        throw new Error(`artifact_ledger: ${ledgerErr.message}`);
+      }
     }
 
     // 4) Sign and return.
@@ -478,6 +496,17 @@ Deno.serve(async (req: Request) => {
       .from("document-blanks")
       .createSignedUrl(storagePath!, 60 * 10);
     if (signErr || !signed?.signedUrl) throw new Error(signErr?.message ?? "sign failed");
+
+    // Успешен изход — потвърждаваме таксуването точно веднъж.
+    const committed = await commitQuota(admin as unknown as Parameters<typeof commitQuota>[0], operationId);
+    if (committed.status !== "settled") {
+      await recordReconciliation(
+        admin as unknown as Parameters<typeof recordReconciliation>[0],
+        operationId,
+        `commit_failed:${committed.reason}`,
+        { purpose: "download_blank" },
+      );
+    }
 
     return new Response(
       JSON.stringify({
@@ -487,14 +516,15 @@ Deno.serve(async (req: Request) => {
           ? `${documentName} - бланка (BG-EN).docx`
           : `${documentName} - бланка.docx`,
         cached: false,
-        is_pro: !!quota.is_pro,
+        is_pro: !!isPro,
         citations: legal.citations,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
     } catch (afterCharge) {
-      // Всеки неуспешен краен изход след таксуване връща операцията точно веднъж.
-      await refundOnce();
+      // Всеки неуспешен краен изход след резервация се отменя точно веднъж.
+      const unresolved = await cancelOrReport(`exception:${String((afterCharge as Error)?.message ?? afterCharge).slice(0, 200)}`);
+      if (unresolved) return unresolved;
       throw afterCharge;
     }
   } catch (e) {

@@ -1,0 +1,459 @@
+-- 0029_quota_operation_ledger.sql
+--
+-- ДЪЛГОТРАЙЕН ЛЕДЖЪР ЗА ОПЕРАЦИИ (резервация → потвърждение / отмяна).
+--
+-- Цел: „точно веднъж" да е доказуемо, а не предполагаемо. Досега сървърните
+-- функции таксуваха квота и при неуспех извикваха refund_quota, без да четат
+-- резултата и без да знаят от кой кошер е отнето. Този леджър записва точния
+-- източник (план / topup / бонус / сесийно преизползване) и позволява
+-- безопасно повторение по ключ на операцията.
+--
+-- СЪВМЕСТИМОСТ: публичните RPC-та consume_quota / consume_quota_session /
+-- refund_quota / charge_corrections_wave остават непокътнати по подпис и
+-- поведение. Новите функции ги допълват, не ги заместват.
+--
+-- ТАЗИ МИГРАЦИЯ НЕ Е ПРИЛОЖЕНА към базата.
+
+-- ---------------------------------------------------------------------------
+-- 1) Вътрешно потребление по подаден потребител (същата логика като
+--    consume_quota, но без зависимост от auth.uid(), за да е ползваемо от
+--    service_role). Връща изричен 'source' за всяко успешно потребление.
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.consume_quota_for(_uid uuid, _kind text)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  _row public.download_quota%ROWTYPE;
+  _is_pro boolean;
+  _free_monthly_cap integer;
+  _pro_monthly_cap integer;
+BEGIN
+  IF auth.role() <> 'service_role' AND NOT public.is_staff(auth.uid()) THEN
+    RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501';
+  END IF;
+  IF _uid IS NULL THEN
+    RAISE EXCEPTION 'unauthenticated' USING ERRCODE = '28000';
+  END IF;
+  IF _kind NOT IN ('contract','template','analysis') THEN
+    RAISE EXCEPTION 'invalid kind' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT * INTO _row FROM public.download_quota WHERE user_id = _uid FOR UPDATE;
+  IF NOT FOUND THEN
+    INSERT INTO public.download_quota (user_id) VALUES (_uid) RETURNING * INTO _row;
+  END IF;
+
+  IF now() - _row.monthly_reset_at >= interval '30 days' THEN
+    UPDATE public.download_quota
+       SET monthly_contracts_used = 0, monthly_templates_used = 0,
+           monthly_total_used = 0, monthly_reset_at = now()
+     WHERE user_id = _uid;
+    _row.monthly_contracts_used := 0;
+    _row.monthly_templates_used := 0;
+    _row.monthly_total_used := 0;
+    _row.monthly_reset_at := now();
+  END IF;
+
+  _is_pro := _row.plan = 'pro'::public.user_plan
+             OR (_row.pro_until IS NOT NULL AND _row.pro_until > now());
+
+  IF now() - _row.signup_at < interval '30 days' THEN
+    _free_monthly_cap := 5;
+  ELSE
+    _free_monthly_cap := 2;
+  END IF;
+
+  _pro_monthly_cap := COALESCE(_row.plan_ops_cap, 100);
+
+  IF _is_pro THEN
+    IF now() - _row.pro_period_start >= interval '30 days' THEN
+      UPDATE public.download_quota
+         SET pro_monthly_used = 0, pro_period_start = now()
+       WHERE user_id = _uid;
+      _row.pro_monthly_used := 0;
+    END IF;
+
+    IF _row.pro_monthly_used < _pro_monthly_cap THEN
+      UPDATE public.download_quota
+         SET pro_monthly_used = pro_monthly_used + 1,
+             total_used = total_used + 1,
+             updated_at = now(),
+             contracts_used = CASE WHEN _kind = 'contract' THEN contracts_used + 1 ELSE contracts_used END,
+             templates_used = CASE WHEN _kind = 'template' THEN templates_used + 1 ELSE templates_used END,
+             analyses_used  = CASE WHEN _kind = 'analysis' THEN analyses_used + 1  ELSE analyses_used  END
+       WHERE user_id = _uid;
+      RETURN jsonb_build_object('ok', true, 'used_bonus', false, 'is_pro', true, 'source', 'pro_plan');
+    END IF;
+
+    IF COALESCE(_row.topup_ops_balance, 0) > 0 THEN
+      UPDATE public.download_quota
+         SET topup_ops_balance = topup_ops_balance - 1,
+             total_used = total_used + 1,
+             updated_at = now(),
+             contracts_used = CASE WHEN _kind = 'contract' THEN contracts_used + 1 ELSE contracts_used END,
+             templates_used = CASE WHEN _kind = 'template' THEN templates_used + 1 ELSE templates_used END,
+             analyses_used  = CASE WHEN _kind = 'analysis' THEN analyses_used + 1  ELSE analyses_used  END
+       WHERE user_id = _uid;
+      RETURN jsonb_build_object('ok', true, 'used_bonus', true, 'is_pro', true, 'source', 'topup');
+    END IF;
+
+    RETURN jsonb_build_object('ok', false, 'reason', 'pro_limit_reached', 'is_pro', true);
+  END IF;
+
+  IF _row.monthly_total_used < _free_monthly_cap THEN
+    UPDATE public.download_quota
+       SET monthly_total_used = monthly_total_used + 1,
+           total_used = total_used + 1,
+           updated_at = now(),
+           monthly_contracts_used = CASE WHEN _kind = 'contract' THEN monthly_contracts_used + 1 ELSE monthly_contracts_used END,
+           monthly_templates_used = CASE WHEN _kind = 'template' THEN monthly_templates_used + 1 ELSE monthly_templates_used END,
+           contracts_used = CASE WHEN _kind = 'contract' THEN contracts_used + 1 ELSE contracts_used END,
+           templates_used = CASE WHEN _kind = 'template' THEN templates_used + 1 ELSE templates_used END,
+           analyses_used  = CASE WHEN _kind = 'analysis' THEN analyses_used + 1  ELSE analyses_used  END
+     WHERE user_id = _uid;
+    RETURN jsonb_build_object('ok', true, 'used_bonus', false, 'is_pro', false, 'source', 'free_plan');
+  END IF;
+
+  IF COALESCE(_row.topup_ops_balance, 0) > 0 THEN
+    UPDATE public.download_quota
+       SET topup_ops_balance = topup_ops_balance - 1,
+           total_used = total_used + 1,
+           updated_at = now(),
+           contracts_used = CASE WHEN _kind = 'contract' THEN contracts_used + 1 ELSE contracts_used END,
+           templates_used = CASE WHEN _kind = 'template' THEN templates_used + 1 ELSE templates_used END,
+           analyses_used  = CASE WHEN _kind = 'analysis' THEN analyses_used + 1  ELSE analyses_used  END
+     WHERE user_id = _uid;
+    RETURN jsonb_build_object('ok', true, 'used_bonus', true, 'is_pro', false, 'source', 'topup');
+  END IF;
+
+  IF COALESCE(_row.bonus_contracts, 0) > 0 THEN
+    UPDATE public.download_quota
+       SET bonus_contracts = bonus_contracts - 1,
+           total_used = total_used + 1,
+           updated_at = now(),
+           contracts_used = CASE WHEN _kind = 'contract' THEN contracts_used + 1 ELSE contracts_used END,
+           templates_used = CASE WHEN _kind = 'template' THEN templates_used + 1 ELSE templates_used END,
+           analyses_used  = CASE WHEN _kind = 'analysis' THEN analyses_used + 1  ELSE analyses_used  END
+     WHERE user_id = _uid;
+    RETURN jsonb_build_object('ok', true, 'used_bonus', true, 'is_pro', false, 'source', 'bonus');
+  END IF;
+
+  RETURN jsonb_build_object('ok', false, 'reason', 'quota_exceeded', 'is_pro', false);
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.consume_quota_for(uuid, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.consume_quota_for(uuid, text) TO service_role;
+
+-- ---------------------------------------------------------------------------
+-- 2) Леджър на операциите. operation_id е ключът за идемпотентност, подаван
+--    от извикващата функция.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.quota_operations (
+  operation_id uuid PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  kind text NOT NULL CHECK (kind IN ('contract','template','analysis')),
+  purpose text NOT NULL,
+  state text NOT NULL CHECK (state IN ('reserved','committed','cancelled')),
+  charged boolean NOT NULL DEFAULT false,
+  -- Точният кошер: pro_plan | free_plan | topup | bonus | session_reuse
+  source text,
+  used_bonus boolean NOT NULL DEFAULT false,
+  session_id uuid,
+  doc_key text,
+  batch_id uuid,
+  detail jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  committed_at timestamptz,
+  cancelled_at timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS quota_operations_user_state_idx
+  ON public.quota_operations (user_id, state, created_at DESC);
+
+GRANT ALL ON public.quota_operations TO service_role;
+ALTER TABLE public.quota_operations ENABLE ROW LEVEL SECURITY;
+-- Без политики за anon/authenticated: леджърът е само сървърен.
+
+-- ---------------------------------------------------------------------------
+-- 3) Опашка за неуспяла компенсация — клиентът никога не получава лъжливо
+--    „не сте таксувани", а операторът вижда какво чака изравняване.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.billing_reconciliation_items (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  operation_id uuid,
+  user_id uuid,
+  kind text,
+  reason text NOT NULL,
+  detail jsonb NOT NULL DEFAULT '{}'::jsonb,
+  resolved_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+GRANT ALL ON public.billing_reconciliation_items TO service_role;
+ALTER TABLE public.billing_reconciliation_items ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "staff read reconciliation"
+  ON public.billing_reconciliation_items FOR SELECT
+  TO authenticated
+  USING (public.is_staff(auth.uid()));
+GRANT SELECT ON public.billing_reconciliation_items TO authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 4) Леджър на временните файлове по заявка (заличаване от retention-sweeper).
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.storage_artifacts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  bucket text NOT NULL,
+  storage_path text NOT NULL,
+  scope text NOT NULL CHECK (scope IN ('request','draft')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  expires_at timestamptz NOT NULL,
+  deleted_at timestamptz,
+  delete_error text
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS storage_artifacts_bucket_path_key
+  ON public.storage_artifacts (bucket, storage_path);
+CREATE INDEX IF NOT EXISTS storage_artifacts_sweep_idx
+  ON public.storage_artifacts (expires_at) WHERE deleted_at IS NULL;
+
+GRANT ALL ON public.storage_artifacts TO service_role;
+ALTER TABLE public.storage_artifacts ENABLE ROW LEVEL SECURITY;
+-- Само сървърът пише и чете; няма клиентски политики.
+
+-- ---------------------------------------------------------------------------
+-- 5) reserve / commit / cancel
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.quota_reserve(
+  p_operation_id uuid,
+  p_user_id uuid,
+  p_kind text,
+  p_purpose text,
+  p_session_id uuid DEFAULT NULL,
+  p_doc_key text DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  _existing public.quota_operations%ROWTYPE;
+  _reuse public.quota_session_charges%ROWTYPE;
+  _result jsonb;
+  _charged boolean := false;
+  _source text := 'session_reuse';
+  _used_bonus boolean := false;
+BEGIN
+  IF auth.role() <> 'service_role' AND NOT public.is_staff(auth.uid()) THEN
+    RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501';
+  END IF;
+  IF p_operation_id IS NULL OR p_user_id IS NULL THEN
+    RAISE EXCEPTION 'operation_id and user_id are required' USING ERRCODE = '22023';
+  END IF;
+
+  -- Идемпотентност + защита от състезание: заключаваме реда по ключ.
+  SELECT * INTO _existing FROM public.quota_operations
+   WHERE operation_id = p_operation_id FOR UPDATE;
+  IF FOUND THEN
+    IF _existing.user_id <> p_user_id OR _existing.kind <> p_kind THEN
+      RAISE EXCEPTION 'operation key conflict' USING ERRCODE = '23505';
+    END IF;
+    RETURN jsonb_build_object(
+      'ok', _existing.state <> 'cancelled',
+      'replay', true,
+      'state', _existing.state,
+      'charged', _existing.charged,
+      'source', _existing.source,
+      'used_bonus', _existing.used_bonus,
+      'operation_id', _existing.operation_id
+    );
+  END IF;
+
+  -- Сесийно преизползване (същият документ в същия таб / 24 ч) е безплатно.
+  IF p_doc_key IS NOT NULL AND p_session_id IS NOT NULL THEN
+    SELECT * INTO _reuse FROM public.quota_session_charges
+     WHERE user_id = p_user_id
+       AND doc_key = p_doc_key
+       AND kind = p_kind
+       AND created_at > now() - interval '24 hours'
+     ORDER BY created_at DESC LIMIT 1;
+  END IF;
+
+  IF p_doc_key IS NOT NULL AND p_session_id IS NOT NULL AND _reuse.user_id IS NOT NULL THEN
+    _charged := false;
+    _source := 'session_reuse';
+  ELSE
+    _result := public.consume_quota_for(p_user_id, p_kind);
+    IF NOT COALESCE((_result->>'ok')::boolean, false) THEN
+      RETURN _result || jsonb_build_object('charged', false, 'replay', false);
+    END IF;
+    _charged := true;
+    _source := COALESCE(_result->>'source', 'unknown');
+    _used_bonus := COALESCE((_result->>'used_bonus')::boolean, false);
+    IF p_doc_key IS NOT NULL AND p_session_id IS NOT NULL THEN
+      INSERT INTO public.quota_session_charges (user_id, session_id, doc_key, kind)
+        VALUES (p_user_id, p_session_id, p_doc_key, p_kind)
+        ON CONFLICT (user_id, session_id, doc_key) DO NOTHING;
+    END IF;
+  END IF;
+
+  INSERT INTO public.quota_operations (
+    operation_id, user_id, kind, purpose, state, charged, source,
+    used_bonus, session_id, doc_key
+  ) VALUES (
+    p_operation_id, p_user_id, p_kind, COALESCE(p_purpose, 'unspecified'),
+    'reserved', _charged, _source, _used_bonus, p_session_id, p_doc_key
+  );
+
+  RETURN jsonb_build_object(
+    'ok', true, 'replay', false, 'state', 'reserved',
+    'charged', _charged, 'source', _source, 'used_bonus', _used_bonus,
+    'operation_id', p_operation_id
+  );
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.quota_reserve(uuid, uuid, text, text, uuid, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.quota_reserve(uuid, uuid, text, text, uuid, text) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.quota_commit(p_operation_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  _op public.quota_operations%ROWTYPE;
+BEGIN
+  IF auth.role() <> 'service_role' AND NOT public.is_staff(auth.uid()) THEN
+    RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501';
+  END IF;
+
+  SELECT * INTO _op FROM public.quota_operations
+   WHERE operation_id = p_operation_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'unknown_operation');
+  END IF;
+  IF _op.state = 'committed' THEN
+    RETURN jsonb_build_object('ok', true, 'replay', true, 'state', 'committed', 'charged', _op.charged);
+  END IF;
+  IF _op.state = 'cancelled' THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'commit_after_cancel', 'state', 'cancelled');
+  END IF;
+
+  UPDATE public.quota_operations
+     SET state = 'committed', committed_at = now(), updated_at = now()
+   WHERE operation_id = p_operation_id;
+
+  RETURN jsonb_build_object('ok', true, 'replay', false, 'state', 'committed', 'charged', _op.charged);
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.quota_commit(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.quota_commit(uuid) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.quota_cancel(p_operation_id uuid, p_reason text DEFAULT NULL)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  _op public.quota_operations%ROWTYPE;
+BEGIN
+  IF auth.role() <> 'service_role' AND NOT public.is_staff(auth.uid()) THEN
+    RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501';
+  END IF;
+
+  SELECT * INTO _op FROM public.quota_operations
+   WHERE operation_id = p_operation_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'unknown_operation');
+  END IF;
+  IF _op.state = 'cancelled' THEN
+    RETURN jsonb_build_object('ok', true, 'replay', true, 'state', 'cancelled', 'charged', false);
+  END IF;
+  IF _op.state = 'committed' THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'cancel_after_commit', 'state', 'committed');
+  END IF;
+
+  -- Точно обратно записване спрямо записания източник.
+  IF _op.charged THEN
+    IF _op.source = 'topup' THEN
+      UPDATE public.download_quota
+         SET topup_ops_balance = COALESCE(topup_ops_balance, 0) + 1,
+             total_used = GREATEST(0, total_used - 1),
+             updated_at = now()
+       WHERE user_id = _op.user_id;
+    ELSIF _op.source = 'bonus' THEN
+      UPDATE public.download_quota
+         SET bonus_contracts = COALESCE(bonus_contracts, 0) + 1,
+             total_used = GREATEST(0, total_used - 1),
+             updated_at = now()
+       WHERE user_id = _op.user_id;
+    ELSIF _op.source = 'pro_plan' THEN
+      UPDATE public.download_quota
+         SET pro_monthly_used = GREATEST(0, COALESCE(pro_monthly_used, 0) - 1),
+             total_used = GREATEST(0, total_used - 1),
+             updated_at = now()
+       WHERE user_id = _op.user_id;
+    ELSIF _op.source = 'free_plan' THEN
+      UPDATE public.download_quota
+         SET monthly_total_used = GREATEST(0, COALESCE(monthly_total_used, 0) - 1),
+             total_used = GREATEST(0, total_used - 1),
+             updated_at = now()
+       WHERE user_id = _op.user_id;
+    ELSE
+      -- Неизвестен източник: не гадаем. Операцията се маркира за изравняване.
+      INSERT INTO public.billing_reconciliation_items (operation_id, user_id, kind, reason, detail)
+        VALUES (_op.operation_id, _op.user_id, _op.kind, 'unknown_source_on_cancel',
+                jsonb_build_object('source', _op.source, 'cancel_reason', p_reason));
+      UPDATE public.quota_operations
+         SET state = 'cancelled', cancelled_at = now(), updated_at = now(),
+             detail = detail || jsonb_build_object('reconciliation_required', true)
+       WHERE operation_id = p_operation_id;
+      RETURN jsonb_build_object('ok', false, 'reason', 'reconciliation_required', 'state', 'cancelled');
+    END IF;
+
+    -- Обратно записване по вид операция.
+    IF _op.kind = 'contract' THEN
+      UPDATE public.download_quota
+         SET contracts_used = GREATEST(0, contracts_used - 1),
+             monthly_contracts_used = GREATEST(0, monthly_contracts_used - 1)
+       WHERE user_id = _op.user_id;
+    ELSIF _op.kind = 'template' THEN
+      UPDATE public.download_quota
+         SET templates_used = GREATEST(0, templates_used - 1),
+             monthly_templates_used = GREATEST(0, monthly_templates_used - 1)
+       WHERE user_id = _op.user_id;
+    ELSIF _op.kind = 'analysis' THEN
+      UPDATE public.download_quota
+         SET analyses_used = GREATEST(0, analyses_used - 1)
+       WHERE user_id = _op.user_id;
+    END IF;
+
+    -- Сесийният запис също пада, за да не блокира бъдещо легитимно таксуване.
+    IF _op.session_id IS NOT NULL AND _op.doc_key IS NOT NULL THEN
+      DELETE FROM public.quota_session_charges
+       WHERE user_id = _op.user_id AND session_id = _op.session_id AND doc_key = _op.doc_key;
+    END IF;
+  END IF;
+
+  UPDATE public.quota_operations
+     SET state = 'cancelled', cancelled_at = now(), updated_at = now(),
+         detail = detail || jsonb_build_object('cancel_reason', COALESCE(p_reason, 'unspecified'))
+   WHERE operation_id = p_operation_id;
+
+  RETURN jsonb_build_object('ok', true, 'replay', false, 'state', 'cancelled', 'charged', false);
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.quota_cancel(uuid, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.quota_cancel(uuid, text) TO service_role;
