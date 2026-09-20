@@ -109,6 +109,48 @@ Deno.serve(async (req: Request) => {
       // валидно и точното обвързване по отпечатък на четимия текст.
       allowPlaintextMatch: true,
     });
+    // ГРАНИЦА НА ДОСТЪПА: платен модел се вика само за удостоверен потребител
+    // или за документ, подписан от НАШИЯ генератор (сървърен манифест).
+    // Без нито едно от двете няма повикване към модел.
+    let reviewUserId: string | null = null;
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (authHeader.toLowerCase().startsWith("bearer ")) {
+      try {
+        const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.0");
+        const userClient = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_ANON_KEY")!,
+          { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } },
+        );
+        const { data: u } = await userClient.auth.getUser();
+        reviewUserId = u?.user?.id ?? null;
+      } catch {
+        reviewUserId = null;
+      }
+    }
+    if (!reviewUserId && !trust.trusted) {
+      return new Response(
+        JSON.stringify({
+          error: "Ревизията е достъпна след вход в профила.",
+          code: "unauthorized",
+        }),
+        { status: 401, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+      );
+    }
+    {
+      const { checkRateLimit } = await import("../_shared/rate-limit.ts");
+      const rlKey = reviewUserId
+        ? `review-document:user:${reviewUserId}`
+        : `review-document:manifest:${request.documentText.length}`;
+      const rl = await checkRateLimit(rlKey, 20, 3600);
+      if (!rl.ok) {
+        return new Response(
+          JSON.stringify({ error: "Твърде много заявки. Опитайте по-късно.", code: "rate_limited", retry_after_seconds: rl.retry_after_s }),
+          { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+        );
+      }
+    }
+
     const manifestDefersPersonal =
       trust.trusted &&
       (trust.manifest.decisions.includes("local_completion_of_personal_data") ||

@@ -4,6 +4,7 @@
 //   - trims extracted_text from older uploaded_contracts
 //   - ai_audit_log rows older than 12 months
 //   - orphaned storage objects in 'uploads' bucket
+//   - expired per-request blank artifacts listed in storage_artifacts
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { requireServiceRole } from "../_shared/cron-auth.ts";
@@ -24,6 +25,9 @@ Deno.serve(async (req) => {
     uploaded_text_trimmed: 0,
     audit_log_deleted: 0,
     storage_deleted: 0,
+    request_artifacts_examined: 0,
+    request_artifacts_deleted: 0,
+    request_artifacts_skipped: 0,
     errors: [] as string[],
   };
 
@@ -110,6 +114,17 @@ Deno.serve(async (req) => {
     } else {
       stats.audit_log_deleted = auditDel?.length ?? 0;
     }
+
+    // 4. Изтеклите временни файлове по заявка (download-blank) се заличават.
+    //    Публични/одобрени и draft/ обекти НЕ се пипат.
+    const { sweepExpiredRequestArtifacts } = await import("../_shared/artifact-sweep.ts");
+    const sweep = await sweepExpiredRequestArtifacts(
+      supabase as unknown as Parameters<typeof sweepExpiredRequestArtifacts>[0],
+    );
+    stats.request_artifacts_examined = sweep.examined;
+    stats.request_artifacts_deleted = sweep.deleted;
+    stats.request_artifacts_skipped = sweep.skipped_not_request;
+    for (const err of sweep.errors) stats.errors.push(err);
 
     return new Response(JSON.stringify({ ok: true, stats }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

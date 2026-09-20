@@ -131,18 +131,20 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
 
-    const parentText = [
-      `ЗАГЛАВИЕ: ${parentContract.title}`,
-      `ПРЕАМБЮЛ:\n${parentContract.preamble ?? ""}`,
-      ...(parentContract.clauses ?? []).map(
-        (c) => `${c.number ?? ""} ${c.title ?? ""}\n${c.body ?? ""}`,
-      ),
-      `ЗАКЛЮЧЕНИЕ:\n${parentContract.closing ?? ""}`,
-    ].join("\n\n").slice(0, 12000);
+    const parentClausesText = (parentContract.clauses ?? [])
+      .map((c) => `${c.number ?? ""} ${c.title ?? ""}\n${c.body ?? ""}`)
+      .join("\n\n");
 
-    // КЛАСИФИКАЦИЯ + РЕДАКЦИЯ на ЦЯЛОТО изходящо съдържание (основен договор
-    // и указанията на потребителя) преди всяка външна заявка.
-    const outboundCorpus = `${notes}\n\n${parentText}`;
+    // КЛАСИФИКАЦИЯ + СТРУКТУРИРАНА РЕДАКЦИЯ на ЦЯЛОТО изходящо съдържание
+    // (заглавие, преамбюл, клаузи, заключение и указанията на потребителя)
+    // преди всяка външна заявка. Полетата НЕ се възстановяват по разделител.
+    const outboundCorpus = [
+      notes,
+      parentContract.title ?? "",
+      parentContract.preamble ?? "",
+      parentClausesText,
+      parentContract.closing ?? "",
+    ].join("\n\n");
     const classification = classifyDocumentBeforeAI(outboundCorpus);
     if (classification.risk_level === "blocked") {
       return new Response(
@@ -150,11 +152,23 @@ Deno.serve(async (req: Request) => {
         { status: 422, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
     }
-    const redaction = redactForAI(outboundCorpus);
-    const [safeNotes, safeParentText] = (() => {
-      const parts = redaction.redacted.split("\n\n");
-      return [parts[0] ?? "", parts.slice(1).join("\n\n")];
-    })();
+
+    const { redactFields } = await import("../_shared/structured-redact.ts");
+    const redaction = redactFields({
+      notes,
+      title: String(parentContract.title ?? ""),
+      preamble: String(parentContract.preamble ?? ""),
+      clauses: parentClausesText,
+      closing: String(parentContract.closing ?? ""),
+    });
+    const safeNotes = redaction.fields.notes;
+    const safeTitle = redaction.fields.title;
+    const safeParentText = [
+      `ЗАГЛАВИЕ: ${safeTitle}`,
+      `ПРЕАМБЮЛ:\n${redaction.fields.preamble}`,
+      redaction.fields.clauses,
+      `ЗАКЛЮЧЕНИЕ:\n${redaction.fields.closing}`,
+    ].join("\n\n").slice(0, 12000);
 
     const userPrompt = `ВИД НА СВЪРЗАНИЯ ДОКУМЕНТ: ${spec.label}${number ? ` №${number}` : ""}
 ${safeNotes.trim() ? `ДОПЪЛНИТЕЛНИ УКАЗАНИЯ ОТ ПОТРЕБИТЕЛЯ:\n${safeNotes.trim()}\n` : ""}
@@ -171,7 +185,7 @@ ${safeParentText}
     const legal = await retrieveLegalContext(
       admin,
       LOVABLE_API_KEY,
-      `${spec.label} ${parentContract.title}\n${safeNotes}`.slice(0, 4000),
+      `${spec.label} ${safeTitle}\n${safeNotes}`.slice(0, 4000),
       { matchCount: 6 },
     );
     if (!legal.hasMatches) {
