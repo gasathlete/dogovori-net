@@ -197,7 +197,24 @@ Deno.serve(async (req: Request) => {
         let parsed: unknown = null;
         try { parsed = bodyText ? JSON.parse(bodyText) : null; } catch { /* нетипичен отговор */ }
 
-        const asObj = (parsed ?? {}) as { error?: string; code?: string };
+        const asObj = (parsed ?? {}) as { error?: string; code?: string; retry_after_seconds?: number };
+
+        // ПРАВНА ПРЕГРАДА: 503 legal_verification_unavailable се пренася
+        // непокътната — задачата НЕ се маркира като завършена, не се харчи
+        // втора квота и не се превръща в обща 500 грешка.
+        if (asObj.code === "legal_verification_unavailable") {
+          await admin.from("generation_jobs").update({
+            status: STORED_STATUS.rejected,
+            result: parsed ?? null,
+            error: asObj.error ?? "legal_verification_unavailable",
+            error_code: "legal_verification_unavailable",
+            http_status: res.status || 503,
+            duration_ms: Date.now() - started,
+            updated_at: new Date().toISOString(),
+          }).eq("id", job.id);
+          return;
+        }
+
         if (res.ok && parsed && !asObj.error) {
           await admin.from("generation_jobs").update({
             status: STORED_STATUS.completed, result: parsed, duration_ms: Date.now() - started, updated_at: new Date().toISOString(),
