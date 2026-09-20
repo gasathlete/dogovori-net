@@ -38,16 +38,14 @@ async function fetchRegisteredUsers(): Promise<number> {
   return n;
 }
 
-/** Плавно, кратко представяне на точния брой; помощните технологии четат крайното число. */
-function AnimatedCount({ value, className }: { value: number; className?: string }) {
-  const { ref, value: current } = useCountUp(value, { duration: 900 });
-  const shown = current >= value ? value : current;
+/**
+ * Точният проверен брой се показва директно след индикатора за зареждане —
+ * без анимация от видима нула, за да не изглежда като по-малко потребители.
+ */
+function ExactCount({ value, className }: { value: number; className?: string }) {
   return (
-    <span ref={ref as any} className={className}>
-      <span aria-hidden="true" className="tabular-nums">
-        {shown.toLocaleString("bg-BG")}
-      </span>
-      <span className="sr-only">{value.toLocaleString("bg-BG")}</span>
+    <span className={className}>
+      <span className="tabular-nums">{value.toLocaleString("bg-BG")}</span>
     </span>
   );
 }
