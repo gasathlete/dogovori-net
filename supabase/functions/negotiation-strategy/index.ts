@@ -5,6 +5,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCors } from "../_shared/cors.ts";
 import { extractJson } from "../_shared/json.ts";
+import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
+import { redactForAI, unredact } from "../_shared/redact.ts";
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -192,13 +194,17 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
     }
     const data = await resp.json();
     const raw = data?.choices?.[0]?.message?.content ?? "";
-    const strategy = extractJson(raw, { fn: "negotiation-strategy" });
-    if (!strategy || typeof strategy !== "object") {
+    const parsedStrategy = extractJson(raw, { fn: "negotiation-strategy" });
+    if (!parsedStrategy || typeof parsedStrategy !== "object") {
       return new Response(JSON.stringify({ error: "parse_failed" }), {
         status: 502,
         headers: { ...cors, "Content-Type": "application/json" },
       });
     }
+    // Връщане на редактираните стойности само в текстовите полета.
+    const strategy = JSON.parse(
+      unredact(JSON.stringify(parsedStrategy), redaction.mapping),
+    );
 
     await admin
       .from("risk_analyses")
@@ -209,7 +215,13 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
       .eq("id", analysisId);
 
     return new Response(
-      JSON.stringify({ ok: true, cached: false, model: usedModel, strategy }),
+      JSON.stringify({
+        ok: true,
+        cached: false,
+        model: usedModel,
+        strategy,
+        citations: legal.citations,
+      }),
       { headers: { ...cors, "Content-Type": "application/json" } },
     );
   } catch (e) {
