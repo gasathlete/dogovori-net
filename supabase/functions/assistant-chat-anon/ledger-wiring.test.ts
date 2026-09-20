@@ -50,7 +50,7 @@ Deno.test("резервацията и потвърждаването са пр�
   assertEquals(model > 0, true);
   // Потвърждаването е последната стъпка преди отговора към клиента.
   // Потвърждаването е преди връщането на точния отговор към клиента.
-  assertEquals(commit < src.lastIndexOf("return json("), true);
+  assertEquals(commit < src.lastIndexOf("JSON.stringify(committed.response)"), true);
 });
 
 Deno.test("точното повторение връща запазения отговор без нов модел", () => {
