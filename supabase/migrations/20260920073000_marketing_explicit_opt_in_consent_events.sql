@@ -76,6 +76,23 @@ BEGIN
     RAISE EXCEPTION 'topic is not active';
   END IF;
 
+  -- Отказ на границата на базата: кампания без нито един изрично съгласил се
+  -- получател не се записва като „изпратена до 0“.
+  SELECT count(*) INTO v_count
+  FROM auth.users u
+  WHERE u.deleted_at IS NULL
+    AND COALESCE((
+      SELECT c.granted
+      FROM public.user_consents c
+      WHERE c.user_id = u.id AND c.consent_type = 'marketing'
+      ORDER BY c.granted_at DESC, c.created_at DESC, c.id DESC
+      LIMIT 1
+    ), false) = true;
+
+  IF v_count = 0 THEN
+    RAISE EXCEPTION 'no explicit marketing opt-in recipients';
+  END IF;
+
   INSERT INTO public.notifications (user_id, kind, title, body, link, created_by)
   SELECT u.id, 'campaign', v_topic.title, v_topic.body, v_topic.link, auth.uid()
   FROM auth.users u
@@ -97,6 +114,14 @@ BEGIN
   RETURN v_count;
 END;
 $function$;
+
+REVOKE ALL ON FUNCTION public.admin_list_marketing_recipients(text, integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_list_marketing_recipients(text, integer) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_list_marketing_recipients(text, integer) TO service_role;
+
+REVOKE ALL ON FUNCTION public.admin_send_campaign_topic(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_send_campaign_topic(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_send_campaign_topic(uuid) TO service_role;
 
 -- ---------------------------------------------------------------------------
 -- Админ списък: тристойностен статус вместо „няма възражение = съгласие“.
