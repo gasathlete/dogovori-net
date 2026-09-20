@@ -167,7 +167,8 @@ CREATE TABLE IF NOT EXISTS public.quota_operations (
   doc_key text,
   batch_id uuid,
   -- Каноничен отпечатък на заявката: ключът е обвързан със СЪДЪРЖАНИЕТО.
-  request_digest text,
+  -- Задължителен: без отпечатък ключът не може да бъде обвързан с искането.
+  request_digest text NOT NULL CHECK (char_length(request_digest) = 64),
   -- Референция към готовия резултат: повторение по същия ключ връща същото.
   result_ref jsonb,
   -- Наем на резервацията: изтекли „reserved" операции се изравняват от метача.
@@ -246,6 +247,25 @@ ALTER TABLE public.storage_artifacts ENABLE ROW LEVEL SECURITY;
 -- Само сървърът пише и чете; няма клиентски политики.
 
 -- ---------------------------------------------------------------------------
+-- 4б) СЕСИЙНИ ЗАПИСИ: уникалността включва ВИДА на операцията. Един и същ
+--     документ в същия таб е безплатен само за същия вид; в друг таб не е.
+--     Мутациите са само за service_role — клиентът не може да си „подари" ред.
+-- ---------------------------------------------------------------------------
+ALTER TABLE public.quota_session_charges
+  DROP CONSTRAINT IF EXISTS quota_session_charges_user_id_session_id_doc_key_key;
+DROP INDEX IF EXISTS public.quota_session_charges_user_session_doc_key;
+CREATE UNIQUE INDEX IF NOT EXISTS quota_session_charges_user_session_doc_kind_key
+  ON public.quota_session_charges (user_id, session_id, doc_key, kind);
+
+REVOKE INSERT, UPDATE, DELETE ON public.quota_session_charges FROM authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.quota_session_charges FROM anon;
+GRANT ALL ON public.quota_session_charges TO service_role;
+
+DROP POLICY IF EXISTS "Users insert own session charges" ON public.quota_session_charges;
+DROP POLICY IF EXISTS "Users update own session charges" ON public.quota_session_charges;
+DROP POLICY IF EXISTS "Users delete own session charges" ON public.quota_session_charges;
+
+-- ---------------------------------------------------------------------------
 -- 5) reserve / commit / cancel
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.quota_reserve(
@@ -283,6 +303,12 @@ BEGIN
   IF p_kind NOT IN ('contract','template','analysis') THEN
     RAISE EXCEPTION 'invalid kind' USING ERRCODE = '22023';
   END IF;
+  -- Отпечатъкът е ЗАДЪЛЖИТЕЛЕН канoничен SHA-256 (64 шестнадесетични знака).
+  IF p_request_digest IS NULL
+     OR btrim(p_request_digest) = ''
+     OR p_request_digest !~ '^[0-9a-f]{64}$' THEN
+    RAISE EXCEPTION 'request_digest_required' USING ERRCODE = '22023';
+  END IF;
 
   -- Нормализация: празен текст НИКОГА не е ключ. "" → NULL.
   _purpose := COALESCE(NULLIF(btrim(p_purpose), ''), 'unspecified');
@@ -293,6 +319,13 @@ BEGIN
   -- края на транзакцията, затова втори паралелен опит вижда вече записания ред
   -- и връща повторение, вместо да таксува втори път.
   PERFORM pg_advisory_xact_lock(hashtextextended(p_operation_id::text, 0));
+  -- СЕРИАЛИЗАЦИЯ и по СЕСИЙНАТА ТРОЙКА: два различни operation_id за същия
+  -- потребител/сесия/документ/вид не могат да таксуват два пъти — вторият вижда
+  -- записания сесиен ред и получава session_reuse.
+  IF _doc_key IS NOT NULL AND p_session_id IS NOT NULL THEN
+    PERFORM pg_advisory_xact_lock(hashtextextended(
+      p_user_id::text || '|' || p_session_id::text || '|' || _doc_key || '|' || p_kind, 0));
+  END IF;
 
   SELECT * INTO _existing FROM public.quota_operations
    WHERE operation_id = p_operation_id FOR UPDATE;
@@ -345,7 +378,7 @@ BEGIN
     IF _doc_key IS NOT NULL AND p_session_id IS NOT NULL THEN
       INSERT INTO public.quota_session_charges (user_id, session_id, doc_key, kind)
         VALUES (p_user_id, p_session_id, _doc_key, p_kind)
-        ON CONFLICT (user_id, session_id, doc_key) DO NOTHING;
+        ON CONFLICT (user_id, session_id, doc_key, kind) DO NOTHING;
     END IF;
   END IF;
 
@@ -537,7 +570,8 @@ BEGIN
     -- Сесийният запис също пада, за да не блокира бъдещо легитимно таксуване.
     IF _op.session_id IS NOT NULL AND _op.doc_key IS NOT NULL THEN
       DELETE FROM public.quota_session_charges
-       WHERE user_id = _op.user_id AND session_id = _op.session_id AND doc_key = _op.doc_key;
+       WHERE user_id = _op.user_id AND session_id = _op.session_id
+         AND doc_key = _op.doc_key AND kind = _op.kind;
     END IF;
   END IF;
 
