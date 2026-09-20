@@ -461,7 +461,9 @@ Deno.serve(async (req) => {
     // ПОВТОРНА ВАЛИДАЦИЯ след sanitizer/CTA/линкове: доставя се само текст,
     // който и в окончателния си вид няма непроверено правно обозначение.
     if (!validateGroundedReply(reply, citations).ok) {
+      await releaseAttempt();
       return new Response(
+
         JSON.stringify({
           error: ANON_LEGAL_ANSWER_UNAVAILABLE,
           code: ANON_LEGAL_ANSWER_UNAVAILABLE,
