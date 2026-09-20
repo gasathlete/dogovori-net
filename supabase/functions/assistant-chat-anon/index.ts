@@ -514,17 +514,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Правото се изразходва САМО сега — след доказано доставен отговор.
-    let remaining = Math.max(0, entitlementRemaining - 1);
+    // Правото се изразходва САМО сега — след доказано доставен отговор, и то с
+    // ПОТВЪРЖДАВАНЕ на същата операция. ТОЧНИЯТ отговор се запазва, за да е
+    // повторението истинско повторение без ново повикване към модел.
+    const remaining = Math.max(0, entitlementRemaining - 1);
+    const payload: Record<string, unknown> = { reply, followups, citations, remaining };
     {
-      const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-      const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      // deno-lint-ignore no-explicit-any
-      const admin = createClient(SUPABASE_URL, SERVICE_ROLE) as any;
-      const consumed = await consumeAnonDelivered(admin, ipHash);
-      if (consumed.ok) {
-        remaining = consumed.remaining;
-      } else if (consumed.exhausted || consumed.remaining === 0) {
+      const committed = await commitAnonDelivery(ledger, {
+        operationId,
+        identityHash: ipHash,
+        requestDigest,
+        response: payload,
+      });
+      if (committed.kind === "limit_reached") {
         // Загубена надпревара за последното право: НЕ доставяме шести отговор.
         return new Response(
           JSON.stringify({
@@ -537,12 +539,12 @@ Deno.serve(async (req) => {
           }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
-      } else {
-        // Записът не успя: не твърдим нищо за изразходвано право и пускаме
-        // ключа, за да е възможен повторен опит.
+      }
+      if (committed.kind !== "committed") {
+        // Записът е несигурен: не твърдим изразходвано право и пускаме ключа,
+        // за да е възможен точно същият повторен опит.
         await releaseAttempt();
         return new Response(
-
           JSON.stringify({
             error: "entitlement_unavailable",
             code: "entitlement_unavailable",
@@ -556,10 +558,11 @@ Deno.serve(async (req) => {
           },
         );
       }
+      payload.remaining = committed.remaining;
     }
 
     return new Response(
-      JSON.stringify({ reply, followups, citations, remaining }),
+      JSON.stringify(payload),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (_e) {
