@@ -153,6 +153,10 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
     }
 
 
+    // Заземен системен промпт — използва се и в основното, и в резервното
+    // повикване. Няма вариант без проверените извадки.
+    const sysGrounded = `${sys}\n\n${legal.promptBlock}`;
+
     const callModel = async (model: string) => {
       const r = await fetch(GATEWAY_URL, {
         method: "POST",
@@ -163,7 +167,7 @@ ${contractText ? `\n--- ТЕКСТ НА ДОГОВОРА (откъс) ---\n${con
         body: JSON.stringify({
           model,
           messages: [
-            { role: "system", content: sys },
+            { role: "system", content: sysGrounded },
             { role: "user", content: userMsg },
           ],
           max_tokens: 4000,
