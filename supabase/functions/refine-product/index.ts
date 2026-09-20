@@ -461,8 +461,8 @@ Deno.serve(async (req) => {
       );
       const done = (completed ?? {}) as Record<string, unknown>;
       if (completeErr || done.ok !== true) {
-        await failRefinement("persist_failed");
-        return fail("refinement_failed", 409, headers, cid, MESSAGES.refinement_failed);
+        // Резултатът е изготвен от вече платено извикване, но записът е неясен.
+        return await reconcileRefinement("persist_unknown", callId);
       }
       return json(
         {
@@ -477,6 +477,15 @@ Deno.serve(async (req) => {
         headers,
       );
     } catch (error) {
+      // След докосване на доставчика включеното уточнение НЕ се освобождава —
+      // дори при негоден изход. Освобождаване е допустимо САМО при детерминиран
+      // провал ПРЕДИ доставчика (например редакция на личните данни).
+      if (providerAttempted) {
+        const code: ProductReconciliationCode = error instanceof ProductRefinementError
+          ? "output_unusable"
+          : "provider_outcome_unknown";
+        return await reconcileRefinement(code, `${refinementId}:refinement`);
+      }
       const code = error instanceof ProductRefinementError
         ? error.reason
         : error instanceof ProductRedactionError
