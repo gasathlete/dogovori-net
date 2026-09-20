@@ -1222,6 +1222,17 @@ export default function WizardPage() {
           doc_key: getOpDocKey(docName ?? sector.contractName),
         },
       });
+      // Правна преграда: без такса, без загуба на избора, с ръчен нов опит.
+      if (
+        (await import("@/lib/legalGateClient")).handleLegalVerificationUnavailable(
+          { data, error },
+          () => { void runBlankDownload(); },
+        )
+      ) {
+        clearStepTimers();
+        setDownloadingBlank(false);
+        return;
+      }
       if (error || data?.error) {
         clearStepTimers();
         const msg = (data?.error || error?.message || "Грешка при свалянето").toString();
