@@ -36,9 +36,21 @@ beforeEach(() => {
   sessionStorage.clear();
 });
 
+/** Точната форма на доказателството при регистрация. */
+const VALID = {
+  terms: true,
+  privacy: true,
+  age_18: true,
+  operational_notifications: true,
+};
+
+function stash(payload: unknown) {
+  sessionStorage.setItem(PENDING_CONSENTS_KEY, JSON.stringify(payload));
+}
+
 describe("flushPendingConsents — надеждност", () => {
   it("при неуспешен запис запазва данните за повторен опит", async () => {
-    sessionStorage.setItem(PENDING_CONSENTS_KEY, JSON.stringify({ marketing: true }));
+    stash({ ...VALID, marketing: true });
     upsertMock.mockResolvedValue({ error: { message: "network" } });
 
     const res = await flushPendingConsents();
@@ -47,7 +59,7 @@ describe("flushPendingConsents — надеждност", () => {
   });
 
   it("повторният опит ползва същия идентификатор и успехът изчиства данните", async () => {
-    sessionStorage.setItem(PENDING_CONSENTS_KEY, JSON.stringify({ marketing: true }));
+    stash({ ...VALID, marketing: true });
     upsertMock.mockResolvedValueOnce({ error: { message: "network" } });
     await flushPendingConsents();
     const firstId = rowsOf(0)[0].consent_event_id;
@@ -60,7 +72,7 @@ describe("flushPendingConsents — надеждност", () => {
   });
 
   it("повторно изпълнение след успех не създава второ събитие", async () => {
-    sessionStorage.setItem(PENDING_CONSENTS_KEY, JSON.stringify({ marketing: true }));
+    stash({ ...VALID, marketing: true });
     upsertMock.mockResolvedValue({ error: null });
     await flushPendingConsents();
     upsertMock.mockClear();
@@ -79,7 +91,7 @@ describe("flushPendingConsents — надеждност", () => {
   });
 
   it("неотметнат маркетинг не записва съгласие", async () => {
-    sessionStorage.setItem(PENDING_CONSENTS_KEY, JSON.stringify({ terms: true }));
+    stash(VALID);
     upsertMock.mockResolvedValue({ error: null });
     await flushPendingConsents();
     const types = rowsOf(0).map((r) => r.consent_type);
@@ -95,6 +107,49 @@ describe("flushPendingConsents — надеждност", () => {
     expect(res.ok).toBe(false);
     expect(upsertMock).not.toHaveBeenCalled();
     expect(sessionStorage.getItem(PENDING_CONSENTS_KEY)).toBeNull();
+  });
+});
+
+describe("flushPendingConsents — строга форма на доказателството", () => {
+  const malformed: Array<[string, unknown]> = [
+    ["празен обект", {}],
+    ["частични задължителни полета", { terms: true, privacy: true }],
+    ["липсващо operational_notifications", { terms: true, privacy: true, age_18: true }],
+    ["грешен тип на булев флаг", { ...VALID, terms: "true" }],
+    ["изрично false за задължително съгласие", { ...VALID, age_18: false }],
+    ["невалиден маркетингов флаг", { ...VALID, marketing: "да" }],
+    ["невалиден event_id", { ...VALID, event_id: "не-uuid" }],
+  ];
+
+  for (const [name, payload] of malformed) {
+    it(`${name} не записва нищо`, async () => {
+      stash(payload);
+      upsertMock.mockResolvedValue({ error: null });
+      const res = await flushPendingConsents();
+      expect(res.ok).toBe(false);
+      expect(upsertMock).not.toHaveBeenCalled();
+      expect(sessionStorage.getItem(PENDING_CONSENTS_KEY)).toBeNull();
+    });
+  }
+
+  it("допълнителни метаданни не отменят валидното доказателство", async () => {
+    stash({ ...VALID, ts: 123, source: "signup" });
+    upsertMock.mockResolvedValue({ error: null });
+    const res = await flushPendingConsents();
+    expect(res.ok).toBe(true);
+  });
+
+  it("невъзможност да се запази новият event_id спира записа", async () => {
+    stash(VALID);
+    upsertMock.mockResolvedValue({ error: null });
+    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("quota");
+    });
+    const res = await flushPendingConsents();
+    setItem.mockRestore();
+    expect(res).toMatchObject({ ok: false, reason: "storage-unavailable" });
+    expect(upsertMock).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem(PENDING_CONSENTS_KEY)).toBeTruthy();
   });
 
   it("грешката при запис не се представя като успех", async () => {
