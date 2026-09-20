@@ -4,18 +4,19 @@
 // Grounded in the legal knowledge base via retrieveLegalContext().
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, clientIp, hashAnonIdentity, IdentityUnavailableError } from "../_shared/cors.ts";
-import { checkRateLimit } from "../_shared/rate-limit.ts";
+import { checkRateLimitStrict } from "../_shared/rate-limit.ts";
 import { retrieveLegalContext, type LegalCitation } from "../_shared/legal-rag.ts";
 import { legalVerificationUnavailableResponse } from "../_shared/legal-gate.ts";
 import { sanitizeAssistantReply } from "../_shared/response-sanitizer.ts";
 import { gatewayErrorResponse, normalizeGatewayStatus } from "../_shared/gateway-error.ts";
 import {
-  ANON_FREE_MESSAGES,
-  consumeAnonDelivered,
-  readAnonEntitlement,
-  releaseAnonOperation,
-  reserveAnonOperation,
-} from "../_shared/anon-entitlement.ts";
+  ANON_DELIVERY_CAP,
+  anonRequestDigest,
+  cancelAnonDelivery,
+  commitAnonDelivery,
+  reserveAnonDelivery,
+  UUID_RE,
+} from "../_shared/anon-delivery-ledger.ts";
 
 
 const SYSTEM_PROMPT = `# РОЛЯ И ИДЕНТИЧНОСТ
