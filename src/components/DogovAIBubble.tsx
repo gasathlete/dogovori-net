@@ -342,10 +342,14 @@ function AnonChat({ resetKey }: { resetKey: number }) {
       }, index * 220 + 180);
     });
     try {
+      // Един UUID на изпращане: при загубена връзка повторният опит не създава
+      // втори отговор и не изразходва второ безплатно съобщение.
+      if (!pendingRequestIdRef.current) pendingRequestIdRef.current = crypto.randomUUID();
       const { data, error } = await supabase.functions.invoke("assistant-chat-anon", {
-        body: { messages: next },
+        body: { messages: next, request_id: pendingRequestIdRef.current },
       });
       if (error) throw error;
+      pendingRequestIdRef.current = null;
       const reply = (data as { reply?: string })?.reply ?? "Извинете, опитайте отново.";
       const fups = ((data as { followups?: string[] })?.followups ?? []).slice(0, 3);
       const cits = ((data as { citations?: Citation[] })?.citations ?? []).slice(0, 3);
