@@ -356,9 +356,13 @@ export async function reserveReviewOperation(
       retryAfterSeconds: Math.max(1, Number(r.retry_after_seconds ?? 5)),
     };
   }
-  if (r.reason === "expired") return { kind: "expired" };
+  if (r.reason === "expired" || r.reason === "response_expired") return { kind: "expired" };
   if (r.reason === "binding_conflict") return { kind: "conflict" };
-  if (r.reason === "reconciliation_required" || r.reason === "cancellation_unproven") {
+  // Изтекъл лизинг НИКОГА не е нова резервация: недоказано състояние.
+  if (
+    r.reason === "reconciliation_required" || r.reason === "cancellation_unproven" ||
+    r.reason === "lease_expired"
+  ) {
     return { kind: "reconciliation", reason: String(r.reason) };
   }
   return {
@@ -550,9 +554,13 @@ export async function reserveOwnedReviewOperation(
       retryAfterSeconds: Math.max(1, Number(r.retry_after_seconds ?? 5)),
     };
   }
-  if (r.reason === "response_expired") return { kind: "expired" };
+  if (r.reason === "response_expired" || r.reason === "expired") return { kind: "expired" };
   if (r.reason === "binding_conflict") return { kind: "conflict" };
-  if (r.reason === "reconciliation_required" || r.reason === "cancellation_unproven") {
+  // Изтекъл лизинг НИКОГА не е нова резервация: недоказано състояние.
+  if (
+    r.reason === "reconciliation_required" || r.reason === "cancellation_unproven" ||
+    r.reason === "lease_expired"
+  ) {
     return { kind: "reconciliation", reason: String(r.reason) };
   }
   return {
