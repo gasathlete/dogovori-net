@@ -44,7 +44,10 @@ export type GrantFailure =
   | "wrong_audience"
   | "content_mismatch"
   | "subject_mismatch"
+  | "owner_mismatch"
+  | "operation_mismatch"
   | "replayed";
+
 
 function encoder(): TextEncoder {
   return new TextEncoder();
