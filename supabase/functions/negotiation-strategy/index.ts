@@ -13,6 +13,21 @@ import {
   strategySigningKey,
   verifyStrategyEvidence,
 } from "../_shared/strategy-evidence.ts";
+import { canonicalize, sha256Hex } from "../_shared/canonical-digest.ts";
+import {
+  asOperationId,
+  cancelDocumentOperation,
+  canonicalDocumentBinding,
+  commitDocumentOperation,
+  ledgerBlockResponse,
+  lookupDocumentOperation,
+  markDocumentModelStarted,
+  markDocumentReconciliation,
+  operationIdRequiredResponse,
+  operationReconciliationResponse,
+  ProviderCallBudget,
+  reserveDocumentOperation,
+} from "../_shared/ai-document-ledger.ts";
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
