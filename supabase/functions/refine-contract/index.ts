@@ -78,9 +78,11 @@ Deno.serve(async (req: Request) => {
     const feedback: string = String(body?.feedback ?? "").trim();
     const answers = body?.answers ?? {};
     const { asUuidOrNull, canonicalRequestDigest } = await import("../_shared/canonical-digest.ts");
-    // batch_id е ЗАДЪЛЖИТЕЛЕН и валиден UUID: null никога не стига до
-    // таксуващата функция, защото без ключ нямаше траен ред и „отмяната" не
-    // отменяше нищо.
+    // Клиентският ключ на операцията е ЗАДЪЛЖИТЕЛЕН: без него повторният опит
+    // не е идемпотентен и би генерирал и таксувал наново.
+    const rawClientOpId = body?.operation_id ?? body?.client_operation_id;
+    const operationId = asUuidOrNull(rawClientOpId);
+    // batch_id е част от обвързването на ключа (вълна поправки), ако е подаден.
     const batchId = asUuidOrNull(body?.batch_id);
     const userConfirmed: boolean = !!body?.userConfirmed;
 
@@ -89,11 +91,11 @@ Deno.serve(async (req: Request) => {
         status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
       });
     }
-    if (!batchId) {
+    if (!operationId) {
       return new Response(
         JSON.stringify({
-          error: "Липсва валиден идентификатор на заявката.",
-          code: "invalid_batch_id",
+          error: "Липсва или е невалиден идентификатор на операцията.",
+          code: rawClientOpId ? "invalid_operation_id" : "operation_id_required",
           charge_state: "not_charged",
         }),
         { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
@@ -141,25 +143,43 @@ Deno.serve(async (req: Request) => {
       }), { status: 200, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
     }
 
+    // ЕДНА структурирана редакция за договор + обратна връзка + отговори.
+    // Моделът, заземяването и логовете НИКОГА не виждат суров потребителски текст.
+    const { answersToText, redactRefinePayload, RefineRedactionError } = await import(
+      "./refine-redaction.ts"
+    );
     const contractJsonStr = JSON.stringify(contract);
-    const redaction = route.redactionRequired
-      ? redactForAI(contractJsonStr)
-      : { redacted: contractJsonStr, mapping: {} as Record<string, string>, stats: {} };
-    const feedbackRedacted = route.redactionRequired
-      ? (() => {
-          const r = redactForAI(feedback);
-          Object.assign(redaction.mapping, r.mapping);
-          return r.redacted;
-        })()
-      : feedback;
-    const answersStr = Object.entries(answers ?? {}).map(([k, v]) => `- ${k}: ${v}`).join("\n");
+    let redaction: { contractJson: string; feedback: string; answersText: string; mapping: Record<string, string> };
+    try {
+      redaction = redactRefinePayload(
+        {
+          contractJson: contractJsonStr,
+          feedback,
+          answersText: answersToText(answers),
+        },
+        route.redactionRequired ? (text: string) => redactForAI(text) : null,
+      );
+    } catch (redErr) {
+      if (redErr instanceof RefineRedactionError) {
+        return new Response(
+          JSON.stringify({
+            error: "Съдържанието не може да бъде обработено безопасно.",
+            code: "invalid_payload",
+            charge_state: "not_charged",
+          }),
+          { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+        );
+      }
+      throw redErr;
+    }
+    const feedbackRedacted = redaction.feedback;
 
     const redactionNote = route.redactionRequired
       ? "Забележка: Лични данни са заменени с плейсхолдъри <NAME_1>, <EGN_1>. Запази ги дословно.\n"
       : "";
 
     const userPrompt = `${redactionNote}СЪЩЕСТВУВАЩ ДОГОВОР (JSON):
-${redaction.redacted}
+${redaction.contractJson}
 
 ОБРАТНА ВРЪЗКА ОТ ПОТРЕБИТЕЛЯ:
 """
@@ -167,7 +187,7 @@ ${feedbackRedacted}
 """
 
 КОНТЕКСТ ОТ ИНТЕРВЮТО (за справка, не променяй ако не е нужно):
-${answersStr}
+${redaction.answersText}
 
 Върни коригирания договор (или непроменен, ако обратната връзка не е основателна) в указания JSON формат.`;
 
@@ -179,7 +199,7 @@ ${answersStr}
     const legal = await retrieveLegalContext(
       admin,
       LOVABLE_API_KEY,
-      `${feedbackRedacted}\n${redaction.redacted.slice(0, 3000)}`,
+      `${feedbackRedacted}\n${redaction.contractJson.slice(0, 3000)}`,
       { matchCount: 6 },
     );
     if (!legal.hasMatches) {
@@ -190,96 +210,105 @@ ${answersStr}
     }
     const baseSystem = `${rawSystem}\n\n${legal.promptBlock}`;
 
-    // ТАКСУВАНЕ: след всички непарични проверки. Идемпотентно по batch_id,
-    // обвързано със съдържанието на заявката.
+    // ТАКСУВАНЕ: след всички непарични проверки. ЕДИН леджър, идемпотентен по
+    // ключа на операцията и обвързан със съдържанието на заявката.
     const requestDigest = await canonicalRequestDigest({
       purpose: "refine_contract",
       userId,
       feedback,
       answers,
       contract,
+      batchId,
     });
 
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: batchCharge, error: batchErr } = await userClient.rpc(
-      "charge_corrections_wave",
-      { p_user_id: userId, p_batch_id: batchId, p_count: 1 },
-    );
-    if (batchErr) {
-      console.error("charge_corrections_wave error:", batchErr);
-      return new Response(JSON.stringify({ error: "Грешка при проверка на квотата" }), {
-        status: 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
-      });
-    }
-    const batchResult = batchCharge as { ok: boolean; reason?: string; cached?: boolean };
-    if (!batchResult?.ok) {
-      return new Response(
-        JSON.stringify({ error: "quota_exceeded", reason: batchResult?.reason }),
-        { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
-      );
-    }
-    const batchCharged = !batchResult.cached;
+    const {
+      reserveQuota,
+      commitQuota,
+      cancelQuota,
+      billingReconciliationResponse,
+      recordReconciliation,
+    } = await import("../_shared/quota-ledger.ts");
+    type LedgerDb = Parameters<typeof reserveQuota>[0];
+    const ledgerDb = admin as unknown as LedgerDb;
 
-    // Обвързване със съдържанието + ТРАЙНО ПОВТОРЕНИЕ: същият ключ със същия
-    // товар връща вече изготвения резултат, без второ генериране.
-    const { data: bound, error: bindErr } = await admin.rpc("corrections_wave_bind", {
-      p_user_id: userId,
-      p_batch_id: batchId,
-      p_request_digest: requestDigest,
+    const reservation = await reserveQuota(ledgerDb, {
+      operationId,
+      userId,
+      kind: "analysis",
+      purpose: "refine_contract",
+      batchId,
+      requestDigest,
     });
-    if (bindErr) {
-      const conflict = String(bindErr.message ?? "").includes("idempotency_key_conflict");
+    const jsonHeaders = {
+      ...corsHeaders,
+      ...correlationHeaders(correlationId),
+      "Content-Type": "application/json",
+    };
+    if (reservation.status === "conflict") {
       return new Response(
         JSON.stringify({
-          error: conflict
-            ? "Този идентификатор вече е използван за друга заявка."
-            : "Грешка при проверка на заявката",
-          code: conflict ? "idempotency_key_conflict" : "bind_failed",
+          error: "Този идентификатор вече е използван за друга заявка.",
+          code: reservation.reason,
+          charge_state: "not_charged",
         }),
-        { status: conflict ? 409 : 500, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
+        { status: 409, headers: jsonHeaders },
       );
     }
-    const boundRow = (bound ?? {}) as { result_ref?: Record<string, unknown> | null };
-    if (boundRow.result_ref && typeof boundRow.result_ref === "object") {
-      const ref = boundRow.result_ref as Record<string, unknown>;
-      if (ref.contract) {
-        return new Response(
-          JSON.stringify({
-            contract: ref.contract,
-            changed_clause_numbers: ref.changed_clause_numbers ?? [],
-            change_summary: ref.change_summary ?? "",
-            citations: legal.citations,
-            replay: true,
-          }),
-          { headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
-        );
-      }
+    if (reservation.status === "reconciliation") {
+      await recordReconciliation(ledgerDb, operationId, `refine_contract_reserve:${reservation.reason}`, {
+        user_id: userId,
+        kind: "analysis",
+      });
+      return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+    }
+    if (reservation.status === "unavailable") {
+      return new Response(
+        JSON.stringify({
+          error: "Проверката на квотата е временно недостъпна. Опитайте отново.",
+          code: "quota_unavailable",
+          charge_state: "not_charged",
+        }),
+        { status: 503, headers: jsonHeaders },
+      );
+    }
+    if (reservation.status === "denied") {
+      return new Response(
+        JSON.stringify({ error: "quota_exceeded", reason: reservation.reason, charge_state: "not_charged" }),
+        { status: 402, headers: jsonHeaders },
+      );
     }
 
-    const { billingReconciliationResponse, recordReconciliation } = await import("../_shared/quota-ledger.ts");
+    // ТОЧНО ПОВТОРЕНИЕ при загубен отговор: същият ключ със същия товар връща
+    // вече изготвения резултат, без ново генериране и без второ таксуване.
+    const priorRef = reservation.resultRef;
+    if (priorRef && priorRef.contract) {
+      return new Response(
+        JSON.stringify({
+          contract: priorRef.contract,
+          changed_clause_numbers: priorRef.changed_clause_numbers ?? [],
+          change_summary: priorRef.change_summary ?? "",
+          citations: legal.citations,
+          replay: true,
+          charge_state: "charged",
+        }),
+        { headers: jsonHeaders },
+      );
+    }
 
     /**
-     * ЕДИНСТВЕН КОМПЕНСИРАЩ ПАЗИТЕЛ. Отмяната е идемпотентна по batch_id в
-     * базата (cancel_corrections_wave) и изходът ѝ се проверява. „charged:
-     * false" се твърди САМО при потвърдена отмяна; иначе връщаме типизиран
-     * billing_reconciliation_required и записваме траен запис за изравняване.
+     * ЕДИНСТВЕН КОМПЕНСИРАЩ ПАЗИТЕЛ през леджъра. „charged: false" се твърди
+     * САМО при доказана отмяна; иначе типизиран billing_reconciliation_required
+     * и траен запис за изравняване.
      */
     let compensated = false;
     const cancelOrReport = async (reason: string): Promise<Response | null> => {
-      if (!batchCharged || compensated) return null;
-      const { data, error } = await admin.rpc("cancel_corrections_wave", {
-        p_user_id: userId,
-        p_batch_id: batchId,
-        p_reason: reason,
-      });
-      const row = (data ?? {}) as { ok?: boolean; reason?: string };
-      if (error || row.ok !== true) {
+      if (compensated) return null;
+      const outcome = await cancelQuota(ledgerDb, operationId, reason);
+      if (outcome.status !== "settled") {
         await recordReconciliation(
-          admin as unknown as Parameters<typeof recordReconciliation>[0],
-          batchId,
-          `refine_contract_cancel_failed:${error?.message ?? row.reason ?? "unknown"}`,
+          ledgerDb,
+          operationId,
+          `refine_contract_cancel_failed:${outcome.reason}`,
           { user_id: userId, kind: "analysis" },
         );
         return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
@@ -378,6 +407,29 @@ ${answersStr}
     // и се преоценява там, където реално се прави анализ. Манифест не се издава
     // за отговор без risk — иначе бихме удостоверили нещо непроверено.
 
+    // ПОТВЪРЖДЕНИЕ + ОБВЪРЗВАНЕ на резултата ПРЕДИ 200: повторен опит по същия
+    // ключ връща точно този текст. Недоказано потвърждение НЕ дава 200.
+    const settlement = await commitQuota(ledgerDb, operationId, {
+      contract: parsed.contract,
+      changed_clause_numbers: parsed.changed_clause_numbers ?? [],
+      change_summary: parsed.change_summary ?? "",
+    });
+    if (settlement.status !== "settled") {
+      await recordReconciliation(
+        ledgerDb,
+        operationId,
+        `refine_contract_commit_unresolved:${settlement.reason}`,
+        { user_id: userId, kind: "analysis" },
+      );
+      await logAiAudit({
+        user_id: userId, operation: "refine-contract", model: route.model,
+        classification, redaction_applied: route.redactionRequired,
+        status: "error", error_code: "commit_unresolved",
+      });
+      return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+    }
+    compensated = true;
+
     await logAiAudit({
       user_id: userId, operation: "refine-contract", model: route.model,
       classification, redaction_applied: route.redactionRequired,
@@ -389,27 +441,13 @@ ${answersStr}
     // ai_usage се записва САМО при успешен краен изход.
     await admin.from("ai_usage").insert({ user_id: userId, function_name: "refine-contract" });
 
-    // Резултатът се обвързва с ключа: повторен опит връща същия текст.
-    const { error: resultErr } = await admin.rpc("corrections_wave_set_result", {
-      p_user_id: userId,
-      p_batch_id: batchId,
-      p_result_ref: {
-        contract: parsed.contract,
-        changed_clause_numbers: parsed.changed_clause_numbers ?? [],
-        change_summary: parsed.change_summary ?? "",
-      },
-    });
-    if (resultErr) {
-      // Резултатът е валиден и се връща; само гаранцията за повторение липсва.
-      console.error("corrections_wave_set_result failed:", resultErr.message);
-    }
-
-
+    const committedRef = settlement.resultRef ?? null;
     return new Response(JSON.stringify({
-      contract: parsed.contract,
-      changed_clause_numbers: parsed.changed_clause_numbers ?? [],
-      change_summary: parsed.change_summary ?? "",
+      contract: committedRef?.contract ?? parsed.contract,
+      changed_clause_numbers: committedRef?.changed_clause_numbers ?? parsed.changed_clause_numbers ?? [],
+      change_summary: committedRef?.change_summary ?? parsed.change_summary ?? "",
       citations: legal.citations,
+      charge_state: "charged",
     }), {
       headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
     });

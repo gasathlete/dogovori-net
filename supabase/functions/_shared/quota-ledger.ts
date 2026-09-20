@@ -18,7 +18,24 @@ export interface LedgerTransition {
   readonly ok: boolean;
   /** Повторение по същия ключ — без второ таксуване/възстановяване. */
   readonly replay: boolean;
-  readonly reason?: "commit_after_cancel" | "cancel_after_commit";
+  readonly reason?:
+    | "commit_after_cancel"
+    | "cancel_after_commit"
+    | "reconciliation_required"
+    | "cancellation_unproven";
+  /** Ново таксуване по СЪЩИЯ ключ след доказана отмяна (нормален нов опит). */
+  readonly retry?: boolean;
+}
+
+/**
+ * Състоянието на отменена операция: ново таксуване по същия ключ е допустимо
+ * САМО когато отмяната е доказана и не чака изравняване.
+ */
+export interface CancelledBinding {
+  /** cancelled_at е записано (базата е потвърдила отмяната). */
+  readonly cancellationProven: boolean;
+  /** detail.reconciliation_required = true. */
+  readonly reconciliationRequired?: boolean;
 }
 
 /**
@@ -28,11 +45,34 @@ export interface LedgerTransition {
 export function nextLedgerState(
   current: LedgerState | null,
   action: LedgerAction,
+  cancelled?: CancelledBinding,
 ): LedgerTransition {
   if (action === "reserve") {
     if (current === null) return { state: "reserved", ok: true, replay: false };
+    if (current === "cancelled") {
+      // Неизравнена отмяна НИКОГА не се таксува повторно.
+      if (cancelled?.reconciliationRequired) {
+        return {
+          state: "cancelled",
+          ok: false,
+          replay: true,
+          reason: "reconciliation_required",
+        };
+      }
+      if (cancelled?.cancellationProven !== true) {
+        return {
+          state: "cancelled",
+          ok: false,
+          replay: true,
+          reason: "cancellation_unproven",
+        };
+      }
+      // Доказана отмяна със същото обвързване: нормалният „Опитайте отново"
+      // резервира наново точно веднъж.
+      return { state: "reserved", ok: true, replay: false, retry: true };
+    }
     // Повторна резервация по същия ключ не таксува втори път.
-    return { state: current, ok: current !== "cancelled", replay: true };
+    return { state: current, ok: true, replay: true };
   }
   if (action === "commit") {
     if (current === "reserved") return { state: "committed", ok: true, replay: false };
@@ -70,6 +110,8 @@ export interface ReserveInput {
   /** Нормализиран UUID на таба или null — НИКОГА празен текст. */
   readonly sessionId?: string | null;
   readonly docKey?: string | null;
+  /** UUID на партидата (вълна поправки) или null. Част от обвързването. */
+  readonly batchId?: string | null;
   /** ЗАДЪЛЖИТЕЛЕН каноничен SHA-256 отпечатък (64 hex) на заявката. */
   readonly requestDigest: string;
   /** Наем на резервацията в секунди (изтеклите се изравняват от метача). */
@@ -78,11 +120,19 @@ export interface ReserveInput {
 
 export const IDEMPOTENCY_KEY_CONFLICT = "idempotency_key_conflict";
 
+/** Причини, при които НЕ се таксува и се иска изравняване, а не нов опит. */
+const RECONCILIATION_REASONS = new Set([
+  "reconciliation_required",
+  "cancellation_unproven",
+]);
+
 export type ReserveOutcome =
   | {
       readonly status: "reserved";
       readonly charged: boolean;
       readonly replay: boolean;
+      /** Ново таксуване по същия ключ след ДОКАЗАНА отмяна. */
+      readonly retry: boolean;
       readonly source: string;
       /** Записан резултат при повторение по същия ключ (иначе null). */
       readonly resultRef: Record<string, unknown> | null;
@@ -91,6 +141,8 @@ export type ReserveOutcome =
   | { readonly status: "denied"; readonly reason: string; readonly raw: Record<string, unknown> }
   /** Ключът е ползван с ДРУГ товар — нищо не се таксува и не се подава. */
   | { readonly status: "conflict"; readonly reason: string }
+  /** Недоказан изход по този ключ: нито нов опит, нито твърдение за такса. */
+  | { readonly status: "reconciliation"; readonly reason: string }
   | { readonly status: "unavailable"; readonly message: string };
 
 function isConflict(message: string): boolean {
@@ -114,6 +166,7 @@ export async function reserveQuota(db: Rpc, input: ReserveInput): Promise<Reserv
     p_purpose: input.purpose,
     p_session_id: input.sessionId ?? null,
     p_doc_key: input.docKey ?? null,
+    p_batch_id: input.batchId ?? null,
     p_request_digest: input.requestDigest,
     p_lease_seconds: input.leaseSeconds ?? 900,
   });
@@ -125,7 +178,11 @@ export async function reserveQuota(db: Rpc, input: ReserveInput): Promise<Reserv
   }
   const row = (data ?? {}) as Record<string, unknown>;
   if (row.ok !== true) {
-    return { status: "denied", reason: String(row.reason ?? "quota_denied"), raw: row };
+    const reason = String(row.reason ?? "quota_denied");
+    if (RECONCILIATION_REASONS.has(reason)) {
+      return { status: "reconciliation", reason };
+    }
+    return { status: "denied", reason, raw: row };
   }
   const resultRef = row.result_ref && typeof row.result_ref === "object"
     ? (row.result_ref as Record<string, unknown>)
@@ -134,6 +191,7 @@ export async function reserveQuota(db: Rpc, input: ReserveInput): Promise<Reserv
     status: "reserved",
     charged: row.charged === true,
     replay: row.replay === true,
+    retry: row.retry === true,
     source: String(row.source ?? "unknown"),
     resultRef,
     raw: row,

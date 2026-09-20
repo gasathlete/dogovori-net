@@ -66,26 +66,58 @@ export function RefineDraftBox({
     try {
       const { getStableOpKey, releaseStableOpKey } = await import("@/lib/opSession");
       // Стабилен ключ за ТОЗИ текст: нов опит след грешка не таксува пак.
-      const batchScope = `refine_contract:${text}`;
+      const opScope = `refine_contract_op:${text}`;
+      const batchScope = `refine_contract_wave:${text}`;
+      const operationId = getStableOpKey(opScope);
       const batchId = getStableOpKey(batchScope);
+      const releaseKeys = () => {
+        releaseStableOpKey(opScope);
+        releaseStableOpKey(batchScope);
+      };
       const { data, error } = await invokeEdgeFunction<{
         contract?: GeneratedContract;
         changed_clause_numbers?: string[];
         change_summary?: string;
         error?: string;
         code?: string;
+        retry_after_seconds?: number;
       }>("refine-contract", {
         body: {
           contract,
           feedback: text,
           answers,
+          operation_id: operationId,
           batch_id: batchId,
           userConfirmed,
         },
       });
-      if (!error && !data?.error) releaseStableOpKey(batchScope);
+      if (!error && !data?.error) releaseKeys();
       if (error || data?.error) {
         const code = data?.code || "";
+        if (
+          code === "idempotency_key_conflict" ||
+          code === "invalid_operation_id" ||
+          code === "operation_id_required"
+        ) {
+          // Ключът вече е ползван за друга заявка: нов ключ, без второ таксуване
+          // на стария.
+          releaseKeys();
+          toast.error("Заявката не съвпада с предишната. Опитайте отново.");
+          return;
+        }
+        if (code === "billing_reconciliation_required") {
+          toast.error(data?.error || "Състоянието на операцията се изравнява.", {
+            description: "Не започвайте нова редакция, докато не се изясни.",
+          });
+          return;
+        }
+        if (code === "quota_unavailable") {
+          const wait = Number(data?.retry_after_seconds ?? 0);
+          toast.error("Проверката на квотата е временно недостъпна.", {
+            description: wait > 0 ? `Опитайте отново след ${wait} сек.` : "Опитайте отново.",
+          });
+          return;
+        }
         const sensitive = await parseSensitiveResponse(error, data);
         if (isSpecialCategoryBlocked(sensitive)) {
           setSensitiveClass(sensitive?.classification ?? null);

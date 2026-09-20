@@ -461,6 +461,16 @@ Deno.serve(async (req: Request) => {
         { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+    // Неизравнена/недоказана отмяна: НЕ се таксува наново и НЕ се твърди нищо.
+    if (reservation.status === "reconciliation") {
+      await recordReconciliation(
+        admin as unknown as Parameters<typeof recordReconciliation>[0],
+        operationId,
+        `reserve_${reservation.reason}`,
+        { purpose: "download_blank" },
+      );
+      return billingReconciliationResponse(corsHeaders);
+    }
     if (reservation.status === "denied") {
       return new Response(
         JSON.stringify({
@@ -470,6 +480,97 @@ Deno.serve(async (req: Request) => {
         }),
         { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    }
+
+    // ВЪЗСТАНОВЯВАНЕ НА ВЕЧЕ КАЧЕНИЯ ТОЧЕН ФАЙЛ. Ако предишният опит е качил
+    // обекта, но отговорът/потвърждението са се загубили, същият ключ намира
+    // ТОЧНО този обект, потвърждава квотата идемпотентно и подписва нов адрес —
+    // без ново генериране и без второ таксуване.
+    const { lookupBoundArtifact, verifyArtifactExists, bindArtifactToOperation } = await import(
+      "../_shared/artifact-binding.ts"
+    );
+    const bound = await lookupBoundArtifact(
+      admin as unknown as Parameters<typeof lookupBoundArtifact>[0],
+      { operationId, userId, purpose: "download_blank", requestDigest },
+    );
+    if (bound.status === "mismatch") {
+      return new Response(
+        JSON.stringify({
+          error: "Този идентификатор вече е използван за друга заявка.",
+          code: "idempotency_key_conflict",
+          charge_state: "not_charged",
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (bound.status === "match") {
+      const exists = await verifyArtifactExists(
+        admin.storage as unknown as Parameters<typeof verifyArtifactExists>[0],
+        bound.bucket,
+        bound.path,
+      );
+      if (exists === "present") {
+        const filenameReplay = isBilingual
+          ? `${documentName} - бланка (BG-EN).docx`
+          : `${documentName} - бланка.docx`;
+        const settled = await commitQuota(
+          admin as unknown as Parameters<typeof commitQuota>[0],
+          operationId,
+          { bucket: bound.bucket, path: bound.path, filename: filenameReplay },
+        );
+        if (settled.status !== "settled") {
+          await recordReconciliation(
+            admin as unknown as Parameters<typeof recordReconciliation>[0],
+            operationId,
+            `replay_commit_unresolved:${settled.reason}`,
+            { purpose: "download_blank", bucket: bound.bucket, path: bound.path },
+          );
+          return billingReconciliationResponse(corsHeaders);
+        }
+        const { data: reSigned } = await admin.storage
+          .from(bound.bucket)
+          .createSignedUrl(bound.path, 60 * 10);
+        if (reSigned?.signedUrl) {
+          return new Response(
+            JSON.stringify({
+              ok: true,
+              url: reSigned.signedUrl,
+              filename: filenameReplay,
+              cached: false,
+              replay: true,
+              operation_id: operationId,
+              retry_idempotent: true,
+              citations: legal.citations,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        await recordReconciliation(
+          admin as unknown as Parameters<typeof recordReconciliation>[0],
+          operationId,
+          "replay_sign_failed",
+          { purpose: "download_blank", bucket: bound.bucket, path: bound.path },
+        );
+        return billingReconciliationResponse(corsHeaders);
+      }
+      // Обектът липсва или не може да бъде проверен: НЕ генерираме наново върху
+      // вече таксувана резервация.
+      await recordReconciliation(
+        admin as unknown as Parameters<typeof recordReconciliation>[0],
+        operationId,
+        `bound_artifact_${exists}`,
+        { purpose: "download_blank", bucket: bound.bucket, path: bound.path },
+      );
+      return billingReconciliationResponse(corsHeaders);
+    }
+    if (bound.status === "unavailable") {
+      await recordReconciliation(
+        admin as unknown as Parameters<typeof recordReconciliation>[0],
+        operationId,
+        `artifact_${bound.reason}`,
+        { purpose: "download_blank" },
+      );
+      return billingReconciliationResponse(corsHeaders);
     }
     const isPro = reservation.raw?.is_pro === true || undefined;
 
@@ -546,19 +647,36 @@ Deno.serve(async (req: Request) => {
         });
       if (upErr) throw new Error(`upload: ${upErr.message}`);
 
-      // Записваме файла в леджъра за изтриване (retention-sweeper). Ако записът
-      // не успее, обектът се маха веднага, за да няма „осиротял" файл.
+      // ТРАЙНО ОБВЪРЗВАНЕ с операцията ПРЕДИ потвърждаване на квотата: така
+      // повторен опит по същия ключ намира точно този обект. Ако обвързването
+      // не успее, обектът се маха синхронно; ако и махането не е доказано,
+      // случаят се записва за изравняване.
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-      const { error: ledgerErr } = await admin.from("storage_artifacts").insert({
-        user_id: userId,
-        bucket: "document-blanks",
-        storage_path: storagePath,
-        scope: "request",
-        expires_at: expiresAt,
-      });
-      if (ledgerErr) {
-        await admin.storage.from("document-blanks").remove([storagePath]);
-        throw new Error(`artifact_ledger: ${ledgerErr.message}`);
+      const bindOutcome = await bindArtifactToOperation(
+        admin as unknown as Parameters<typeof bindArtifactToOperation>[0],
+        {
+          operationId,
+          userId,
+          bucket: "document-blanks",
+          storagePath,
+          purpose: "download_blank",
+          requestDigest,
+          expiresAt,
+        },
+      );
+      if (bindOutcome.status !== "bound") {
+        const { error: rmErr } = await admin.storage
+          .from("document-blanks")
+          .remove([storagePath]);
+        if (rmErr) {
+          await recordReconciliation(
+            admin as unknown as Parameters<typeof recordReconciliation>[0],
+            operationId,
+            `artifact_bind_failed_cleanup_unproven:${bindOutcome.reason}`,
+            { purpose: "download_blank", bucket: "document-blanks", path: storagePath },
+          );
+        }
+        throw new Error(`artifact_binding:${bindOutcome.reason}`);
       }
     }
 

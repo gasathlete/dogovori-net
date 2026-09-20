@@ -12,7 +12,8 @@ export type AIOperation =
   | "correct-uploaded"
   | "ocr-contract"
   | "assistant-chat"
-  | "suggest-followup-questions";
+  | "suggest-followup-questions"
+  | "refine-contract";
 
 export interface RouteDecision {
   allowed: boolean;
