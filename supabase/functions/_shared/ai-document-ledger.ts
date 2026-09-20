@@ -418,6 +418,104 @@ export function ledgerUnavailableResponse(headers: Record<string, string>): Resp
   }, 503, headers);
 }
 
+export function internalErrorResponse(
+  headers: Record<string, string>,
+  correlationId?: string | null,
+): Response {
+  return json({
+    error: "Обработката не завърши. Опитайте отново след малко.",
+    code: "internal_error",
+    retryable: true,
+    ...(correlationId ? { correlation_id: correlationId } : {}),
+  }, 500, headers);
+}
+
+/* -------------------------------------------------------------------------
+ * Fail-closed обработка на НЕОЧАКВАНИ изключения.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Нормализирана причина: САМО клас/вид на грешката, НИКОГА съобщение, тяло от
+ * доставчик, съдържание на документ, OCR текст, base64 или тайна.
+ */
+export function normalizeFailureReason(
+  value: unknown,
+  fallback = "unexpected_error",
+): string {
+  if (value instanceof Error) {
+    if (value.message.startsWith("provider_call_budget_exceeded")) {
+      return "provider_call_budget_exceeded";
+    }
+    switch (value.name) {
+      case "AbortError":
+      case "TimeoutError":
+        return "provider_timeout";
+      case "TypeError":
+        return "provider_uncertainty";
+      case "SyntaxError":
+        return "malformed_response";
+    }
+  }
+  return fallback;
+}
+
+/** Контекст на операция, за която е ТРАЙНО записано начало на модела. */
+export interface PostModelContext {
+  db: LedgerRpc;
+  operationId: string;
+  userId: string;
+}
+
+/** Контекст на резервирана операция, при която моделът СИГУРНО не е стартирал. */
+export interface PreModelContext extends PostModelContext {}
+
+/**
+ * ВСЯКО неочаквано изключение СЛЕД трайното начало на модела: изравняване с
+ * нормализирана причина, без връщане на квота и без ново повикване към модел.
+ * Провал на самото изравняване не чупи отговора — състоянието се разрешава от
+ * чистача.
+ */
+export async function reconcileUnexpectedFailure(
+  ctx: PostModelContext,
+  headers: Record<string, string>,
+  error: unknown,
+): Promise<Response> {
+  const reason = normalizeFailureReason(error, "unexpected_post_model_error");
+  try {
+    await markDocumentReconciliation(ctx.db, {
+      operationId: ctx.operationId,
+      userId: ctx.userId,
+      reason,
+    });
+  } catch {
+    /* най-добро усилие: чистачът разрешава неразрешените операции */
+  }
+  return operationReconciliationResponse(headers, reason);
+}
+
+/**
+ * Неочаквано изключение ПРЕДИ модела, когато има резервация и моделът СИГУРНО
+ * не е стартирал: отмяна с точно възстановяване и нормализиран отговор.
+ */
+export async function cancelUnexpectedFailure(
+  ctx: PreModelContext,
+  headers: Record<string, string>,
+  error: unknown,
+  correlationId?: string | null,
+): Promise<Response> {
+  const reason = normalizeFailureReason(error, "unexpected_pre_model_error");
+  try {
+    await cancelDocumentOperation(ctx.db, {
+      operationId: ctx.operationId,
+      userId: ctx.userId,
+      reason,
+    });
+  } catch {
+    /* най-добро усилие */
+  }
+  return internalErrorResponse(headers, correlationId ?? null);
+}
+
 /**
  * ЕДИН детерминистичен превод на изхода от леджъра в HTTP отговор за всички
  * състояния, при които НЯМА право на изпълнение. `null` = продължавай.

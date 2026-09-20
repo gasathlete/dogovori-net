@@ -11,9 +11,12 @@ import { logAiAudit } from "../_shared/ai-call.ts";
 import {
   asOperationId,
   type LedgerRpc,
+  type PostModelContext,
   cancelDocumentOperation,
+  cancelUnexpectedFailure,
   canonicalDocumentBinding,
   commitDocumentOperation,
+  internalErrorResponse,
   ledgerBlockResponse,
   lookupDocumentOperation,
   markDocumentModelStarted,
@@ -22,8 +25,10 @@ import {
   operationIdRequiredResponse,
   operationReconciliationResponse,
   ProviderCallBudget,
+  reconcileUnexpectedFailure,
   reserveDocumentOperation,
 } from "../_shared/ai-document-ledger.ts";
+import { runOcrBatch, requireOcrPageContent } from "./ocr-batch.ts";
 
 const OCR_SYSTEM = `Ти си високо точен OCR енджин за български правни документи.
 Получаваш изображение на страница от договор. Върни ИЗКЛЮЧИТЕЛНО извлечения текст,
@@ -40,6 +45,11 @@ const OCR_SYSTEM = `Ти си високо точен OCR енджин за бъ
 Deno.serve(async (req: Request) => {
   const corsHeaders = buildCors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Контекст за fail-closed обработка на НЕОЧАКВАНИ изключения: след трайното
+  // начало на модела — изравняване; преди него (с резервация) — отмяна.
+  let postStart: PostModelContext | null = null;
+  let preStart: PostModelContext | null = null;
 
   try {
     const auth = req.headers.get("Authorization") ?? "";
@@ -148,6 +158,7 @@ Deno.serve(async (req: Request) => {
     }
     const reserveBlock = ledgerBlockResponse(reserved, corsHeaders);
     if (reserveBlock) return reserveBlock;
+    preStart = { db: ledger, operationId, userId };
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -175,10 +186,20 @@ Deno.serve(async (req: Request) => {
       return ledgerBlockResponse(started.outcome, corsHeaders) ??
         operationReconciliationResponse(corsHeaders, "model_start_unproven");
     }
+    // От тук нататък моделът може да е бил задействан: всяко изключение отива
+    // в изравняване, никога в отмяна/възстановяване.
+    const post: PostModelContext = { db: ledger, operationId, userId };
+    postStart = post;
+    preStart = null;
 
     // ЦЯЛАТА партида има твърд бюджет от 12 повиквания — не 12 на опит.
     const budget = new ProviderCallBudget("ocr_contract");
-    const ocrPage = async (dataUrl: string, pageIndex: number): Promise<string> => {
+    /**
+     * ЕДНА страница. ВСЯКА несигурност (изключение, не-2xx, нечетим JSON,
+     * липсващо/празно съдържание, изчерпан бюджет) хвърля — партидата става
+     * несигурна и НИЩО не се потвърждава. Тялото на отговора НЕ се логва.
+     */
+    const ocrPage = async (pageIndex: number): Promise<string> => {
       budget.take();
       const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -194,45 +215,33 @@ Deno.serve(async (req: Request) => {
               role: "user",
               content: [
                 { type: "text", text: `Извлечи целия текст от страница ${pageIndex + 1}.` },
-                { type: "image_url", image_url: { url: dataUrl } },
+                { type: "image_url", image_url: { url: pages[pageIndex] } },
               ],
             },
           ],
         }),
       });
-      if (!resp.ok) {
-        const t = await resp.text().catch(() => "");
-        console.error(`ocr page ${pageIndex} failed:`, resp.status, t.slice(0, 300));
-        return "";
-      }
-      const j = await resp.json();
-      return (j?.choices?.[0]?.message?.content ?? "").trim();
+      if (!resp.ok) throw new Error(`ocr_provider_http_${resp.status}`);
+      const j = await resp.json().catch(() => null);
+      return requireOcrPageContent(
+        (j as { choices?: Array<{ message?: { content?: unknown } }> } | null)
+          ?.choices?.[0]?.message?.content,
+      );
     };
 
-    // Run with bounded concurrency (3 in flight) — ~3× faster than sequential
-    // while still respecting AI gateway rate limits for the OCR endpoint.
-    const CONCURRENCY = 3;
-    const results: string[] = new Array(pages.length).fill("");
-    let nextIdx = 0;
-    const workers = Array.from({ length: Math.min(CONCURRENCY, pages.length) }, async () => {
-      while (true) {
-        const i = nextIdx++;
-        if (i >= pages.length) return;
-        results[i] = await ocrPage(pages[i], i);
-      }
-    });
+    // Ограничена едновременност (3) — по-бързо от последователно, без да се
+    // надхвърлят ограниченията на шлюза. Партидата е всичко-или-нищо.
+    let results: string[];
     try {
-      await Promise.all(workers);
+      results = await runOcrBatch({
+        pageCount: pages.length,
+        concurrency: 3,
+        readPage: ocrPage,
+      });
     } catch (e) {
       // СЛЕД началото на модела няма автоматично връщане на квота и няма
-      // второ повикване към модела: отива в изравняване.
-      console.error("ocr batch uncertainty:", (e as Error)?.name ?? "error");
-      await markDocumentReconciliation(ledger, {
-        operationId,
-        userId,
-        reason: "provider_uncertainty",
-      });
-      return operationReconciliationResponse(corsHeaders, "provider_uncertainty");
+      // второ повикване към модела: отива в изравняване. Нищо не се записва.
+      return await reconcileUnexpectedFailure(post, corsHeaders, e);
     }
 
     const parts: string[] = [];
@@ -292,9 +301,12 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("ocr-contract error:", e);
-    return new Response(JSON.stringify({ error: String((e as Error)?.message ?? e) }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // ВСЯКО неочаквано изключение след трайното начало на модела отива в
+    // изравняване. Никога не се логва сурова грешка, тяло от доставчик,
+    // изображение или разчетен текст.
+    if (postStart) return await reconcileUnexpectedFailure(postStart, corsHeaders, e);
+    if (preStart) return await cancelUnexpectedFailure(preStart, corsHeaders, e);
+    console.error("ocr-contract error", { name: e instanceof Error ? e.name : "unknown" });
+    return internalErrorResponse(corsHeaders);
   }
 });
