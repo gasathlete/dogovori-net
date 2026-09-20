@@ -100,20 +100,49 @@ export function buildAiEndpointGraph(input: GraphInput): GraphResult {
     if (rest.join("/") === "index.ts") functionNames.add(dir);
   }
 
-  const aiEndpoints: string[] = [];
+  const direct = new Set<string>();
   const delegations = new Map<string, string[]>();
   const reached = new Map<string, string[]>();
+  const unknownModules = new Set<string>();
+  const unknownDelegates = new Set<string>();
 
   for (const name of [...functionNames].sort()) {
     const entry = `${name}/index.ts`;
     const paths = reachableFiles(files, entry);
     reached.set(name, paths);
     let combined = "";
-    for (const p of paths) combined += `\n${files.get(p) ?? ""}`;
-    if (seedMarkers.some((m) => combined.includes(m))) aiEndpoints.push(name);
+    for (const p of paths) {
+      const src = files.get(p);
+      if (src === undefined) unknownModules.add(p);
+      combined += `\n${src ?? ""}`;
+    }
+    if (seedMarkers.some((m) => combined.includes(m))) direct.add(name);
     const del = new Set<string>();
     for (const p of paths) for (const d of delegatedFunctions(files.get(p) ?? "")) del.add(d);
+    for (const d of del) if (d !== name && !functionNames.has(d)) unknownDelegates.add(d);
     delegations.set(name, [...del].sort());
   }
-  return { aiEndpoints, delegations, reached };
+
+  // Транзитивно: ако A делегира към AI функция B, A също е AI вход.
+  const ai = new Set(direct);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const [fn, targets] of delegations) {
+      if (ai.has(fn)) continue;
+      if (targets.some((t) => t !== fn && ai.has(t))) {
+        ai.add(fn);
+        changed = true;
+      }
+    }
+  }
+
+  return {
+    aiEndpoints: [...ai].sort(),
+    directAiEndpoints: [...direct].sort(),
+    delegations,
+    reached,
+    unknownModules: [...unknownModules].sort(),
+    unknownDelegates: [...unknownDelegates].sort(),
+  };
 }
