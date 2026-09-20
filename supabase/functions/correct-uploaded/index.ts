@@ -189,7 +189,7 @@ Deno.serve(async (req: Request) => {
       userAgent: req.headers.get("user-agent"),
       corsHeaders,
     });
-    if (blocked) return blocked;
+    if (blocked) return await cancelAndRespond("content_blocked", blocked);
 
     // === GDPR/AI Act compliance layer ===
     // Класифицира се ЦЕЛИЯТ изходящ контекст: документът + запазените находки и
