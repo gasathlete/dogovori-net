@@ -183,7 +183,7 @@ describe("Изпълнението е устойчиво и остава без 
     expect(FULFILL).toContain("buildProductCallStore(admin as unknown as CallStoreRpcClient");
     expect(FULFILL).toContain('admin.rpc("commit_product_generation_result"');
     expect(FULFILL).not.toContain('admin.rpc("finish_product_generation"');
-    expect(FULFILL).toContain("const callStore = createProductCallStore");
+    expect(FULFILL).toContain("const callStore = buildProductCallStore");
     expect(FULFILL).toContain("p_generation_timestamp: durableState.generation_timestamp");
   });
 
