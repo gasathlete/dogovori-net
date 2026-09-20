@@ -35,7 +35,8 @@ type Row = {
   is_moderator: boolean;
   is_admin: boolean;
   created_at: string;
-  marketing_opt_out: boolean;
+  /** „opt_in“ = изрично съгласие, „opt_out“ = изричен отказ, „unknown“ = няма избор. */
+  marketing_status?: MarketingStatus | null;
 };
 
 
@@ -198,11 +199,18 @@ export default function AdminPage() {
 
                   <TableCell className="text-center">{r.bonus_contracts}</TableCell>
                   <TableCell className="text-center">
-                    {r.marketing_opt_out ? (
-                      <Badge variant="destructive" title="Изричен отказ от имейл маркетинг — не включвайте в кампании">−</Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-emerald-600 border-emerald-500/40" title="Няма възражение срещу имейл маркетинг">+</Badge>
-                    )}
+                    {(() => {
+                      const status = normalizeMarketingStatus(r.marketing_status);
+                      const label = marketingStatusLabel(status);
+                      const title = marketingStatusTitle(status);
+                      if (status === "opt_in") {
+                        return <Badge variant="outline" className="text-emerald-600 border-emerald-500/40" title={title}>{label}</Badge>;
+                      }
+                      if (status === "opt_out") {
+                        return <Badge variant="destructive" title={title}>{label}</Badge>;
+                      }
+                      return <Badge variant="outline" className="text-muted-foreground" title={title}>{label}</Badge>;
+                    })()}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
