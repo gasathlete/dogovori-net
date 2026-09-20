@@ -199,13 +199,34 @@ ${answersStr}
     }
     const batchCharged = !batchResult.cached;
 
-    // ЕДИНСТВЕН ВЪЗСТАНОВЯВАЩ ПАЗИТЕЛ: изпълнява се най-много веднъж при всеки
-    // неуспешен краен изход след таксуване.
-    let refunded = false;
-    const refundOnce = async () => {
-      if (!batchCharged || refunded) return;
-      refunded = true;
-      await admin.rpc("refund_quota", { _user_id: userId, _kind: "analysis", _used_bonus: false });
+    const { billingReconciliationResponse, recordReconciliation } = await import("../_shared/quota-ledger.ts");
+
+    /**
+     * ЕДИНСТВЕН КОМПЕНСИРАЩ ПАЗИТЕЛ. Отмяната е идемпотентна по batch_id в
+     * базата (cancel_corrections_wave) и изходът ѝ се проверява. „charged:
+     * false" се твърди САМО при потвърдена отмяна; иначе връщаме типизиран
+     * billing_reconciliation_required и записваме траен запис за изравняване.
+     */
+    let compensated = false;
+    const cancelOrReport = async (reason: string): Promise<Response | null> => {
+      if (!batchCharged || compensated) return null;
+      const { data, error } = await admin.rpc("cancel_corrections_wave", {
+        p_user_id: userId,
+        p_batch_id: batchId,
+        p_reason: reason,
+      });
+      const row = (data ?? {}) as { ok?: boolean; reason?: string };
+      if (error || row.ok !== true) {
+        await recordReconciliation(
+          admin as unknown as Parameters<typeof recordReconciliation>[0],
+          batchId,
+          `refine_contract_cancel_failed:${error?.message ?? row.reason ?? "unknown"}`,
+          { user_id: userId, kind: "analysis" },
+        );
+        return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+      }
+      compensated = true;
+      return null;
     };
 
     try {
@@ -223,14 +244,15 @@ ${answersStr}
     });
 
     if (!aiResp.ok) {
-      await refundOnce();
+      const unresolved = await cancelOrReport(`ai_gateway_${aiResp.status}`);
       await logAiAudit({
         user_id: userId, operation: "refine-contract", model: route.model,
         classification, redaction_applied: route.redactionRequired,
         status: "error", error_code: `http_${aiResp.status}`,
       });
-      if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Достигнат е лимитът. Опитайте по-късно." }), { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
-      if (aiResp.status === 402) return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI." }), { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
+      if (unresolved) return unresolved;
+      if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Достигнат е лимитът. Опитайте по-късно.", charged: false, charge_state: "cancelled" }), { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
+      if (aiResp.status === 402) return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI.", charged: false, charge_state: "cancelled" }), { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
       const t = await aiResp.text();
       console.error("AI gateway:", aiResp.status, t);
       throw new Error("AI грешка");
