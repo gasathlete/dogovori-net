@@ -25,12 +25,12 @@ const SIZE_PREF_KEY = "dogovai_size_pref"; // "small" | "full"
  */
 
 const HIDDEN_PREFIXES = ["/assistant", "/console", "/signing", "/share", "/checkout"];
-const ANON_LIMIT = 3;
-// Persist anonymous trial across close/re-open. Server enforces 5/24h per IP,
-// so the client counter should not silently reset when the user closes the
-// bubble — it caused confusion ("тестовете се рестартират").
-const ANON_PERSIST_MS = 24 * 60 * 60 * 1000; // 24h — matches server IP limit
+const ANON_LIMIT = 5;
+// Пробният период се пази, докато го пази и сървърът (30 дни за същия
+// посетител). Локален брояч НИКОГА не дава повече от сървърния.
+const ANON_PERSIST_MS = 30 * 24 * 60 * 60 * 1000;
 const ANON_STORAGE_KEY = "dogovai_anon_chat_v2";
+
 const LAST_ACTIVITY_KEY = "dogovai_last_activity_v2";
 const LEGACY_KEYS = ["dogovai_anon_chat", "dogovai_anon_chat_v1", "dogovai_last_activity"];
 
