@@ -333,8 +333,11 @@ ${answersStr}
       headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
     });
     } catch (afterCharge) {
-      // Всеки неуспешен краен изход след таксуване връща операцията точно веднъж.
-      await refundOnce();
+      // Всеки неуспешен краен изход след таксуване отменя вълната точно веднъж.
+      const unresolved = await cancelOrReport(
+        `exception:${String((afterCharge as Error)?.message ?? afterCharge).slice(0, 200)}`,
+      );
+      if (unresolved) return unresolved;
       throw afterCharge;
     }
   } catch (e) {
