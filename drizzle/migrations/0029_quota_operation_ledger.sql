@@ -857,39 +857,7 @@ REVOKE ALL ON FUNCTION public.corrections_wave_set_result(uuid, uuid, jsonb) FRO
 GRANT EXECUTE ON FUNCTION public.corrections_wave_set_result(uuid, uuid, jsonb) TO service_role;
 
 -- ---------------------------------------------------------------------------
--- 8) НЕИЗМЕНИМО ДОКАЗАТЕЛСТВО ЗА AI ГЕНЕРИРАНО СЪДЪРЖАНИЕ (редакционни
---    чернови). Записва се от сървъра при генериране и позволява на човека
---    рецензент да сравни текущия текст с генерирания.
---    verified = false винаги: съвпадение при извличане НЕ е правна проверка.
+-- 8) Доказателствата за AI генерирано съдържание са изнесени в миграция 0030
+--    (public.article_generation_evidence). Тук съзнателно НЕ се дефинира втора
+--    таблица за същото, за да няма дублиран и неползван дизайн.
 -- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.ai_generation_evidence (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  article_id uuid REFERENCES public.user_articles(id) ON DELETE CASCADE,
-  generator text NOT NULL,
-  model text,
-  content_hash text NOT NULL,
-  prompt_version text NOT NULL,
-  prompt_digest text NOT NULL,
-  sources jsonb NOT NULL DEFAULT '[]'::jsonb,
-  verified boolean NOT NULL DEFAULT false,
-  generated_at timestamptz NOT NULL DEFAULT now(),
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS ai_generation_evidence_article_idx
-  ON public.ai_generation_evidence (article_id, generated_at DESC);
-
--- Само добавяне: няма UPDATE/DELETE право за никого освен service_role.
-GRANT SELECT, INSERT ON public.ai_generation_evidence TO service_role;
-ALTER TABLE public.ai_generation_evidence ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "staff read generation evidence"
-  ON public.ai_generation_evidence FOR SELECT
-  TO authenticated
-  USING (public.is_staff(auth.uid()));
-GRANT SELECT ON public.ai_generation_evidence TO authenticated;
-
--- verified никога не става true от AI път: заключваме го на ниво таблица.
-ALTER TABLE public.ai_generation_evidence
-  ADD CONSTRAINT ai_generation_evidence_not_self_verified
-  CHECK (verified = false) NOT VALID;
