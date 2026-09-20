@@ -5,7 +5,9 @@
  */
 export {
   canonicalGrant,
-  consumeReviewGrantDurable,
+  cancelReviewOperation,
+  commitReviewOperation,
+  reserveReviewOperation,
   issueGrantForGeneratedContent,
   issueReviewGrant,
   normalizeReviewContent,

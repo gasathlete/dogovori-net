@@ -170,18 +170,60 @@ Deno.test("инфраструктурна грешка е недостъпнос
   assertEquals((await readAnonDeliveryState(d, "h")).unavailable, true);
 });
 
-Deno.test("потвърждаването праща точния отговор и обвързването", async () => {
-  const d = db(() => ({ data: { ok: true, remaining: 3 }, error: null }));
+Deno.test("потвърждаването връща ТОЧНИЯ траен отговор от базата", async () => {
+  const stored = { reply: "здравейте", remaining: 3 };
+  const d = db(() => ({ data: { ok: true, remaining: 3, response: stored }, error: null }));
   const res = await commitAnonDelivery(d, {
     operationId: OP,
     identityHash: "h",
     requestDigest: DIGEST,
-    response: { reply: "здравейте", remaining: 4 },
+    response: { reply: "здравейте" },
   });
-  assertEquals(res, { kind: "committed", remaining: 3, replay: false });
+  assertEquals(res, { kind: "committed", remaining: 3, replay: false, response: stored });
   assertEquals(d.calls[0].name, "anon_delivery_commit");
   assertEquals(d.calls[0].args.p_operation_id, OP);
   assertEquals(d.calls[0].args.p_request_digest, DIGEST);
+});
+
+Deno.test("състезаващо потвърждаване връща първия траен отговор без промяна", async () => {
+  const first = { reply: "първи", remaining: 2 };
+  const d = db(() => ({
+    data: { ok: true, replay: true, state: "committed", response: first },
+    error: null,
+  }));
+  const res = await commitAnonDelivery(d, {
+    operationId: OP,
+    identityHash: "h",
+    requestDigest: DIGEST,
+    response: { reply: "втори" },
+  });
+  assertEquals(res, { kind: "committed", remaining: 2, replay: true, response: first });
+});
+
+Deno.test("липсващ траен отговор е недостъпност, не успех", async () => {
+  const d = db(() => ({ data: { ok: true, remaining: 1 }, error: null }));
+  assertEquals(
+    (await commitAnonDelivery(d, {
+      operationId: OP,
+      identityHash: "h",
+      requestDigest: DIGEST,
+      response: { reply: "x" },
+    })).kind,
+    "unavailable",
+  );
+});
+
+Deno.test("вече потвърдена операция НЕ се отменя", async () => {
+  const d = db(() => ({ data: { ok: false, reason: "already_committed" }, error: null }));
+  assertEquals(
+    (await cancelAnonDelivery(d, {
+      operationId: OP,
+      identityHash: "h",
+      requestDigest: DIGEST,
+      reason: "gateway_error",
+    })).kind,
+    "already_committed",
+  );
 });
 
 Deno.test("загубена надпревара при потвърждаване е лимит, не тих успех", async () => {

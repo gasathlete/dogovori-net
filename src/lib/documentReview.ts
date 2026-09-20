@@ -135,6 +135,10 @@ export interface ReviewOutcome {
   requestedDigest: string;
   /** Ревизията изисква изрично потвърждение за чувствителни данни. */
   confirmationRequired: boolean;
+  /** Същата проверка може да се повтори БЕЗ нова такса и без нов резултат. */
+  retryable?: boolean;
+  /** Колко секунди е разумно да се изчака преди нов опит. */
+  retryAfterSeconds?: number;
 }
 
 /**
@@ -249,12 +253,25 @@ export async function reviewDocument(
   }
 
   if (error || !data || typeof data.error === "string") {
+    const code = typeof data?.code === "string" ? data.code : "";
+    // Тези две състояния НЕ са провал: проверката вече се прави или състоянието
+    // ѝ се изяснява. Същият опит по-късно е безплатен.
+    const retryable = code === "review_in_progress" || code === "reconciliation_required";
+    const retryAfterSeconds = typeof data?.retry_after_seconds === "number"
+      ? Math.max(1, Math.round(data.retry_after_seconds))
+      : undefined;
+    const message = code === "review_in_progress"
+      ? "Проверката на този документ вече се извършва. Опитайте отново след малко."
+      : code === "reconciliation_required"
+      ? "Изясняваме състоянието на предишната проверка. Опитайте отново след малко."
+      : (typeof data?.error === "string" ? data.error : null) || error?.message || "Ревизията не успя";
     return {
       review: null,
-      error:
-        (typeof data?.error === "string" ? data.error : null) || error?.message || "Ревизията не успя",
+      error: message,
       requestedDigest,
-      confirmationRequired: data?.code === "confirmation_required",
+      confirmationRequired: code === "confirmation_required",
+      retryable,
+      retryAfterSeconds,
     };
   }
   const review = parseDocumentReview(data);

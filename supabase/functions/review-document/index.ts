@@ -20,6 +20,7 @@ import {
 } from "./review-context.ts";
 
 import { routeModel } from "../_shared/model-router.ts";
+import type { ReviewGrantPayload } from "../_shared/review-grant.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
 import {
@@ -166,7 +167,9 @@ Deno.serve(async (req: Request) => {
     );
 
     const {
-      consumeReviewGrantDurable,
+      cancelReviewOperation,
+      commitReviewOperation,
+      reserveReviewOperation,
       reviewContentDigest,
       reviewGrantSecret,
       REVIEW_GRANT_AUDIENCE,
@@ -176,28 +179,13 @@ Deno.serve(async (req: Request) => {
     const submittedGrant = rawBody?.grant ?? rawBody?.review_grant ?? null;
     const submittedDocumentId = rawBody?.document_id ?? rawBody?.documentId ?? null;
     let authorizedOwnerId: string | null = null;
+    // Пропускът се РЕЗЕРВИРА по-късно — непосредствено преди платеното повикване.
+    let grantPayload: ReviewGrantPayload | null = null;
+    let persistedDenial: Parameters<typeof reviewDenial>[0] | null = null;
 
-    if (submittedGrant) {
-      const verdict = await verifyReviewGrant({
-        grant: submittedGrant,
-        secret: reviewGrantSecret(),
-        contentDigest,
-        subject: reviewUserId,
-        expectedOwner: reviewUserId,
-        expectedOperation: REVIEW_GRANT_AUDIENCE,
-      });
-      if (!verdict.ok) {
-        return denied(
-          verdict.reason === "grant_unavailable" ? "grant_unavailable" : "grant_invalid",
-        );
-      }
-      // ТРАЙНА еднократност ПРЕДИ модела. Недостъпна база НЕ е разрешение.
-      const consumed = await consumeReviewGrantDurable(admin, verdict.payload);
-      if (!consumed.ok) {
-        return denied(consumed.reason === "replayed" ? "grant_replayed" : "grant_unavailable");
-      }
-      authorizedOwnerId = verdict.payload.owner ?? reviewUserId;
-    } else if (submittedDocumentId) {
+    // ПРЕДПОЧИТАНИЕ: проверен собственик на запазения документ. Така нормалният
+    // собствен поток НЕ харчи пропуск и остарял пропуск не блокира ревизията.
+    if (submittedDocumentId) {
       const { renderCanonicalPlainText } = await import(
         "../_shared/generated-document-quality.ts"
       );
@@ -244,10 +232,37 @@ Deno.serve(async (req: Request) => {
           } as const;
         },
       });
-      if (!verdict.ok) return denied(verdict.reason);
-      authorizedOwnerId = verdict.ownerId;
-    } else {
-      return denied("missing_authorization");
+      if (verdict.ok) {
+        authorizedOwnerId = verdict.ownerId;
+      } else if (verdict.reason === "unavailable") {
+        // Недостъпна база НИКОГА не се компенсира с пропуск.
+        return denied(verdict.reason);
+      } else {
+        persistedDenial = verdict.reason;
+      }
+    }
+
+    // Пропускът е РЕЗЕРВЕН път: използва се само ако няма проверен собственик.
+    if (!authorizedOwnerId && submittedGrant) {
+      const verdict = await verifyReviewGrant({
+        grant: submittedGrant,
+        secret: reviewGrantSecret(),
+        contentDigest,
+        subject: reviewUserId,
+        expectedOwner: reviewUserId,
+        expectedOperation: REVIEW_GRANT_AUDIENCE,
+      });
+      if (!verdict.ok) {
+        return denied(
+          verdict.reason === "grant_unavailable" ? "grant_unavailable" : "grant_invalid",
+        );
+      }
+      grantPayload = verdict.payload;
+      authorizedOwnerId = verdict.payload.owner ?? reviewUserId;
+    }
+
+    if (!authorizedOwnerId) {
+      return denied(persistedDenial ?? "missing_authorization");
     }
 
     // ЩАБНО ИЗКЛЮЧЕНИЕ: само проверена роля може ръчно да изключи проверката за
@@ -398,10 +413,84 @@ Deno.serve(async (req: Request) => {
       return r;
     };
 
-    const aiResp = await callModel([
-      { role: "system", content: groundedSystem },
-      { role: "user", content: userPrompt },
-    ]);
+    const jsonHeaders = {
+      ...corsHeaders,
+      ...correlationHeaders(correlationId),
+      "Content-Type": "application/json",
+    };
+
+    // -----------------------------------------------------------------------
+    // РЕЗЕРВАЦИЯ НА ПРОПУСКА — последната стъпка преди платеното повикване.
+    // Всички безплатни откази (оторизация, потвърждение, редакция, заземяване,
+    // ограничител) вече са минали, така че пропускът не се губи напразно.
+    // -----------------------------------------------------------------------
+    if (grantPayload) {
+      const reserved = await reserveReviewOperation(admin, grantPayload);
+      if (reserved.kind === "replay") {
+        // ТОЧНО същият вече издаден резултат — без второ повикване към модел.
+        return new Response(JSON.stringify(reserved.response), { headers: jsonHeaders });
+      }
+      if (reserved.kind === "in_progress") {
+        return new Response(
+          JSON.stringify({
+            error: "Ревизията на този документ вече се обработва. Опитайте отново след малко.",
+            code: "review_in_progress",
+            retry_after_seconds: reserved.retryAfterSeconds,
+            source,
+          }),
+          { status: 409, headers: jsonHeaders },
+        );
+      }
+      if (reserved.kind === "expired" || reserved.kind === "conflict") {
+        return denied(reserved.kind === "expired" ? "grant_invalid" : "grant_replayed");
+      }
+      if (reserved.kind === "reconciliation") {
+        return new Response(
+          JSON.stringify({
+            error: "Проверяваме състоянието на предишната ревизия. Опитайте отново след малко.",
+            code: "reconciliation_required",
+            retry_after_seconds: 15,
+            source,
+          }),
+          { status: 503, headers: jsonHeaders },
+        );
+      }
+      if (reserved.kind !== "reserved") return denied("grant_unavailable");
+    }
+
+    /**
+     * ДОКАЗАНА отмяна при провал преди резултат: същият пропуск може да опита
+     * пак. Недоказана отмяна НЕ се представя като свободен пропуск.
+     */
+    const releaseReservation = async (
+      reason: string,
+    ): Promise<{ readonly reconcile: boolean }> => {
+      if (!grantPayload) return { reconcile: false };
+      const out = await cancelReviewOperation(admin, grantPayload, reason);
+      return { reconcile: out.kind === "uncertain" };
+    };
+    const reconciliationResponse = () =>
+      new Response(
+        JSON.stringify({
+          error: "Не можахме да потвърдим състоянието на ревизията. Опитайте отново след малко.",
+          code: "reconciliation_required",
+          retry_after_seconds: 15,
+          source,
+        }),
+        { status: 503, headers: jsonHeaders },
+      );
+
+    let aiResp: Response;
+    try {
+      aiResp = await callModel([
+        { role: "system", content: groundedSystem },
+        { role: "user", content: userPrompt },
+      ]);
+    } catch (callError) {
+      const rel = await releaseReservation("model_call_failed");
+      if (rel.reconcile) return reconciliationResponse();
+      throw callError;
+    }
 
     if (!aiResp.ok) {
       await logAiAudit({
@@ -409,34 +498,45 @@ Deno.serve(async (req: Request) => {
         redaction_applied: route.redactionRequired,
         status: "error", error_code: `http_${aiResp.status}`,
       });
+      const rel = await releaseReservation(`model_http_${aiResp.status}`);
+      if (rel.reconcile) return reconciliationResponse();
       if (aiResp.status === 429) {
-        return new Response(JSON.stringify({ error: "Достигнат е лимитът. Опитайте след малко." }), { status: 429, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "Достигнат е лимитът. Опитайте след малко." }), { status: 429, headers: jsonHeaders });
       }
       if (aiResp.status === 402) {
-        return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI." }), { status: 402, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "Изчерпани са кредитите за AI." }), { status: 402, headers: jsonHeaders });
       }
       throw new Error("AI грешка при ревизия");
     }
 
-    const data = await aiResp.json();
-    const content: string = data.choices?.[0]?.message?.content ?? "";
-    if (!content.trim()) throw new Error("AI не върна съдържание");
+    // Провал СЛЕД повикването също освобождава резервацията — но само доказано.
+    let data: { choices?: Array<{ message?: { content?: string } }>; usage?: Record<string, number> };
+    let parsed: unknown;
+    try {
+      data = await aiResp.json();
+      const content: string = data.choices?.[0]?.message?.content ?? "";
+      if (!content.trim()) throw new Error("AI не върна съдържание");
 
-    // Моделът понякога връща невалиден JSON (неескейпнати кавички в note/detail).
-    // Един поправящ проход, вместо 500 към потребителя.
-    const { parseAiJsonWithRetry } = await import("../_shared/ai-json-retry.ts");
-    const parsed = (await parseAiJsonWithRetry({
-      content,
-      messages: [
-        { role: "system", content: groundedSystem },
-        { role: "user", content: userPrompt },
-      ],
-      model: route.model,
-      apiKey: LOVABLE_API_KEY,
-      fn: "review-document",
-      correlationId,
-      regenerateAttempts: 1,
-    })).parsed as unknown;
+      // Моделът понякога връща невалиден JSON (неескейпнати кавички в note/detail).
+      // Един поправящ проход, вместо 500 към потребителя.
+      const { parseAiJsonWithRetry } = await import("../_shared/ai-json-retry.ts");
+      parsed = (await parseAiJsonWithRetry({
+        content,
+        messages: [
+          { role: "system", content: groundedSystem },
+          { role: "user", content: userPrompt },
+        ],
+        model: route.model,
+        apiKey: LOVABLE_API_KEY,
+        fn: "review-document",
+        correlationId,
+        regenerateAttempts: 1,
+      })).parsed as unknown;
+    } catch (parseError) {
+      const rel = await releaseReservation("model_result_unusable");
+      if (rel.reconcile) return reconciliationResponse();
+      throw parseError;
+    }
 
     // Възстановяване на реалните стойности САМО тук, в паметта, през същия
     // мапинг — по листа на JSON-а, за да не се чупи от кавички/контролни знаци.
@@ -531,9 +631,19 @@ Deno.serve(async (req: Request) => {
       tokens_out: data?.usage?.completion_tokens,
     });
 
-    return new Response(JSON.stringify(review), {
-      headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
-    });
+    // ЗАПИС НА ТОЧНИЯ РЕЗУЛТАТ: повторният опит със същия пропуск връща
+    // буквално същата ревизия. Непотвърден запис НЕ се представя като успех.
+    if (grantPayload) {
+      const committed = await commitReviewOperation(
+        admin,
+        grantPayload,
+        review as unknown as Record<string, unknown>,
+      );
+      if (committed.kind !== "committed") return reconciliationResponse();
+      return new Response(JSON.stringify(committed.response), { headers: jsonHeaders });
+    }
+
+    return new Response(JSON.stringify(review), { headers: jsonHeaders });
 
   } catch (e) {
     // Диагностика без съдържание: никакви текстове на документа/контекста в лога.
