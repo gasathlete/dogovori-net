@@ -76,13 +76,9 @@ Deno.serve(async (req) => {
     const supaUrl = Deno.env.get("SUPABASE_URL")!;
     const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
     const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: "ai_misconfigured" }), {
-        status: 500,
-        headers: { ...cors, "Content-Type": "application/json" },
-      });
-    }
+    // Ключът на доставчика се чете СЛЕД само-четящото търсене на завършена
+    // операция — повторението не зависи от достъпа до доставчика.
+
 
     const auth = req.headers.get("Authorization") || "";
     const userClient = createClient(supaUrl, anon, {
