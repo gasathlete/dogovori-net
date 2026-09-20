@@ -339,7 +339,26 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // 1) Consume template quota first — fail fast if user has no allowance.
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY липсва");
+
+    // Match the document type so the AI doesn't render every blank as a contract.
+    const docTypeSpec = getDocumentTypeSpec(inferDocumentType(documentName));
+
+    // СТРОГО ЗАЗЕМЯВАНЕ — ПРЕДИ таксуване и преди всяко повикване към модела.
+    const { retrieveLegalContext } = await import("../_shared/legal-rag.ts");
+    const legal = await retrieveLegalContext(
+      admin,
+      LOVABLE_API_KEY,
+      `${documentName}\n${docTypeSpec.label}\n${sectorTitle || sectorId}`.slice(0, 4000),
+      { matchCount: 6 },
+    );
+    if (!legal.hasMatches) {
+      const { legalVerificationUnavailableResponse } = await import("../_shared/legal-gate.ts");
+      return legalVerificationUnavailableResponse({ headers: corsHeaders });
+    }
+
+    // 1) Consume template quota AFTER all non-billable checks and grounding.
     // Must be called with a user-scoped client so auth.uid() resolves inside the RPC.
     // If client provided session_id + doc_key, route through the session-aware
     // RPC so a blank download is free when the user has already paid for the
