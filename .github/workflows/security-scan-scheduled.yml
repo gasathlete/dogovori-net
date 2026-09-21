@@ -9,6 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read  # required by codeql-action/upload-sarif for workflow metadata
   contents: read
   security-events: write
 

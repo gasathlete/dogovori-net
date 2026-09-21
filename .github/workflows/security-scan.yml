@@ -7,6 +7,7 @@ on:
     branches: [main]
 
 permissions:
+  actions: read  # required by codeql-action/upload-sarif for workflow metadata
   contents: read
   security-events: write  # required to upload SARIF to Code Scanning
   pull-requests: read
