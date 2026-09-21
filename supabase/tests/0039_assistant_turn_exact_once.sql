@@ -15,6 +15,7 @@
 -- товара; retention_due_counts брои и асистентските редове, само-четящо.
 -- =============================================================================
 BEGIN;
+SET LOCAL search_path TO public, extensions, auth, storage;
 SELECT plan(140);
 
 -- ---------------------------------------------------------------------------
@@ -43,8 +44,6 @@ SELECT is(
     WHERE n.nspname = 'public' AND p.proname = 'assistant_turn_lookup'), 's',
   'assistant_turn_lookup е STABLE, следователно не може да пише');
 
-SET LOCAL role service_role;
-
 -- ---------------------------------------------------------------------------
 -- 1) Подготовка: потребители, профили, квоти, екип.
 -- ---------------------------------------------------------------------------
@@ -53,6 +52,29 @@ INSERT INTO auth.users (id, email) VALUES
   ('22222222-2222-4222-8222-222222222222', 'u2@example.com'),
   ('33333333-3333-4333-8333-333333333333', 'u3@example.com'),
   ('44444444-4444-4444-8444-444444444444', 'u4@example.com');
+-- Managed Supabase creates onboarding rows from auth.users. Remove those
+-- trigger side effects so this fixture controls every relevant counter.
+DELETE FROM public.notifications WHERE user_id IN (
+  '11111111-1111-4111-8111-111111111111',
+  '22222222-2222-4222-8222-222222222222',
+  '33333333-3333-4333-8333-333333333333',
+  '44444444-4444-4444-8444-444444444444');
+DELETE FROM public.folders WHERE user_id IN (
+  '11111111-1111-4111-8111-111111111111',
+  '22222222-2222-4222-8222-222222222222',
+  '33333333-3333-4333-8333-333333333333',
+  '44444444-4444-4444-8444-444444444444');
+DELETE FROM public.download_quota WHERE user_id IN (
+  '11111111-1111-4111-8111-111111111111',
+  '22222222-2222-4222-8222-222222222222',
+  '33333333-3333-4333-8333-333333333333',
+  '44444444-4444-4444-8444-444444444444');
+DELETE FROM public.profiles WHERE id IN (
+  '11111111-1111-4111-8111-111111111111',
+  '22222222-2222-4222-8222-222222222222',
+  '33333333-3333-4333-8333-333333333333',
+  '44444444-4444-4444-8444-444444444444');
+
 
 INSERT INTO public.profiles (id, display_name) VALUES
   ('11111111-1111-4111-8111-111111111111', 'Потребител Едно'),
@@ -89,6 +111,8 @@ VALUES ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   '44444444-4444-4444-8444-444444444444', 'owner');
 INSERT INTO public.team_usage (team_id, ops_used, period_start)
 VALUES ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 100, now());
+
+SET LOCAL role service_role;
 
 -- ---------------------------------------------------------------------------
 -- 2) Само-четящо търсене: absent.
@@ -632,10 +656,28 @@ SELECT is(
 -- 22) ОТКАЗ при ЛИПСВАЩИ броячи: нула създадени редове (corrective P0-E2).
 --     U7 няма ред в download_quota; T2 няма ред в team_usage.
 -- ---------------------------------------------------------------------------
+RESET ROLE;
 INSERT INTO auth.users (id, email) VALUES
   ('55555555-5555-4555-8555-555555555555', 'u5@example.com'),
   ('66666666-6666-4666-8666-666666666666', 'u6@example.com'),
   ('77777777-7777-4777-8777-777777777777', 'u7@example.com');
+DELETE FROM public.notifications WHERE user_id IN (
+  '55555555-5555-4555-8555-555555555555',
+  '66666666-6666-4666-8666-666666666666',
+  '77777777-7777-4777-8777-777777777777');
+DELETE FROM public.folders WHERE user_id IN (
+  '55555555-5555-4555-8555-555555555555',
+  '66666666-6666-4666-8666-666666666666',
+  '77777777-7777-4777-8777-777777777777');
+DELETE FROM public.download_quota WHERE user_id IN (
+  '55555555-5555-4555-8555-555555555555',
+  '66666666-6666-4666-8666-666666666666',
+  '77777777-7777-4777-8777-777777777777');
+DELETE FROM public.profiles WHERE id IN (
+  '55555555-5555-4555-8555-555555555555',
+  '66666666-6666-4666-8666-666666666666',
+  '77777777-7777-4777-8777-777777777777');
+
 INSERT INTO public.profiles (id, display_name) VALUES
   ('55555555-5555-4555-8555-555555555555', 'Потребител Пет'),
   ('66666666-6666-4666-8666-666666666666', 'Потребител Шест'),
@@ -647,6 +689,8 @@ VALUES ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'Екип без употреб�
 INSERT INTO public.team_members (team_id, user_id, role)
 VALUES ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
   '66666666-6666-4666-8666-666666666666', 'owner');
+
+SET LOCAL role service_role;
 
 SELECT is(
   (public.assistant_turn_reserve(
@@ -797,9 +841,23 @@ SELECT is(
 -- ---------------------------------------------------------------------------
 -- 25) PRO превъртане: по-късна легитимна употреба НЕ се изтрива от отмяната.
 -- ---------------------------------------------------------------------------
+RESET ROLE;
 INSERT INTO auth.users (id, email) VALUES
   ('88888888-8888-4888-8888-888888888888', 'u8@example.com'),
   ('99999999-9999-4999-8999-999999999999', 'u9@example.com');
+DELETE FROM public.notifications WHERE user_id IN (
+  '88888888-8888-4888-8888-888888888888',
+  '99999999-9999-4999-8999-999999999999');
+DELETE FROM public.folders WHERE user_id IN (
+  '88888888-8888-4888-8888-888888888888',
+  '99999999-9999-4999-8999-999999999999');
+DELETE FROM public.download_quota WHERE user_id IN (
+  '88888888-8888-4888-8888-888888888888',
+  '99999999-9999-4999-8999-999999999999');
+DELETE FROM public.profiles WHERE id IN (
+  '88888888-8888-4888-8888-888888888888',
+  '99999999-9999-4999-8999-999999999999');
+
 INSERT INTO public.profiles (id, display_name) VALUES
   ('88888888-8888-4888-8888-888888888888', 'Потребител Осем'),
   ('99999999-9999-4999-8999-999999999999', 'Потребител Девет');
@@ -811,6 +869,8 @@ INSERT INTO public.download_quota (
 VALUES (
   '88888888-8888-4888-8888-888888888888', 'pro', 50, 9,
   now() - interval '40 days', 4, 12, 9, 3, 6, now() - interval '40 days');
+
+SET LOCAL role service_role;
 
 SELECT is(
   (public.assistant_turn_reserve(
@@ -870,32 +930,32 @@ SELECT is(
 -- 26) ЕКИПНО превъртане: по-късна легитимна употреба НЕ се изтрива.
 -- ---------------------------------------------------------------------------
 INSERT INTO public.teams (id, name, owner_id, seat_count, status)
-VALUES ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'Екип на U9',
+VALUES ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'Екип на U9',
   '99999999-9999-4999-8999-999999999999', 3, 'active');
 INSERT INTO public.team_members (team_id, user_id, role)
-VALUES ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+VALUES ('cccccccc-cccc-4ccc-8ccc-cccccccccccc',
   '99999999-9999-4999-8999-999999999999', 'owner');
 INSERT INTO public.team_usage (team_id, ops_used, lifetime_ops, period_start)
-VALUES ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 240, 900,
+VALUES ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 240, 900,
   now() - interval '40 days');
 
 SELECT is(
   (public.assistant_turn_reserve(
     'a0000000-0000-4000-8000-0000000000ea', '99999999-9999-4999-8999-999999999999',
     repeat('6', 64), NULL, 'legal_strict', true, 'team',
-    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 180,
+    'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 180,
     '{"title":"Екипно превъртане"}'::jsonb, 3))->>'status',
   'reserved', 'екипна резервация, която превърта периода');
 SELECT is(
   (SELECT ops_used FROM public.team_usage
-    WHERE team_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'), 1,
+    WHERE team_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'), 1,
   'превъртеният екипен период започва от тази операция');
 
 -- Друг член ползва СЪЩИЯ нов период СЛЕД резервацията.
 UPDATE public.team_usage
    SET ops_used = ops_used + 2,
        lifetime_ops = lifetime_ops + 2
- WHERE team_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+ WHERE team_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 
 SELECT is(
   (public.assistant_turn_cancel(
@@ -909,11 +969,11 @@ SELECT is(
   'later_usage', 'екип: причината е по-късна употреба в същия период');
 SELECT is(
   (SELECT ops_used FROM public.team_usage
-    WHERE team_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'), 3,
+    WHERE team_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'), 3,
   'екип: по-късната употреба НЕ е изтрита от отмяната');
 SELECT is(
   (SELECT lifetime_ops FROM public.team_usage
-    WHERE team_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'), 903,
+    WHERE team_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'), 903,
   'екип: пожизненият брояч не е върнат назад върху по-късната употреба');
 SELECT is(
   (SELECT state FROM public.assistant_turn_operations
