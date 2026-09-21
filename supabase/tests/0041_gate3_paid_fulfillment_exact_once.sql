@@ -18,6 +18,7 @@
 -- поведение върху приложена схема с реални платени права.
 -- =============================================================================
 BEGIN;
+SET LOCAL search_path TO public, extensions, auth, storage;
 SELECT plan(68);
 
 SET LOCAL role service_role;
@@ -25,21 +26,21 @@ SET LOCAL role service_role;
 -- ---------------------------------------------------------------------------
 -- 1) Структура на трайното състояние.
 -- ---------------------------------------------------------------------------
-SELECT ok(has_column('public', 'product_fulfillment_jobs', 'reconciliation_required_at'),
+SELECT has_column('public', 'product_fulfillment_jobs', 'reconciliation_required_at',
   'задачата носи начало на неизясненото състояние');
-SELECT ok(has_column('public', 'product_fulfillment_jobs', 'reconciliation_code'),
+SELECT has_column('public', 'product_fulfillment_jobs', 'reconciliation_code',
   'задачата носи затворен код за изясняване');
-SELECT ok(has_column('public', 'product_fulfillment_jobs', 'reconciliation_call_id'),
+SELECT has_column('public', 'product_fulfillment_jobs', 'reconciliation_call_id',
   'задачата помни точното извикване');
-SELECT ok(has_column('public', 'product_fulfillment_jobs', 'reconciliation_resolved_at'),
+SELECT has_column('public', 'product_fulfillment_jobs', 'reconciliation_resolved_at',
   'задачата помни кога е разрешено');
-SELECT ok(has_column('public', 'product_result_refinements', 'reconciliation_required_at'),
+SELECT has_column('public', 'product_result_refinements', 'reconciliation_required_at',
   'уточнението носи начало на неизясненото състояние');
-SELECT ok(has_column('public', 'product_result_refinements', 'reconciliation_code'),
+SELECT has_column('public', 'product_result_refinements', 'reconciliation_code',
   'уточнението носи затворен код за изясняване');
-SELECT ok(has_column('public', 'product_result_refinements', 'reconciliation_call_id'),
+SELECT has_column('public', 'product_result_refinements', 'reconciliation_call_id',
   'уточнението помни точното извикване');
-SELECT ok(has_column('public', 'product_result_refinements', 'reconciliation_resolved_at'),
+SELECT has_column('public', 'product_result_refinements', 'reconciliation_resolved_at',
   'уточнението помни кога е разрешено');
 SELECT ok(
   EXISTS (SELECT 1 FROM pg_constraint
@@ -59,11 +60,11 @@ SELECT ok(
   'едно неразрешено състояние на уточнение за платено право');
 
 -- Трите служебни таблици: дневник, решения и окончателно изразходвани извиквания.
-SELECT ok(has_table('public', 'product_reconciliation_events'),
+SELECT has_table('public', 'product_reconciliation_events',
   'дневникът на изясняванията съществува');
-SELECT ok(has_table('public', 'product_reconciliation_resolutions'),
+SELECT has_table('public', 'product_reconciliation_resolutions',
   'решенията на оператора се пазят');
-SELECT ok(has_table('public', 'product_reconciliation_terminal_calls'),
+SELECT has_table('public', 'product_reconciliation_terminal_calls',
   'окончателно изразходваните извиквания се пазят');
 SELECT ok(
   (SELECT bool_and(relrowsecurity AND relforcerowsecurity) FROM pg_class
@@ -96,15 +97,13 @@ SELECT ok(
 -- ---------------------------------------------------------------------------
 -- 2) Одитът е ЗАТВОРЕН: без свободен текст.
 -- ---------------------------------------------------------------------------
-SELECT ok(
-  NOT has_column('public', 'product_reconciliation_events', 'operator_note'),
+SELECT hasnt_column('public', 'product_reconciliation_events', 'operator_note',
   'дневникът НЕ пази свободен текст на оператор');
-SELECT ok(
-  NOT has_column('public', 'product_reconciliation_resolutions', 'operator_note'),
+SELECT hasnt_column('public', 'product_reconciliation_resolutions', 'operator_note',
   'решението НЕ пази свободен текст на оператор');
-SELECT ok(has_column('public', 'product_reconciliation_resolutions', 'reason_code'),
+SELECT has_column('public', 'product_reconciliation_resolutions', 'reason_code',
   'решението пази затворен код на причината');
-SELECT ok(has_column('public', 'product_reconciliation_resolutions', 'ticket_ref'),
+SELECT has_column('public', 'product_reconciliation_resolutions', 'ticket_ref',
   'решението пази непрозрачен номер на случай');
 
 -- Поведение на ограниченията: CHECK пада ПРЕДИ чуждия ключ, затова SQLSTATE 23514.
