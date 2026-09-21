@@ -1,3 +1,18 @@
+-- Добавя `conversion.checkout_failed` към metrics_overview.
+--
+-- checkout_failed = неуспешно СЪЗДАВАНЕ на Stripe сесия (не отказ от плащане).
+-- Свойствата на събитието са само ограничени етикети: plan, billing, source и
+-- category ∈ {price_not_found, price_mismatch, unauthorized, network, stripe,
+-- unknown}. Без свободен текст и без лични данни.
+--
+-- ВАЖНО: тялото по-долу е базирано 1:1 на ПОСЛЕДНАТА приложена версия
+-- (drizzle/migrations/0005_metrics_overview_add_continuity.sql), затова целият
+-- `continuity` блок се запазва без промяна. Единствената разлика е новият
+-- брояч `checkout_failed` в `conversion`.
+--
+-- ВНИМАНИЕ: този файл е само подготвен източник и НЕ е приложен. Фронтендът
+-- (/admin/metrics) толерира липсата на полето до прилагането му.
+
 CREATE OR REPLACE FUNCTION public.metrics_overview(_from timestamptz, _to timestamptz)
 RETURNS jsonb
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
