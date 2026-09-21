@@ -1,3 +1,16 @@
+-- Hardening на public.credit_topup_ops (еднократни покупки → операции).
+--
+-- Цели:
+--  * fail-closed валидация на входа (session id, ops, environment);
+--  * ако редът в topup_purchases е НОВ, но UPDATE на download_quota не засегне
+--    точно 1 ред → RAISE EXCEPTION, за да се върне цялата транзакция (включително
+--    insert-а). Така Stripe получава non-2xx и повтаря, а балансът не се губи;
+--  * повторна доставка на същата сесия → ok=true, credited=false, без нов кредит;
+--  * SECURITY DEFINER, фиксиран search_path, execute само за service_role.
+--
+-- ВНИМАНИЕ: този файл е само ПОДГОТВЕН източник и НЕ е приложен.
+-- Старите приложени миграции не са пипани.
+
 CREATE OR REPLACE FUNCTION public.credit_topup_ops(
   p_user_id uuid,
   p_price_id text,
@@ -40,9 +53,11 @@ BEGIN
   GET DIAGNOSTICS v_inserted = ROW_COUNT;
 
   IF v_inserted = 0 THEN
+    -- Повторна доставка на същата Stripe сесия: идемпотентен успех.
     RETURN jsonb_build_object('ok', true, 'credited', false);
   END IF;
 
+  -- Гарантираме, че редът с квотата съществува, преди да вдигнем баланса.
   INSERT INTO public.download_quota (user_id)
   VALUES (p_user_id)
   ON CONFLICT (user_id) DO NOTHING;
@@ -53,6 +68,8 @@ BEGIN
   GET DIAGNOSTICS v_updated = ROW_COUNT;
 
   IF v_updated <> 1 THEN
+    -- Rollback на цялата транзакция, включително topup_purchases insert-а,
+    -- за да остане retry-ът безопасен и балансът консистентен.
     RAISE EXCEPTION 'credit_topup_ops: quota update affected % rows for user %', v_updated, p_user_id;
   END IF;
 
