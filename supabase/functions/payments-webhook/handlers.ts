@@ -311,6 +311,96 @@ export function eventProofFrom(event: Any): StripeEventProof | null {
   return { eventId: id, paidAt: new Date(created * 1000).toISOString() };
 }
 
+export type ProductReversalAction =
+  | "refund_full"
+  | "dispute_created"
+  | "dispute_won"
+  | "dispute_lost";
+
+interface ResolvedProductSession {
+  sessionId: string;
+  userId: string;
+}
+
+function stripeId(value: Any): string | null {
+  if (typeof value === "string" && value.length > 0) return value;
+  if (value && typeof value.id === "string" && value.id.length > 0) return value.id;
+  return null;
+}
+
+/**
+ * A Charge/Dispute is bound to a product only through its PaymentIntent and
+ * the single Checkout Session Stripe returns for it. Zero or multiple
+ * product sessions are ignored: no guessed entitlement is ever reversed.
+ */
+async function resolveProductSession(
+  d: WebhookDeps,
+  object: Any,
+  env: StripeEnv,
+): Promise<ResolvedProductSession | null> {
+  const stripe = d.createStripe(env);
+  let paymentIntentId = stripeId(object?.payment_intent);
+  if (!paymentIntentId) {
+    const chargeId = stripeId(object?.charge);
+    if (!chargeId) return null;
+    const charge = await stripe.charges.retrieve(chargeId);
+    paymentIntentId = stripeId(charge?.payment_intent);
+  }
+  if (!paymentIntentId) return null;
+
+  const listed = await stripe.checkout.sessions.list({ payment_intent: paymentIntentId, limit: 3 });
+  const matches = (listed?.data ?? []).filter((session: Any) => {
+    const meta = readProductSessionMetadata(session?.metadata as Any);
+    return Boolean(
+      meta &&
+        session?.id &&
+        session?.mode === "payment" &&
+        meta.environment === env &&
+        (session?.livemode === undefined || session.livemode === (env === "live")),
+    );
+  });
+  if (matches.length !== 1) {
+    console.log("product reversal ignored — exact checkout session not proven");
+    return null;
+  }
+  const meta = readProductSessionMetadata(matches[0].metadata as Any)!;
+  return { sessionId: matches[0].id as string, userId: meta.userId };
+}
+
+export async function handleProductReversal(
+  d: WebhookDeps,
+  object: Any,
+  env: StripeEnv,
+  action: ProductReversalAction,
+  proof?: StripeEventProof | null,
+): Promise<void> {
+  if (!proof?.eventId || !proof?.paidAt || Number.isNaN(Date.parse(proof.paidAt))) {
+    throw new Error("product reversal event proof missing");
+  }
+  const resolved = await resolveProductSession(d, object, env);
+  if (!resolved) return;
+
+  // Charge and Dispute objects do not reliably carry the Session userId.
+  // Perform the sandbox staff gate only after the signed Stripe relationship
+  // resolves to the product Session metadata.
+  if (env === "sandbox" && !(await isStaffUser(d.db, resolved.userId))) {
+    console.log("sandbox product reversal ignored — non-staff owner");
+    return;
+  }
+
+  const { data, error } = await d.db.rpc("record_product_payment_reversal", {
+    p_session_id: resolved.sessionId,
+    p_environment: env,
+    p_event_id: proof.eventId,
+    p_event_at: proof.paidAt,
+    p_action: action,
+  });
+  if (error) throw new Error(`record_product_payment_reversal failed: ${error.message}`);
+  if ((data as { ok?: unknown } | null)?.ok !== true) {
+    throw new Error("record_product_payment_reversal did not return ok=true");
+  }
+}
+
 export async function handleCheckoutCompleted(
   d: WebhookDeps,
   session: Any,
@@ -684,6 +774,41 @@ export async function dispatchEvent(
   event: { type: string; id?: string; created?: number; data: { object: Any } },
   env: StripeEnv,
 ): Promise<void> {
+  // Reversal objects do not reliably contain metadata.userId. They resolve
+  // and enforce the sandbox staff gate inside the dedicated handler.
+  if (event.type === "charge.refunded") {
+    const charge = event.data.object;
+    if (
+      typeof charge?.amount === "number" && charge.amount > 0 &&
+      typeof charge?.amount_refunded === "number" &&
+      charge.amount_refunded >= charge.amount
+    ) {
+      await handleProductReversal(d, charge, env, "refund_full", eventProofFrom(event));
+    } else {
+      console.log("product reversal ignored — refund is not full");
+    }
+    return;
+  }
+  if (event.type === "charge.dispute.created") {
+    await handleProductReversal(d, event.data.object, env, "dispute_created", eventProofFrom(event));
+    return;
+  }
+  if (event.type === "charge.dispute.closed") {
+    const status = event.data.object?.status;
+    if (status === "won" || status === "lost") {
+      await handleProductReversal(
+        d,
+        event.data.object,
+        env,
+        status === "won" ? "dispute_won" : "dispute_lost",
+        eventProofFrom(event),
+      );
+    } else {
+      console.log("product reversal ignored — dispute is not final");
+    }
+    return;
+  }
+
   if (env === "sandbox" && !(await sandboxEntitlementAllowed(d, event.type, event.data.object))) {
     return;
   }

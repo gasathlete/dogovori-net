@@ -33,6 +33,7 @@ jobs:
       - name: Determine changed files
         id: changed
         run: |
+          mkdir -p reports
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             base="${{ github.event.pull_request.base.sha }}"
             head="${{ github.event.pull_request.head.sha }}"
@@ -40,20 +41,23 @@ jobs:
             base="${{ github.event.before }}"
             head="${{ github.sha }}"
           fi
-          files=$(git diff --name-only --diff-filter=AM "$base" "$head" -- \
-            'supabase/migrations/*.sql' 'src/**/*' 'supabase/functions/**/*' 'scripts/**/*' || true)
-          echo "files<<EOF" >> $GITHUB_OUTPUT
-          echo "$files" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          git diff --name-only -z --diff-filter=AM "$base" "$head" -- \
+            'supabase/migrations/*.sql' 'src/**/*' 'supabase/functions/**/*' 'scripts/**/*' \
+            > reports/security-changed-files.bin
+          if [ -s reports/security-changed-files.bin ]; then
+            echo "has_files=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_files=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Run security-scan (changed files, with GitHub annotations + SARIF)
-        if: steps.changed.outputs.files != ''
+        if: steps.changed.outputs.has_files == 'true'
         run: |
-          mkdir -p reports
+          mapfile -d '' -t changed_files < reports/security-changed-files.bin
           bun run scripts/security-scan.ts \
             --github \
             --sarif=reports/security-scan.sarif \
-            ${{ steps.changed.outputs.files }}
+            "${changed_files[@]}"
 
       - name: Upload SARIF to GitHub Code Scanning
         if: always() && hashFiles('reports/security-scan.sarif') != ''

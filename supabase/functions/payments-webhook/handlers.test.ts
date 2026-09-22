@@ -27,6 +27,7 @@ function makeDb(opts: {
 } = {}) {
   const calls: Call[] = [];
   const rpcCalls: string[] = [];
+  const rpcArgs: Array<{ fn: string; args: unknown }> = [];
   const results = opts.results ?? {};
 
   function builder(table: string) {
@@ -57,9 +58,11 @@ function makeDb(opts: {
   return {
     calls,
     rpcCalls,
+    rpcArgs,
     from: (table: string) => builder(table),
     rpc: (fn: string, args: unknown) => {
       rpcCalls.push(fn);
+      rpcArgs.push({ fn, args });
       return Promise.resolve(opts.rpc ? opts.rpc(fn, args) : { data: true, error: null });
     },
   };
@@ -104,6 +107,57 @@ function makeSpyDeps(db: any) {
     },
   });
   return { deps, lineItemCalls, emails };
+}
+
+const productSession = {
+  id: "cs_product_reversal",
+  mode: "payment",
+  livemode: false,
+  payment_intent: "pi_product",
+  metadata: {
+    purchase_kind: "product",
+    productId: "contract_check",
+    userId: "staff_1",
+    intakeId: "intake_1",
+    sourceDocumentId: "doc_1",
+    environment: "sandbox",
+  },
+};
+
+function makeReversalDeps(
+  db: any,
+  sessions: unknown[] = [productSession],
+  over: Record<string, unknown> = {},
+) {
+  const emails: string[] = [];
+  const listCalls: unknown[] = [];
+  const chargeCalls: string[] = [];
+  const deps = makeDeps(db, {
+    createStripe: () => ({
+      checkout: {
+        sessions: {
+          list: (args: unknown) => {
+            listCalls.push(args);
+            return Promise.resolve({ data: sessions });
+          },
+          listLineItems: () => Promise.resolve({ data: [] }),
+        },
+      },
+      charges: {
+        retrieve: (id: string) => {
+          chargeCalls.push(id);
+          return Promise.resolve({ payment_intent: "pi_product" });
+        },
+      },
+      subscriptions: { retrieve: () => Promise.resolve({ metadata: {} }) },
+      ...over,
+    }),
+    sendEmail: (_db: unknown, template: string) => {
+      emails.push(template);
+      return Promise.resolve({});
+    },
+  });
+  return { deps, emails, listCalls, chargeCalls };
 }
 
 /** Първият ред, подаден на `order_snapshots.upsert`. */
@@ -450,4 +504,138 @@ Deno.test("snapshot записва вида покупка от класифик
     }, "live");
     assertEquals(snapshotRow(db).purchase_kind, c.kind);
   }
+});
+
+// ---------------------------------------------------------------------------
+// Gate 6 — product refund/dispute truth
+// ---------------------------------------------------------------------------
+
+function reversalEvent(type: string, object: Record<string, unknown>, id = "evt_reversal") {
+  return { type, id, created: 1_800_000_000, data: { object } };
+}
+
+Deno.test("full product refund records exact-session reversal and sends no email", async () => {
+  const db = makeDb({
+    rpc: (fn) => fn === "is_staff"
+      ? { data: true, error: null }
+      : { data: { ok: true }, error: null },
+  });
+  const { deps, emails, listCalls } = makeReversalDeps(db);
+  await dispatchEvent(deps, reversalEvent("charge.refunded", {
+    id: "ch_1",
+    payment_intent: "pi_product",
+    amount: 299,
+    amount_refunded: 299,
+  }), "sandbox");
+
+  assertEquals(listCalls, [{ payment_intent: "pi_product", limit: 3 }]);
+  assertEquals(db.rpcCalls, ["is_staff", "record_product_payment_reversal"]);
+  assertEquals(db.rpcArgs[1].args, {
+    p_session_id: "cs_product_reversal",
+    p_environment: "sandbox",
+    p_event_id: "evt_reversal",
+    p_event_at: new Date(1_800_000_000 * 1000).toISOString(),
+    p_action: "refund_full",
+  });
+  assertEquals(emails.length, 0);
+});
+
+Deno.test("partial refund is acknowledged without lookup, write, or email", async () => {
+  const db = makeDb();
+  const { deps, emails, listCalls } = makeReversalDeps(db);
+  await dispatchEvent(deps, reversalEvent("charge.refunded", {
+    payment_intent: "pi_product",
+    amount: 299,
+    amount_refunded: 100,
+  }), "sandbox");
+  assertEquals(listCalls.length, 0);
+  assertEquals(db.rpcCalls.length, 0);
+  assertEquals(emails.length, 0);
+});
+
+for (const c of [
+  { type: "charge.dispute.created", status: "needs_response", action: "dispute_created" },
+  { type: "charge.dispute.closed", status: "won", action: "dispute_won" },
+  { type: "charge.dispute.closed", status: "lost", action: "dispute_lost" },
+]) {
+  Deno.test(`${c.type}/${c.status} maps to ${c.action} without email`, async () => {
+    const db = makeDb({
+      rpc: (fn) => fn === "is_staff"
+        ? { data: true, error: null }
+        : { data: { ok: true }, error: null },
+    });
+    const { deps, emails } = makeReversalDeps(db);
+    await dispatchEvent(deps, reversalEvent(c.type, {
+      id: "dp_1",
+      payment_intent: "pi_product",
+      status: c.status,
+    }), "sandbox");
+    assertEquals((db.rpcArgs.at(-1)?.args as { p_action?: string }).p_action, c.action);
+    assertEquals(emails.length, 0);
+  });
+}
+
+Deno.test("non-final dispute close is ignored", async () => {
+  const db = makeDb();
+  const { deps, listCalls } = makeReversalDeps(db);
+  await dispatchEvent(deps, reversalEvent("charge.dispute.closed", {
+    payment_intent: "pi_product",
+    status: "warning_closed",
+  }), "sandbox");
+  assertEquals(listCalls.length, 0);
+  assertEquals(db.rpcCalls.length, 0);
+});
+
+Deno.test("missing or ambiguous product session is ignored fail-closed", async () => {
+  for (const sessions of [[], [productSession, { ...productSession, id: "cs_other" }]]) {
+    const db = makeDb();
+    const { deps, emails } = makeReversalDeps(db, sessions);
+    await dispatchEvent(deps, reversalEvent("charge.dispute.created", {
+      payment_intent: "pi_product",
+    }), "live");
+    assertEquals(db.rpcCalls.length, 0);
+    assertEquals(emails.length, 0);
+  }
+});
+
+Deno.test("dispute can resolve payment intent through its exact charge", async () => {
+  const db = makeDb({
+    rpc: (fn) => fn === "is_staff"
+      ? { data: true, error: null }
+      : { data: { ok: true }, error: null },
+  });
+  const { deps, chargeCalls } = makeReversalDeps(db);
+  await dispatchEvent(deps, reversalEvent("charge.dispute.created", { charge: "ch_exact" }), "sandbox");
+  assertEquals(chargeCalls, ["ch_exact"]);
+  assertEquals(db.rpcCalls.includes("record_product_payment_reversal"), true);
+});
+
+Deno.test("sandbox reversal for non-staff product owner performs no write", async () => {
+  const db = makeDb({ rpc: () => ({ data: false, error: null }) });
+  const { deps, emails } = makeReversalDeps(db);
+  await dispatchEvent(deps, reversalEvent("charge.dispute.created", {
+    payment_intent: "pi_product",
+  }), "sandbox");
+  assertEquals(db.rpcCalls, ["is_staff"]);
+  assertEquals(emails.length, 0);
+});
+
+Deno.test("reversal RPC error fails closed so Stripe retries", async () => {
+  const liveSession = {
+    ...productSession,
+    livemode: true,
+    metadata: { ...productSession.metadata, environment: "live" },
+  };
+  const db = makeDb({ rpc: () => ({ data: null, error: { message: "db_down" } }) });
+  const { deps, emails } = makeReversalDeps(db, [liveSession]);
+  await assertRejects(
+    () => dispatchEvent(deps, reversalEvent("charge.refunded", {
+      payment_intent: "pi_product",
+      amount: 299,
+      amount_refunded: 299,
+    }), "live"),
+    Error,
+    "record_product_payment_reversal failed",
+  );
+  assertEquals(emails.length, 0);
 });

@@ -336,7 +336,21 @@ Deno.serve(async (req) => {
         return_url: returnUrl,
         customer: customerId,
         // Никакви промокодове и отстъпки върху фиксираните микропродукти.
-        payment_intent_data: { description: spec.name },
+        payment_intent_data: {
+          description: spec.name,
+          // Reversal webhooks receive a Charge/Dispute, not the Checkout
+          // Session. Mirror only the same opaque binding metadata onto the
+          // PaymentIntent so a refund/dispute can be resolved back to exactly
+          // one product session without copying contract data or consent.
+          metadata: {
+            purchase_kind: "product",
+            productId: spec.id,
+            userId,
+            intakeId: intakeId!,
+            sourceDocumentId: uploadedContractId,
+            environment,
+          },
+        },
         // Само непрозрачни идентификатори и затворени изброявания. Без хешове,
         // имена на файлове, съгласия и контекст — истината е в заявката.
         metadata: {

@@ -53,7 +53,11 @@ byte-verified) е **приложена и проверена** в своя со�
 EXECUTE само върху `public.product_job_status(uuid)`; `service_role` има нужните
 DML и функционални права. Няма запис в Drizzle journal.
 
-**Няма чакаща миграция.** Схемата е на `0026_product_acl_hardening`.
+**Source-only Gate 6 forward-fix.** `0043_gate6_payment_reversal.sql` има
+byte-identical Supabase двойник, но още не е приложена. Тя добавя атомарна,
+service-role-only истина за пълен refund и dispute, без да трие резултат или
+доказателство. До отделно одобрение за staging DB схемата остава на
+`0026_product_acl_hardening`.
 
 Не са включени: feature flags, deploy на Edge функции, frontend publish, Stripe,
 sandbox и live AI. Няма монетизация.
@@ -171,8 +175,12 @@ timestamp-а на webhook-а, event/session idempotency и атомарния
 fulfillment и zero-retention flags OFF.
 
 Webhook endpoint-ът приема подписаните `checkout.session.completed` и
-`checkout.session.async_payment_succeeded`; всяко друго или непроверено събитие
-не създава продуктово право.
+`checkout.session.async_payment_succeeded`. След прилагане на 0043 allowlist-ът
+добавя `charge.refunded`, `charge.dispute.created` и `charge.dispute.closed`.
+Само пълен refund и окончателен `won`/`lost` dispute променят състояние; partial
+refund, неокончателен dispute, липсваща или двусмислена продуктова сесия се
+acknowledge-ват без write и без email. Reversal handler-ът изисква точна
+PaymentIntent → Checkout Session → entitlement връзка и exact environment.
 
 Checkout не трябва да достига Stripe преди всички gates: database binding,
 точен Stripe mapping и webhook, fulfillment, gateway, доказано zero retention,
@@ -187,6 +195,9 @@ fixture никога не е fallback за paid result.
 - грешен ID/цена/валута/tax/livemode, непълен schema capability, липсващ flag,
   неподготвен legal source или забранен residency спира преди Stripe session;
 - webhook duplicate не създава второ entitlement;
+- duplicate refund/dispute event е идемпотентен; cross-environment/session
+  binding се отказва, partial refund не отнема право, а dispute won никога не
+  възстановява стар processing lease;
 - fulfillment duplicate не създава втори резултат;
 - fulfillment OFF спира нови покупки/обработка, но не обезсилва вече платен
   готов entitlement;
