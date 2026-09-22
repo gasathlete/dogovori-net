@@ -95,6 +95,11 @@ DECLARE
   v_next text;
   v_snapshot_status text;
 BEGIN
+  -- Grants are the outer boundary; the signed JWT role is checked again
+  -- inside SECURITY DEFINER so a future ACL regression still fails closed.
+  IF auth.role() IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'product_reversal_service_role_required';
+  END IF;
   IF p_environment NOT IN ('live', 'sandbox') THEN
     RAISE EXCEPTION 'product_reversal_environment_invalid';
   END IF;
