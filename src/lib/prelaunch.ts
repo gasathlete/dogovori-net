@@ -87,3 +87,25 @@ export function buildWaitlistArgs(input: {
     _consent_version: PRELAUNCH_WAITLIST_CONSENT_VERSION,
   };
 }
+
+/**
+ * Вече възникнали права (активен абонамент/платено право) НЕ се затварят —
+ * затваря се само новото, недоказано действие.
+ */
+export function canUseFeature(
+  feature: string,
+  ctx: { hasActiveEntitlement: boolean },
+): boolean {
+  if (isFeatureAvailable(feature)) return true;
+  return isPrelaunchFeature(feature) && ctx.hasActiveEntitlement === true;
+}
+
+/** Липсващи доказателства по функция. Не са правни изводи. */
+export const PRELAUNCH_BLOCKERS: Readonly<Record<PrelaunchFeature, readonly string[]>> = Object.freeze({
+  blank_download: ["юридически преглед на бланките", "път без AI с тест (download-blank ползва AI)", "условия за цифрово съдържание"],
+  document_generation: ["DPA с AI доставчик", "AI Act прозрачност", "юридически преглед"],
+  document_review: ["DPA с AI доставчик и нулево съхранение", "миграции 0039–0041 и pgTAP", "ROPA/DPIA"],
+  assistant: ["DPA с AI доставчик", "AI Act прозрачност"],
+  one_time_product: ["sandbox плащане, дублиран webhook и реверс", "DPA с AI доставчик", "условия за покупка"],
+  subscription: ["sandbox плащане и реверс", "условия за цифрово съдържание", "фактура и ДДС"],
+});
