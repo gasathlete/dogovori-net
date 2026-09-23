@@ -343,6 +343,14 @@ Deno.serve(async (req) => {
         }
       }
 
+      // ПРЕГРАДА за окончателно решения сценарий (включително прочетения от
+      // банката текст) — ПРЕДИ записа на сесия и всяко повикване към модел.
+      {
+        const blocked = restrictedIdentifierBlock({ scenario }, cors);
+        if (blocked) return blocked;
+      }
+
+
       const { data: session, error: sessErr } = await sb
         .from("ai_simulation_sessions")
         .insert({
