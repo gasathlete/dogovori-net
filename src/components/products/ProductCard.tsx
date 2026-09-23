@@ -15,6 +15,7 @@ import {
   type OneTimeProduct,
 } from "@/lib/products";
 import { trackFunnelEvent } from "@/lib/funnel";
+import { RAW_FILE_INGRESS_ALLOWED } from "@/lib/privacyGate";
 
 export type ProductCardVariant = "full" | "compact";
 
@@ -106,7 +107,7 @@ export function ProductCard({
         <Link
           to={productPath(product)}
           onClick={() =>
-            trackFunnelEvent(PRODUCT_EVENTS.productSelected, {
+            trackFunnelEvent(RAW_FILE_INGRESS_ALLOWED ? PRODUCT_EVENTS.productSelected : PRODUCT_EVENTS.detailsOpened, {
               product: product.id,
               source,
               variant,
@@ -114,7 +115,7 @@ export function ProductCard({
           }
           className="btn-gold btn-press inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-5 py-3 text-[14px] font-bold tracking-tight transition-transform duration-200"
         >
-          {product.ctaLabel}
+          {RAW_FILE_INGRESS_ALLOWED ? product.ctaLabel : "Вижте продукта"}
           <ArrowRight className="h-4 w-4" />
         </Link>
       </article>
