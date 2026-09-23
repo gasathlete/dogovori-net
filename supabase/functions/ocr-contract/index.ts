@@ -29,6 +29,10 @@ import {
   reserveDocumentOperation,
 } from "../_shared/ai-document-ledger.ts";
 import { runOcrBatch, requireOcrPageContent } from "./ocr-batch.ts";
+import {
+  RAW_IMAGE_INGRESS_ALLOWED,
+  rawImageIngressBlockedResponse,
+} from "../_shared/privacy-gate.ts";
 
 const OCR_SYSTEM = `Ти си високо точен OCR енджин за български правни документи.
 Получаваш изображение на страница от договор. Върни ИЗКЛЮЧИТЕЛНО извлечения текст,
@@ -45,6 +49,10 @@ const OCR_SYSTEM = `Ти си високо точен OCR енджин за бъ
 Deno.serve(async (req: Request) => {
   const corsHeaders = buildCors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Преграда за ограничени идентификатори: изображения на страници не могат да
+  // бъдат проверени, затова не се приемат — нито от браузъра, нито директно.
+  if (!RAW_IMAGE_INGRESS_ALLOWED) return rawImageIngressBlockedResponse(corsHeaders);
 
   // Контекст за fail-closed обработка на НЕОЧАКВАНИ изключения: след трайното
   // начало на модела — изравняване; преди него (с резервация) — отмяна.

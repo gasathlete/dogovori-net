@@ -43,6 +43,7 @@ import { adaptGraphToWizardQuestions } from "@/data/questionGraphs/adapter";
 import { parseExtraPartyTypes } from "@/components/wizard/liveDraft/clauseBuilders";
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { generateContractJob } from "@/lib/generateContractJob";
+import { findRestrictedIdentifiersDeep, restrictedIdentifierMessage } from "@/lib/privacyGate";
 import { classifyGenerationError, errorClassOf, type GenerationError } from "@/lib/generationErrors";
 import { getOpSessionId, getStableOpKey, releaseStableOpKey, opaqueOpScope } from "@/lib/opSession";
 
@@ -515,6 +516,20 @@ export default function WizardPage() {
         bilingual: bilingualMode,
         userConfirmed,
       };
+      // ПРЕГРАДА ПРЕДИ МРЕЖАТА: ограничени идентификатори (ЕГН, IBAN, банкова
+      // сметка, лична карта) не се изпращат. Празни полета и заместители като
+      // [ЕГН] минават — генерирането на бланки остава напълно достъпно.
+      {
+        const restricted = findRestrictedIdentifiersDeep({ answers, documentName: docName });
+        if (restricted.length > 0) {
+          trackGenerate("blocked", { doc_key: docKey, source: "wizard", reason: "restricted_identifiers" });
+          toast.error("Заменете личните данни, преди да продължим", {
+            description: restrictedIdentifierMessage(restricted),
+            duration: 14000,
+          });
+          return;
+        }
+      }
       // НЕПРОЗРАЧЕН обхват от ЦЕЛИЯ товар: в браузърното хранилище не влиза
       // суров потребителски текст, а ключът е един и същ при повторен опит.
       const opPayloadScope = await opaqueOpScope("generate_contract", genPayload);

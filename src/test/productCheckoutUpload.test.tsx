@@ -27,6 +27,13 @@ vi.mock("sonner", () => ({ toast: { error: toastError, success: toastSuccess } }
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { functions: { invoke: vi.fn() } },
 }));
+// Тук проверяваме стъпките на екрана, затова преградата за сурови файлове е
+// отворена. Че при затворена преграда екранът показва обяснение вместо избор на
+// файл, се проверява в src/test/productCheckoutBlocked.test.tsx.
+vi.mock("@/lib/privacyGate", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/privacyGate")>("@/lib/privacyGate");
+  return { ...actual, RAW_FILE_INGRESS_ALLOWED: true };
+});
 vi.mock("@/lib/productUpload", async () => {
   const actual = await vi.importActual<typeof import("@/lib/productUpload")>(
     "@/lib/productUpload",

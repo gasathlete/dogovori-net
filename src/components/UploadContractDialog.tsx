@@ -20,6 +20,12 @@ import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { trackDocStart, trackGenerate } from "@/lib/docFunnel";
 import { classifyGenerationError, type GenerationError } from "@/lib/generationErrors";
 import { getStableOpKey, releaseStableOpKey, opaqueOpScope } from "@/lib/opSession";
+import {
+  RAW_FILE_BLOCKED_MESSAGE,
+  RAW_FILE_BLOCKED_TITLE,
+  RAW_FILE_INGRESS_ALLOWED,
+  assertNoRestrictedIdentifiers,
+} from "@/lib/privacyGate";
 
 type Folder = { id: string; name: string; is_favorites: boolean };
 type Contact = { id: string; name: string };
@@ -33,7 +39,8 @@ export function UploadContractDialog({
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   useEffect(() => { if (autoOpen) setOpen(true); }, [autoOpen]);
-  const [tab, setTab] = useState<ExtractSource>("pdf");
+  // Текстът е единственият приеман вход, докато суровите файлове са спрени.
+  const [tab, setTab] = useState<ExtractSource>(RAW_FILE_INGRESS_ALLOWED ? "pdf" : "paste");
   const [file, setFile] = useState<File | null>(null);
   const [pasted, setPasted] = useState("");
   const [title, setTitle] = useState("");
@@ -122,6 +129,12 @@ export function UploadContractDialog({
 
   const onFileChange = async (f: File | null) => {
     if (!f) return setFile(null);
+    // Преграда: суровият файл не се чете и не се качва.
+    if (!RAW_FILE_INGRESS_ALLOWED) {
+      setFile(null);
+      toast.error(RAW_FILE_BLOCKED_TITLE, { description: RAW_FILE_BLOCKED_MESSAGE });
+      return;
+    }
     // Magic-bytes + MIME + size валидация (защита срещу маскирани файлове)
     const { validateUploadedFile, detectFileKind } = await import("@/lib/fileValidation");
     const kind = detectFileKind(f);
@@ -194,7 +207,10 @@ export function UploadContractDialog({
       if (tab === "paste") {
         text = pasted.trim();
         if (text.length < 80) throw new Error("Текстът е твърде кратък (минимум 80 знака)");
+        // Fail-closed ПРЕДИ всяка заявка: ограничени идентификатори не излизат.
+        assertNoRestrictedIdentifiers([title, text]);
       } else {
+        if (!RAW_FILE_INGRESS_ALLOWED) throw new Error(RAW_FILE_BLOCKED_MESSAGE);
         if (!file) throw new Error("Моля, изберете файл");
         text = await extractTextFromFile(file, tab, (p) => setPhase(p));
         if (text.length < 80) throw new Error("Не успяхме да извлечем достатъчно текст от файла. Опитайте с друг формат или поставете текста ръчно.");
@@ -371,33 +387,52 @@ export function UploadContractDialog({
           <DialogTitle className="font-serif">Качване на собствен договор</DialogTitle>
         </DialogHeader>
 
-        <LegalDisclaimer variant="warning" storageKey="upload-ocr-accuracy" className="mt-1">
-          <strong>Дисклеймър:</strong> При обработка на PDF/DOCX може автоматично извлечените клаузи, суми и страни да са неточни — особено при сканирани документи. Прегледайте резултата и сравнете с оригинала, преди да го използвате правно.<br />
-          <strong>OCR цена:</strong> ако PDF е сканиран, OCR-ът на първите 3 страници е включен в анализа (1 операция). Всяка следваща страница струва +1 операция.
-        </LegalDisclaimer>
+        {RAW_FILE_INGRESS_ALLOWED ? (
+          <LegalDisclaimer variant="warning" storageKey="upload-ocr-accuracy" className="mt-1">
+            <strong>Дисклеймър:</strong> При обработка на PDF/DOCX може автоматично извлечените клаузи, суми и страни да са неточни — особено при сканирани документи. Прегледайте резултата и сравнете с оригинала, преди да го използвате правно.<br />
+            <strong>OCR цена:</strong> ако PDF е сканиран, OCR-ът на първите 3 страници е включен в анализа (1 операция). Всяка следваща страница струва +1 операция.
+          </LegalDisclaimer>
+        ) : (
+          <div
+            data-testid="upload-file-blocked"
+            role="note"
+            className="mt-1 rounded-lg border border-gold/40 bg-gold/5 p-4 text-sm"
+          >
+            <p className="font-semibold">{RAW_FILE_BLOCKED_TITLE}</p>
+            <p className="mt-2 text-muted-foreground">{RAW_FILE_BLOCKED_MESSAGE}</p>
+          </div>
+        )}
 
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as ExtractSource)}>
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="pdf"><FileText className="mr-1 h-3.5 w-3.5" />PDF</TabsTrigger>
-            <TabsTrigger value="docx"><FileText className="mr-1 h-3.5 w-3.5" />Word (.docx)</TabsTrigger>
+            <TabsTrigger value="pdf" disabled={!RAW_FILE_INGRESS_ALLOWED}><FileText className="mr-1 h-3.5 w-3.5" />PDF</TabsTrigger>
+            <TabsTrigger value="docx" disabled={!RAW_FILE_INGRESS_ALLOWED}><FileText className="mr-1 h-3.5 w-3.5" />Word (.docx)</TabsTrigger>
             <TabsTrigger value="paste"><ClipboardPaste className="mr-1 h-3.5 w-3.5" />Текст</TabsTrigger>
           </TabsList>
-          <TabsContent value="pdf" className="mt-3">
-            <Input type="file" accept="application/pdf,.pdf" onChange={(e) => onFileChange(e.target.files?.[0] ?? null)} />
-            {file && <div className="mt-2 text-xs text-muted-foreground">{file.name} · {(file.size / 1024).toFixed(0)} KB</div>}
-          </TabsContent>
-          <TabsContent value="docx" className="mt-3">
-            <Input type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(e) => onFileChange(e.target.files?.[0] ?? null)} />
-            {file && <div className="mt-2 text-xs text-muted-foreground">{file.name} · {(file.size / 1024).toFixed(0)} KB</div>}
-          </TabsContent>
+          {RAW_FILE_INGRESS_ALLOWED && (
+            <>
+              <TabsContent value="pdf" className="mt-3">
+                <Input type="file" accept="application/pdf,.pdf" onChange={(e) => onFileChange(e.target.files?.[0] ?? null)} />
+                {file && <div className="mt-2 text-xs text-muted-foreground">{file.name} · {(file.size / 1024).toFixed(0)} KB</div>}
+              </TabsContent>
+              <TabsContent value="docx" className="mt-3">
+                <Input type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(e) => onFileChange(e.target.files?.[0] ?? null)} />
+                {file && <div className="mt-2 text-xs text-muted-foreground">{file.name} · {(file.size / 1024).toFixed(0)} KB</div>}
+              </TabsContent>
+            </>
+          )}
           <TabsContent value="paste" className="mt-3">
             <Textarea
               rows={8}
-              placeholder="Поставете пълния текст на договора тук..."
+              placeholder="Поставете пълния текст на договора тук. Заменете личните данни с [ЕГН], [IBAN], [номер на лична карта]…"
               value={pasted}
               onChange={(e) => setPasted(e.target.value)}
             />
+            <p className="mt-2 text-xs text-muted-foreground">
+              Не изпращайте ЕГН, IBAN, номер на банкова сметка или на лична карта. Попълнете ги
+              на Вашето устройство, след като получите документа.
+            </p>
           </TabsContent>
         </Tabs>
 

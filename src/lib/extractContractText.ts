@@ -9,6 +9,10 @@ import {
   documentOperationUserKey,
   getOrCreateDocumentOperationId,
 } from "@/lib/documentOperationKey";
+import { SCANNED_PDF_BLOCKED_MESSAGE } from "@/lib/privacyGate";
+
+/** Локално огледало на преградата: сканирани изображения не се изпращат. */
+const RAW_IMAGE_INGRESS_ALLOWED = false;
 
 export type ExtractSource = "pdf" | "docx" | "paste";
 
@@ -124,7 +128,12 @@ async function extractPdf(file: File, onProgress?: ExtractProgress): Promise<str
   if (!looksScanned) return cleanText;
 
   // ---------- OCR fallback ----------
-  // Render each page to a JPEG data URL and send to edge function for AI OCR.
+  // ПРЕГРАДА: сканираните страници НЕ се рендират и НЕ се изпращат. Снимката на
+  // страница може да съдържа ЕГН/IBAN, а това не може да бъде проверено преди
+  // изпращане. Спираме преди да е създадено каквото и да е изображение.
+  if (!RAW_IMAGE_INGRESS_ALLOWED) {
+    throw new Error(SCANNED_PDF_BLOCKED_MESSAGE);
+  }
   onProgress?.("PDF изглежда сканиран — стартирам OCR...");
 
   const maxOcrPages = Math.min(totalPages, 12);

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useConsoleStore } from "@/hooks/useConsoleStore";
 import { AddToKitDialog } from "@/components/AddToKitDialog";
 import { AskDogovaryAIButton } from "@/components/console/AskDogovaryAIButton";
+import { findRestrictedIdentifiersDeep, restrictedIdentifierMessage } from "@/lib/privacyGate";
 
 export function UploadedPane({ uploadedId, tabId }: { uploadedId: string; tabId?: string }) {
   const { setDirty } = useConsoleStore();
@@ -39,6 +40,15 @@ export function UploadedPane({ uploadedId, tabId }: { uploadedId: string; tabId?
 
   const handleSave = async () => {
     if (!doc) return;
+    // Преграда преди записа: ограничени идентификатори не се запазват.
+    const restricted = findRestrictedIdentifiersDeep([title, text]);
+    if (restricted.length > 0) {
+      toast.error("Заменете личните данни, преди да запазите", {
+        description: restrictedIdentifierMessage(restricted),
+        duration: 14000,
+      });
+      return;
+    }
     setSaving(true);
     const { error } = await supabase
       .from("uploaded_contracts")

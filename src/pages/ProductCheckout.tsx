@@ -44,6 +44,11 @@ import {
 } from "@/lib/productUpload";
 import { DocumentFilePicker } from "@/components/products/DocumentFilePicker";
 import { PRODUCT_ACCEPTED_INPUT } from "@/lib/productSource";
+import {
+  RAW_FILE_BLOCKED_MESSAGE,
+  RAW_FILE_BLOCKED_TITLE,
+  RAW_FILE_INGRESS_ALLOWED,
+} from "@/lib/privacyGate";
 import { CheckCircle2, FileUp } from "@/icons";
 
 type Position = "conservative" | "balanced" | "assertive";
@@ -428,26 +433,39 @@ export default function ProductCheckout() {
               </div>
             ) : (
               <div className="mt-3 space-y-3">
-                <p className="text-sm text-muted-foreground">{PRODUCT_ACCEPTED_INPUT}</p>
-                <DocumentFilePicker file={file} onSelect={setFile} disabled={busy} />
-                <div>
-                  <Label htmlFor="product-title">Заглавие (по избор)</Label>
-                  <Input
-                    id="product-title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Например: Договор за наем — офис"
-                    className="min-h-11"
-                  />
-                </div>
-                <Button
-                  type="button"
-                  onClick={handlePrepare}
-                  disabled={busy || !file}
-                  className="min-h-12 w-full sm:w-auto"
-                >
-                  {busy ? (phase || "Обработка…") : "Продължете"}
-                </Button>
+                {!RAW_FILE_INGRESS_ALLOWED ? (
+                  <div
+                    data-testid="product-upload-blocked"
+                    role="note"
+                    className="rounded-lg border border-gold/40 bg-gold/5 p-4 text-sm"
+                  >
+                    <p className="font-semibold">{RAW_FILE_BLOCKED_TITLE}</p>
+                    <p className="mt-2 text-muted-foreground">{RAW_FILE_BLOCKED_MESSAGE}</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">{PRODUCT_ACCEPTED_INPUT}</p>
+                    <DocumentFilePicker file={file} onSelect={setFile} disabled={busy} />
+                    <div>
+                      <Label htmlFor="product-title">Заглавие (по избор)</Label>
+                      <Input
+                        id="product-title"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Например: Договор за наем — офис"
+                        className="min-h-11"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={handlePrepare}
+                      disabled={busy || !file}
+                      className="min-h-12 w-full sm:w-auto"
+                    >
+                      {busy ? (phase || "Обработка…") : "Продължете"}
+                    </Button>
+                  </>
+                )}
               </div>
             )}
           </Card>

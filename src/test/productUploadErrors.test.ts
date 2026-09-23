@@ -44,6 +44,14 @@ vi.mock("@/lib/fileValidation", () => ({
   validateUploadedFile: () => Promise.resolve({ ok: true }),
 }));
 
+// Тези проверки са за поведението при запис, затова тук преградата за сурови
+// файлове е отворена. Че преградата реално спира файл, се проверява отделно в
+// src/test/privacyGate.test.ts с истинския модул.
+vi.mock("@/lib/privacyGate", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/privacyGate")>();
+  return { ...actual, RAW_FILE_INGRESS_ALLOWED: true };
+});
+
 vi.mock("@/lib/productExtraction", () => ({
   extractProductSource: () =>
     Promise.resolve({
