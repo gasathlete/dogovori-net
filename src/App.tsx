@@ -65,6 +65,9 @@ const AuthGateModal = reactLazy(() =>
 const InlineAuthDialog = reactLazy(() =>
   import("@/components/auth/InlineAuthDialog").then((m) => ({ default: m.InlineAuthDialog })),
 );
+const PrelaunchWaitlistDialog = reactLazy(() =>
+  import("@/components/prelaunch/PrelaunchWaitlistDialog").then((m) => ({ default: m.PrelaunchWaitlistDialog })),
+);
 
 const Sonner = reactLazy(() =>
   import("@/components/ui/sonner").then((m) => ({ default: m.Toaster })),
@@ -461,6 +464,7 @@ const App = () => (
           <Suspense fallback={null}>
             <AuthGateModal />
             <InlineAuthDialog />
+            <PrelaunchWaitlistDialog />
 
             <StartStoryOverlay />
             <AIDisclaimerModal />

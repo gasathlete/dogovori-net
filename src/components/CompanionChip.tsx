@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { COMPANION_TEMPLATES } from "@/data/companionTemplates";
 import { downloadDocument } from "@/lib/downloadDocument";
+import { isFeatureAvailable } from "@/lib/prelaunch";
+import { openPrelaunchWaitlist } from "@/lib/prelaunchWaitlist";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -37,6 +39,10 @@ export function CompanionChip({ name }: Props) {
   }
 
   const handle = async (format: "pdf" | "docx") => {
+    if (!isFeatureAvailable("blank_download")) {
+      openPrelaunchWaitlist("blank_download");
+      return;
+    }
     if (!user) {
       toast.error("Влезте в профила си", { description: "Свалянето на бланки изисква вход." });
       navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname)}`);
