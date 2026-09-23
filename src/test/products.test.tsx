@@ -3,7 +3,7 @@
  * allowlist на ?product=, персона логика и достъпност/reduced motion.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
@@ -11,6 +11,7 @@ import { readFileSync } from "node:fs";
 import {
   LEGACY_PRODUCT_SLUG_REDIRECTS,
   ONE_TIME_PRODUCTS,
+  ONE_TIME_PURCHASES_AVAILABLE,
   ONE_TIME_TERMS,
   getProduct,
   isOneTimeProductId,
@@ -151,10 +152,10 @@ describe("витрина — паритет между началната стр
   it("CTA-тата сочат към самостоятелните продуктови страници", () => {
     render(wrap(<ProductCards variant="full" source="produkti" />));
     for (const p of ONE_TIME_PRODUCTS) {
-      expect(screen.getByRole("link", { name: p.ctaLabel })).toHaveAttribute(
-        "href",
-        productPath(p),
-      );
+      const card = screen.getByRole("article", { name: p.name });
+      expect(within(card).getByRole("link", {
+        name: ONE_TIME_PURCHASES_AVAILABLE ? p.ctaLabel : "Вижте продукта",
+      })).toHaveAttribute("href", productPath(p));
       expect(screen.getByRole("link", { name: p.name })).toHaveAttribute(
         "href",
         productPath(p),
@@ -169,9 +170,10 @@ describe("витрина — паритет между началната стр
       expect(block).toHaveTextContent(productPriceLabel(p.id));
       expect(block).toHaveTextContent(productPreviousPriceLabel(p.id));
       expect(block).toHaveTextContent(productDiscountLabel(p.id));
-      expect(
-        screen.getByRole("link", { name: p.ctaLabel }),
-      ).toBeInTheDocument();
+      const card = screen.getByRole("article", { name: p.name });
+      expect(within(card).getByRole("link", {
+        name: ONE_TIME_PURCHASES_AVAILABLE ? p.ctaLabel : "Вижте продукта",
+      })).toBeInTheDocument();
     }
   });
 
@@ -183,9 +185,12 @@ describe("витрина — паритет между началната стр
       expect.objectContaining({ dedupKey: expect.any(String) }),
     );
     vi.mocked(trackFunnelEvent).mockClear();
-    await userEvent.click(screen.getByRole("link", { name: "Проверете документ" }));
+    const firstCard = screen.getByRole("article", { name: ONE_TIME_PRODUCTS[0].name });
+    await userEvent.click(within(firstCard).getByRole("link", {
+      name: ONE_TIME_PURCHASES_AVAILABLE ? "Проверете документ" : "Вижте продукта",
+    }));
     expect(trackFunnelEvent).toHaveBeenCalledWith(
-      "product_selected",
+      ONE_TIME_PURCHASES_AVAILABLE ? "product_selected" : "product_details_opened",
       expect.objectContaining({ product: "contract_check", source: "home" }),
     );
     // Никое събитие не твърди покупка/плащане.

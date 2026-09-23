@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ProductCatalogGrid } from "@/components/products/ProductCatalogGrid";
 import {
   ONE_TIME_PRODUCTS,
+  ONE_TIME_PURCHASES_AVAILABLE,
   productDiscountLabel,
   productPath,
   productPreviousPriceLabel,
@@ -38,10 +39,16 @@ describe("каталожна продуктова витрина", () => {
         "href",
         productPath(product),
       );
-      expect(within(card).getByRole("link", { name: new RegExp(product.ctaLabel) })).toHaveAttribute(
+      const action = within(card).getByRole("link", {
+        name: ONE_TIME_PURCHASES_AVAILABLE ? product.ctaLabel : "Вижте продукта",
+      });
+      expect(action).toHaveAttribute(
         "href",
-        product.ctaHref,
+        ONE_TIME_PURCHASES_AVAILABLE ? product.ctaHref : productPath(product),
       );
+      if (!ONE_TIME_PURCHASES_AVAILABLE) {
+        expect(within(card).queryByRole("link", { name: product.ctaLabel })).toBeNull();
+      }
     }
   });
 

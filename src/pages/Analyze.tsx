@@ -17,6 +17,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { markFunnelStep, trackFunnelEvent } from "@/lib/funnel";
 import {
   ONE_TIME_PRELAUNCH_MESSAGE,
+  ONE_TIME_PURCHASES_AVAILABLE,
   productPriceLabel,
   getProduct,
   parseProductParam,
@@ -52,7 +53,7 @@ export default function Analyze() {
   );
 
   useEffect(() => {
-    markFunnelStep(3);
+    if (ONE_TIME_PURCHASES_AVAILABLE) markFunnelStep(3);
   }, []);
 
   const goSignup = () => {
@@ -115,7 +116,9 @@ export default function Analyze() {
     <>
       <Seo
         title="Проверка на договор — какво поемате и какво да промените"
-        description="Качвате PDF или Word файл и виждате какво поемате по договора, кои клаузи носят риск и какво да промените, с точно място в текста. Резултатът е автоматичен и не е правен съвет."
+        description={ONE_TIME_PURCHASES_AVAILABLE
+          ? "Качвате PDF или Word файл и виждате какво поемате по договора, кои клаузи носят риск и какво да промените, с точно място в текста. Резултатът е автоматичен и не е правен съвет."
+          : "Проверката на договори е в подготовка. В момента не приемаме документи и не отваряме плащане за услугата."}
         canonical="https://dogovori.net/analiz"
       />
       <Header />
@@ -146,14 +149,16 @@ export default function Analyze() {
               )}
             </h1>
             <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
-              {productCopy
+              {!ONE_TIME_PURCHASES_AVAILABLE
+                ? "Проверката е в подготовка. В момента не приемаме документи и не отваряме плащане за услугата."
+                : productCopy
                 ? productCopy.promise
                 : "Качвате документа и виждате какво поемате, кои клаузи носят риск за Вас и какво да промените — с точното място в текста."}
             </p>
           </header>
 
           {/* Последователността на екрана: документ → проверка → резултат. */}
-          <WorkStepStrip steps={ANALYZE_STEPS} current={0} className="mt-5" />
+          {ONE_TIME_PURCHASES_AVAILABLE && <WorkStepStrip steps={ANALYZE_STEPS} current={0} className="mt-5" />}
 
           <div className="mt-4 rounded-2xl border border-gold/30 bg-card/70 p-5 shadow-elegant sm:p-6">
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-gold">

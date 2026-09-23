@@ -23,6 +23,7 @@ import {
   ONE_TIME_PRODUCTS,
   ONE_TIME_TERMS,
   PRODUCT_EVENTS,
+  ONE_TIME_PURCHASES_AVAILABLE,
   productPath,
 } from "@/lib/products";
 
@@ -298,9 +299,9 @@ export function ProductShowcaseCarousel({
 
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
         <Link
-          to={active.ctaHref}
+          to={ONE_TIME_PURCHASES_AVAILABLE ? active.ctaHref : productPath(active)}
           onClick={() =>
-            trackFunnelEvent(PRODUCT_EVENTS.productSelected, {
+            trackFunnelEvent(ONE_TIME_PURCHASES_AVAILABLE ? PRODUCT_EVENTS.productSelected : PRODUCT_EVENTS.detailsOpened, {
               product: active.id,
               source,
               variant: "showcase",
@@ -308,10 +309,10 @@ export function ProductShowcaseCarousel({
           }
           className="btn-gold btn-press inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl px-5 text-[15px] font-bold tracking-tight"
         >
-          {active.ctaLabel}
+          {ONE_TIME_PURCHASES_AVAILABLE ? active.ctaLabel : "Вижте продукта"}
           <ArrowRight className="size-4" />
         </Link>
-        <Link
+        {ONE_TIME_PURCHASES_AVAILABLE && <Link
           to={productPath(active)}
           onClick={() =>
             trackFunnelEvent(PRODUCT_EVENTS.detailsOpened, {
@@ -322,7 +323,7 @@ export function ProductShowcaseCarousel({
           className="inline-flex min-h-[44px] items-center text-[13px] font-semibold text-muted-foreground underline decoration-border underline-offset-4 hover:text-gold"
         >
           Вижте продукта
-        </Link>
+        </Link>}
         <span className="text-[11.5px] font-medium text-muted-foreground">
           {ONE_TIME_TERMS}
         </span>

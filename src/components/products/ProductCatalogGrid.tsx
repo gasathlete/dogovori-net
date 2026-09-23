@@ -8,6 +8,7 @@ import {
   ONE_TIME_PRODUCTS,
   ONE_TIME_TERMS,
   PRODUCT_EVENTS,
+  ONE_TIME_PURCHASES_AVAILABLE,
   productPath,
   type OneTimeProductId,
 } from "@/lib/products";
@@ -157,9 +158,9 @@ export function ProductCatalogGrid({ source }: { source: string }) {
 
             <div className="mt-auto p-3 pt-4 sm:p-4 sm:pt-4">
               <Link
-                to={product.ctaHref}
+                to={ONE_TIME_PURCHASES_AVAILABLE ? product.ctaHref : productPath(product)}
                 onClick={() =>
-                  trackFunnelEvent(PRODUCT_EVENTS.productSelected, {
+                  trackFunnelEvent(ONE_TIME_PURCHASES_AVAILABLE ? PRODUCT_EVENTS.productSelected : PRODUCT_EVENTS.detailsOpened, {
                     product: product.id,
                     source,
                     variant: "catalog_grid",
@@ -167,7 +168,7 @@ export function ProductCatalogGrid({ source }: { source: string }) {
                 }
                 className="btn-gold btn-press inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-2 text-center text-xs font-bold sm:px-3 sm:text-sm"
               >
-                <span>{product.ctaLabel}</span>
+                <span>{ONE_TIME_PURCHASES_AVAILABLE ? product.ctaLabel : "Вижте продукта"}</span>
                 <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
               </Link>
               <Link

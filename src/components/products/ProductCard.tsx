@@ -11,6 +11,7 @@ import {
   isPremiumProduct,
   ONE_TIME_TERMS,
   PRODUCT_EVENTS,
+  ONE_TIME_PURCHASES_AVAILABLE,
   productPath,
   type OneTimeProduct,
 } from "@/lib/products";
@@ -106,7 +107,7 @@ export function ProductCard({
         <Link
           to={productPath(product)}
           onClick={() =>
-            trackFunnelEvent(PRODUCT_EVENTS.productSelected, {
+            trackFunnelEvent(ONE_TIME_PURCHASES_AVAILABLE ? PRODUCT_EVENTS.productSelected : PRODUCT_EVENTS.detailsOpened, {
               product: product.id,
               source,
               variant,
@@ -114,7 +115,7 @@ export function ProductCard({
           }
           className="btn-gold btn-press inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-5 py-3 text-[14px] font-bold tracking-tight transition-transform duration-200"
         >
-          {product.ctaLabel}
+          {ONE_TIME_PURCHASES_AVAILABLE ? product.ctaLabel : "Вижте продукта"}
           <ArrowRight className="h-4 w-4" />
         </Link>
       </article>
