@@ -56,7 +56,7 @@ export default function Analyze() {
   }, [loading, user, navigate, uploadRoute]);
 
   useEffect(() => {
-    markFunnelStep(3);
+    if (RAW_FILE_INGRESS_ALLOWED) markFunnelStep(3);
   }, []);
 
   const goSignup = () => {
