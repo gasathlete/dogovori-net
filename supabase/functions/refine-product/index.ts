@@ -11,6 +11,11 @@
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildCors } from "../_shared/cors.ts";
+import {
+  findRestrictedIdentifierKindsDeep,
+  restrictedIdentifierBlockedResponse,
+  restrictedIdentifierLogFields,
+} from "../_shared/text-identifier-gate.ts";
 import { correlationHeaders, getCorrelationId } from "../_shared/correlation.ts";
 import {
   loadReadyPaidProduct,
@@ -194,6 +199,20 @@ Deno.serve(async (req) => {
     if (!access.ok) return fail(access.code, access.status, headers, cid, access.message);
     if (access.spec.id !== "negotiation_package" || access.sourceText === null) {
       return fail("not_refinable", 409, headers, cid, refinementMessage("not_refinable"));
+    }
+
+    // Преграда за ограничени идентификатори: ПРЕДИ заемането на уточнението и
+    // ПРЕДИ доставчика. Включеното уточнение остава неизползвано.
+    {
+      const restricted = findRestrictedIdentifierKindsDeep(access.sourceText);
+      if (restricted.length > 0) {
+        console.warn("refine-product blocked", {
+          cid,
+          entitlement_id: entitlementId,
+          ...restrictedIdentifierLogFields(restricted),
+        });
+        return restrictedIdentifierBlockedResponse(headers, restricted);
+      }
     }
     const base = access.result as NegotiationPackageResult;
 

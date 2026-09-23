@@ -302,6 +302,26 @@
         "product_reconciliation_state is STABLE and cannot write"
       ],
       "recovery": "forward-fix only; resolution requires resolve_product_reconciliation(kind, subject, release|consume, closed reason_code, optional opaque ticket_ref). release is permitted only with provider_no_execution_proven AND no durable provider call; consume is terminal and makes a further provider call impossible. No free-text operator note is stored."
+    },
+    {
+      "id": "0044_privacy_client_write_gate",
+      "file": "drizzle/migrations/0044_privacy_client_write_gate.sql",
+      "pairedFile": "docs/migrations/stage_privacy_client_write_gate.sql",
+      "parity": "byte-identical copies; the supabase/migrations twin could NOT be authored source-only because supabase/migrations is write-protected by the platform tooling (it only accepts apply, which is out of scope for this source-only task)",
+      "sha256": "8fc87c450f1e7bb7b9dec86c518265796198e8982d16e56caffaa589677f50c4",
+      "applied": false,
+      "dependsOn": "20260509215814 (uploaded_contracts base)",
+      "purpose": "Deny client (anon/authenticated) writes of raw document text in public.uploaded_contracts; only service_role may write extracted_text/text_content. Reads and existing rows unchanged.",
+      "objects": [
+        "enforce_no_client_document_text_write",
+        "uploaded_contracts_no_client_text_write"
+      ],
+      "blockers": [
+        "Applying this blocks the legitimate client paste/edit/product-prepare text writes (UploadContractDialog, UploadedPane/useUploadedContractDoc, src/lib/productUpload.ts) until those paths are routed through a service_role Edge function.",
+        "Raw file uploads to the user-contracts storage bucket are NOT denied here: that needs a storage.objects policy, and the storage schema is platform-managed. UI-level block only (RAW_FILE_INGRESS_ALLOWED = false)."
+      ],
+      "pgTap": "none authored (single trigger; behaviour is role-dependent and needs a live database with anon/authenticated roles)",
+      "recovery": "forward-fix only; DROP TRIGGER uploaded_contracts_no_client_text_write restores the previous behaviour without touching data"
     }
   ],
   "gate3": {

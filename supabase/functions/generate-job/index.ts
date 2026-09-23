@@ -19,6 +19,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
+import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
 import {
   IDEMPOTENCY_WINDOW_MS,
   JOB_MAX_RUNTIME_MS,
@@ -117,6 +118,16 @@ Deno.serve(async (req: Request) => {
     const payload = body.payload;
     if (!payload || typeof payload !== "object") {
       return json({ error: "Липсват данни за генериране", code: "bad_request" }, 400);
+    }
+
+    // Преграда за ограничени идентификатори: ПРЕДИ създаване на задача и
+    // ПРЕДИ препращане към генератора.
+    {
+      const blocked = restrictedIdentifierBlock(payload, {
+        ...corsHeaders,
+        ...correlationHeaders(correlationId),
+      });
+      if (blocked) return blocked;
     }
 
     let userId: string | null = null;

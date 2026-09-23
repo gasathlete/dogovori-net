@@ -17,6 +17,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { findRestrictedIdentifiers, restrictedIdentifierMessage } from "@/lib/privacyGate";
 
 export type Issue = {
   severity: "low" | "medium" | "high";
@@ -463,6 +464,13 @@ export function useUploadedContractDoc(input: {
       notify?.("error", "Текстът е твърде кратък (мин. 80 знака)");
       return "invalid";
     }
+    // Преграда за ограничени идентификатори: ПРЕДИ хеширането и ПРЕДИ записа.
+    // В съобщението и в журнала влиза само видът, никога самата стойност.
+    const restrictedText = findRestrictedIdentifiers(trimmed);
+    if (restrictedText.length > 0) {
+      notify?.("error", restrictedIdentifierMessage(restrictedText));
+      return "blocked";
+    }
     const capturedVersion = current.updated_at;
     const copyId = savedDocId;
     setSavingText(true);
@@ -545,6 +553,11 @@ export function useUploadedContractDoc(input: {
     if (trimmed.length > 200) {
       notify?.("error", "Името е твърде дълго");
       return "invalid";
+    }
+    const restrictedTitle = findRestrictedIdentifiers(trimmed);
+    if (restrictedTitle.length > 0) {
+      notify?.("error", restrictedIdentifierMessage(restrictedTitle));
+      return "blocked";
     }
     const capturedVersion = current.updated_at;
     const copyId = savedDocId;
