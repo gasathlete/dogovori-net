@@ -14,6 +14,7 @@ import {
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
+import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
 import { CORRECTION_PRESERVATION_SUFFIX } from "./request.ts";
 import { runCorrectionPreflight, type AnalysisRow, type ContractRow } from "./preflight.ts";
 import { canonicalize, sha256Hex } from "../_shared/canonical-digest.ts";
@@ -125,6 +126,16 @@ Deno.serve(async (req: Request) => {
       );
     }
     const { contract, analysis, currentBinding, sourceText: fullSourceText } = pre;
+
+    // Преграда за ограничени идентификатори: ПРЕДИ резервацията в леджъра и
+    // ПРЕДИ извикването на модел.
+    {
+      const blocked = restrictedIdentifierBlock(
+        [fullSourceText, (contract as { title?: string | null }).title ?? ""],
+        ledgerHeaders,
+      );
+      if (blocked) return blocked;
+    }
     const { userConfirmed } = pre.request;
     const selected = { issues: pre.issues, missing: pre.missing };
 

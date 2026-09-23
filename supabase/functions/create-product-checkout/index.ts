@@ -9,6 +9,7 @@
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createStripeClient } from "../_shared/stripe.ts";
+import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
 import { resolveOrCreateCustomer } from "../_shared/customer.ts";
 import { buildCors } from "../_shared/cors.ts";
 import {
@@ -186,6 +187,13 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!doc || doc.user_id !== userId) return fail("document_not_found", 404, corsHeaders);
     const verifiedSource = await verifyStoredProductSource(doc, sha256HexServer);
+
+    // Преграда за ограничени идентификатори: ПРЕДИ създаване на платима сесия.
+    // Нищо не се плаща и не се създава намерение при задействане.
+    {
+      const blocked = restrictedIdentifierBlock(verifiedSource.text, corsHeaders);
+      if (blocked) return blocked;
+    }
     const sourceHash = verifiedSource.sourceHash;
     const sourceUpdatedAt = verifiedSource.sourceUpdatedAt;
 

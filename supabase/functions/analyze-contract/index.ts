@@ -30,6 +30,7 @@ import {
   computeAnalysisCacheKey,
 } from "../_shared/analysis-source-binding.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
+import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
 
 // PROMPT_VERSION — bump to invalidate cached analyses produced by older prompts.
 // v5: доказателствената проверка на цитатите е строга (един непрекъснат пасаж),
@@ -226,6 +227,16 @@ Deno.serve(async (req: Request) => {
         status: 400,
         headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },
       });
+    }
+
+    // Преграда за ограничени идентификатори: ПРЕДИ резервацията на квота и
+    // ПРЕДИ извикването на модел. Нищо не се таксува при задействане.
+    {
+      const blocked = restrictedIdentifierBlock([text, contract.title ?? ""], {
+        ...corsHeaders,
+        ...correlationHeaders(correlationId),
+      });
+      if (blocked) return blocked;
     }
 
     // Q2b1 — снимка на източника: точният ПЪЛЕН текст (след външния trim, ПРЕДИ

@@ -9,6 +9,7 @@ import { guardIllegalContent } from "../_shared/illegal-content.ts";
 import { getDocumentTypeSpec, inferDocumentType } from "../_shared/document-types.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { unredact } from "../_shared/redact.ts";
+import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
 import {
   anonRequestDigest as _unusedAnonRequestDigest,
   cancelAnonDelivery,
@@ -127,6 +128,16 @@ Deno.serve(async (req: Request) => {
       );
     }
     const userContext = ctxOrError;
+
+    // Преграда за ограничени идентификатори: ПРЕДИ квота, леджър и модел.
+    // Ограничаване, не окончателна архитектура — байтовете вече са пристигнали.
+    {
+      const blocked = restrictedIdentifierBlock(userContext, {
+        ...corsHeaders,
+        ...correlationHeaders(correlationId),
+      });
+      if (blocked) return blocked;
+    }
 
     const { asUuidOrNull, asTextOrNull, canonicalRequestDigest } = await import("../_shared/canonical-digest.ts");
     // Клиентският ключ на операцията е ЗАДЪЛЖИТЕЛЕН: без него повторният опит
