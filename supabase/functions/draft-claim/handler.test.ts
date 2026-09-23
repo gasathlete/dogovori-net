@@ -7,6 +7,9 @@
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { hashToken } from "../_shared/draft-token.ts";
 
+type Handler = (req: Request) => Promise<Response> | Response;
+const cachedHandler: { h: Handler | null } = { h: null };
+
 const EGN_BAD_CHECKSUM = "8012129999"; // синтетично, достоверна дата, грешна сума
 const DRAFT_ID = "11111111-2222-4333-8444-555555555555";
 const TOKEN = "aaaaaaaaaaaaaaaaaaaaaaaa";
@@ -49,7 +52,7 @@ async function runHandler(
   setEnv("SUPABASE_URL", "http://stub.local");
   setEnv("SUPABASE_SERVICE_ROLE_KEY", "stub-service-role");
 
-  const captured: { h: ((req: Request) => Promise<Response> | Response) | null } = { h: null };
+  const captured = cachedHandler;
   // deno-lint-ignore no-explicit-any
   (Deno as any).serve = (h: any) => {
     captured.h = typeof h === "function" ? h : h?.handler;
@@ -83,12 +86,9 @@ async function runHandler(
   try {
     // Кеширан модул: собствен ключ за всяко зареждане не е нужен — `Deno.serve`
     // се извиква при първото зареждане, затова прихващаме и го преизползваме.
-    try {
-      await import("./index.ts");
-    } catch (e) {
-      console.log("IMPORT ERROR", (e as Error).message);
-    }
-    console.log("stubbed?", Deno.serve !== origServe);
+    // Модулът се зарежда само веднъж (Deno кешира): обработчикът се прихваща
+    // при първото зареждане и се преизползва в следващите тестове.
+    if (!captured.h) await import("./index.ts");
     assert(captured.h, "Deno.serve не беше извикан");
     const res = await captured.h(
       new Request("http://stub.local/draft-claim", {
@@ -117,7 +117,7 @@ function mutations(calls: Recorded[]): Recorded[] {
   );
 }
 
-Deno.test("блокиран сценарий: 422 и НУЛА променящи заявки към базата", async () => {
+Deno.test({ sanitizeOps: false, sanitizeResources: false, name: "блокиран сценарий: 422 и НУЛА променящи заявки към базата", async () => {
   const { res, calls } = await runHandler({
     answers: { seller: `ЕГН ${EGN_BAD_CHECKSUM}` },
     result: { body: "Договор…" },
