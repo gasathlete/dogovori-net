@@ -184,6 +184,13 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // ПРЕГРАДА ЗА ОГРАНИЧЕНИ ИДЕНТИФИКАТОРИ в редакционния вход — ПРЕДИ правното
+    // заземяване, модела и записа. Важи и за щабен потребител.
+    {
+      const blocked = restrictedIdentifierBlock(input, corsHeaders);
+      if (blocked) return blocked;
+    }
+
     const rawSystem = await loadActivePrompt(admin, "admin-generate-article", SYSTEM);
 
     // СТРОГО ЗАЗЕМЯВАНЕ: правните твърдения в редакционния текст се пишат само
