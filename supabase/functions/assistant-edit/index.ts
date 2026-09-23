@@ -111,6 +111,27 @@ Deno.serve(async (req) => {
     });
     if (!decision.ok) return json({ ok: false, code: decision.code }, 409);
 
+    // ПРЕГРАДА ЗА ОГРАНИЧЕНИ ИДЕНТИФИКАТОРИ — ПРЕДИ SQL прехода, който пише в
+    // `saved_documents`. Проверява се точно текстът, който би бил записан:
+    // „accept“ записва новия текст, „undo“ връща предишния. „reject“ не пише
+    // съдържание и не се спира тук.
+    {
+      const textToWrite = action === "accept"
+        ? String(proposal.after_text ?? "")
+        : action === "undo"
+        ? String(proposal.before_text ?? "")
+        : "";
+      const kinds = findRestrictedIdentifierKindsDeep(textToWrite);
+      if (kinds.length > 0) {
+        return json({
+          ok: false,
+          code: RESTRICTED_IDENTIFIER_BLOCKED_CODE,
+          message: restrictedIdentifierMessage(kinds),
+          restricted_kinds: kinds,
+        }, 422);
+      }
+    }
+
     // ---- Авторитетен атомарен преход -------------------------------------
     const { data: rpcData, error: rpcErr } = await userClient.rpc(
       "assistant_edit_proposal_action",
