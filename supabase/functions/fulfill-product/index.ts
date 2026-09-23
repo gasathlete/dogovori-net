@@ -13,6 +13,11 @@
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildCors } from "../_shared/cors.ts";
+import {
+  findRestrictedIdentifierKindsDeep,
+  restrictedIdentifierBlockedResponse,
+  restrictedIdentifierLogFields,
+} from "../_shared/text-identifier-gate.ts";
 import { correlationHeaders, getCorrelationId } from "../_shared/correlation.ts";
 import {
   evaluateProductEligibility,
@@ -359,6 +364,23 @@ Deno.serve(async (req) => {
       verified.pageCount !== (ent.source_page_count ?? null)
     ) {
       return fail("source_changed", 409, headers, cid);
+    }
+
+    // Преграда за ограничени идентификатори: ПРЕДИ проверката за допустимост,
+    // ПРЕДИ заявяването на задача, ПРЕДИ резервация на извикване и ПРЕДИ
+    // доставчика. Платеното право НЕ се докосва: задачата не се създава, не се
+    // отбелязва изпълнение и не се изразходват допълнителни кредити. Отказът е
+    // стабилен — потребителят може да замени данните и да продължи.
+    {
+      const restricted = findRestrictedIdentifierKindsDeep(verified.text);
+      if (restricted.length > 0) {
+        console.warn("fulfill-product blocked", {
+          cid,
+          entitlement_id: entitlementId,
+          ...restrictedIdentifierLogFields(restricted),
+        });
+        return restrictedIdentifierBlockedResponse(headers, restricted);
+      }
     }
 
     // 6) СЪЩАТА проверка за допустимост, която е минала преди плащането.

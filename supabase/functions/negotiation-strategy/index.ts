@@ -4,6 +4,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCors } from "../_shared/cors.ts";
+import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
 import { extractJson } from "../_shared/json.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { redactForAI, unredact } from "../_shared/redact.ts";
@@ -208,6 +209,16 @@ Deno.serve(async (req) => {
         .eq("id", (a as any).uploaded_contract_id)
         .maybeSingle();
       contractText = ((u as any)?.text_content ?? "").slice(0, 12000);
+    }
+
+    // Преграда за ограничени идентификатори: ПРЕДИ резервацията в леджъра и
+    // ПРЕДИ извикването на модел. Нищо не се таксува при задействане.
+    {
+      const blocked = restrictedIdentifierBlock(
+        [contractText, (a as any).summary ?? "", (a as any).issues ?? [], (a as any).missing_clauses ?? []],
+        cors,
+      );
+      if (blocked) return blocked;
     }
 
     // ---------------------------------------------------------------------
