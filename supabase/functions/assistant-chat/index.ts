@@ -406,6 +406,31 @@ Deno.serve(async (req) => {
     const currentPath = sanitizeChatPath(body?.currentPath);
 
     // ---- Безплатни проверки ПРЕДИ всяка резервация --------------------------
+    // Евтина преграда САМО върху новото съобщение — преди `guardIllegalContent`,
+    // защото то записва в `restricted_processing_events` и може да изпрати
+    // известие. Тук не се чете и не се записва нищо.
+    //
+    // Компромис (нарочно): това стои ПРЕДИ само-четящото търсене в регистъра,
+    // затова повторение на вече платен и записан ход със същото съобщение,
+    // съдържащо ограничен идентификатор, няма да бъде възпроизведено, а ще
+    // получи 422. Обратното (първо търсене) би означавало съобщението да мине
+    // през записа на ограничени данни, преди да е проверено. Правото не се
+    // консумира повторно: записът остава наличен и заявка без ограничени данни
+    // (или същият ход след замяна на стойностите) продължава да се възпроизвежда
+    // от по-късната преграда след търсенето.
+    {
+      const kinds = findRestrictedIdentifierKindsDeep({ message: newMessage });
+      if (kinds.length > 0) {
+        const message = restrictedIdentifierMessage(kinds);
+        return json({
+          error: message,
+          message,
+          code: RESTRICTED_IDENTIFIER_BLOCKED_CODE,
+          restricted_kinds: kinds,
+        }, 422);
+      }
+    }
+
     const blockedChat = await guardIllegalContent({
       admin,
       text: newMessage,

@@ -54,3 +54,47 @@ for (const [route, marker] of ROUTES) {
     );
   });
 }
+
+/* ------- Поправени редове след независим преглед на разликите ------------- */
+
+async function read(route: string): Promise<string> {
+  return await Deno.readTextFile(new URL(`${route}/index.ts`, ROOT));
+}
+
+function firstGate(src: string): number {
+  return Math.min(
+    ...["restrictedIdentifierBlock(", "findRestrictedIdentifierKindsDeep("]
+      .map((needle) => src.indexOf(needle, src.indexOf("serve")))
+      .filter((i) => i > 0),
+  );
+}
+
+Deno.test("draft-claim: преградата е преди присвояването и ротацията на токена", async () => {
+  const src = await read("draft-claim");
+  const gate = firstGate(src);
+  for (const marker of ["updateGuarded(", "generateClaimToken(", "claimFilters("]) {
+    const at = src.indexOf(marker);
+    if (at > 0) assert(gate < at, `draft-claim: преградата е СЛЕД ${marker}`);
+  }
+});
+
+Deno.test("simulation-run: преградата е преди обновяване на състоянието на сесия", async () => {
+  const src = await read("simulation-run");
+  const gate = firstGate(src);
+  const at = src.indexOf('status: "running"');
+  assert(at > 0, "липсва обновяването на състоянието");
+  assert(gate < at, "simulation-run: преградата е СЛЕД обновяването на състоянието");
+  // Има отделна преграда след разрешените четения (сценарий и предишни ходове).
+  assert(
+    src.indexOf("prior_turns:") > 0,
+    "simulation-run: прочетените предишни ходове не минават през преградата",
+  );
+});
+
+Deno.test("assistant-chat: преградата на новото съобщение е преди guardIllegalContent", async () => {
+  const src = await read("assistant-chat");
+  const gate = firstGate(src);
+  const at = src.indexOf("guardIllegalContent(");
+  assert(at > 0, "липсва guardIllegalContent");
+  assert(gate < at, "assistant-chat: преградата е СЛЕД guardIllegalContent");
+});

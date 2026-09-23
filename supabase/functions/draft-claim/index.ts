@@ -120,10 +120,35 @@ Deno.serve(async (req) => {
     // decision.ok ⇒ draft съществува.
     const row = draft as DraftRow;
 
+    // ПРЕГРАДА ЗА ОГРАНИЧЕНИ ИДЕНТИФИКАТОРИ — СЛЕД доказана собственост
+    // (`decideClaim`) и ПРЕДИ каквото и да е присвояване, ротация на токена или
+    // материализация. Блокираната заявка оставя черновата непроменена.
+    // Вече материализиран документ (`saved_doc_id`) не се преразглежда: това е
+    // повторение на завършена операция, съдържанието в черновата е изчистено и
+    // нищо ново не се записва.
+    if (!row.saved_doc_id) {
+      const kinds = findRestrictedIdentifierKindsDeep({
+        payload: row.payload ?? {},
+        doc_key: row.doc_key,
+      });
+      if (kinds.length > 0) {
+        logDraft("draft-claim", { reason: RESTRICTED_IDENTIFIER_BLOCKED_CODE, status: 422 });
+        return json({
+          ok: false,
+          reason: RESTRICTED_IDENTIFIER_BLOCKED_CODE,
+          code: RESTRICTED_IDENTIFIER_BLOCKED_CODE,
+          message: restrictedIdentifierMessage(kinds),
+          restricted_kinds: kinds,
+        }, 422);
+      }
+    }
+
     let expiresAt = row.expires_at;
     let idempotent = decision.idempotent;
     let savedDocFromFresh: string | null = null;
     const nowIso = new Date(now).toISOString();
+
+
 
 
     if (!idempotent) {
@@ -166,23 +191,6 @@ Deno.serve(async (req) => {
     let savedDocId = savedDocFromFresh ?? row.saved_doc_id;
     let payload = (row.payload ?? {}) as Record<string, unknown>;
     let purged = !!savedDocId;
-
-    // ПРЕГРАДА ЗА ОГРАНИЧЕНИ ИДЕНТИФИКАТОРИ в ЗАПАЗЕНОТО съдържание — ПРЕДИ
-    // материализацията в `saved_documents`. Присвояването вече е извършено и е
-    // идемпотентно; тук не се създава документ и не се връща съдържание.
-    {
-      const kinds = findRestrictedIdentifierKindsDeep({ payload, doc_key: row.doc_key });
-      if (kinds.length > 0) {
-        logDraft("draft-claim", { reason: RESTRICTED_IDENTIFIER_BLOCKED_CODE, status: 422 });
-        return json({
-          ok: false,
-          reason: RESTRICTED_IDENTIFIER_BLOCKED_CODE,
-          code: RESTRICTED_IDENTIFIER_BLOCKED_CODE,
-          message: restrictedIdentifierMessage(kinds),
-          restricted_kinds: kinds,
-        }, 422);
-      }
-    }
 
     // Готов документ → в профила (без нова операция: генерирането вече е
     // таксувано в анонимната сесия). След това съдържанието напуска черновата.
