@@ -23,6 +23,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 
 import ProductCheckout from "@/pages/ProductCheckout";
 import { RAW_FILE_INGRESS_ALLOWED } from "@/lib/privacyGate";
+import { supabase } from "@/integrations/supabase/client";
 
 describe("купуване при затворена преграда", () => {
   it("показва обяснение вместо избор на файл", () => {
@@ -36,5 +37,8 @@ describe("купуване при затворена преграда", () => {
     );
     expect(screen.getByTestId("product-upload-blocked")).toBeInTheDocument();
     expect(document.getElementById("product-file")).toBeNull();
+    expect(screen.getByRole("heading", { name: "Услугата е в подготовка" })).toBeInTheDocument();
+    expect(screen.queryByTestId("stripe-mounted")).not.toBeInTheDocument();
+    expect(supabase.functions.invoke).not.toHaveBeenCalled();
   });
 });
