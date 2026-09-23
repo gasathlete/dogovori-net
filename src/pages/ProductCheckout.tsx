@@ -663,7 +663,7 @@ export default function ProductCheckout() {
       />
       <Header />
       <main className="container min-h-dvh max-w-2xl px-4 py-12">
-        <section role="status" className="rounded-2xl border border-gold/30 bg-card p-6">
+        <section role="status" data-testid="product-upload-blocked" className="rounded-2xl border border-gold/30 bg-card p-6">
           <h1 className="font-serif text-2xl font-bold">Услугата е в подготовка</h1>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             В момента не приемаме файлове с договори и не отваряме плащане за проверка,
