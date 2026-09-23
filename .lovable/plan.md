@@ -1,53 +1,79 @@
-# Source-only P0 repair: quota, recovery and review authorization
+# Предварителна заявка вместо „Изтегли бланка“ (временно)
 
-## Scope and boundaries
+База: HEAD `b3f0c6ab3eb289693f4e18d801277bf5ec1b83fd`. Този план е само за изходния код. Без публикуване, без запис в базата и без промени в настройките.
 
-Work only from HEAD `3ee88499aadf1b2b37f055694603bd79d6f0af5b`. No deployment, publishing, migration application, production reads/writes, real AI/payment/email calls, secret/config changes, public-copy edits, or strategy/article-evidence work.
+## Одит: какво е потвърдено
 
-## Implementation
+Бутони и връзки, които сега сваляха бланка:
+- `src/pages/Template.tsx:297-302`: „Свали само бланка“ води към `/wizard?...&blank=1` (`blankWizardHref`, ред 120-122).
+- `src/pages/Wizard.tsx`:
+  - `handleDownloadBlank` (1370) и `runBlankDownload` (1296) извикват edge функцията `download-blank` (1317). Функцията използва AI gateway и не минава през privacy gate.
+  - Автоматично стартиране при `?blank=1` (1381).
+  - Лента „Нужна Ви е само празна бланка…“ (1505-1520).
+  - Модалът със стъпките (1257-1365).
+- `src/components/wizard/LiveDraft.tsx:83-90`: връзката „или изтеглете като бланка“ (`onDownloadBlank`).
+- `src/components/FeaturedBlanks.tsx:148`: „Свали образец“. Трябва да се уточни дали това е директно сваляне или връзка към wizard. Това е стъпка 1 от изпълнението.
+- `src/components/CompanionChip.tsx:47`: `downloadDocument` за придружаващи шаблони. Това също е сваляне на бланка, затова влиза в обхвата.
+- Не са в обхвата: генериране на попълнен документ, платените продукти, проверка/качване на документ (вече gated от Gate 8) и `bulkDownload`, който е само за абонати.
 
-1. **Quota ledger and migration parity**
-   - Update both unapplied 0029 migration copies identically.
-   - Bind operations to user, kind, purpose, session, document, batch and canonical SHA-256 digest.
-   - Under operation and session locks, allow only a proven, fully resolved cancelled operation with the exact same binding to reserve and charge again; unresolved cancellation remains a typed reconciliation failure.
-   - Tighten database digest constraints to 64 hexadecimal characters and keep canonical output lowercase.
-   - Extend the TypeScript state contract and regression tests for cancelled retry, mismatch, unresolved state and serialized same-session behavior.
+Наличен механизъм за имейли:
+- `src/lib/leadMagnetSubscribe.ts` приема само RPC `subscribe_lead_magnet`, при изрично съгласие без предварителна отметка и версия на съгласието.
+- Таблица `lead_magnet_subscribers` (`20260907123000_lead_magnet_consent_hardening.sql`):
+  - анонимните потребители нямат директен запис;
+  - записът става само през SECURITY DEFINER функция;
+  - RLS е включен.
+- Приема само позволени `magnet_slug` (`isLeadMagnetSlug`). Текстът на съгласието е за бюлетин („два пъти месечно“), така че не пасва на предварителна заявка.
+- Правни страници: `src/pages/legal/Privacy.tsx`, `RetentionPolicy.tsx`, `ROPA.tsx`. Текстът за бюлетина трябва да се прочете и допълни при изпълнението.
 
-2. **Recoverable blank downloads**
-   - Require a valid client operation UUID before legal grounding, quota reservation or generation.
-   - Extend request artifacts with unique operation binding, purpose, digest and readiness metadata, with server-only mutation.
-   - Recover an already uploaded matching artifact before generation, verify it still exists, commit/bind it, and issue a fresh signed URL.
-   - Bind uploads durably before quota commit; synchronously remove failed bindings and record unresolved cleanup/commit outcomes for reconciliation.
-   - Update every real caller to retain one UUID across retry, network loss and double-click; add injectable behavior tests covering all required crash/replay paths.
+Флагове: `ONE_TIME_PURCHASES_AVAILABLE = false` (`src/lib/products.ts`). Флаговете за плащане/AI в `config/product-rollout-contract.json` са OFF. Флаг за бланките няма.
 
-3. **Unified refinement ledger**
-   - Remove the runtime correction-wave charging path from `refine-contract`; reserve/commit/cancel through `quota_operations` using a mandatory operation UUID, batch binding and canonical digest.
-   - Redact contract, feedback and answers together with one collision-safe mapping before retrieval/model use.
-   - Persist the exact inline result in `result_ref` before success; replay it exactly, and return reconciliation status for unknown commit outcomes.
-   - Update the refinement caller to preserve the operation UUID until terminal success or an explicit payload change.
-   - Add endpoint behavior tests and make the changed entrypoint pass explicit `deno check`.
+Live срещу source: в базата на живо най-новата миграция е от 26.08.2026. Не е потвърдено, че `subscribe_lead_magnet` съществува на живо (hardening миграцията е от 07.09). Първата стъпка от изпълнението е проверка само с четене.
 
-4. **Durable anonymous entitlement**
-   - Add server-only anonymous delivery operations and atomic reserve/commit/cancel RPCs to both migration copies.
-   - Bind identity, mandatory request UUID and request digest; count only committed responses, cap atomically at five, replay committed responses exactly, and permit exact cancelled/expired retries.
-   - Fail closed on identity/database/read/reserve/commit errors; remove the request-key rate-limit pseudo-reservation while retaining separate abuse limiting.
-   - Keep the browser request UUID stable for the same message and replace it only for a new payload; add endpoint-level behavior tests including the concurrent sixth response contract.
+## Какво ще се вижда
 
-5. **Review authorization and reachable grants**
-   - Add a server-only grant issuer reachable from each legitimate generation/review flow, issued only after ownership/entitlement verification or for exact inline generated content.
-   - Require either verified ownership of the referenced document/version or a valid one-time signed grant; remove manifest-only paid-model authorization.
-   - Verify subject, owner, audience, operation, digest, expiry and nonce; consume nonce atomically and fail closed on storage errors.
-   - Update legitimate callers and add denial/no-model, owner, inline, replay, cross-user/content and audit-user tests.
+Всеки бутон за бланка остава видим със същия текст и място, за да се запази SEO съдържанието. При натискане се отваря един диалог „Предварителна заявка“ със:
+- точния текст на потребителя;
+- поле за имейл;
+- отделна отметка без предварителна отметка: „Съгласявам се Договори.нет да ми пише на този имейл веднъж, когато услугата е готова, с информация за условията за ранни заявители.“ и връзка към Политиката за поверителност;
+- бутон „Изпратете заявката“ и бутон „Затворете“.
 
-6. **Artifact sweep truthfulness**
-   - For every removal omission, perform a bounded exact existence check.
-   - Mark deleted only after confirmed removal/absence and successful database update; keep present/inconclusive rows pending with `delete_error`.
-   - Add truthful confirmed/marked/unresolved counters and regression tests for partial results, existence and database errors, mixed buckets, filtering, starvation and reruns.
+Не се иска вход и не се сваля файл. Няма обещана отстъпка, процент или дата. Текстът е „преференциални условия“, без конкретика. Потвърждение след изпращане: „Заявката е записана. Не изпращаме имейл сега.“
 
-## Validation and final filesystem action
+## Технически детайли
 
-- Verify the two 0029 migration files are byte-identical.
-- Run focused behavior suites, the full Deno suite, explicit `deno check` for every changed edge entrypoint, full Vitest with zero unhandled errors, TypeScript check and production build.
-- Record SQL/pgTAP concurrency as **not executed** unless a local PostgreSQL test actually runs; keep that release gate open otherwise.
-- After every test/build completes, restore all seven `public/sitemap*.xml` files byte-for-byte from `0de2067bda4f978142ffa6ab7490d8bed434fa1b`, run no generator/build afterward, and compare each SHA-256 against `git show`.
-- Commit the source-only repair and report the actual commit SHA, exact changed files, exact commands/counts, seven sitemap hashes and residual blockers.
+1. **Флаг** в `src/lib/blankPrelaunch.ts`: `BLANK_DOWNLOADS_AVAILABLE = false`, точният текст, версия на съгласието `blank_waitlist_v1` и `buildBlankWaitlistArgs()` с проверки.
+2. **Компонент** `src/components/BlankWaitlistDialog.tsx`, с глобален отварящ механизъм по модела на `openInlineAuth`.
+3. **Пренасочване**, когато флагът е false:
+   - `Wizard.tsx`: `handleDownloadBlank` и ефектът за `?blank=1` отварят диалога преди `requireAuth`, disclaimer, `recordConsents` и `download-blank`. Кодът за сваляне остава, но не се достига.
+   - `LiveDraft`, `Template` (линкът остава, а wizard показва диалога), `FeaturedBlanks`, `CompanionChip`.
+4. **Запис** само чрез нова SECURITY DEFINER RPC `request_blank_waitlist(_email, _doc_slug, _consent)`. Тя използва нова таблица `blank_waitlist_requests` със следните правила:
+   - полета: email, doc_slug, consent_version, created_at;
+   - без IP, user agent или име;
+   - `unique(email)`, повторна заявка е идемпотентна;
+   - GRANT: без директен достъп за anon/authenticated, `service_role` ALL, RLS включен без политики;
+   - при `_consent <> true` функцията връща false.
+   Миграцията е сдвоено копие (supabase + drizzle, идентични байт по байт) и запис в манифеста. **Не се прилага.** Докато не е приложена, RPC връща грешка. Тогава диалогът показва „Заявките още не се приемат. Опитайте по-късно.“ и нищо не се записва.
+5. **Без изпращане**: никаква edge функция, никакъв email/transactional шаблон, никакво analytics събитие с имейл. Ако има събитие, то е само `blank_waitlist_submitted` със slug и без PII, през `metrics.ts` и само при съгласие.
+6. **Поверителност**: кратки допълнения в `Privacy.tsx`, `RetentionPolicy.tsx` и `ROPA.tsx`:
+   - цел: еднократно уведомяване;
+   - правно основание: съгласие;
+   - срок: до изпращане на уведомлението или 12 месеца, което настъпи първо;
+   - оттегляне: чрез връзката за контакт.
+   Срокът от 12 месеца е мое предложение и чака Вашето потвърждение. Автоматично изтриване по срока **не** се прави сега. Остава като отворена задача.
+7. **Тестове**:
+   - `src/test/blankWaitlist.test.tsx`:
+     - всеки бутон отваря диалога и `download-blank`/`downloadDocument` не се извикват;
+     - отметката не е предварително отметната;
+     - без съгласие няма RPC;
+     - невалиден имейл не се изпраща;
+     - грешка от RPC дава честно съобщение;
+     - текстът е точен и в него няма „%“ или дата.
+   - Обновяване на `blankDownloadFunnel.test.tsx` за новия клон.
+   - Тест, че миграционните копия са идентични.
+   - Typecheck, фокусирани тестове, пълен vitest и build. Sitemap файловете се възстановяват байт по байт накрая.
+
+## Остава извън плана
+- Прилагане на миграцията и проверка на живо (Ваше решение).
+- Реално изпращане на уведомленията по-късно.
+- Автоматично изтриване по срока.
+- `download-blank` и `warm-blank-cache` остават налични за директни извиквания през API, докато не бъдат изключени в отделна стъпка.
