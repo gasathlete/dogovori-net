@@ -16,6 +16,11 @@ import {
   reserveAnonDelivery,
   UUID_RE,
 } from "../_shared/anon-delivery-ledger.ts";
+import {
+  findRestrictedIdentifierKindsDeep,
+  RESTRICTED_IDENTIFIER_BLOCKED_CODE,
+  restrictedIdentifierMessage,
+} from "../_shared/text-identifier-gate.ts";
 
 
 const SYSTEM_PROMPT = `# РОЛЯ И ИДЕНТИЧНОСТ
@@ -191,6 +196,23 @@ Deno.serve(async (req) => {
         message: "Липсва идентификатор на заявката.",
         free_message_consumed: false,
       }, 400);
+    }
+
+    // ПРЕГРАДА ЗА ОГРАНИЧЕНИ ИДЕНТИФИКАТОРИ — всички входящи съобщения, ПРЕДИ
+    // резервацията на безплатното право и преди повикване към модел. В
+    // отговора и в журнала влиза само ВИДЪТ, никога стойността.
+    {
+      const kinds = findRestrictedIdentifierKindsDeep(safe);
+      if (kinds.length > 0) {
+        const message = restrictedIdentifierMessage(kinds);
+        return json({
+          error: message,
+          message,
+          code: RESTRICTED_IDENTIFIER_BLOCKED_CODE,
+          restricted_kinds: kinds,
+          free_message_consumed: false,
+        }, 422);
+      }
     }
 
     // -----------------------------------------------------------------------

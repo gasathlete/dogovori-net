@@ -55,7 +55,7 @@ export class RestrictedIdentifierError extends Error {
 
 const EGN_BARE_RE = /\d{10}/g;
 const EGN_LABELLED_RE =
-  /(?:ЕГН|егн|E\.?G\.?N|ЛНЧ|лнч)\s*(?:№|:|\.|-)?\s*(\d{6,10})/g;
+  /(?:ЕГН|егн|Егн|E\.?G\.?N|ЛНЧ|лнч)\s*(?:№|:|\.|-)?\s*([\d\s-]{6,})/g;
 const IBAN_RE = /\b[A-Z]{2}\d{2}(?:[ -]?[A-Z0-9]){10,26}\b/g;
 const IBAN_LABELLED_RE = /(?:IBAN|ИБАН)\s*(?:№|:|-)?\s*([A-Z0-9 -]{8,})/gi;
 const BANK_ACCOUNT_RE =
@@ -68,6 +68,27 @@ function digitsOnly(s: string): string {
 }
 
 /**
+ * Същото правило като сървърната преграда
+ * (supabase/functions/_shared/text-identifier-gate.ts): 10 цифри с възможна
+ * дата, БЕЗ изискване за вярна контролна сума. Грешна контролна сума не прави
+ * стойността безопасна. Обикновени години и суми остават незасегнати, защото
+ * се изискват точно 10 последователни цифри с достоверен месец и ден.
+ */
+export function isPlausibleEgnDigits(value: string): boolean {
+  const d = digitsOnly(value);
+  if (d.length !== 10) return false;
+  if (/^(\d)\1{9}$/.test(d)) return false;
+  const month = Number(d.slice(2, 4));
+  const day = Number(d.slice(4, 6));
+  const monthOk =
+    (month >= 1 && month <= 12) ||
+    (month >= 21 && month <= 32) ||
+    (month >= 41 && month <= 52);
+  if (!monthOk) return false;
+  return day >= 1 && day <= 31;
+}
+
+/**
  * Намира видовете ограничени идентификатори в текст. Празни полета, скоби и
  * черти за ръчно попълване ([ЕГН], ______, ХХХХ) НЕ се засичат — там няма
  * стойност, така че генерирането на бланки остава напълно достъпно.
@@ -77,9 +98,10 @@ export function findRestrictedIdentifiers(input: string | null | undefined): Res
   if (!text) return [];
   const kinds = new Set<RestrictedIdentifierKind>();
 
-  // ЕГН: валидна контролна сума ИЛИ изрично обозначено поле с цифри.
+  // ЕГН: достоверна структура (дори при грешна контролна сума) ИЛИ изрично
+  // обозначено поле с цифри — същото правило като сървърната преграда.
   for (const m of text.matchAll(EGN_BARE_RE)) {
-    if (isValidEGN(m[0])) {
+    if (isValidEGN(m[0]) || isPlausibleEgnDigits(m[0])) {
       kinds.add("egn");
       break;
     }

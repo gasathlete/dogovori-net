@@ -21,6 +21,7 @@ import {
   detectBilingualStructure,
   verifyIntentAssertions,
 } from "../_shared/intent-assertions.ts";
+import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
 
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект. Получаваш съществуващ договор (в JSON) и списък от ИЗБРАНИ препоръки/слаби места, които трябва да коригираш в текста.
@@ -97,6 +98,18 @@ Deno.serve(async (req: Request) => {
         { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
     }
+
+    // ПРЕГРАДА ЗА ОГРАНИЧЕНИ ИДЕНТИФИКАТОРИ (ЕГН, IBAN, сметка, лична карта):
+    // ПРЕДИ резервация на квота, правно заземяване, редакция и модел. При
+    // задействане не се таксува нищо и не се записва нищо.
+    {
+      const blocked = restrictedIdentifierBlock(body, {
+        ...corsHeaders,
+        ...correlationHeaders(correlationId),
+      });
+      if (blocked) return blocked;
+    }
+
 
     // Stepped wave charging: 1-5 corrections = 1 op, 6-10 = 2, ... ceil(n/5),
     // минимум 1. Тази ЦЕНА не се променя от прехода към единния леджър — виж
