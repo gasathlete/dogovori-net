@@ -5,6 +5,7 @@ import { buildCors } from "../_shared/cors.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { escapeUntrusted } from "../_shared/untrusted-text.ts";
 import { extractJson } from "../_shared/json.ts";
+import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
 
 const TEXT_MODEL = "google/gemini-2.5-pro";
 const IMAGE_MODEL = "google/gemini-2.5-flash-image";
