@@ -8,6 +8,7 @@ import { buildCors } from "../_shared/cors.ts";
 import { extractJson } from "../_shared/json.ts";
 import { loadActivePromptMeta } from "../_shared/prompt-loader.ts";
 import { toolSchemasFor, FULL_TOOL_NAMES, isServerTool, execSearchTemplates } from "../_shared/assistant-tools.ts";
+import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -244,6 +245,13 @@ Deno.serve(async (req) => {
 
     const body = (await req.json()) as RunBody;
     const resumeSessionId = body.resumeSessionId?.trim() || null;
+
+    // ПРЕГРАДА ЗА ОГРАНИЧЕНИ ИДЕНТИФИКАТОРИ в сценария — ПРЕДИ записа на сесия
+    // и повикванията към модел. Важи и за щабен потребител.
+    {
+      const blocked = restrictedIdentifierBlock(body, cors);
+      if (blocked) return blocked;
+    }
 
     // Load active prompt + sections (always needed)
     const meta = await loadActivePromptMeta(sb, "assistant-chat", "");

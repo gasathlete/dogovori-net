@@ -17,6 +17,18 @@ const ROUTES: Array<[string, string]> = [
   ["create-product-checkout", "createStripeClient(environment)"],
   ["fulfill-product", 'admin.rpc("claim_product_job"'],
   ["refine-product", 'admin.rpc("begin_product_result_refinement"'],
+  ["apply-corrections", "await reserveQuotaWave(ledgerDb"],
+  ["refine-contract", "await reserveQuota(ledgerDb"],
+  ["build-custom-contract", "await reserveQuotaNoCharge(ledgerDb"],
+  ["generate-linked-document", "await reserveDocumentOperation(ledger"],
+  ["review-document", "await reserveReviewOperation(admin"],
+  ["assistant-chat-anon", "await reserveAnonDelivery(ledger"],
+  ["assistant-chat", "await reserveTurn(admin"],
+  ["draft-sync", ".insert(insert)"],
+  ["draft-claim", "await ensureSavedDocument("],
+  ["assistant-edit", '"assistant_edit_proposal_action"'],
+  ["admin-generate-article", "await retrieveLegalContext("],
+  ["simulation-run", '.from("ai_simulation_sessions")'],
 ];
 
 for (const [route, marker] of ROUTES) {

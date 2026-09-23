@@ -40,6 +40,11 @@ import {
   updateGuarded,
   type DbLike,
 } from "../_shared/draft-writes.ts";
+import {
+  findRestrictedIdentifierKindsDeep,
+  RESTRICTED_IDENTIFIER_BLOCKED_CODE,
+  restrictedIdentifierMessage,
+} from "../_shared/text-identifier-gate.ts";
 
 
 interface Body {
@@ -161,6 +166,23 @@ Deno.serve(async (req) => {
     let savedDocId = savedDocFromFresh ?? row.saved_doc_id;
     let payload = (row.payload ?? {}) as Record<string, unknown>;
     let purged = !!savedDocId;
+
+    // ПРЕГРАДА ЗА ОГРАНИЧЕНИ ИДЕНТИФИКАТОРИ в ЗАПАЗЕНОТО съдържание — ПРЕДИ
+    // материализацията в `saved_documents`. Присвояването вече е извършено и е
+    // идемпотентно; тук не се създава документ и не се връща съдържание.
+    {
+      const kinds = findRestrictedIdentifierKindsDeep({ payload, doc_key: row.doc_key });
+      if (kinds.length > 0) {
+        logDraft("draft-claim", { reason: RESTRICTED_IDENTIFIER_BLOCKED_CODE, status: 422 });
+        return json({
+          ok: false,
+          reason: RESTRICTED_IDENTIFIER_BLOCKED_CODE,
+          code: RESTRICTED_IDENTIFIER_BLOCKED_CODE,
+          message: restrictedIdentifierMessage(kinds),
+          restricted_kinds: kinds,
+        }, 422);
+      }
+    }
 
     // Готов документ → в профила (без нова операция: генерирането вече е
     // таксувано в анонимната сесия). След това съдържанието напуска черновата.

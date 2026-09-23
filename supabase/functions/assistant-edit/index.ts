@@ -14,6 +14,11 @@ import {
   type EditAction,
 } from "../_shared/assistant-edit.ts";
 import { computeContextVersion } from "../_shared/assistant-context-version.ts";
+import {
+  findRestrictedIdentifierKindsDeep,
+  RESTRICTED_IDENTIFIER_BLOCKED_CODE,
+  restrictedIdentifierMessage,
+} from "../_shared/text-identifier-gate.ts";
 
 const ACTIONS: EditAction[] = ["accept", "reject", "undo"];
 
@@ -105,6 +110,27 @@ Deno.serve(async (req) => {
       currentTargetValue: readLeafByPath(docRow as any, proposal.target_path),
     });
     if (!decision.ok) return json({ ok: false, code: decision.code }, 409);
+
+    // ПРЕГРАДА ЗА ОГРАНИЧЕНИ ИДЕНТИФИКАТОРИ — ПРЕДИ SQL прехода, който пише в
+    // `saved_documents`. Проверява се точно текстът, който би бил записан:
+    // „accept“ записва новия текст, „undo“ връща предишния. „reject“ не пише
+    // съдържание и не се спира тук.
+    {
+      const textToWrite = action === "accept"
+        ? String(proposal.after_text ?? "")
+        : action === "undo"
+        ? String(proposal.before_text ?? "")
+        : "";
+      const kinds = findRestrictedIdentifierKindsDeep(textToWrite);
+      if (kinds.length > 0) {
+        return json({
+          ok: false,
+          code: RESTRICTED_IDENTIFIER_BLOCKED_CODE,
+          message: restrictedIdentifierMessage(kinds),
+          restricted_kinds: kinds,
+        }, 422);
+      }
+    }
 
     // ---- Авторитетен атомарен преход -------------------------------------
     const { data: rpcData, error: rpcErr } = await userClient.rpc(

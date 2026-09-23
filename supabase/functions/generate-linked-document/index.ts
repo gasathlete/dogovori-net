@@ -27,6 +27,7 @@ import {
   reconcileUnexpectedFailure,
   reserveDocumentOperation,
 } from "../_shared/ai-document-ledger.ts";
+import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
 
 const KIND_SPECS: Record<string, { label: string; addendum: string }> = {
   appendix: {
@@ -204,6 +205,15 @@ Deno.serve(async (req: Request) => {
         }),
         { status: 429, headers: jsonHeaders },
       );
+    }
+
+    // ПРЕГРАДА ЗА ОГРАНИЧЕНИ ИДЕНТИФИКАТОРИ — клаузи, бележки и тяло на
+    // родителския документ. Стои ПРЕДИ резервацията, за да не се хаби право.
+    // Следствие: заявка с ограничени данни не получава възпроизвеждане на
+    // по-рано записан резултат — такава заявка вече не се обработва изобщо.
+    {
+      const blocked = restrictedIdentifierBlock(body, jsonHeaders);
+      if (blocked) return blocked;
     }
 
     const reserved = await reserveDocumentOperation(ledger, {

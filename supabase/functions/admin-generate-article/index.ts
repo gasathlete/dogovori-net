@@ -5,6 +5,7 @@ import { buildCors } from "../_shared/cors.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { escapeUntrusted } from "../_shared/untrusted-text.ts";
 import { extractJson } from "../_shared/json.ts";
+import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
 
 const TEXT_MODEL = "google/gemini-2.5-pro";
 const IMAGE_MODEL = "google/gemini-2.5-flash-image";
@@ -181,6 +182,13 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "validation_failed", details: ["Тема, категория и задължителен текст (мин. 30 знака) са нужни."] }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // ПРЕГРАДА ЗА ОГРАНИЧЕНИ ИДЕНТИФИКАТОРИ в редакционния вход — ПРЕДИ правното
+    // заземяване, модела и записа. Важи и за щабен потребител.
+    {
+      const blocked = restrictedIdentifierBlock(input, corsHeaders);
+      if (blocked) return blocked;
     }
 
     const rawSystem = await loadActivePrompt(admin, "admin-generate-article", SYSTEM);

@@ -11,6 +11,7 @@ import { redactForAI, unredact } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
+import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
 
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект. Получаваш вече генериран договор (в JSON) и КРАТКА обратна връзка от потребителя за пропуск/грешка/подобрение.
@@ -87,6 +88,16 @@ Deno.serve(async (req: Request) => {
         { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
     }
+
+    // ПРЕГРАДА ЗА ОГРАНИЧЕНИ ИДЕНТИФИКАТОРИ — преди квота, заземяване и модел.
+    {
+      const blocked = restrictedIdentifierBlock(body, {
+        ...corsHeaders,
+        ...correlationHeaders(correlationId),
+      });
+      if (blocked) return blocked;
+    }
+
     if (feedback.length > 1500) {
       return new Response(JSON.stringify({ error: "Обратната връзка е твърде дълга (макс. 1500 символа)." }), {
         status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" },

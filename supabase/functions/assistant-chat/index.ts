@@ -57,6 +57,11 @@ import {
 } from "./turn-ledger.ts";
 import { HISTORY_CHARS_LIMIT, loadThreadHistory } from "./history.ts";
 import { noVerifiedAnswerText, validateAnswerCitations } from "./citation-integrity.ts";
+import {
+  findRestrictedIdentifierKindsDeep,
+  RESTRICTED_IDENTIFIER_BLOCKED_CODE,
+  restrictedIdentifierMessage,
+} from "../_shared/text-identifier-gate.ts";
 
 const SYSTEM_PROMPT = `# РОЛЯ
 Ти си **DogovaryAI** — управляван от tools агент на Dogovori.net. Не отказваш, не се извиняваш — водиш потребителя през ясна верига от стъпки докато стигнете до готов договор/документ.
@@ -575,6 +580,30 @@ Deno.serve(async (req) => {
     const lookup = await lookupTurn(admin, operationId, userId, binding);
     if (lookup.kind === "committed") return replayResponse(lookup.result);
     if (lookup.kind !== "absent") return ledgerStateResponse(lookup.kind);
+
+    // ПРЕГРАДА ЗА ОГРАНИЧЕНИ ИДЕНТИФИКАТОРИ — новото съобщение, заредената
+    // история и разрешеният документен контекст (заглавие и текст). Стои СЛЕД
+    // само-четящото търсене, за да НЕ се губи вече платен и записан отговор, и
+    // ПРЕДИ ключа на доставчика, правното заземяване и reserveTurn: блокирана
+    // заявка не консумира ново право и не стига до модел.
+    {
+      const kinds = findRestrictedIdentifierKindsDeep({
+        message: newMessage,
+        history,
+        context: resolvedContext
+          ? { title: resolvedContext.title, body: resolvedContext.body }
+          : null,
+      });
+      if (kinds.length > 0) {
+        const message = restrictedIdentifierMessage(kinds);
+        return json({
+          error: message,
+          message,
+          code: RESTRICTED_IDENTIFIER_BLOCKED_CODE,
+          restricted_kinds: kinds,
+        }, 422);
+      }
+    }
 
     // ---- Ключ на доставчика: нужен е само когато наистина ще има модел или
     // строга проверка на нормативната база. Помощта за платформата работи и без.

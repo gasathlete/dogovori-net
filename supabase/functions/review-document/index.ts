@@ -37,6 +37,7 @@ import {
   intentMismatchChecks,
   verifyIntentAssertions,
 } from "../_shared/intent-assertions.ts";
+import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
 
 const SYSTEM_PROMPT = `Ти си независим български правен ревизор (втори проход). Получаваш ГОТОВ документ и правиш техническа ревизия. НЕ пренаписваш текста.
 
@@ -441,6 +442,17 @@ Deno.serve(async (req: Request) => {
         );
       }
       // absent: продължава през ВСИЧКИ безплатни проверки и чак тогава резервира.
+    }
+
+    // ПРЕГРАДА ЗА ОГРАНИЧЕНИ ИДЕНТИФИКАТОРИ — документът за ревизия и неговите
+    // метаданни. Стои СЛЕД само-четящото търсене (завършена ревизия се
+    // възпроизвежда) и ПРЕДИ резервацията на право и повикването на модел.
+    {
+      const blocked = restrictedIdentifierBlock(rawBody, {
+        ...corsHeaders,
+        ...correlationHeaders(correlationId),
+      });
+      if (blocked) return blocked;
     }
 
     // ЩАБНО ИЗКЛЮЧЕНИЕ: само проверена роля може ръчно да изключи проверката за

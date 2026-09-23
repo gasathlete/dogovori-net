@@ -29,6 +29,7 @@ import {
   detectBilingualStructure,
   detectArbitrationInText,
 } from "../_shared/intent-assertions.ts";
+import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
 
 
 const BASE_SYSTEM_PROMPT = `Ти си български правен архитект. Пишеш на професионален юридически български (ЗЗД, ТЗ, ЗУТ, ГПК, ЗАНН, ЗАПСП, ЗННД).
@@ -297,6 +298,16 @@ Deno.serve(async (req: Request) => {
         }),
         { status: 400, headers: { ...corsHeaders, ...correlationHeaders(correlationId), "Content-Type": "application/json" } },
       );
+    }
+
+    // ПРЕГРАДА ЗА ОГРАНИЧЕНИ ИДЕНТИФИКАТОРИ — включително собствените полета и
+    // контекста от родителския документ. ПРЕДИ отпечатък, квота и модел.
+    {
+      const blocked = restrictedIdentifierBlock(body, {
+        ...corsHeaders,
+        ...correlationHeaders(correlationId),
+      });
+      if (blocked) return blocked;
     }
 
     // КАНОНИЧЕН ОТПЕЧАТЪК на ЦЯЛОТО семантично съдържание на заявката — СЛЕД

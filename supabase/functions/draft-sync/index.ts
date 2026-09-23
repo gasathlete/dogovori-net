@@ -40,6 +40,11 @@ import {
   updateGuarded,
   type DbLike,
 } from "../_shared/draft-writes.ts";
+import {
+  findRestrictedIdentifierKindsDeep,
+  RESTRICTED_IDENTIFIER_BLOCKED_CODE,
+  restrictedIdentifierMessage,
+} from "../_shared/text-identifier-gate.ts";
 
 
 interface Body {
@@ -92,6 +97,25 @@ Deno.serve(async (req) => {
     if (!isValidFlow(body.flow)) return fail("invalid_request");
     if (!isSafeRoute(body.route)) return fail("invalid_request");
     if (payloadTooLarge(body.payload)) return fail("payload_too_large");
+
+    // ПРЕГРАДА ЗА ОГРАНИЧЕНИ ИДЕНТИФИКАТОРИ — ПРЕДИ всякакъв запис в
+    // `anonymous_drafts`. Отговорът съдържа само вида, никога стойността.
+    {
+      const kinds = findRestrictedIdentifierKindsDeep({
+        payload: body.payload ?? null,
+        doc_key: body.doc_key ?? null,
+      });
+      if (kinds.length > 0) {
+        logDraft("draft-sync", { reason: RESTRICTED_IDENTIFIER_BLOCKED_CODE, status: 422 });
+        return json({
+          ok: false,
+          reason: RESTRICTED_IDENTIFIER_BLOCKED_CODE,
+          code: RESTRICTED_IDENTIFIER_BLOCKED_CODE,
+          message: restrictedIdentifierMessage(kinds),
+          restricted_kinds: kinds,
+        }, 422);
+      }
+    }
 
     const ipKey = await hashIp(clientIp(req));
     const rl = await checkRateLimit(`draft-sync:${ipKey}`, 120, 60);
