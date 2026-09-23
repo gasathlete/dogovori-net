@@ -1,4 +1,5 @@
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
+import { RAW_FILE_INGRESS_ALLOWED } from "@/lib/privacyGate";
 import { ArrowRight, FileSearch, FilePen, Handshake } from "@/icons";
 import type { LucideIcon } from "@/icons";
 import { ProductPrice } from "@/components/products/ProductPrice";
@@ -157,9 +158,9 @@ export function ProductCatalogGrid({ source }: { source: string }) {
 
             <div className="mt-auto p-3 pt-4 sm:p-4 sm:pt-4">
               <Link
-                to={product.ctaHref}
+                to={RAW_FILE_INGRESS_ALLOWED ? product.ctaHref : productPath(product)}
                 onClick={() =>
-                  trackFunnelEvent(PRODUCT_EVENTS.productSelected, {
+                  trackFunnelEvent(RAW_FILE_INGRESS_ALLOWED ? PRODUCT_EVENTS.productSelected : PRODUCT_EVENTS.detailsOpened, {
                     product: product.id,
                     source,
                     variant: "catalog_grid",
@@ -167,7 +168,7 @@ export function ProductCatalogGrid({ source }: { source: string }) {
                 }
                 className="btn-gold btn-press inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-2 text-center text-xs font-bold sm:px-3 sm:text-sm"
               >
-                <span>{product.ctaLabel}</span>
+                <span>{RAW_FILE_INGRESS_ALLOWED ? product.ctaLabel : "Вижте продукта"}</span>
                 <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
               </Link>
               <Link
