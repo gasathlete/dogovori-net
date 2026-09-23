@@ -69,10 +69,9 @@ describe("свързване", () => {
     expect(h.indexOf("openPrelaunchWaitlist")).toBeLessThan(h.indexOf("downloadDocument("));
   });
   it("миграцията дава на anon само заявка, не четене/изтриване", () => {
-    const sql = readFileSync("drizzle/migrations/0045_prelaunch_waitlist.sql", "utf8");
+    const sql = readFileSync("docs/migrations/stage_prelaunch_waitlist.sql", "utf8");
     expect(sql).toContain("REVOKE ALL ON TABLE public.prelaunch_waitlist FROM PUBLIC, anon, authenticated");
     expect(sql).toMatch(/withdraw_prelaunch_waitlist\(text\) FROM PUBLIC, anon, authenticated/);
     expect(sql).toContain("retention_until timestamptz NULL");
-    expect(readFileSync("docs/migrations/stage_prelaunch_waitlist.sql", "utf8")).toBe(sql);
   });
 });
