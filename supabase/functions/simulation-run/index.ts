@@ -302,6 +302,17 @@ Deno.serve(async (req) => {
         });
       }
 
+      // ПРЕГРАДА за РАЗРЕШЕНО прочетеното съдържание (сценарий от сесията и
+      // предишни ходове) — СЛЕД проверката за собственост и ПРЕДИ обновяване на
+      // състоянието и повикване към модел. Без сурови стойности в журнал/отговор.
+      {
+        const blocked = restrictedIdentifierBlock(
+          { scenario, prior_turns: priorTurns },
+          cors,
+        );
+        if (blocked) return blocked;
+      }
+
       await sb.from("ai_simulation_sessions").update({
         status: "running",
         max_turns: maxTurns,
