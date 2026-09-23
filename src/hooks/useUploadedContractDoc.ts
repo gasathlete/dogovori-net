@@ -17,6 +17,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { findRestrictedIdentifiers, restrictedIdentifierMessage } from "@/lib/privacyGate";
 
 export type Issue = {
   severity: "low" | "medium" | "high";
