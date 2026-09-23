@@ -85,7 +85,7 @@ async function readBlockedReason(error: unknown): Promise<string | null> {
   }
 }
 
-export default function ProductCheckout() {
+function ProductCheckoutActive() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -646,6 +646,33 @@ export default function ProductCheckout() {
         ) : (
           priceBlock(true)
         )}
+      </main>
+    </>
+  );
+}
+
+/** Direct deep links must not reach the upload or checkout state while files are blocked. */
+export default function ProductCheckout() {
+  if (RAW_FILE_INGRESS_ALLOWED) return <ProductCheckoutActive />;
+  return (
+    <>
+      <Seo
+        title="Проверка на договор — в подготовка"
+        description="В момента не приемаме договори и не отваряме плащане за тези продукти."
+        canonical="/produkti"
+      />
+      <Header />
+      <main className="container min-h-dvh max-w-2xl px-4 py-12">
+        <section role="status" className="rounded-2xl border border-gold/30 bg-card p-6">
+          <h1 className="font-serif text-2xl font-bold">Услугата е в подготовка</h1>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            В момента не приемаме файлове с договори и не отваряме плащане за проверка,
+            поправка или пакет за преговори. Ще обявим, когато защитеният път за документите е готов.
+          </p>
+          <Link to="/produkti" className="mt-5 inline-flex min-h-11 items-center text-sm font-semibold text-gold underline underline-offset-4">
+            Вижте описанията на продуктите
+          </Link>
+        </section>
       </main>
     </>
   );
