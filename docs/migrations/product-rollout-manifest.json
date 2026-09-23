@@ -1,329 +1,349 @@
 {
-  "version": 2,
-  "status": "base-and-0018-0026-applied-and-verified-2026-09-12; 0041_gate3_paid_fulfillment_exact_once is AUTHORED IN SOURCE ONLY and PENDING (not applied)",
-  "appliedRecord": {
-    "date": "2026-09-12",
-    "scope": "corrected base + 0018→0025, then 0026_product_acl_hardening",
-    "mode": "manual patch chain in exactly two atomic transactions, no Drizzle journal entries",
-    "firstAttempt": "rolled back completely at base statement 21, SQLSTATE 0A000 (subquery in CHECK constraint); no partial schema, no data change",
-    "transaction1": "after a full forced-rollback dry run, all 252 statements of corrected base + 0018→0025 were applied together in ONE atomic transaction (not one transaction per file); all 10 tables, constraints, indexes, triggers, policies, functions and RLS verified",
-    "transaction2": "0026_product_acl_hardening (SHA-256 a21afdd9bacd642601f215040b973a7fc9c2e58db2826214ffaad4a5cd00bfcf) was applied later in its own second atomic transaction and verified; PostgREST schema reload was notified",
-    "rowCounts": "uploaded_contracts=13 preserved; order_snapshots=0; every one of the ten product tables=0",
-    "capability": "load_product_result_state returns exactly {ok:false, reason:'not_found'}; product_rollout_capability() returns exactly {ok:true, migration:'0026_product_acl_hardening'}",
-    "aclVerification": "zero anon/authenticated/service violations: anon has no product table or function privilege; authenticated has SELECT only on the five owner-read tables and EXECUTE only on product_job_status(uuid); service_role has the required DML and function access",
-    "staging": "public.__codex_product_migration_stage_20260912 was dropped, is absent live and must not exist in generated types",
-    "notEnabled": "feature flags, Edge function deploys, frontend publish, Stripe, sandbox, live AI and monetization all remain OFF/not enabled"
+ "version": 2,
+ "status": "base-and-0018-0026-applied-and-verified-2026-09-12; 0041_gate3_paid_fulfillment_exact_once is AUTHORED IN SOURCE ONLY and PENDING (not applied)",
+ "appliedRecord": {
+  "date": "2026-09-12",
+  "scope": "corrected base + 0018→0025, then 0026_product_acl_hardening",
+  "mode": "manual patch chain in exactly two atomic transactions, no Drizzle journal entries",
+  "firstAttempt": "rolled back completely at base statement 21, SQLSTATE 0A000 (subquery in CHECK constraint); no partial schema, no data change",
+  "transaction1": "after a full forced-rollback dry run, all 252 statements of corrected base + 0018→0025 were applied together in ONE atomic transaction (not one transaction per file); all 10 tables, constraints, indexes, triggers, policies, functions and RLS verified",
+  "transaction2": "0026_product_acl_hardening (SHA-256 a21afdd9bacd642601f215040b973a7fc9c2e58db2826214ffaad4a5cd00bfcf) was applied later in its own second atomic transaction and verified; PostgREST schema reload was notified",
+  "rowCounts": "uploaded_contracts=13 preserved; order_snapshots=0; every one of the ten product tables=0",
+  "capability": "load_product_result_state returns exactly {ok:false, reason:'not_found'}; product_rollout_capability() returns exactly {ok:true, migration:'0026_product_acl_hardening'}",
+  "aclVerification": "zero anon/authenticated/service violations: anon has no product table or function privilege; authenticated has SELECT only on the five owner-read tables and EXECUTE only on product_job_status(uuid); service_role has the required DML and function access",
+  "staging": "public.__codex_product_migration_stage_20260912 was dropped, is absent live and must not exist in generated types",
+  "notEnabled": "feature flags, Edge function deploys, frontend publish, Stripe, sandbox, live AI and monetization all remain OFF/not enabled"
+ },
+ "journalPolicy": "manual-patch-chain-not-recorded-in-drizzle-journal",
+ "base": {
+  "file": "supabase/migrations/20260910090000_product_checkout_entitlements.sql",
+  "review": "docs/migrations/stage2a_product_checkout_entitlements.sql",
+  "sha256": "9b27341a7dcd5a0988663a4b8479417235935bea1f0526f5e340a08a627f26b2"
+ },
+ "migrations": [
+  {
+   "id": "0018_product_result_v2_binding_patch",
+   "file": "drizzle/migrations/0018_product_result_v2_binding_patch.sql",
+   "review": "docs/migrations/stage2a_product_result_v2_binding_patch.sql",
+   "sha256": "b6eeef764500efc9f799c18c5060ce45706fd371c33e65bbb9f3f3d848b27cc3",
+   "dependsOn": "20260910090000_product_checkout_entitlements",
+   "purpose": "Bind ready results and completion functions to the complete v2 source identity.",
+   "objects": [
+    "product_entitlements_ready_ck",
+    "complete_product_fulfillment",
+    "complete_product_refinement"
+   ],
+   "preapply": [
+    "base migration applied",
+    "maintenance write freeze"
+   ],
+   "verify": [
+    "ready constraint requires schema v2 and complete nested source binding"
+   ],
+   "recovery": "forward-fix; restore prior function definitions manually only from an approved artifact"
   },
-  "journalPolicy": "manual-patch-chain-not-recorded-in-drizzle-journal",
-  "base": {
-    "file": "supabase/migrations/20260910090000_product_checkout_entitlements.sql",
-    "review": "docs/migrations/stage2a_product_checkout_entitlements.sql",
-    "sha256": "9b27341a7dcd5a0988663a4b8479417235935bea1f0526f5e340a08a627f26b2"
+  {
+   "id": "0019_product_fulfillment_jobs",
+   "file": "drizzle/migrations/0019_product_fulfillment_jobs.sql",
+   "review": "docs/migrations/stage2a_product_fulfillment_jobs.sql",
+   "sha256": "77e4cf1f3bc1dafe5d8d2b2a483203d0ac8f13438f2f5bac5d2ef1a6ebf8e9a7",
+   "dependsOn": "0018_product_result_v2_binding_patch",
+   "purpose": "Add service-only fulfillment jobs, leases, checkpoints and safe status reads.",
+   "objects": [
+    "product_fulfillment_jobs",
+    "product_fulfillment_checkpoints",
+    "claim_product_job",
+    "record_product_job_checkpoint",
+    "fail_product_job",
+    "product_job_status"
+   ],
+   "preapply": [
+    "0018 verified",
+    "maintenance write freeze"
+   ],
+   "verify": [
+    "RLS forced",
+    "browser mutations revoked",
+    "job and checkpoint uniqueness present"
+   ],
+   "recovery": "forward-fix; do not drop durable job or checkpoint data"
   },
-  "migrations": [
-    {
-      "id": "0018_product_result_v2_binding_patch",
-      "file": "drizzle/migrations/0018_product_result_v2_binding_patch.sql",
-      "review": "docs/migrations/stage2a_product_result_v2_binding_patch.sql",
-      "sha256": "b6eeef764500efc9f799c18c5060ce45706fd371c33e65bbb9f3f3d848b27cc3",
-      "dependsOn": "20260910090000_product_checkout_entitlements",
-      "purpose": "Bind ready results and completion functions to the complete v2 source identity.",
-      "objects": [
-        "product_entitlements_ready_ck",
-        "complete_product_fulfillment",
-        "complete_product_refinement"
-      ],
-      "preapply": [
-        "base migration applied",
-        "maintenance write freeze"
-      ],
-      "verify": [
-        "ready constraint requires schema v2 and complete nested source binding"
-      ],
-      "recovery": "forward-fix; restore prior function definitions manually only from an approved artifact"
-    },
-    {
-      "id": "0019_product_fulfillment_jobs",
-      "file": "drizzle/migrations/0019_product_fulfillment_jobs.sql",
-      "review": "docs/migrations/stage2a_product_fulfillment_jobs.sql",
-      "sha256": "77e4cf1f3bc1dafe5d8d2b2a483203d0ac8f13438f2f5bac5d2ef1a6ebf8e9a7",
-      "dependsOn": "0018_product_result_v2_binding_patch",
-      "purpose": "Add service-only fulfillment jobs, leases, checkpoints and safe status reads.",
-      "objects": [
-        "product_fulfillment_jobs",
-        "product_fulfillment_checkpoints",
-        "claim_product_job",
-        "record_product_job_checkpoint",
-        "fail_product_job",
-        "product_job_status"
-      ],
-      "preapply": [
-        "0018 verified",
-        "maintenance write freeze"
-      ],
-      "verify": [
-        "RLS forced",
-        "browser mutations revoked",
-        "job and checkpoint uniqueness present"
-      ],
-      "recovery": "forward-fix; do not drop durable job or checkpoint data"
-    },
-    {
-      "id": "0020_product_fulfillment_jobs_correction",
-      "file": "drizzle/migrations/0020_product_fulfillment_jobs_correction.sql",
-      "review": "docs/migrations/stage2b1b1_product_fulfillment_jobs_correction.sql",
-      "sha256": "328c108abb489063309eaad6cafc31e679a4454355445677fb009a8e2b859629",
-      "dependsOn": "0019_product_fulfillment_jobs",
-      "purpose": "Correct cost units, token budgets, cursor transitions, leases and terminal failures.",
-      "objects": [
-        "product_job_stage_sequence",
-        "product_job_cursor_key",
-        "claim_product_job",
-        "release_product_job_lease",
-        "record_product_job_checkpoint",
-        "fail_product_job"
-      ],
-      "preapply": [
-        "0019 verified",
-        "zero existing fulfillment rows",
-        "maintenance write freeze"
-      ],
-      "verify": [
-        "micro-USD columns present",
-        "strict product cursor transitions active"
-      ],
-      "recovery": "forward-fix; column renames and function replacement have no automatic down migration"
-    },
-    {
-      "id": "0021_product_policy_binding_patch",
-      "file": "drizzle/migrations/0021_product_policy_binding_patch.sql",
-      "review": "docs/migrations/stage2b1b1_product_policy_binding_patch.sql",
-      "sha256": "8e9150f9154e55baf413703847aade5e12f84ae4331eeebaef093219e87af821",
-      "dependsOn": "0020_product_fulfillment_jobs_correction",
-      "purpose": "Bind every paid entitlement to the immutable policy version from its exact intake.",
-      "objects": [
-        "product_checkout_intakes_generation_policy_ck",
-        "bind_product_entitlement_policy",
-        "product_entitlements_bind_policy"
-      ],
-      "preapply": [
-        "0020 verified",
-        "zero legacy or blank intake policy versions",
-        "maintenance write freeze",
-        "run once as an atomic transaction; partial retry requires operator inspection"
-      ],
-      "verify": [
-        "intake policy nonblank",
-        "entitlement trigger copies exact intake policy"
-      ],
-      "recovery": "forward-fix; constraint and trigger changes require approved manual restoration"
-    },
-    {
-      "id": "0022_product_generation_artifacts",
-      "file": "drizzle/migrations/0022_product_generation_artifacts.sql",
-      "review": "docs/migrations/stage2b1b2_product_generation_artifacts.sql",
-      "sha256": "65797186dc7635d27be8b1fc258a5ef02cc54dd280ef3a486b0360231f68ba3c",
-      "dependsOn": "0021_product_policy_binding_patch",
-      "purpose": "Add durable service-only model-call receipts and generation artifacts.",
-      "objects": [
-        "product_generation_calls",
-        "product_generation_artifacts",
-        "reserve_product_generation_call",
-        "complete_product_generation_call",
-        "record_product_generation_artifact",
-        "load_product_generation_state",
-        "finish_product_generation"
-      ],
-      "preapply": [
-        "0021 verified",
-        "zero fulfillment rows",
-        "maintenance write freeze",
-        "run once as an atomic transaction; partial retry requires operator inspection"
-      ],
-      "verify": [
-        "RLS forced",
-        "append-only receipts",
-        "unique call and artifact identities"
-      ],
-      "recovery": "forward-fix; never drop provider receipts or generated artifacts"
-    },
-    {
-      "id": "0023_product_generation_artifacts_correction",
-      "file": "drizzle/migrations/0023_product_generation_artifacts_correction.sql",
-      "review": "docs/migrations/stage2b1b2_product_generation_artifacts_correction.sql",
-      "sha256": "484199ee7ed7b683e7c428ae007f5607001010872bfdb91dc73b0e3af0092ab8",
-      "dependsOn": "0022_product_generation_artifacts",
-      "purpose": "Correct resumable generation reservations, strict replay, state loading and result commit.",
-      "objects": [
-        "reserve_product_generation_call",
-        "complete_product_generation_call",
-        "record_product_generation_artifact",
-        "commit_product_generation_result",
-        "load_product_generation_state"
-      ],
-      "preapply": [
-        "0022 verified",
-        "zero fulfillment rows",
-        "maintenance write freeze"
-      ],
-      "verify": [
-        "strict call replay",
-        "result commit is atomic",
-        "cursor and artifact state agree"
-      ],
-      "recovery": "forward-fix; replaced functions need approved prior definitions for manual restoration"
-    },
-    {
-      "id": "0024_product_generation_runtime_safety_correction",
-      "file": "drizzle/migrations/0024_product_generation_runtime_safety_correction.sql",
-      "review": "docs/migrations/stage2b1b2_product_generation_runtime_safety_correction.sql",
-      "sha256": "eb732f25a24d57a9ecec9f0f83ba7e0ff6dc66bde2ad45fdf2e1d52818f01645",
-      "dependsOn": "0023_product_generation_artifacts_correction",
-      "purpose": "Make generation timestamps immutable and reject phantom passport or invalid cursor state.",
-      "objects": [
-        "enforce_product_generation_timestamp_immutable",
-        "product_generation_timestamp_immutable",
-        "product_job_cursor_advances",
-        "load_product_generation_state",
-        "record_product_generation_artifact"
-      ],
-      "preapply": [
-        "0023 verified",
-        "zero fulfillment rows",
-        "maintenance write freeze"
-      ],
-      "verify": [
-        "generation timestamp immutable",
-        "cursor capability returns strict booleans"
-      ],
-      "recovery": "forward-fix; replaced functions and trigger require approved manual restoration"
-    },
-    {
-      "id": "0025_product_result_selections",
-      "file": "drizzle/migrations/0025_product_result_selections.sql",
-      "review": "docs/migrations/stage2b1c_product_result_selections.sql",
-      "sha256": "f9d5e11e3c04b5a393cec60a8bb67b22bef33c110ba48bb288dfb6d0ce84ca33",
-      "dependsOn": "0024_product_generation_runtime_safety_correction",
-      "purpose": "Add immutable correction selections, deterministic revisions and exactly one premium refinement.",
-      "objects": [
-        "product_result_selections",
-        "product_result_selection_revisions",
-        "product_result_refinements",
-        "product_result_refinement_calls",
-        "save_product_result_selection",
-        "load_product_result_state",
-        "begin_product_result_refinement",
-        "complete_product_result_refinement",
-        "fail_product_result_refinement",
-        "reserve_product_result_refinement_call",
-        "complete_product_result_refinement_call"
-      ],
-      "preapply": [
-        "0024 verified",
-        "zero ready entitlements",
-        "maintenance write freeze",
-        "run once as an atomic transaction; partial retry requires operator inspection"
-      ],
-      "verify": [
-        "load_product_result_state returns not_found for absent UUID",
-        "RLS owner reads only",
-        "service-only mutation",
-        "one successful refinement per entitlement"
-      ],
-      "recovery": "forward-fix; do not invent a down migration for immutable selection or refinement history"
-    },
-    {
-      "id": "0026_product_acl_hardening",
-      "file": "drizzle/migrations/0026_product_acl_hardening.sql",
-      "review": "docs/migrations/stage2b1d_product_acl_hardening.sql",
-      "sha256": "a21afdd9bacd642601f215040b973a7fc9c2e58db2826214ffaad4a5cd00bfcf",
-      "dependsOn": "0025_product_result_selections",
-      "purpose": "Make the post-apply ACL hardening durable and reproducible, and prove readiness with a dedicated capability function.",
-      "objects": [
-        "product ACL revokes and grants on all 10 tables",
-        "function EXECUTE revokes over the canonical product allowlist",
-        "product_job_status authenticated exception",
-        "product_rollout_capability"
-      ],
-      "preapply": [
-        "base + 0018–0025 applied and verified",
-        "no default-privilege change",
-        "no data mutation"
-      ],
-      "verify": [
-        "anon has no table or function privileges",
-        "authenticated has SELECT only on the five owner-read tables",
-        "authenticated EXECUTE only on product_job_status(uuid)",
-        "product_rollout_capability() returns {ok:true, migration:'0026_product_acl_hardening'} for service_role only"
-      ],
-      "recovery": "idempotent; re-apply is safe. forward-fix only; never drop product objects",
-      "applied": "2026-09-12 in its own second atomic transaction; verified with zero ACL violations and no Drizzle journal entry"
-    },
-    {
-      "id": "0041_gate3_paid_fulfillment_exact_once",
-      "file": "drizzle/migrations/0041_gate3_paid_fulfillment_exact_once.sql",
-      "pairedFile": "supabase/migrations/20260921013000_gate3_paid_fulfillment_exact_once.sql",
-      "parity": "byte-identical copies",
-      "sha256": "f28b0c015a52a361e62c941f6d835a9fefbd7c6ba357ad06e9dea6c449d5f34b",
-      "applied": false,
-      "dependsOn": "0026_product_acl_hardening",
-      "purpose": "Durable, DB-enforced reconciliation state for uncertain provider outcomes on the paid fulfilment and included-refinement paths.",
-      "objects": [
-        "product_fulfillment_jobs.reconciliation_*",
-        "product_result_refinements.reconciliation_*",
-        "product_fulfillment_jobs_reconciliation_shape",
-        "product_result_refinements_reconciliation_shape",
-        "product_fulfillment_jobs_one_unresolved",
-        "product_result_refinements_one_unresolved",
-        "product_reconciliation_events",
-        "product_reconciliation_resolutions",
-        "product_reconciliation_terminal_calls",
-        "enforce_product_generation_call_not_consumed",
-        "enforce_product_refinement_call_not_consumed",
-        "enforce_product_job_reconciliation_freeze",
-        "enforce_product_refinement_reconciliation_freeze",
-        "enforce_product_job_no_unresolved",
-        "enforce_product_refinement_no_unresolved",
-        "mark_product_job_reconciliation",
-        "mark_product_refinement_reconciliation",
-        "product_reconciliation_state",
-        "resolve_product_reconciliation"
-      ],
-      "pgTap": "supabase/tests/0041_gate3_paid_fulfillment_exact_once.sql — 68 assertions, plan(68), behavioural (consume/denied release/conflict/orphan call/closed audit), AUTHORED BUT NOT RUN (migration unapplied)",
-      "preapply": [
-        "0018-0026 applied and verified",
-        "maintenance write freeze",
-        "reviewed byte parity of both copies"
-      ],
-      "verify": [
-        "one unresolved reconciliation row per entitlement for jobs and refinements",
-        "unresolved rows are frozen against update/delete outside the guarded resolution path",
-        "mark/resolve/state functions are service_role only",
-        "product_reconciliation_state is STABLE and cannot write"
-      ],
-      "recovery": "forward-fix only; resolution requires resolve_product_reconciliation(kind, subject, release|consume, closed reason_code, optional opaque ticket_ref). release is permitted only with provider_no_execution_proven AND no durable provider call; consume is terminal and makes a further provider call impossible. No free-text operator note is stored."
-    }
-  ],
-  "gate3": {
-    "scope": "paid fulfilment exact-once: fulfill-product, refine-product, download-document paid export path, payments-webhook entitlement creation",
-    "sourceOnly": true,
-    "releaseBlocking": {
-      "fulfill-product": true,
-      "refine-product": true,
-      "download-document": true
-    },
-    "blockers": [
-      "0041 is not applied to any database",
-      "pgTAP supabase/tests/0041_gate3_paid_fulfillment_exact_once.sql authored but NOT RUN",
-      "real two-session PostgreSQL concurrency proof for job claim, refinement and reconciliation not performed",
-      "no controlled Stripe sandbox purchase/duplicate-webhook proof performed",
-      "no real provider execution or paid export proof performed"
-    ],
-    "proofGate": "Gates 4-6 (controlled DB apply, concurrency proof, sandbox payment proof)",
-    "clientIdentity": "src/lib/productOperationKey.ts — stable idempotency keys for refinement and selection; cleared only on committed success or proven version conflict",
-    "providerBudgets": {
-      "fulfill-product": "one durable reserved call identity per stage cursor; no retry of a reserved-but-unrecorded call",
-      "refine-product": "1 provider call per included refinement; uncertainty becomes reconciliation, never a second call"
-    }
+  {
+   "id": "0020_product_fulfillment_jobs_correction",
+   "file": "drizzle/migrations/0020_product_fulfillment_jobs_correction.sql",
+   "review": "docs/migrations/stage2b1b1_product_fulfillment_jobs_correction.sql",
+   "sha256": "328c108abb489063309eaad6cafc31e679a4454355445677fb009a8e2b859629",
+   "dependsOn": "0019_product_fulfillment_jobs",
+   "purpose": "Correct cost units, token budgets, cursor transitions, leases and terminal failures.",
+   "objects": [
+    "product_job_stage_sequence",
+    "product_job_cursor_key",
+    "claim_product_job",
+    "release_product_job_lease",
+    "record_product_job_checkpoint",
+    "fail_product_job"
+   ],
+   "preapply": [
+    "0019 verified",
+    "zero existing fulfillment rows",
+    "maintenance write freeze"
+   ],
+   "verify": [
+    "micro-USD columns present",
+    "strict product cursor transitions active"
+   ],
+   "recovery": "forward-fix; column renames and function replacement have no automatic down migration"
+  },
+  {
+   "id": "0021_product_policy_binding_patch",
+   "file": "drizzle/migrations/0021_product_policy_binding_patch.sql",
+   "review": "docs/migrations/stage2b1b1_product_policy_binding_patch.sql",
+   "sha256": "8e9150f9154e55baf413703847aade5e12f84ae4331eeebaef093219e87af821",
+   "dependsOn": "0020_product_fulfillment_jobs_correction",
+   "purpose": "Bind every paid entitlement to the immutable policy version from its exact intake.",
+   "objects": [
+    "product_checkout_intakes_generation_policy_ck",
+    "bind_product_entitlement_policy",
+    "product_entitlements_bind_policy"
+   ],
+   "preapply": [
+    "0020 verified",
+    "zero legacy or blank intake policy versions",
+    "maintenance write freeze",
+    "run once as an atomic transaction; partial retry requires operator inspection"
+   ],
+   "verify": [
+    "intake policy nonblank",
+    "entitlement trigger copies exact intake policy"
+   ],
+   "recovery": "forward-fix; constraint and trigger changes require approved manual restoration"
+  },
+  {
+   "id": "0022_product_generation_artifacts",
+   "file": "drizzle/migrations/0022_product_generation_artifacts.sql",
+   "review": "docs/migrations/stage2b1b2_product_generation_artifacts.sql",
+   "sha256": "65797186dc7635d27be8b1fc258a5ef02cc54dd280ef3a486b0360231f68ba3c",
+   "dependsOn": "0021_product_policy_binding_patch",
+   "purpose": "Add durable service-only model-call receipts and generation artifacts.",
+   "objects": [
+    "product_generation_calls",
+    "product_generation_artifacts",
+    "reserve_product_generation_call",
+    "complete_product_generation_call",
+    "record_product_generation_artifact",
+    "load_product_generation_state",
+    "finish_product_generation"
+   ],
+   "preapply": [
+    "0021 verified",
+    "zero fulfillment rows",
+    "maintenance write freeze",
+    "run once as an atomic transaction; partial retry requires operator inspection"
+   ],
+   "verify": [
+    "RLS forced",
+    "append-only receipts",
+    "unique call and artifact identities"
+   ],
+   "recovery": "forward-fix; never drop provider receipts or generated artifacts"
+  },
+  {
+   "id": "0023_product_generation_artifacts_correction",
+   "file": "drizzle/migrations/0023_product_generation_artifacts_correction.sql",
+   "review": "docs/migrations/stage2b1b2_product_generation_artifacts_correction.sql",
+   "sha256": "484199ee7ed7b683e7c428ae007f5607001010872bfdb91dc73b0e3af0092ab8",
+   "dependsOn": "0022_product_generation_artifacts",
+   "purpose": "Correct resumable generation reservations, strict replay, state loading and result commit.",
+   "objects": [
+    "reserve_product_generation_call",
+    "complete_product_generation_call",
+    "record_product_generation_artifact",
+    "commit_product_generation_result",
+    "load_product_generation_state"
+   ],
+   "preapply": [
+    "0022 verified",
+    "zero fulfillment rows",
+    "maintenance write freeze"
+   ],
+   "verify": [
+    "strict call replay",
+    "result commit is atomic",
+    "cursor and artifact state agree"
+   ],
+   "recovery": "forward-fix; replaced functions need approved prior definitions for manual restoration"
+  },
+  {
+   "id": "0024_product_generation_runtime_safety_correction",
+   "file": "drizzle/migrations/0024_product_generation_runtime_safety_correction.sql",
+   "review": "docs/migrations/stage2b1b2_product_generation_runtime_safety_correction.sql",
+   "sha256": "eb732f25a24d57a9ecec9f0f83ba7e0ff6dc66bde2ad45fdf2e1d52818f01645",
+   "dependsOn": "0023_product_generation_artifacts_correction",
+   "purpose": "Make generation timestamps immutable and reject phantom passport or invalid cursor state.",
+   "objects": [
+    "enforce_product_generation_timestamp_immutable",
+    "product_generation_timestamp_immutable",
+    "product_job_cursor_advances",
+    "load_product_generation_state",
+    "record_product_generation_artifact"
+   ],
+   "preapply": [
+    "0023 verified",
+    "zero fulfillment rows",
+    "maintenance write freeze"
+   ],
+   "verify": [
+    "generation timestamp immutable",
+    "cursor capability returns strict booleans"
+   ],
+   "recovery": "forward-fix; replaced functions and trigger require approved manual restoration"
+  },
+  {
+   "id": "0025_product_result_selections",
+   "file": "drizzle/migrations/0025_product_result_selections.sql",
+   "review": "docs/migrations/stage2b1c_product_result_selections.sql",
+   "sha256": "f9d5e11e3c04b5a393cec60a8bb67b22bef33c110ba48bb288dfb6d0ce84ca33",
+   "dependsOn": "0024_product_generation_runtime_safety_correction",
+   "purpose": "Add immutable correction selections, deterministic revisions and exactly one premium refinement.",
+   "objects": [
+    "product_result_selections",
+    "product_result_selection_revisions",
+    "product_result_refinements",
+    "product_result_refinement_calls",
+    "save_product_result_selection",
+    "load_product_result_state",
+    "begin_product_result_refinement",
+    "complete_product_result_refinement",
+    "fail_product_result_refinement",
+    "reserve_product_result_refinement_call",
+    "complete_product_result_refinement_call"
+   ],
+   "preapply": [
+    "0024 verified",
+    "zero ready entitlements",
+    "maintenance write freeze",
+    "run once as an atomic transaction; partial retry requires operator inspection"
+   ],
+   "verify": [
+    "load_product_result_state returns not_found for absent UUID",
+    "RLS owner reads only",
+    "service-only mutation",
+    "one successful refinement per entitlement"
+   ],
+   "recovery": "forward-fix; do not invent a down migration for immutable selection or refinement history"
+  },
+  {
+   "id": "0026_product_acl_hardening",
+   "file": "drizzle/migrations/0026_product_acl_hardening.sql",
+   "review": "docs/migrations/stage2b1d_product_acl_hardening.sql",
+   "sha256": "a21afdd9bacd642601f215040b973a7fc9c2e58db2826214ffaad4a5cd00bfcf",
+   "dependsOn": "0025_product_result_selections",
+   "purpose": "Make the post-apply ACL hardening durable and reproducible, and prove readiness with a dedicated capability function.",
+   "objects": [
+    "product ACL revokes and grants on all 10 tables",
+    "function EXECUTE revokes over the canonical product allowlist",
+    "product_job_status authenticated exception",
+    "product_rollout_capability"
+   ],
+   "preapply": [
+    "base + 0018–0025 applied and verified",
+    "no default-privilege change",
+    "no data mutation"
+   ],
+   "verify": [
+    "anon has no table or function privileges",
+    "authenticated has SELECT only on the five owner-read tables",
+    "authenticated EXECUTE only on product_job_status(uuid)",
+    "product_rollout_capability() returns {ok:true, migration:'0026_product_acl_hardening'} for service_role only"
+   ],
+   "recovery": "idempotent; re-apply is safe. forward-fix only; never drop product objects",
+   "applied": "2026-09-12 in its own second atomic transaction; verified with zero ACL violations and no Drizzle journal entry"
+  },
+  {
+   "id": "0041_gate3_paid_fulfillment_exact_once",
+   "file": "drizzle/migrations/0041_gate3_paid_fulfillment_exact_once.sql",
+   "pairedFile": "supabase/migrations/20260921013000_gate3_paid_fulfillment_exact_once.sql",
+   "parity": "byte-identical copies",
+   "sha256": "f28b0c015a52a361e62c941f6d835a9fefbd7c6ba357ad06e9dea6c449d5f34b",
+   "applied": false,
+   "dependsOn": "0026_product_acl_hardening",
+   "purpose": "Durable, DB-enforced reconciliation state for uncertain provider outcomes on the paid fulfilment and included-refinement paths.",
+   "objects": [
+    "product_fulfillment_jobs.reconciliation_*",
+    "product_result_refinements.reconciliation_*",
+    "product_fulfillment_jobs_reconciliation_shape",
+    "product_result_refinements_reconciliation_shape",
+    "product_fulfillment_jobs_one_unresolved",
+    "product_result_refinements_one_unresolved",
+    "product_reconciliation_events",
+    "product_reconciliation_resolutions",
+    "product_reconciliation_terminal_calls",
+    "enforce_product_generation_call_not_consumed",
+    "enforce_product_refinement_call_not_consumed",
+    "enforce_product_job_reconciliation_freeze",
+    "enforce_product_refinement_reconciliation_freeze",
+    "enforce_product_job_no_unresolved",
+    "enforce_product_refinement_no_unresolved",
+    "mark_product_job_reconciliation",
+    "mark_product_refinement_reconciliation",
+    "product_reconciliation_state",
+    "resolve_product_reconciliation"
+   ],
+   "pgTap": "supabase/tests/0041_gate3_paid_fulfillment_exact_once.sql — 68 assertions, plan(68), behavioural (consume/denied release/conflict/orphan call/closed audit), AUTHORED BUT NOT RUN (migration unapplied)",
+   "preapply": [
+    "0018-0026 applied and verified",
+    "maintenance write freeze",
+    "reviewed byte parity of both copies"
+   ],
+   "verify": [
+    "one unresolved reconciliation row per entitlement for jobs and refinements",
+    "unresolved rows are frozen against update/delete outside the guarded resolution path",
+    "mark/resolve/state functions are service_role only",
+    "product_reconciliation_state is STABLE and cannot write"
+   ],
+   "recovery": "forward-fix only; resolution requires resolve_product_reconciliation(kind, subject, release|consume, closed reason_code, optional opaque ticket_ref). release is permitted only with provider_no_execution_proven AND no durable provider call; consume is terminal and makes a further provider call impossible. No free-text operator note is stored."
+  },
+  {
+   "id": "0044_privacy_client_write_gate",
+   "file": "drizzle/migrations/0044_privacy_client_write_gate.sql",
+   "pairedFile": "docs/migrations/stage_privacy_client_write_gate.sql",
+   "parity": "byte-identical copies; the supabase/migrations twin could NOT be authored source-only because supabase/migrations is write-protected by the platform tooling (it only accepts apply, which is out of scope for this source-only task)",
+   "sha256": "8fc87c450f1e7bb7b9dec86c518265796198e8982d16e56caffaa589677f50c4",
+   "applied": false,
+   "dependsOn": "20260509215814 (uploaded_contracts base)",
+   "purpose": "Deny client (anon/authenticated) writes of raw document text in public.uploaded_contracts; only service_role may write extracted_text/text_content. Reads and existing rows unchanged.",
+   "objects": [
+    "enforce_no_client_document_text_write",
+    "uploaded_contracts_no_client_text_write"
+   ],
+   "blockers": [
+    "Applying this blocks the legitimate client paste/edit/product-prepare text writes (UploadContractDialog, UploadedPane/useUploadedContractDoc, src/lib/productUpload.ts) until those paths are routed through a service_role Edge function.",
+    "Raw file uploads to the user-contracts storage bucket are NOT denied here: that needs a storage.objects policy, and the storage schema is platform-managed. UI-level block only (RAW_FILE_INGRESS_ALLOWED = false)."
+   ],
+   "pgTap": "none authored (single trigger; behaviour is role-dependent and needs a live database with anon/authenticated roles)",
+   "recovery": "forward-fix only; DROP TRIGGER uploaded_contracts_no_client_text_write restores the previous behaviour without touching data"
   }
+ ],
+ "gate3": {
+  "scope": "paid fulfilment exact-once: fulfill-product, refine-product, download-document paid export path, payments-webhook entitlement creation",
+  "sourceOnly": true,
+  "releaseBlocking": {
+   "fulfill-product": true,
+   "refine-product": true,
+   "download-document": true
+  },
+  "blockers": [
+   "0041 is not applied to any database",
+   "pgTAP supabase/tests/0041_gate3_paid_fulfillment_exact_once.sql authored but NOT RUN",
+   "real two-session PostgreSQL concurrency proof for job claim, refinement and reconciliation not performed",
+   "no controlled Stripe sandbox purchase/duplicate-webhook proof performed",
+   "no real provider execution or paid export proof performed"
+  ],
+  "proofGate": "Gates 4-6 (controlled DB apply, concurrency proof, sandbox payment proof)",
+  "clientIdentity": "src/lib/productOperationKey.ts — stable idempotency keys for refinement and selection; cleared only on committed success or proven version conflict",
+  "providerBudgets": {
+   "fulfill-product": "one durable reserved call identity per stage cursor; no retry of a reserved-but-unrecorded call",
+   "refine-product": "1 provider call per included refinement; uncertainty becomes reconciliation, never a second call"
+  }
+ }
 }
