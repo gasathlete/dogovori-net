@@ -117,37 +117,53 @@ function mutations(calls: Recorded[]): Recorded[] {
   );
 }
 
-Deno.test({ sanitizeOps: false, sanitizeResources: false, name: "блокиран сценарий: 422 и НУЛА променящи заявки към базата", async () => {
-  const { res, calls } = await runHandler({
-    answers: { seller: `ЕГН ${EGN_BAD_CHECKSUM}` },
-    result: { body: "Договор…" },
-  });
+// Клиентът на базата пуска вътрешни таймери, които не са част от проверяваното
+// поведение → изключваме санитайзерите, а не самите твърдения.
+const opts = { sanitizeOps: false, sanitizeResources: false };
 
-  assertEquals(res.status, 422);
-  const body = await res.json();
-  assertEquals(body.code, "restricted_identifier_blocked");
-  assertEquals(body.restricted_kinds, ["egn"]);
-  // Никъде не се връща самата стойност.
-  assert(!JSON.stringify(body).includes(EGN_BAD_CHECKSUM));
+Deno.test({
+  ...opts,
+  name: "блокиран сценарий: 422 и НУЛА променящи заявки към базата",
+  fn: async () => {
+    const { res, calls } = await runHandler({
+      answers: { seller: `ЕГН ${EGN_BAD_CHECKSUM}` },
+      result: { body: "Договор…" },
+    });
 
-  assertEquals(mutations(calls), [], `неочаквани промени: ${JSON.stringify(mutations(calls))}`);
+    assertEquals(res.status, 422);
+    const body = await res.json();
+    assertEquals(body.code, "restricted_identifier_blocked");
+    assertEquals(body.restricted_kinds, ["egn"]);
+    // Никъде не се връща самата стойност.
+    assert(!JSON.stringify(body).includes(EGN_BAD_CHECKSUM));
+
+    assertEquals(mutations(calls), [], `неочаквани промени: ${JSON.stringify(mutations(calls))}`);
+  },
 });
 
-Deno.test("вече материализиран документ се възпроизвежда идемпотентно (без 422)", async () => {
-  const { res } = await runHandler(
-    {},
-    { claimed_by: USER_ID, saved_doc_id: DRAFT_ID, payload: {} },
-  );
-  assertEquals(res.status, 200);
-  const body = await res.json();
-  assertEquals(body.ok, true);
-  assertEquals(body.saved_doc_id, DRAFT_ID);
+Deno.test({
+  ...opts,
+  name: "вече материализиран документ се възпроизвежда идемпотентно (без 422)",
+  fn: async () => {
+    const { res } = await runHandler(
+      {},
+      { claimed_by: USER_ID, saved_doc_id: DRAFT_ID, payload: {} },
+    );
+    assertEquals(res.status, 200);
+    const body = await res.json();
+    assertEquals(body.ok, true);
+    assertEquals(body.saved_doc_id, DRAFT_ID);
+  },
 });
 
-Deno.test("чисто съдържание НЕ се блокира (преградата не спира редовен claim)", async () => {
-  const { res } = await runHandler(
-    { answers: { seller: "ЕГН: [ЕГН]" } },
-    { claimed_by: USER_ID, has_result: false },
-  );
-  assert(res.status !== 422, `неочакван 422: ${await res.text()}`);
+Deno.test({
+  ...opts,
+  name: "чисто съдържание НЕ се блокира (преградата не спира редовен claim)",
+  fn: async () => {
+    const { res } = await runHandler(
+      { answers: { seller: "ЕГН: [ЕГН]" } },
+      { claimed_by: USER_ID, has_result: false },
+    );
+    assert(res.status !== 422, `неочакван 422: ${await res.text()}`);
+  },
 });
