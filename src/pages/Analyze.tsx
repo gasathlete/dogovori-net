@@ -21,6 +21,7 @@ import {
   PRODUCT_MAX_SOURCE_CHARS,
 } from "@/lib/productSource";
 import { WorkStepStrip, type WorkStep } from "@/components/workspace/WorkStepStrip";
+import { RAW_FILE_INGRESS_ALLOWED } from "@/lib/privacyGate";
 
 const UPLOAD_ROUTE = "/account?tab=documents&action=upload";
 
@@ -49,7 +50,7 @@ export default function Analyze() {
   // анализ. Free акаунтите получават 1 безплатен пълен анализ през месеца
   // (quota пътят), платените — според плана си.
   useEffect(() => {
-    if (!loading && user) {
+    if (RAW_FILE_INGRESS_ALLOWED && !loading && user) {
       navigate(uploadRoute, { replace: true });
     }
   }, [loading, user, navigate, uploadRoute]);
@@ -118,7 +119,9 @@ export default function Analyze() {
     <>
       <Seo
         title="Проверка на договор — какво поемате и какво да промените"
-        description="Качвате PDF или Word файл и виждате какво поемате по договора, кои клаузи носят риск и какво да промените, с точно място в текста. Резултатът е автоматичен и не е правен съвет."
+        description={RAW_FILE_INGRESS_ALLOWED
+          ? "Качвате PDF или Word файл и виждате какво поемате по договора, кои клаузи носят риск и какво да промените, с точно място в текста. Резултатът е автоматичен и не е правен съвет."
+          : "Проверката на договори е в подготовка. В момента не приемаме файлове и не отваряме плащане за услугата."}
         canonical="https://dogovori.net/analiz"
       />
       <Header />
@@ -156,17 +159,19 @@ export default function Analyze() {
           </header>
 
           {/* Последователността на екрана: документ → проверка → резултат. */}
-          <WorkStepStrip steps={ANALYZE_STEPS} current={0} className="mt-5" />
+          {RAW_FILE_INGRESS_ALLOWED && <WorkStepStrip steps={ANALYZE_STEPS} current={0} className="mt-5" />}
 
           <div className="mt-4 rounded-2xl border border-gold/30 bg-card/70 p-5 shadow-elegant sm:p-6">
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-gold">
               <Lock className="h-3.5 w-3.5" /> Изисква акаунт
             </div>
             <h2 className="mt-2 font-serif text-xl font-bold leading-tight sm:text-2xl">
-              Влезте, за да качите документа
+              {RAW_FILE_INGRESS_ALLOWED ? "Влезте, за да качите документа" : "Проверката временно не приема документи"}
             </h2>
             <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
-              {productCopy ? (
+              {!RAW_FILE_INGRESS_ALLOWED ? (
+                <>В момента не приемаме PDF и Word файлове и не отваряме плащане за проверка. Ще обявим услугата, когато защитеният път за документите е готов.</>
+              ) : productCopy ? (
                 <>Проверката работи с Вашия файл и е достъпна само в акаунта. {PRODUCT_ACCEPTED_INPUT}</>
               ) : (
                 <>
@@ -177,7 +182,7 @@ export default function Analyze() {
               )}
             </p>
 
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+            {RAW_FILE_INGRESS_ALLOWED && <div className="mt-5 flex flex-col gap-2 sm:flex-row">
               <button
                 type="button"
                 onClick={goSignup}
@@ -193,11 +198,11 @@ export default function Analyze() {
               >
                 Вече имам акаунт
               </button>
-            </div>
+            </div>}
           </div>
 
           {/* Подробностите стоят на едно място и са свити по подразбиране. */}
-          <details
+          {RAW_FILE_INGRESS_ALLOWED && <details
             data-testid="analyze-details"
             className="group mt-4 rounded-xl border border-border/60 bg-card/40 px-4 py-3"
           >
@@ -222,7 +227,7 @@ export default function Analyze() {
                 </li>
               ))}
             </ul>
-          </details>
+          </details>}
 
           <p className="mt-3 text-[13px] text-muted-foreground">
             Резултатът е автоматичен и не е правен съвет.
