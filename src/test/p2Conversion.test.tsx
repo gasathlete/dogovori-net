@@ -44,7 +44,7 @@ describe("Hero — едно основно действие към безпла�
     expect(src).toContain('to="/build"');
     expect(src).toContain("Създайте документ");
     expect(src).toContain('to="/analiz"');
-    expect(src).toContain("Качете за проверка");
+    expect(src).toContain("Проверка на документ");
   });
 
   it("няма onStart prop, нито мъртъв TeaserDialog", () => {

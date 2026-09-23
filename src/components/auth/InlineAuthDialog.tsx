@@ -266,7 +266,7 @@ export function InlineAuthDialog() {
             </button>
             <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-              {FREE_OFFER_RULE} · без карта · GDPR
+              {FREE_OFFER_RULE} · без карта
             </p>
             <p className="text-center text-[11px] text-muted-foreground">
               Със създаването на профил приемате{" "}

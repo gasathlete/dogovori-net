@@ -29,6 +29,9 @@ describe("Gate 8 — публични оферти преди пускане", (
     const plans = read("src/pages/Plans.tsx");
     expect(plans).not.toContain("GDPR съвместим");
     expect(plans).toContain("Условия и поверителност");
+    expect(read("src/lib/seo/schemas.ts")).not.toContain("GDPR-compliant");
+    expect(read("src/components/AuthGateModal.tsx")).not.toContain("· GDPR");
+    expect(read("src/components/auth/InlineAuthDialog.tsx")).not.toContain("· GDPR");
   });
 
   it("не обещава качване от началната страница и основната навигация", () => {
