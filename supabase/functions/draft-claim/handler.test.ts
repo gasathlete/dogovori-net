@@ -49,10 +49,10 @@ async function runHandler(
   setEnv("SUPABASE_URL", "http://stub.local");
   setEnv("SUPABASE_SERVICE_ROLE_KEY", "stub-service-role");
 
-  let handler: ((req: Request) => Promise<Response> | Response) | null = null;
+  const captured: { h: ((req: Request) => Promise<Response> | Response) | null } = { h: null };
   // deno-lint-ignore no-explicit-any
   (Deno as any).serve = (h: any) => {
-    handler = typeof h === "function" ? h : h?.handler;
+    captured.h = typeof h === "function" ? h : h?.handler;
     return { finished: Promise.resolve(), shutdown: () => Promise.resolve(), ref() {}, unref() {} };
   };
 
@@ -84,8 +84,8 @@ async function runHandler(
     // Кеширан модул: собствен ключ за всяко зареждане не е нужен — `Deno.serve`
     // се извиква при първото зареждане, затова прихващаме и го преизползваме.
     await import("./index.ts");
-    assert(handler, "Deno.serve не беше извикан");
-    const res = await handler!(
+    assert(captured.h, "Deno.serve не беше извикан");
+    const res = await captured.h(
       new Request("http://stub.local/draft-claim", {
         method: "POST",
         headers: { Authorization: "Bearer stub-jwt", "Content-Type": "application/json" },
