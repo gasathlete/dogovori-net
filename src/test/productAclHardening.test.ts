@@ -139,7 +139,10 @@ describe("manifest-ът и документите описват истинат�
     // Приложената верига остава 0018–0026; всяка следваща миграция е изрично
     // отбелязана като НЕприложена и се вижда в състоянието.
     expect(MANIFEST.migrations.filter((m) => (m as { applied?: unknown }).applied === false)
-      .map((m) => m.id)).toEqual(["0041_gate3_paid_fulfillment_exact_once"]);
+      .map((m) => m.id)).toEqual([
+      "0041_gate3_paid_fulfillment_exact_once",
+      "0044_privacy_client_write_gate",
+    ]);
     expect(MANIFEST.status).toContain("PENDING (not applied)");
     const record = JSON.stringify(MANIFEST.appliedRecord);
     expect(record).toContain("2026-09-12");
