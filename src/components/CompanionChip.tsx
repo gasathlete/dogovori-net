@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { COMPANION_TEMPLATES } from "@/data/companionTemplates";
 import { downloadDocument } from "@/lib/downloadDocument";
-import { isFeatureAvailable } from "@/lib/prelaunch";
+import { canUseFeature } from "@/lib/prelaunch";
+import { useIsPro } from "@/hooks/useIsPro";
 import { openPrelaunchWaitlist } from "@/lib/prelaunchWaitlist";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -28,6 +29,7 @@ export function CompanionChip({ name }: Props) {
   const [busy, setBusy] = useState<"pdf" | "docx" | null>(null);
   const [savedId, setSavedId] = useState<string | undefined>(undefined);
   const { user } = useAuth();
+  const { isPro } = useIsPro();
   const navigate = useNavigate();
 
   if (!tpl) {
@@ -39,7 +41,7 @@ export function CompanionChip({ name }: Props) {
   }
 
   const handle = async (format: "pdf" | "docx") => {
-    if (!isFeatureAvailable("blank_download")) {
+    if (!canUseFeature("blank_download", { hasActiveEntitlement: isPro })) {
       openPrelaunchWaitlist("blank_download");
       return;
     }
