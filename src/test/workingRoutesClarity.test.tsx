@@ -140,6 +140,13 @@ describe("/analiz — документ → проверка → резултат
     expect(ANALYZE).toContain("не е правен съвет");
   });
 
+  it("не обещава безплатна пълна проверка и не води към спрян upload", () => {
+    expect(ANALYZE).not.toContain("една пълна проверка");
+    expect(ANALYZE).toContain('productPriceLabel("contract_check")');
+    expect(ANALYZE).toContain("Качването за проверка още не е отворено");
+    expect(ANALYZE).not.toContain("navigate(uploadRoute, { replace: true })");
+  });
+
   it("не използва технически или маркетингов жаргон", () => {
     for (const banned of ["модел", "халюц", "магия", "революционен", "воден процес"]) {
       expect(ANALYZE.toLowerCase()).not.toContain(banned);

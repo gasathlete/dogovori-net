@@ -20,6 +20,10 @@ vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { functions: { invoke: vi.fn() } },
 }));
+vi.mock("@/lib/products", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/products")>("@/lib/products");
+  return { ...actual, ONE_TIME_PURCHASES_AVAILABLE: true };
+});
 
 import ProductCheckout from "@/pages/ProductCheckout";
 import { RAW_FILE_INGRESS_ALLOWED } from "@/lib/privacyGate";

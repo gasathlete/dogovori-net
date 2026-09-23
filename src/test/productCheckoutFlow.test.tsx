@@ -30,6 +30,10 @@ vi.mock("@/lib/productUpload", () => ({
   ProductUploadError: class extends Error {},
   prepareProductDocument: vi.fn(),
 }));
+vi.mock("@/lib/products", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/products")>("@/lib/products");
+  return { ...actual, ONE_TIME_PURCHASES_AVAILABLE: true };
+});
 
 vi.mock("@/integrations/supabase/client", () => {
   const chain = (table: string) => {

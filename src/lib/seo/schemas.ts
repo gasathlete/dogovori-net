@@ -103,7 +103,6 @@ export function buildAiFeaturesSchemas(): JsonLd[] {
       "Bilingual (BG/EN) parallel export",
       "PDF + DOCX export with tracked changes",
       "Electronic signature (КЕП and platform-native)",
-      "GDPR-compliant; uploaded documents not used for model training",
     ],
     offers: [
       { "@type": "Offer", name: "Професионалист", price: "12.90", priceCurrency: "EUR", description: "50 operations/month" },

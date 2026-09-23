@@ -90,7 +90,7 @@ export function CTABand() {
                   to="/account?tab=documents&action=upload"
                   className="inline-flex items-center gap-1.5 hover:text-gold"
                 >
-                  <FileUp className="h-3.5 w-3.5" /> Качи за анализ
+                  <FileUp className="h-3.5 w-3.5" /> Проверка на документ
                 </Link>
               </div>
             </div>

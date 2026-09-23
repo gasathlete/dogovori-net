@@ -181,7 +181,7 @@ export function AuthGateModal() {
           {/* Trust line + guarantees */}
           <div className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-[11px] text-emerald-600 dark:text-emerald-400">
             <ShieldCheck className="h-3.5 w-3.5" />
-            <span>{FREE_OFFER_RULE} · без карта · GDPR</span>
+            <span>{FREE_OFFER_RULE} · без карта</span>
           </div>
           <div className="mt-3">
             <TrustGuaranteeBar compact />

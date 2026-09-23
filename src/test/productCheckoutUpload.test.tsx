@@ -40,6 +40,10 @@ vi.mock("@/lib/productUpload", async () => {
   );
   return { ...actual, prepareProductDocument: prepareMock };
 });
+vi.mock("@/lib/products", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/products")>("@/lib/products");
+  return { ...actual, ONE_TIME_PURCHASES_AVAILABLE: true };
+});
 
 import ProductCheckout from "@/pages/ProductCheckout";
 import {

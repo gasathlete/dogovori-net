@@ -107,7 +107,7 @@ export function Hero() {
                 </Link>
                 <span className="hidden h-3 w-px bg-border sm:inline-block" />
                 <Link to="/analiz" {...prefetchHandlers("/analiz")} className="inline-flex min-h-[44px] items-center gap-1.5 hover:text-gold">
-                  <FileUp className="h-3.5 w-3.5" /> Качете за проверка
+                  <FileUp className="h-3.5 w-3.5" /> Проверка на документ
                 </Link>
               </div>
             </div>

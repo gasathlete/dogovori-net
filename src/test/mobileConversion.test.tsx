@@ -294,7 +294,7 @@ describe("hero копие и продуктови карти", () => {
     expect(hero).toContain("Започнете безплатно");
     expect(hero).toContain('to="/start"');
     expect(hero).toContain("Създайте документ");
-    expect(hero).toContain("Качете за проверка");
+    expect(hero).toContain("Проверка на документ");
   });
 
   it("септемврийската промоция не се конкурира с продуктите в hero-а", () => {
