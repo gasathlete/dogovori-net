@@ -83,7 +83,12 @@ async function runHandler(
   try {
     // Кеширан модул: собствен ключ за всяко зареждане не е нужен — `Deno.serve`
     // се извиква при първото зареждане, затова прихващаме и го преизползваме.
-    await import("./index.ts");
+    try {
+      await import("./index.ts");
+    } catch (e) {
+      console.log("IMPORT ERROR", (e as Error).message);
+    }
+    console.log("stubbed?", Deno.serve !== origServe);
     assert(captured.h, "Deno.serve не беше извикан");
     const res = await captured.h(
       new Request("http://stub.local/draft-claim", {
