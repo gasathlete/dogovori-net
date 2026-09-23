@@ -123,21 +123,31 @@ export function ReferencePromptDialog({
         </DialogHeader>
 
         <div className="mt-2 space-y-3">
-          <label
-            className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-4 py-3 text-sm font-medium text-gold transition-colors hover:bg-gold/20 ${uploading ? "pointer-events-none opacity-50" : ""}`}
-          >
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            Да, имам го — качи файл
-            <input
-              type="file"
-              accept={ACCEPT}
-              hidden
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void handleUpload(f);
-              }}
-            />
-          </label>
+          {RAW_FILE_INGRESS_ALLOWED ? (
+            <label
+              className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-4 py-3 text-sm font-medium text-gold transition-colors hover:bg-gold/20 ${uploading ? "pointer-events-none opacity-50" : ""}`}
+            >
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              Да, имам го — качи файл
+              <input
+                type="file"
+                accept={ACCEPT}
+                hidden
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void handleUpload(f);
+                }}
+              />
+            </label>
+          ) : (
+            <div
+              data-testid="appendix-upload-blocked"
+              className="rounded-md border border-gold/30 bg-navy/40 px-4 py-3 text-xs leading-relaxed text-muted-foreground"
+            >
+              <p className="mb-1 text-sm font-medium text-gold">{RAW_FILE_BLOCKED_TITLE}</p>
+              <p>{RAW_FILE_BLOCKED_MESSAGE}</p>
+            </div>
+          )}
           <Button
             onClick={handleGenerate}
             className="w-full bg-gradient-gold text-navy hover:shadow-gold"
