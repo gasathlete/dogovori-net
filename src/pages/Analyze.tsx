@@ -152,7 +152,9 @@ export default function Analyze() {
               )}
             </h1>
             <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
-              {productCopy
+              {!RAW_FILE_INGRESS_ALLOWED
+                ? "Подготвяме проверката на договори. Качването на файлове и плащането за тази услуга са временно недостъпни."
+                : productCopy
                 ? productCopy.promise
                 : "Качвате документа и виждате какво поемате, кои клаузи носят риск за Вас и какво да промените — с точното място в текста."}
             </p>
@@ -163,7 +165,7 @@ export default function Analyze() {
 
           <div className="mt-4 rounded-2xl border border-gold/30 bg-card/70 p-5 shadow-elegant sm:p-6">
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-gold">
-              <Lock className="h-3.5 w-3.5" /> Изисква акаунт
+              <Lock className="h-3.5 w-3.5" /> {RAW_FILE_INGRESS_ALLOWED ? "Изисква акаунт" : "В подготовка"}
             </div>
             <h2 className="mt-2 font-serif text-xl font-bold leading-tight sm:text-2xl">
               {RAW_FILE_INGRESS_ALLOWED ? "Влезте, за да качите документа" : "Проверката временно не приема документи"}
