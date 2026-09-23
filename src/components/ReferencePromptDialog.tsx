@@ -4,6 +4,11 @@ import { Upload, Wand2, Loader2, Package } from "@/icons";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  RAW_FILE_BLOCKED_MESSAGE,
+  RAW_FILE_BLOCKED_TITLE,
+  RAW_FILE_INGRESS_ALLOWED,
+} from "@/lib/privacyGate";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import type { DetectedReference } from "@/lib/documentReferences";
@@ -36,6 +41,12 @@ export function ReferencePromptDialog({
   const [kitOpen, setKitOpen] = useState(false);
 
   const handleUpload = async (file: File) => {
+    // Преграда: суров файл не се качва и не се записва, докато няма отделно
+    // контролирано хранилище. Проверката е ПРЕДИ всяко четене и всяка заявка.
+    if (!RAW_FILE_INGRESS_ALLOWED) {
+      toast.error(RAW_FILE_BLOCKED_TITLE, { description: RAW_FILE_BLOCKED_MESSAGE });
+      return;
+    }
     if (!user) { toast.error("Влезте, за да качите документ"); return; }
     if (file.size > MAX_BYTES) { toast.error("Файлът надвишава 10 MB"); return; }
     setUploading(true);
