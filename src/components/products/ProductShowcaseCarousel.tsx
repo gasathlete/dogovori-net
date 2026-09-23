@@ -12,6 +12,7 @@
  */
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
+import { RAW_FILE_INGRESS_ALLOWED } from "@/lib/privacyGate";
 import { ArrowLeft, ArrowRight } from "@/icons";
 import { Pause, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -298,9 +299,9 @@ export function ProductShowcaseCarousel({
 
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
         <Link
-          to={active.ctaHref}
+          to={RAW_FILE_INGRESS_ALLOWED ? active.ctaHref : productPath(active)}
           onClick={() =>
-            trackFunnelEvent(PRODUCT_EVENTS.productSelected, {
+            trackFunnelEvent(RAW_FILE_INGRESS_ALLOWED ? PRODUCT_EVENTS.productSelected : PRODUCT_EVENTS.detailsOpened, {
               product: active.id,
               source,
               variant: "showcase",
@@ -308,7 +309,7 @@ export function ProductShowcaseCarousel({
           }
           className="btn-gold btn-press inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl px-5 text-[15px] font-bold tracking-tight"
         >
-          {active.ctaLabel}
+          {RAW_FILE_INGRESS_ALLOWED ? active.ctaLabel : "Вижте продукта"}
           <ArrowRight className="size-4" />
         </Link>
         <Link
