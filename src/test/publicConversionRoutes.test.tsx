@@ -16,6 +16,8 @@ import { ProductComparisonList } from "@/components/products/ProductComparisonLi
 import { FrequencyCompare } from "@/components/products/FrequencyCompare";
 import { CheckoutStepper } from "@/components/products/CheckoutStepper";
 import {
+  ONE_TIME_PRELAUNCH_MESSAGE,
+  ONE_TIME_PURCHASES_AVAILABLE,
   ONE_TIME_PRODUCTS,
   productPath,
   productPriceLabel,
@@ -108,9 +110,12 @@ describe("продуктови страници — първи изглед и �
       expect(screen.getByTestId(`product-price-${p.id}`)).toHaveTextContent(
         productPriceLabel(p.id),
       );
-      expect(
-        screen.getByRole("link", { name: new RegExp(p.ctaLabel) }),
-      ).toHaveAttribute("href", p.ctaHref);
+      expect(ONE_TIME_PURCHASES_AVAILABLE).toBe(false);
+      expect(screen.queryByRole("link", { name: new RegExp(p.ctaLabel) })).toBeNull();
+      expect(screen.getByTestId("product-prelaunch-status")).toHaveTextContent(
+        "Покупките предстоят",
+      );
+      expect(screen.getByText(ONE_TIME_PRELAUNCH_MESSAGE)).toBeInTheDocument();
       const limits = screen.getByTestId("product-limits");
       expect(limits.textContent).toContain("PDF");
       expect(limits.textContent).toContain(
@@ -135,6 +140,16 @@ describe("продуктови страници — първи изглед и �
 });
 
 describe("началото на купуването — стъпки и гейтове", () => {
+  it("предстартовият frontend е fail-closed преди качване и checkout", () => {
+    const src = read("src/pages/ProductCheckout.tsx");
+    const prelaunch = src.indexOf("if (!ONE_TIME_PURCHASES_AVAILABLE)");
+    const prepare = src.indexOf("const handlePrepare");
+    const checkout = src.indexOf('supabase.functions.invoke("create-product-checkout"');
+    expect(prelaunch).toBeGreaterThan(-1);
+    expect(prelaunch).toBeLessThan(prepare);
+    expect(prelaunch).toBeLessThan(checkout);
+    expect(src).toContain('data-testid="product-checkout-prelaunch"');
+  });
   it("указателят маркира текущата и готовите стъпки", () => {
     render(
       wrap(

@@ -29,7 +29,7 @@ const NAV = [
 const MOBILE_PRIMARY: { to: string; label: string }[] = [
   { to: "/produkti", label: "Продукти" },
   { to: "/plans", label: "Планове" },
-  { to: "/analiz", label: "Качете за проверка" },
+  { to: "/analiz", label: "Проверка на документ" },
   { to: "/build", label: "Създайте документ" },
   { to: "/account", label: "Профил" },
 ];

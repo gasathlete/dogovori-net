@@ -31,6 +31,8 @@ import {
 } from "@/components/products/CheckoutStepper";
 import {
   ONE_TIME_TERMS,
+  ONE_TIME_PRELAUNCH_MESSAGE,
+  ONE_TIME_PURCHASES_AVAILABLE,
   getProductBySlug,
   legacyProductRedirect,
   productPath,
@@ -162,6 +164,39 @@ export default function ProductCheckout() {
           <Link to="/produkti" className="underline">Вижте всички продукти</Link>
         </p>
       </main>
+    );
+  }
+
+  if (!ONE_TIME_PURCHASES_AVAILABLE) {
+    return (
+      <>
+        <Seo
+          title={`${product.name} — предстои`}
+          description="Покупките за еднократните продукти още не са отворени."
+          noindex
+        />
+        <Header />
+        <main className="mx-auto max-w-2xl px-4 py-16">
+          <div
+            data-testid="product-checkout-prelaunch"
+            role="status"
+            className="rounded-2xl border border-gold/35 bg-card p-6 sm:p-8"
+          >
+            <p className="text-sm font-semibold text-gold">Предстои</p>
+            <h1 className="mt-2 text-2xl font-semibold">{product.name}</h1>
+            <div className="mt-4">
+              <ProductPrice id={product.id} size="md" showLabel />
+            </div>
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+              {ONE_TIME_PRELAUNCH_MESSAGE} Не е извършено плащане и не е нужно да
+              качвате документ.
+            </p>
+            <Button asChild variant="outline" className="mt-5 min-h-11">
+              <Link to={productPath(product)}>Вижте продукта</Link>
+            </Button>
+          </div>
+        </main>
+      </>
     );
   }
 

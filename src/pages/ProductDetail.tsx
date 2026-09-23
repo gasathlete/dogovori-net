@@ -22,6 +22,8 @@ import {
 } from "@/lib/productSource";
 import {
   ONE_TIME_PRODUCTS,
+  ONE_TIME_PRELAUNCH_MESSAGE,
+  ONE_TIME_PURCHASES_AVAILABLE,
   ONE_TIME_TERMS,
   PRODUCT_EVENTS,
   getProductBySlug,
@@ -131,20 +133,30 @@ export default function ProductDetail() {
               </div>
 
               <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:items-center">
-                <Link
-                  to={product.ctaHref}
-                  onClick={() =>
-                    trackFunnelEvent(PRODUCT_EVENTS.productSelected, {
-                      product: product.id,
-                      source: "product_detail",
-                      variant: "detail",
-                    })
-                  }
-                  className="btn-gold btn-press inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl px-6 text-[15px] font-bold tracking-tight"
-                >
-                  {product.ctaLabel}
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
+                {ONE_TIME_PURCHASES_AVAILABLE ? (
+                  <Link
+                    to={product.ctaHref}
+                    onClick={() =>
+                      trackFunnelEvent(PRODUCT_EVENTS.productSelected, {
+                        product: product.id,
+                        source: "product_detail",
+                        variant: "detail",
+                      })
+                    }
+                    className="btn-gold btn-press inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl px-6 text-[15px] font-bold tracking-tight"
+                  >
+                    {product.ctaLabel}
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                ) : (
+                  <span
+                    data-testid="product-prelaunch-status"
+                    role="status"
+                    className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-gold/35 bg-gold/[0.07] px-6 text-[15px] font-semibold text-foreground"
+                  >
+                    Покупките предстоят
+                  </span>
+                )}
                 <Link
                   to="/produkti"
                   className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border/70 px-5 text-[14px] font-semibold text-foreground/85 hover:border-gold/40"
@@ -152,6 +164,12 @@ export default function ProductDetail() {
                   Вижте другите продукти
                 </Link>
               </div>
+
+              {!ONE_TIME_PURCHASES_AVAILABLE && (
+                <p className="mt-3 max-w-xl text-[13px] leading-relaxed text-muted-foreground">
+                  {ONE_TIME_PRELAUNCH_MESSAGE}
+                </p>
+              )}
 
               <p className="mt-3 text-[11.5px] font-medium text-muted-foreground">
                 {ONE_TIME_TERMS}

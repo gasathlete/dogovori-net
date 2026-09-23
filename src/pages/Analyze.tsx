@@ -15,7 +15,13 @@ import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
 import { useAuth } from "@/hooks/useAuth";
 import { markFunnelStep, trackFunnelEvent } from "@/lib/funnel";
-import { getProduct, parseProductParam } from "@/lib/products";
+import {
+  ONE_TIME_PRELAUNCH_MESSAGE,
+  productPriceLabel,
+  getProduct,
+  parseProductParam,
+} from "@/lib/products";
+import { FREE_OFFER_RULE } from "@/lib/pricing";
 import {
   PRODUCT_ACCEPTED_INPUT,
   PRODUCT_MAX_SOURCE_CHARS,
@@ -44,15 +50,6 @@ export default function Analyze() {
     () => (product ? `${UPLOAD_ROUTE}&product=${product}` : UPLOAD_ROUTE),
     [product],
   );
-
-  // Всеки логнат потребител отива направо в реалната форма за качване +
-  // анализ. Free акаунтите получават 1 безплатен пълен анализ през месеца
-  // (quota пътят), платените — според плана си.
-  useEffect(() => {
-    if (!loading && user) {
-      navigate(uploadRoute, { replace: true });
-    }
-  }, [loading, user, navigate, uploadRoute]);
 
   useEffect(() => {
     markFunnelStep(3);
@@ -160,19 +157,23 @@ export default function Analyze() {
 
           <div className="mt-4 rounded-2xl border border-gold/30 bg-card/70 p-5 shadow-elegant sm:p-6">
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-gold">
-              <Lock className="h-3.5 w-3.5" /> Изисква акаунт
+              <Lock className="h-3.5 w-3.5" /> Преди официалното пускане
             </div>
             <h2 className="mt-2 font-serif text-xl font-bold leading-tight sm:text-2xl">
-              Влезте, за да качите документа
+              Качването за проверка още не е отворено
             </h2>
             <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
               {productCopy ? (
-                <>Проверката работи с Вашия файл и е достъпна само в акаунта. {PRODUCT_ACCEPTED_INPUT}</>
+                <>
+                  {ONE_TIME_PRELAUNCH_MESSAGE} Цената при пускане е{" "}
+                  <strong>{productPriceLabel(productCopy.id)} с ДДС</strong> за един документ.
+                </>
               ) : (
                 <>
-                  Проверката работи с Вашия файл, затова е достъпна само в акаунта.
-                  Регистрацията е безплатна и включва{" "}
-                  <strong>една пълна проверка</strong>.
+                  Безплатният профил включва {FREE_OFFER_RULE}. Подробната проверка
+                  преди подпис е отделен еднократен продукт за{" "}
+                  <strong>{productPriceLabel("contract_check")} с ДДС</strong> и още не
+                  приема документи или плащания.
                 </>
               )}
             </p>
@@ -180,18 +181,17 @@ export default function Analyze() {
             <div className="mt-5 flex flex-col gap-2 sm:flex-row">
               <button
                 type="button"
-                onClick={goSignup}
-                className="btn-gold btn-sheen btn-press inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl px-5 text-[15px] font-semibold"
+                disabled
+                className="inline-flex min-h-12 flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-gold/35 bg-gold/[0.07] px-5 text-[15px] font-semibold text-foreground"
               >
-                <FileUp className="h-4 w-4" />{" "}
-                {productCopy ? productCopy.ctaLabel : "Качете документа"}
+                Качването предстои
               </button>
               <button
                 type="button"
                 onClick={goLogin}
                 className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-border/60 px-5 text-[15px] font-semibold text-foreground transition-colors hover:border-gold/60"
               >
-                Вече имам акаунт
+                Вход в профила
               </button>
             </div>
           </div>
