@@ -14,6 +14,11 @@ import {
   type EditAction,
 } from "../_shared/assistant-edit.ts";
 import { computeContextVersion } from "../_shared/assistant-context-version.ts";
+import {
+  findRestrictedIdentifierKindsDeep,
+  RESTRICTED_IDENTIFIER_BLOCKED_CODE,
+  restrictedIdentifierMessage,
+} from "../_shared/text-identifier-gate.ts";
 
 const ACTIONS: EditAction[] = ["accept", "reject", "undo"];
 
