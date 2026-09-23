@@ -44,6 +44,8 @@ import { parseExtraPartyTypes } from "@/components/wizard/liveDraft/clauseBuilde
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { generateContractJob } from "@/lib/generateContractJob";
 import { findRestrictedIdentifiersDeep, restrictedIdentifierMessage } from "@/lib/privacyGate";
+import { isFeatureAvailable } from "@/lib/prelaunch";
+import { openPrelaunchWaitlist } from "@/lib/prelaunchWaitlist";
 import { classifyGenerationError, errorClassOf, type GenerationError } from "@/lib/generationErrors";
 import { getOpSessionId, getStableOpKey, releaseStableOpKey, opaqueOpScope } from "@/lib/opSession";
 
@@ -468,6 +470,11 @@ export default function WizardPage() {
   ];
 
   const handleGenerate = async (userConfirmed = false) => {
+    // Предварителен режим: без AI генериране, докато не е доказано съответствие.
+    if (!isFeatureAvailable("document_generation")) {
+      openPrelaunchWaitlist("document_generation");
+      return;
+    }
     // Anonymous visitors may generate a read-only preview (server enforces a
     // 1/24h taste limit). Login is required only for save/export/signing.
     //
@@ -1294,6 +1301,10 @@ export default function WizardPage() {
     { icon: Download, label: "Бланката ще бъде свалена до 10 секунди…" },
   ];
   const runBlankDownload = async () => {
+    if (!isFeatureAvailable("blank_download")) {
+      openPrelaunchWaitlist("blank_download");
+      return;
+    }
     if (!userRef.current) {
       goAuth({ action: "Изтегляне на празна бланка", intent: "download_blank", onSuccess: () => runBlankDownload() });
       return;
@@ -1368,6 +1379,10 @@ export default function WizardPage() {
 
   const requireAuth = useRequireAuth();
   const handleDownloadBlank = async () => {
+    if (!isFeatureAvailable("blank_download")) {
+      openPrelaunchWaitlist("blank_download");
+      return;
+    }
     if (!requireAuth({ action: "Изтегли празна бланка" })) return;
     try {
       await ensureAIDisclaimerAccepted();
@@ -1383,6 +1398,11 @@ export default function WizardPage() {
   useEffect(() => {
     if (autoBlankTriggered.current) return;
     if (searchParams.get("blank") !== "1") return;
+    if (!isFeatureAvailable("blank_download")) {
+      autoBlankTriggered.current = true;
+      openPrelaunchWaitlist("blank_download");
+      return;
+    }
     if (authLoading) return;
     if (!authUser) {
       autoBlankTriggered.current = true;
