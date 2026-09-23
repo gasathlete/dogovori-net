@@ -9,6 +9,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { type ExtractSource } from "@/lib/extractContractText";
 import { extractProductSource } from "@/lib/productExtraction";
 import { PRODUCT_MIN_SOURCE_CHARS, PRODUCT_SOURCE_CHAR_UNIT, countProductSourceChars } from "@/lib/productSource";
+import {
+  RAW_FILE_BLOCKED_MESSAGE,
+  RAW_FILE_INGRESS_ALLOWED,
+  assertNoRestrictedIdentifiers,
+} from "@/lib/privacyGate";
 
 export const MAX_PRODUCT_FILE_BYTES = 10 * 1024 * 1024;
 export const MIN_PRODUCT_TEXT_LENGTH = PRODUCT_MIN_SOURCE_CHARS;
@@ -121,9 +126,15 @@ export interface PrepareProductDocumentInput {
 export async function prepareProductDocument(
   input: PrepareProductDocumentInput,
 ): Promise<PreparedProductDocument> {
+  // ПРЕГРАДА ПРЕДИ ВСЯКА ЗАЯВКА: суровият файл не се чете, не се качва и не се
+  // записва, докато няма отделно защитено хранилище. Текстова проверка не може
+  // да докаже, че самият файл не съдържа ЕГН/IBAN (метаданни, изображения).
+  if (!RAW_FILE_INGRESS_ALLOWED) throw new ProductUploadError(RAW_FILE_BLOCKED_MESSAGE);
+
   const title = input.title.trim();
   if (!title) throw new ProductUploadError("Добавете заглавие на документа.");
   if (!input.file) throw new ProductUploadError("Приемаме файл: PDF с четим текст или DOCX.");
+  assertNoRestrictedIdentifiers([title, input.file.name]);
   const phase = input.onPhase ?? (() => {});
 
   const source = await validateProductFile(input.file);
