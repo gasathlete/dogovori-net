@@ -28,7 +28,7 @@ const ROUTES: Array<[string, string]> = [
   ["draft-claim", "await ensureSavedDocument("],
   ["assistant-edit", '"assistant_edit_proposal_action"'],
   ["admin-generate-article", "await retrieveLegalContext("],
-  ["simulation-run", "await sb\n        .from(\"ai_simulation_sessions\")\n        .insert("],
+  ["simulation-run", '.from("ai_simulation_sessions")'],
 ];
 
 for (const [route, marker] of ROUTES) {
