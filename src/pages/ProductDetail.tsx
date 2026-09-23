@@ -16,6 +16,7 @@ import { ProductPrice } from "@/components/products/ProductPrice";
 import { PlanAlternativeNote } from "@/components/products/PlanAlternativeNote";
 import { ReviewerContentHub } from "@/components/analysis/ReviewerContentHub";
 import { trackFunnelEvent } from "@/lib/funnel";
+import { RAW_FILE_INGRESS_ALLOWED } from "@/lib/privacyGate";
 import {
   PRODUCT_ACCEPTED_INPUT,
   PRODUCT_MAX_SOURCE_CHARS,
@@ -130,8 +131,13 @@ export default function ProductDetail() {
                 </span>
               </div>
 
+              {!RAW_FILE_INGRESS_ALLOWED && (
+                <p role="status" className="mt-5 rounded-xl border border-gold/40 bg-gold/[0.07] p-4 text-sm leading-relaxed">
+                  Услугата е в подготовка. В момента не приемаме договори и не отваряме плащане за нея.
+                </p>
+              )}
               <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:items-center">
-                <Link
+                {RAW_FILE_INGRESS_ALLOWED && <Link
                   to={product.ctaHref}
                   onClick={() =>
                     trackFunnelEvent(PRODUCT_EVENTS.productSelected, {
@@ -144,7 +150,7 @@ export default function ProductDetail() {
                 >
                   {product.ctaLabel}
                   <ArrowRight className="h-4 w-4" />
-                </Link>
+                </Link>}
                 <Link
                   to="/produkti"
                   className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border/70 px-5 text-[14px] font-semibold text-foreground/85 hover:border-gold/40"
