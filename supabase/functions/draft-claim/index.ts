@@ -40,6 +40,11 @@ import {
   updateGuarded,
   type DbLike,
 } from "../_shared/draft-writes.ts";
+import {
+  findRestrictedIdentifierKindsDeep,
+  RESTRICTED_IDENTIFIER_BLOCKED_CODE,
+  restrictedIdentifierMessage,
+} from "../_shared/text-identifier-gate.ts";
 
 
 interface Body {
