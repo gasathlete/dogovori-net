@@ -2,16 +2,23 @@
 
 This is a content-free handoff prototype. It issues a five-minute HMAC proof
 for one opaque user UUID, operation UUID and fixed product ID. It requires an
-atomic, durable one-time nonce store on the independent backend. It does not
-create an Azure resource, accept a file, issue a SAS, call OCR or a model,
-check entitlement, or enable any product flag. Run: `node --test services/azure-privacy-pilot/handoff.test.mjs`.
+atomic, durable one-time nonce store on the independent backend. The separate
+`intake.mjs` orchestrator rechecks the exact entitlement on that backend and
+reserves a random Blob path for the operation. Both checks are injected and
+must be implemented against authoritative, durable stores. A failure burns
+the proof; the client must start a fresh operation. This code does not create
+an Azure resource, accept a file, issue a SAS, call OCR or a model, provide a
+working entitlement store, or enable any product flag. Run:
+`node --test services/azure-privacy-pilot/*.test.mjs`.
 
 ## Intended route
 
 1. An authenticated site server checks the exact operation and entitlement,
    then signs a proof. Its signing key remains server side.
-2. The Azure backend verifies the proof and atomically consumes its nonce.
-3. The Azure backend creates a random blob name and grants a short-lived,
+2. The Azure backend verifies the proof, atomically consumes its nonce,
+   independently checks entitlement and atomically binds the operation to a
+   random Blob path. The supplied test callbacks are in-memory examples only.
+3. A separately reviewed Azure component grants a short-lived,
    create-only **user delegation SAS** for that one blob. It records the
    operation binding; the browser uploads directly to Azure Blob Storage.
 4. Azure processes and exports the document. The browser retrieves the result
