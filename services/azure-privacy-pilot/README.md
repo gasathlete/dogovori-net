@@ -32,6 +32,16 @@ filenames or content hashes. CORS must list only approved origins and methods.
 
 ## Account connection and acceptance
 
+- `azure-oidc-check.yml` is a **manual, read-only example**, deliberately kept
+  outside `.github/workflows/`. Do not copy it there until a separate pilot
+  identity and the exact GitHub OIDC `sub` are verified. Existing GitHub repos
+  can emit a name-based subject while repos opted into immutable subjects emit
+  a different one; match the actual `sub` for the `main` branch, issuer
+  `https://token.actions.githubusercontent.com`, and audience
+  `api://AzureADTokenExchange`. Limit the Azure identity to the pilot scope.
+  The example requires GitHub Actions variables `AZURE_PILOT_CLIENT_ID`,
+  `AZURE_PILOT_TENANT_ID`, and `AZURE_PILOT_SUBSCRIPTION_ID`; it prints only
+  selected nonsecret IDs. It cannot establish the federation or assign roles.
 - Use an organization owned Azure subscription and separate pilot resource
   group. Give a deployment identity only the roles needed on that resource
   group, through GitHub OIDC; do not put subscription credentials or keys in
