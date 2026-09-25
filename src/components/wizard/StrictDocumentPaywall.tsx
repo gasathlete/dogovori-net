@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
 import { trackCheckoutFailed, trackCheckoutStarted } from "@/lib/metrics";
 import { buildCheckoutReturnUrl, categorizeCheckoutError } from "@/lib/checkoutAnalytics";
+import { canStartNewProcessing } from "@/lib/prelaunch";
+import { openPrelaunchWaitlist } from "@/lib/prelaunchWaitlist";
 
 
 import { RoiSavingsBanner } from "@/components/funnel/RoiSavingsBanner";
@@ -47,6 +49,11 @@ export function StrictDocumentPaywall({
   const [failed, setFailed] = useState(false);
 
   const startUnlock = async () => {
+    // Предварителен режим: ново плащане не е отворено — не създаваме сесия.
+    if (!canStartNewProcessing("one_time_product")) {
+      openPrelaunchWaitlist("one_time_product", { source: "strict_unlock" });
+      return;
+    }
     setStarting(true);
     setFailed(false);
     // Клик ≠ стартиран checkout. Тук отчитаме само намерението.
