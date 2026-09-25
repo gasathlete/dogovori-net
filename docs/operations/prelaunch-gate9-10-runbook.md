@@ -77,11 +77,11 @@
 ### Незатворени задачи Gate 7–10
 - Gate 7: отворен.
 - Gate 8:
-  - `refine-product` отказва и повторна заявка за вече завършено прецизиране (поправката изисква миграция).
+  - `refine-product`: повторна заявка за вече завършено прецизиране е ПОПРАВЕНА без миграция (само четящ replay чрез `_shared/product-refinement-replay.ts`, handler тест `product-paid-replay.handler.test.ts`).
   - Записи от браузъра в `uploaded_contracts` без ограничение по колони; `user-contracts` без лимит за размер/MIME.
-  - Преградата на `negotiation-strategy` е доказана само по реда в кода.
+  - `negotiation-strategy`, `correct-uploaded`, `review-document` (пропуск и собственик): доказани с handler тестове (виж по-долу).
   - Записи за изравняване преди преградата в `generate-contract`, `build-custom-contract`, `apply-corrections`, `refine-contract`, `analyze-contract`, `download-blank`.
-- Gate 9: миграция 0044 (заявка за списък) неприложена; правно одобрение на съгласието и срока.
+- Gate 9: заявката за списък е `docs/migrations/stage_prelaunch_waitlist.sql` (НЕ е 0044 — 0044 е забраната за клиентски запис на суров текст); неприложена; правно одобрение на съгласието и срока.
 - Gate 10: всички проверки в раздела по-горе — **NOT RUN**.
 - Два сигнала за сигурност (`legal_versions`, `legal_documents` с публично четене) — собственикът ги заяви като умишлено публични; трябва да бъдат отбелязани ръчно в изгледа за сигурност.
 
@@ -143,9 +143,28 @@ A single aggregate read before this package (counts only, no rows) showed 0 path
 
 Тестове (истински обработчици, fetch изцяло подменен, синтетични редове):
 - `supabase/functions/_shared/generate-job.handler.test.ts` — 16/16: собствен done/running, стар running без запис, чужд/липсващ/невалиден Bearer/анонимен (вкл. стари анонимни) отказ, `user_id` от тялото, точно собствено replay при OFF, същия ключ чужд собственик, същия ключ различен payload, анонимен OFF без мрежа, невалидни действия/тела/ключове, OPTIONS без мрежа, ON нов старт (обвързан ключ + фон), 23505 състезание по собственик.
-- `supabase/functions/_shared/new-processing-gate.batch7.handler.test.ts` — 10/10: review-document (подписан пропуск на собственика: OFF нов → 503, записан → replay, чужд собственик → отказ, без пропуск → отказ), correct-uploaded (валиден preflight: OFF → 503, replay, чужд документ 404), negotiation-strategy (OFF → 503, replay, чужд анализ 403) — без модел/резервация/запис.
+- `supabase/functions/_shared/new-processing-gate.batch7.handler.test.ts` — 10/10 (виж актуализацията по-долу — сега 17/17): review-document (подписан пропуск на собственика: OFF нов → 503, записан → replay, чужд собственик → отказ, без пропуск → отказ), correct-uploaded (валиден preflight: OFF → 503, replay, чужд документ 404), negotiation-strategy (OFF → 503, replay, чужд анализ 403) — без модел/резервация/запис.
 - `src/test/generationReliability.test.ts` — 17/17 (затворен нов старт без мрежа, reattach остава, отказан статус не стартира нов).
 - CI глоб `_shared/*.test.ts` + payments-webhook: 971 passed / 0 failed; `deno check generate-job` добавен в CI.
 - Lockfile: `bun install --frozen-lockfile` — без промени (bun.lockb съдържа pglite); `package-lock.json` допълнен само с `@electric-sql/pglite@0.5.8`.
 
-Остава: review-document по пътя „запазен документ“ (без пропуск) е покрит от съществуващите unit тестове на `review-authorization`, не от handler тест; анонимният capability по-горе; Gate 7 и платеното пускане.
+Остава (към f7827604): анонимният capability по-горе; Gate 7 и платеното пускане.
+
+## Source-only checkpoint — 25.09.2026 (base f7827604)
+
+Статус: **NOT_READY**. Нищо не е приложено/публикувано; флагове и тайни непроменени; не е извършена проверка на живи настройки.
+
+### Поправено в кода
+- **Предварителна заявка (диалог):** синхронна идентичност на сесията и преграда срещу двойно изпращане; отваряне/затваряне/демонтиране обезсилва чакащ отговор; полетата са заключени докато чака; приема се само `data === true`. Текстът при неизвестен изход вече не твърди „Нищо не е записано“. Тест: `src/test/prelaunchWaitlistRace.test.tsx` (7).
+- **`stage_prelaunch_waitlist.sql`:** само точна версия `prelaunch_waitlist_v1`, истинско съгласие, нормализиран имейл/функция; повторен опит не опреснява `consent_at`/`retention_until` и не харчи прием; `retention_until NOT NULL`, изчислен на сървъра от `retention_days`; конфигурацията (`prelaunch_waitlist_config`) е само за service_role и **без начален ред** → RPC връща `false`; глобален таван за прозорец чрез атомарно `INSERT … ON CONFLICT … WHERE admitted < max` (без клиентски IP); `withdraw_my_prelaunch_waitlist()` (само имейлът от сесията), `withdraw_prelaunch_waitlist` и `purge_expired_prelaunch_waitlist` само service_role. Имейл не се логва. Тест: `src/test/prelaunchWaitlist.pglite.test.ts` (9, PGlite). Манифест: `stagedSources` в `product-rollout-manifest.json`, `applied: false`.
+  - Зависимости (не са изпълнени): юридически одобрен срок и текст; ред в конфигурацията с `approval_ref`; планиране на изчистването; защита на периметъра по клиент (платформа/WAF). Не твърдим активно съхранение или правно съответствие.
+- **Нова обработка в браузъра:** `UploadContractDialog` спира „Качи и анализирай“ преди четене на файл/хеш/сесия/запис; „само запис“ на нов текст не се предлага (`CLIENT_RAW_TEXT_WRITE_ALLOWED = false`, съобразено с 0044). `BuildContract.handleGenerate` и `handleApplyCorrections` — преграда преди валидиране/сериализация/вход/аналитика/мрежа. Wizard (генериране и `download-blank`) ползва `canStartNewProcessing`; `document_generation` е в `NEW_RAW_PROCESSING` → абонатите не заобикалят. CompanionChip (статичен шаблон) пази правото. `ReferencePromptDialog` спира в началото; заглавие/страни/предмет вече не се слагат в URL (локално `sessionStorage` предаване `refCtx`; старите URL параметри се четат за съвместимост). Тестове: `uploadDialogPrelaunch.test.tsx`, `buildSaveAndReference.test.tsx`, `prelaunchGates`, `prelaunchMatrix`.
+- **Автоматичен запис в /build:** премахнато презаписването на последния `saved_documents` по категория. Идентичност = точният резултат (`resultSaveCoordinator`); нов резултат нулира `savedDocId`; ръчен и автоматичен запис споделят една заявка; закъснял запис не се прикача към по-нов резултат.
+- **Причини в аналитиката:** `normalizeReason` връща само затворен списък `FUNNEL_REASON_CODES`/`http_4xx|5xx`, иначе `unknown` (без slug от текст). Качването праща класифициран код (`uploadFailureReason`). Тест: `docFunnelReasonPii.test.ts`.
+- **review-document, път на собственика без пропуск:** истински handler, синтетичен запазен документ (и версия) с реален каноничен текст/отпечатък: нов при OFF → 503 без модел/резервация/запис; записан → точен replay; чужд документ, чужд собственик на версия и остаряло обвързване → отказ без RPC/запис. `new-processing-gate.batch7.handler.test.ts` 17/17.
+
+### Остава
+- `download-blank` няма собствен сървърен флаг (само клиентска преграда).
+- Ръчен запис на суров текст за вече съществуващи документи (`UploadedPane`/`useUploadedContractDoc`, `productUpload.ts`) остава клиентски път, който 0044 ще блокира след прилагане — изисква отделен бекенд.
+- Страницата /build е проверена чрез библиотеките и компонентите, не с пълен render на страницата.
+- Анонимен capability за стари `generate_jobs`, Gate 7, платено пускане.
