@@ -30,6 +30,7 @@ import {
   detectArbitrationInText,
 } from "../_shared/intent-assertions.ts";
 import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
+import { isNewProcessingOpen, newProcessingClosedResponse } from "../_shared/new-processing-gate.ts";
 
 
 const BASE_SYSTEM_PROMPT = `Ти си български правен архитект. Пишеш на професионален юридически български (ЗЗД, ТЗ, ЗУТ, ГПК, ЗАНН, ЗАПСП, ЗННД).
@@ -431,6 +432,13 @@ Deno.serve(async (req: Request) => {
         kind: "contract",
       });
       return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+    }
+
+    // Gate 8: НОВА AI обработка е затворена по подразбиране (само server-side env).
+    // След само-четящото възпроизвеждане; преди guardIllegalContent (пише журнал),
+    // лимита, ключа, заземяването, резервацията и модела.
+    if (!isNewProcessingOpen("build_custom_contract")) {
+      return newProcessingClosedResponse("build_custom_contract", { ...corsHeaders, ...correlationHeaders(correlationId) }, { charge_state: "not_charged" });
     }
 
     const PROMPT_VERSION = "v6-bilingual-cols";

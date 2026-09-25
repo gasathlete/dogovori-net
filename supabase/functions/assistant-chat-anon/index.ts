@@ -2,6 +2,8 @@
 // via localStorage + an additional server-side soft cap per IP/day).
 // Public endpoint; verify_jwt = false. No streaming, no persistence.
 // Grounded in the legal knowledge base via retrieveLegalContext().
+import { isNewProcessingOpen, newProcessingClosedResponse } from "../_shared/new-processing-gate.ts";
+import { lookupAnonDelivery } from "../_shared/anon-delivery-ledger.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, clientIp, hashAnonIdentity, IdentityUnavailableError } from "../_shared/cors.ts";
 import { checkRateLimitStrict } from "../_shared/rate-limit.ts";
@@ -233,6 +235,15 @@ Deno.serve(async (req) => {
       String(safe.length),
       ...safe.map((m) => `${m.role}:${m.content}`),
     ]);
+
+    // Gate 8: НОВ анонимен отговор е затворен по подразбиране (само server-side env).
+    // При затворено: само-четящо търсене; вече доставен отговор се връща точно.
+    // Нищо друго — без резервация на безплатно право, лимит, заземяване, модел.
+    if (!isNewProcessingOpen("assistant_chat_anon")) {
+      const prior = await lookupAnonDelivery(ledger, { operationId, identityHash: ipHash, requestDigest });
+      if (prior.status === "committed") return json(prior.response as Record<string, unknown>, 200);
+      return newProcessingClosedResponse("assistant_chat_anon", corsHeaders, { free_message_consumed: false });
+    }
 
     const res = await reserveAnonDelivery(ledger, {
       operationId,
