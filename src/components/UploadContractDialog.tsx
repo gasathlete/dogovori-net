@@ -161,7 +161,7 @@ export function UploadContractDialog({
     const refreshed = await supabase.auth.refreshSession();
     const activeSession = refreshed.data.session ?? (await supabase.auth.getSession()).data.session;
     if (!activeSession) {
-      throw new Error("Сесията Ви е изтекла. Моля, влезте отново и опитайте пак.");
+      throw new UploadStepError("session_expired", "Сесията Ви е изтекла. Моля, влезте отново и опитайте пак.");
     }
     return activeSession;
   };
@@ -187,10 +187,10 @@ export function UploadContractDialog({
       if (attempt === 0 && isRlsError) continue;
 
       if (isRlsError) {
-        throw new Error("Сесията за качване е изтекла. Опреснете страницата или влезте отново и опитайте пак.");
+        throw new UploadStepError("session_expired", "Сесията за качване е изтекла. Опреснете страницата или влезте отново и опитайте пак.");
       }
 
-      throw new Error("Грешка при качване: " + upload.error.message);
+      throw new UploadStepError("upload_failed", "Грешка при качване. Опитайте отново.");
     }
   };
 
