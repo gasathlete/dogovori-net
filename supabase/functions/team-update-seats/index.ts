@@ -13,6 +13,7 @@ import {
   teamEnvMismatchResponse,
 } from "../_shared/team-env.ts";
 import { mustAffectRows, mustSucceed } from "../_shared/db-guard.ts";
+import { isNewProcessingOpen, newProcessingClosedResponse } from "../_shared/new-processing-gate.ts";
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCors(req);
@@ -50,6 +51,14 @@ Deno.serve(async (req) => {
 
     // Окръжението на екипа трябва да съвпада — ПРЕДИ Stripe клиент/мутации.
     assertTeamEnvironment(team.environment, environment);
+
+    // Gate 8: УВЕЛИЧЕНИЕТО на места създава ново начисление (proration) —
+    // затворено по подразбиране. Непознат текущ брой = увеличение (fail-closed).
+    // Намаление и същия брой остават достъпни. Флагът е само server-side env.
+    const currentSeats = Number.isInteger(team.seat_count) ? (team.seat_count as number) : null;
+    if ((currentSeats === null || seats > currentSeats) && !isNewProcessingOpen("team_seat_increase")) {
+      return newProcessingClosedResponse("team_seat_increase", corsHeaders, { charge_state: "not_charged" });
+    }
 
     // Ensure not shrinking below current member count
     const { count, error: countErr } = await admin

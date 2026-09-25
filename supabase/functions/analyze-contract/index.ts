@@ -5,6 +5,7 @@ import { buildCors } from "../_shared/cors.ts";
 import { extractJson } from "../_shared/json.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
+import { isNewProcessingOpen, newProcessingClosedResponse } from "../_shared/new-processing-gate.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { redactForAI, unredact } from "../_shared/redact.ts";
 import { routeModel } from "../_shared/model-router.ts";
@@ -415,6 +416,17 @@ Deno.serve(async (req: Request) => {
 
     // Отвъд тази точка операцията е ОТСЪСТВАЩА или ДОКАЗАНО ОТМЕНЕНА: нормален
     // нов опит. ВСИЧКИ НЕТАКСУЕМИ ПРОВЕРКИ се извършват ПРЕДИ резервацията.
+
+    // Gate 8: НОВ анализ е затворен по подразбиране (server-side env). Стои след
+    // само-четящото възпроизвеждане и ПРЕДИ guardIllegalContent (пише журнал),
+    // ключа на доставчика, правното заземяване, резервацията и модела.
+    if (!isNewProcessingOpen("analyze_contract")) {
+      return newProcessingClosedResponse(
+        "analyze_contract",
+        { ...corsHeaders, ...correlationHeaders(correlationId) },
+        { charge_state: "not_charged" },
+      );
+    }
 
     // Illegal content guard — block before AI call, log + alert admin.
     const blocked = await guardIllegalContent({

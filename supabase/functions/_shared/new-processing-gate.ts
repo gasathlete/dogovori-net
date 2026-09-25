@@ -16,6 +16,9 @@ export const NEW_PROCESSING_FLAGS = Object.freeze({
   strict_unlock_checkout: "STRICT_UNLOCK_CHECKOUT_ENABLED",
   download_blank: "DOWNLOAD_BLANK_NEW_PROCESSING_ENABLED",
   team_checkout: "TEAM_CHECKOUT_ENABLED",
+  team_seat_increase: "TEAM_SEAT_INCREASE_ENABLED",
+  analyze_contract: "ANALYZE_CONTRACT_NEW_PROCESSING_ENABLED",
+  review_document: "REVIEW_DOCUMENT_NEW_PROCESSING_ENABLED",
 });
 export type NewProcessingSurface = keyof typeof NEW_PROCESSING_FLAGS;
 
@@ -25,6 +28,9 @@ export const NEW_PROCESSING_CODES: Readonly<Record<NewProcessingSurface, string>
   strict_unlock_checkout: "checkout_prelaunch_closed",
   download_blank: "blank_prelaunch_closed",
   team_checkout: "checkout_prelaunch_closed",
+  team_seat_increase: "seat_increase_prelaunch_closed",
+  analyze_contract: "analysis_prelaunch_closed",
+  review_document: "review_prelaunch_closed",
 });
 
 const MESSAGES: Readonly<Record<NewProcessingSurface, string>> = Object.freeze({
@@ -33,6 +39,9 @@ const MESSAGES: Readonly<Record<NewProcessingSurface, string>> = Object.freeze({
   strict_unlock_checkout: "Плащането още не е отворено. Не е извършено плащане.",
   download_blank: "Изготвянето на нова бланка още не е отворено. Нищо не е таксувано.",
   team_checkout: "Плащането още не е отворено. Не е извършено плащане.",
+  team_seat_increase: "Добавянето на места още не е отворено. Не е извършено плащане. Намаляването на места остава достъпно.",
+  analyze_contract: "Новият анализ още не е отворен. Нищо не е изпратено и нищо не е таксувано.",
+  review_document: "Новата проверка още не е отворена. Нищо не е изпратено и нищо не е таксувано.",
 });
 
 const defaultEnv: EnvReader = (k) => {
