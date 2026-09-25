@@ -150,11 +150,9 @@ describe("след поправката", () => {
     await denied(as(db, "authenticated", N, `UPDATE public.uploaded_contracts SET storage_path = '${A}/secret.pdf'`));
     await denied(as(db, "authenticated", O, `UPDATE public.uploaded_contracts SET storage_path = '${A}/secret.pdf'`));
     await denied(as(db, "authenticated", N, `UPDATE public.uploaded_contracts SET team_id = NULL`));
-    await denied(as(db, "authenticated", N, `UPDATE public.uploaded_contracts SET team_shared_by = '${N}'`).then(async () => {
-      const r = await as(db, "service_role", null, `SELECT team_shared_by FROM public.uploaded_contracts`);
-      if (r.rows[0].team_shared_by !== O) return; // презаписано → проверката долу
-      throw new Error("team_shared_by остана непроменен (очаквано)");
-    }));
+    await as(db, "authenticated", N, `UPDATE public.uploaded_contracts SET team_shared_by = '${N}'`);
+    const prov = await as(db, "service_role", null, `SELECT team_shared_by FROM public.uploaded_contracts`);
+    expect(prov.rows[0].team_shared_by).toBe(O); // клиентът не пише произхода
     const edit = await as(db, "authenticated", N, `UPDATE public.uploaded_contracts SET title = 'y' RETURNING title`);
     expect(edit.rows[0].title).toBe("y");
     await as(db, "authenticated", O, `UPDATE public.uploaded_contracts SET team_id = NULL`);
