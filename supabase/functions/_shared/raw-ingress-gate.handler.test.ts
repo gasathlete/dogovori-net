@@ -119,6 +119,26 @@ T("download-document OFF: ново съдържание (contract) → 503, бе
   } finally { restore(); }
 });
 
+T("download-document OFF: kind=template с произволен payload → 503, без квота/запис/доставчик", async () => {
+  const h = await load("../download-document/index.ts");
+  const calls: Call[] = [];
+  const restore = install(calls);
+  try {
+    const res = await h(post({
+      kind: "template", title: "Преименуван", template_slug: "nda",
+      payload: { title: "Суров текст на договор", sections: [{ body: "произволен текст от браузъра" }] },
+    }));
+    const j = await res.json().catch(() => ({}));
+    assertEquals(res.status, 503, JSON.stringify(j));
+    assertEquals(j.code, "content_save_prelaunch_closed");
+    assertEquals(writes(calls), [], "без запис в saved_documents");
+    assert(!calls.some((c) => c.url.includes("/rpc/")), "без квота/RPC");
+    // стъпала: само auth + четене на квотата; нищо след преградата
+    assert(calls.every((c) => c.url.includes("/auth/v1/user") || c.url.includes("/rest/v1/download_quota")),
+      JSON.stringify(calls.map((c) => c.url)));
+  } finally { restore(); }
+});
+
 T("download-document OFF: вече запазен собствен документ се сваля отново", async () => {
   const h = await load("../download-document/index.ts");
   const calls: Call[] = [];
