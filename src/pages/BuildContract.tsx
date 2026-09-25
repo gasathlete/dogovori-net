@@ -69,7 +69,7 @@ import {
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { canStartNewProcessing } from "@/lib/prelaunch";
 import { openPrelaunchWaitlist } from "@/lib/prelaunchWaitlist";
-import { createResultSaveCoordinator } from "@/lib/resultSaveCoordinator";
+import { createResultSaveCoordinator, insertSavedDocumentOnce, type SavedDocumentsClient } from "@/lib/resultSaveCoordinator";
 import { readReferenceHandoff } from "@/lib/referenceHandoff";
 import { classifyGenerationError, errorClassOf, type GenerationError } from "@/lib/generationErrors";
 import { getOpSessionId, getStableOpKey, releaseStableOpKey, opaqueOpScope } from "@/lib/opSession";
@@ -690,33 +690,31 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   // нов резултат дава нов запис, съществуващ документ не се презаписва.
   const saveCoordRef = useRef(createResultSaveCoordinator<object>());
   const saveCoord = saveCoordRef.current;
-  saveCoord.setCurrent(result?.contract ?? null);
-  const insertResult = useCallback(async (r: AIResult, via: "autosave" | "save"): Promise<string> => {
-    const uid = userRef.current?.id;
-    if (!uid) throw new Error("not_signed_in");
+  saveCoord.setCurrent(result?.contract ?? null, user?.id ?? null);
+  const insertResult = useCallback(async (r: AIResult, uid: string, id: string, via: "autosave" | "save"): Promise<string> => {
+    if (userRef.current?.id !== uid) throw new Error("owner_changed");
     const finalTitle = (name || r.contract.title).trim() || r.contract.title;
     // Ново съдържание: отказ ПРЕДИ мрежата, докато няма контролиран бекенд.
     assertSavedDocumentContentWrite({ payload: r.contract });
-    const { data, error } = await supabase
-      .from("saved_documents")
-      .insert({
-        user_id: uid,
-        kind: "contract",
-        title: finalTitle,
-        payload: { ...r.contract, title: finalTitle } as any,
-        source_id: categoryId === "__other__" ? "custom" : categoryId,
-      })
-      .select("id")
-      .single();
-    if (error) throw error;
-    trackDocumentSaved(data.id, { source: "build", doc_key: documentType, via });
-    return data.id as string;
+    // Стабилен предварително заделен id: повторен опит след изгубен отговор
+    // разпознава вече записания ред вместо да вмъкне втори.
+    const savedId = await insertSavedDocumentOnce(supabase as unknown as SavedDocumentsClient, {
+      id,
+      user_id: uid,
+      kind: "contract",
+      title: finalTitle,
+      payload: { ...r.contract, title: finalTitle },
+      source_id: categoryId === "__other__" ? "custom" : categoryId,
+    });
+    trackDocumentSaved(savedId, { source: "build", doc_key: documentType, via });
+    return savedId;
   }, [name, categoryId, documentType]);
   useEffect(() => {
     if (!result || !user || savedDocId) return;
     const r = result;
+    const uid = user.id;
     saveCoord
-      .save(r.contract, () => insertResult(r, "autosave"), (id) => setSavedDocId(id))
+      .save(r.contract, uid, (id) => insertResult(r, uid, id, "autosave"), (id) => setSavedDocId(id))
       .catch((e) => console.error("auto-save parent failed:", e));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result, user]);
@@ -956,7 +954,9 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     setSaving(true);
     try {
       const r = result;
-      await saveCoord.save(r.contract, () => insertResult(r, "save"), (id) => setSavedDocId(id));
+      const uid = userRef.current?.id;
+      if (!uid) throw new Error("not_signed_in");
+      await saveCoord.save(r.contract, uid, (id) => insertResult(r, uid, id, "save"), (id) => setSavedDocId(id));
       trackEvent("build_contract_saved");
       toast.success("Запазено в профила", { description: "Документи → Всички" });
     } catch (e: any) {
