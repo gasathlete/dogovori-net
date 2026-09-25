@@ -2,13 +2,13 @@
 
 Статус: **NOT_READY**. Gate 7 остава отворен. Нито една проверка по-долу не е проведена; всички са **NOT RUN**, докато няма запис с дата, среда и доказателство.
 
-## Какво е затворено в кода (клиентска преграда)
-| Действие | Къде спира | Сървърен bypass |
+## Какво е затворено в кода (клиентска + сървърна преграда)
+| Действие | Къде спира в клиента | Сървърна преграда (source; виж checkpoint 25.09.2026) |
 |---|---|---|
-| Ново съобщение до DogovaryAI (вкл. абонати) | `AssistantChat.sendMessage` преди мрежа | `assistant-chat` е пряко достъпен |
+| Ново съобщение до DogovaryAI (вкл. абонати) | `AssistantChat.sendMessage` преди мрежа | `assistant-chat`: `ASSISTANT_NEW_PROCESSING_ENABLED` OFF; записан отговор се възпроизвежда |
 | Прикачване на файл в чата | `handleFiles` — файлът не се чете | няма |
-| Нов абонамент / топъп | `StripeEmbeddedCheckout` не монтира Stripe | `create-checkout` пряко достъпен |
-| Строго отключване | `StrictDocumentPaywall.startUnlock` | `create-strict-unlock-checkout` пряко достъпен |
+| Нов абонамент / топъп | `StripeEmbeddedCheckout` не монтира Stripe | `create-checkout`: `SUBSCRIPTION_CHECKOUT_ENABLED` OFF (вкл. топъп) |
+| Строго отключване | `StrictDocumentPaywall.startUnlock` | `create-strict-unlock-checkout`: `STRICT_UNLOCK_CHECKOUT_ENABLED` OFF |
 | Еднократни продукти | `ONE_TIME_PURCHASES_AVAILABLE=false` + заявка | сървърен флаг OFF |
 
 Остават отворени: публично SEO съдържание, вход/регистрация, история и запазени резултати, портал за абонамент, export/delete, unsubscribe, webhook реверси.
@@ -22,7 +22,7 @@
 ## Зависимости преди live (blockers)
 1. Прилагане на миграцията за заявката (`docs/migrations/stage_prelaunch_waitlist.sql`) — сега липсващ backend = честна грешка.
 2. Правно одобрение: контролер, текст на съгласието, срок за съхранение.
-3. Сървърни флагове за `assistant-chat`, `create-checkout`, `create-strict-unlock-checkout`.
+3. Сървърните флагове за `assistant-chat`, `create-checkout`, `create-strict-unlock-checkout` съществуват в кода и са OFF; включването им изисква отделно решение и проверка в среда.
 4. DPA с EU AI доставчик (Azure в provisioning), AI Act прозрачност.
 5. Приложени миграции 0039–0044 и pgTAP.
 
@@ -56,9 +56,11 @@
 Тестове: `_shared/new-processing-gate.batch5.handler.test.ts` (7/7), `_shared/new-processing-gate.batch6.handler.test.ts` (6/6). `negotiation-strategy` — преградата е доказана само по реда в кода.
 
 ### `suggest-followup-questions`
-- Входните `sector_id`/`contract_type` вече не се вграждат в `.or(...)` филтъра. Проверка: низ, до 200 знака, без контролни знаци; иначе 400 без заявка към базата. Обхватът се сравнява с точно равенство в паметта.
+- Входните `sector_id`/`contract_type` не се вграждат в низов `.or(...)` филтър. Проверка: низ, до 200 знака, без контролни знаци; иначе 400 без заявка към базата.
+- За всяка комбинация (стойност | NULL) на подадените измерения — отделна заявка с `.eq`/`.is` (до 4 заявки), подредена по importance ↓, id ↑, с лимит 501. Резултатите се обединяват, дедуплицират по id и подреждат детерминистично; после се прилагат условията и `limit` (1–10).
+- Защитен максимум: над 500 реда в един обхват → 503 `capacity_exceeded`, никога частичен резултат. Без подаден сектор/вид обхватът е цялата активна банка — при над 500 активни въпроса такава заявка също връща 503.
 - Грешката към клиента вече не съдържа суровото съобщение на базата.
-- Тест: `suggest-followup-questions/index.test.ts` (6/6).
+- Тест: `suggest-followup-questions/index.test.ts` (9/9), вкл. регресия с 700 нерелевантни въпроса с висок importance.
 
 ### Одит на директни записи от браузъра (само четене; без промени)
 | Таблица / bucket | Клиентски път | Правило | Заобикаля ли AI/плащане |
