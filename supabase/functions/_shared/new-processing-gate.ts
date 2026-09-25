@@ -14,6 +14,8 @@ export const NEW_PROCESSING_FLAGS = Object.freeze({
   assistant: "ASSISTANT_NEW_PROCESSING_ENABLED",
   subscription_checkout: "SUBSCRIPTION_CHECKOUT_ENABLED",
   strict_unlock_checkout: "STRICT_UNLOCK_CHECKOUT_ENABLED",
+  download_blank: "DOWNLOAD_BLANK_NEW_PROCESSING_ENABLED",
+  team_checkout: "TEAM_CHECKOUT_ENABLED",
 });
 export type NewProcessingSurface = keyof typeof NEW_PROCESSING_FLAGS;
 
@@ -21,12 +23,16 @@ export const NEW_PROCESSING_CODES: Readonly<Record<NewProcessingSurface, string>
   assistant: "assistant_prelaunch_closed",
   subscription_checkout: "checkout_prelaunch_closed",
   strict_unlock_checkout: "checkout_prelaunch_closed",
+  download_blank: "blank_prelaunch_closed",
+  team_checkout: "checkout_prelaunch_closed",
 });
 
 const MESSAGES: Readonly<Record<NewProcessingSurface, string>> = Object.freeze({
   assistant: "Новата обработка още не е отворена. Нищо не е изпратено и нищо не е таксувано.",
   subscription_checkout: "Плащането още не е отворено. Не е извършено плащане.",
   strict_unlock_checkout: "Плащането още не е отворено. Не е извършено плащане.",
+  download_blank: "Изготвянето на нова бланка още не е отворено. Нищо не е таксувано.",
+  team_checkout: "Плащането още не е отворено. Не е извършено плащане.",
 });
 
 const defaultEnv: EnvReader = (k) => {
