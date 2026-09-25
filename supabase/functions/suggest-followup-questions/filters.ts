@@ -43,3 +43,30 @@ export function parseLimit(v: unknown): number {
   const n = typeof v === "number" && Number.isFinite(v) ? Math.trunc(v) : 5;
   return Math.min(10, Math.max(1, n));
 }
+
+/** Защитен максимум на един обхват. Надхвърляне → честа грешка, не частичен резултат. */
+export const SCOPE_CAPACITY = 500;
+
+export type ScopeFilter = { column: "sector_id" | "contract_type"; value: string | null };
+
+/**
+ * Всички комбинации (стойност | NULL) за подадените измерения. Всяка комбинация
+ * става отделна заявка с `.eq`/`.is` — никакъв низов филтър.
+ */
+export function scopeCombos(sectorId: string | null, contractType: string | null): ScopeFilter[][] {
+  const dim = (column: ScopeFilter["column"], v: string | null): ScopeFilter[][] =>
+    v === null ? [[]] : [[{ column, value: v }], [{ column, value: null }]];
+  const out: ScopeFilter[][] = [];
+  for (const a of dim("sector_id", sectorId)) for (const b of dim("contract_type", contractType)) out.push([...a, ...b]);
+  return out;
+}
+
+export interface RankedRow { id: string; importance: number | null }
+
+/** Дедупликация по id и детерминистичен ред: importance ↓, после id ↑. */
+export function mergeRanked<T extends RankedRow>(groups: T[][]): T[] {
+  const byId = new Map<string, T>();
+  for (const g of groups) for (const r of g) if (!byId.has(r.id)) byId.set(r.id, r);
+  return [...byId.values()].sort((x, y) =>
+    (y.importance ?? 0) - (x.importance ?? 0) || (x.id < y.id ? -1 : x.id > y.id ? 1 : 0));
+}
