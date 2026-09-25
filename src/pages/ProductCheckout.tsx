@@ -9,6 +9,7 @@
  * заключени: така плащате точно това, което сте видели. „Започнете отначало“
  * прави нова заявка.
  */
+import { productBlockedMessage } from "@/lib/productTrustedSource";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
@@ -80,10 +81,8 @@ async function readBlockedReason(error: unknown): Promise<string | null> {
   if (!(res instanceof Response)) return null;
   try {
     const body = await res.clone().json();
-    const message = (body as { message?: unknown })?.message;
-    return typeof message === "string" && message.trim().length > 0
-      ? message.trim().slice(0, 300)
-      : null;
+    const b = body as { error?: unknown; message?: unknown } | null;
+    return productBlockedMessage(b?.error, b?.message);
   } catch {
     return null;
   }
