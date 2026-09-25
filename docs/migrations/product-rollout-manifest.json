@@ -361,5 +361,23 @@
       "fulfill-product": "one durable reserved call identity per stage cursor; no retry of a reserved-but-unrecorded call",
       "refine-product": "1 provider call per included refinement; uncertainty becomes reconciliation, never a second call"
     }
-  }
+  },
+  "stagedSources": [
+    {
+      "id": "stage_prelaunch_waitlist",
+      "file": "docs/migrations/stage_prelaunch_waitlist.sql",
+      "parity": "single staged source file; not a numbered migration and unrelated to 0044 (privacy client text-write gate)",
+      "sha256": "8ce399eae499e66227421b66e4870228fdbd528df8732b2e1ea07d99211390b9",
+      "applied": false,
+      "purpose": "Prelaunch waitlist RPC: exact consent version, true consent, normalized email/feature, idempotent retries without refreshing consent/retention, finite server-computed retention, bounded global admission per window, owner/service withdrawal, service purge. Disabled until service_role writes an approved config row.",
+      "blockers": [
+        "legally approved retention period and privacy notice/ROPA text (not invented here)",
+        "service_role config row (enabled, retention_days, approval_ref) — none shipped",
+        "scheduling of purge_expired_prelaunch_waitlist() not configured",
+        "perimeter per-client abuse protection (platform/WAF) not provided by this SQL"
+      ],
+      "tests": "src/test/prelaunchWaitlist.pglite.test.ts (PGlite, synthetic)",
+      "recovery": "forward-fix only; RPC returns false while config absent/disabled"
+    }
+  ]
 }

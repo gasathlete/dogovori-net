@@ -51,10 +51,9 @@ describe("normalizeReason — стабилни причини без PII", () =>
     expect(normalizeReason("Edge Function returned a non-2xx status code 502")).toBe("http_502");
   });
 
-  it("свободен текст става кратък slug без цифри/пунктуация (без PII)", () => {
+  it("свободен текст става unknown — никога slug от входа", () => {
     const r = normalizeReason("Грешка при потребител ivan@example.com, ЕГН 8001011234!");
-    expect(r).not.toMatch(/@|\d/);
-    expect(r.length).toBeLessThanOrEqual(48);
+    expect(r).toBe("unknown");
     expect(normalizeReason("")).toBe("unknown");
     expect(normalizeReason(undefined)).toBe("unknown");
   });

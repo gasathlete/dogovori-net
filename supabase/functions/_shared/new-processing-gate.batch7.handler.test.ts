@@ -234,3 +234,81 @@ T("negotiation-strategy: чужд анализ → 403 без търсене/з�
   assertEquals(payload.recorded, undefined);
   assert(!calls.some((c) => c.url.includes("/rpc/")));
 });
+
+// ---------------------------------- review-document: път на СОБСТВЕНИК без пропуск
+// Валиден синтетичен запазен документ; ревизираният текст е точно каноничният
+// четим текст на записа, така че обвързването owner/document/version/hash е реално.
+import { renderCanonicalPlainText } from "./generated-document-quality.ts";
+const SAVED_ID = "44444444-5555-4666-8777-888888888888";
+const SAVED_PAYLOAD = {
+  title: "Договор за услуга",
+  preamble: "Днес страните сключиха настоящия договор за поддръжка на уебсайт.",
+  clauses: [
+    { number: "1.", title: "Предмет", body: "Изпълнителят поддържа уебсайта на Възложителя." },
+    { number: "2.", title: "Цена", body: "Възнаграждението е 300 EUR месечно без ДДС, платимо до 5-о число." },
+  ],
+};
+const SAVED_TEXT = renderCanonicalPlainText(SAVED_PAYLOAD);
+const ownedTables = (owner: string, versionOwner = owner): Tables => ({
+  saved_documents: { id: SAVED_ID, user_id: owner, payload: SAVED_PAYLOAD },
+  document_versions: { user_id: versionOwner, payload: SAVED_PAYLOAD },
+});
+const ownedBody = (extra: Record<string, unknown> = {}) =>
+  ({ documentText: SAVED_TEXT, documentTitle: "Договор за услуга", operation_id: OP_ID, document_id: SAVED_ID, ...extra });
+
+T("review-document (собственик, без пропуск): фикстурата е непразен каноничен текст", () => {
+  assert(SAVED_TEXT.includes("Изпълнителят поддържа уебсайта"), SAVED_TEXT);
+});
+
+T("review-document (собственик, без пропуск): нова ревизия при OFF → 503 без модел/резервация/запис", async () => {
+  const { res, payload, calls } = await run(RD, ownedBody(), "absent", ownedTables(USER));
+  assertEquals(res.status, 503, JSON.stringify(payload));
+  assertEquals(payload.code, "review_prelaunch_closed");
+  assert(calls.some((c) => c.url.includes("/rpc/owned_review_operation_lookup")), "очаква се само-четящо търсене по собственик");
+  assert(!calls.some((c) => c.url.includes("/rpc/review_operation_lookup")), "пропускът не се ползва");
+  assertEquals(calls.filter(forbidden), []);
+});
+
+T("review-document (собственик, версия): нова ревизия при OFF → 503; записан резултат → точен replay", async () => {
+  const off = await run(RD, ownedBody({ document_version_no: 2 }), "absent", ownedTables(USER));
+  assertEquals(off.res.status, 503, JSON.stringify(off.payload));
+  assertEquals(off.calls.filter(forbidden), []);
+  const rep = await run(RD, ownedBody({ document_version_no: 2 }), "committed", ownedTables(USER));
+  assertEquals(rep.res.status, 200, JSON.stringify(rep.payload));
+  assertEquals(rep.res.headers.get("X-Operation-Replay"), "true");
+  assertEquals(rep.payload.recorded, "Записан резултат");
+  assertEquals(rep.calls.filter(forbidden), []);
+});
+
+T("review-document (собственик, без пропуск): записан резултат → точно възпроизвеждане при OFF", async () => {
+  const { res, payload, calls } = await run(RD, ownedBody(), "committed", ownedTables(USER));
+  assertEquals(res.status, 200, JSON.stringify(payload));
+  assertEquals(res.headers.get("X-Operation-Replay"), "true");
+  assertEquals(payload.recorded, "Записан резултат");
+  assert(calls.some((c) => c.url.includes("/rpc/owned_review_operation_lookup")));
+  assertEquals(calls.filter(forbidden), []);
+});
+
+T("review-document: чужд запазен документ → отказ без търсене/резултат/запис", async () => {
+  const { res, payload, calls } = await run(RD, ownedBody(), "committed", ownedTables(OTHER));
+  assert(res.status >= 400 && res.status < 500, `${res.status} ${JSON.stringify(payload)}`);
+  assertEquals(payload.recorded, undefined);
+  assert(!calls.some((c) => c.url.includes("/rpc/")));
+  assertEquals(calls.filter(forbidden), []);
+});
+
+T("review-document: версия с различен собственик → отказ без търсене/запис", async () => {
+  const { res, payload, calls } = await run(RD, ownedBody({ document_version_no: 2 }), "committed", ownedTables(USER, OTHER));
+  assert(res.status >= 400 && res.status < 500, `${res.status} ${JSON.stringify(payload)}`);
+  assertEquals(payload.recorded, undefined);
+  assert(!calls.some((c) => c.url.includes("/rpc/")));
+});
+
+T("review-document: остаряло обвързване (текстът не съвпада със записа) → отказ без търсене/запис", async () => {
+  const stale = ownedBody({ documentText: SAVED_TEXT + "\n\n3. Нова клауза, която не е в записа." });
+  const { res, payload, calls } = await run(RD, stale, "committed", ownedTables(USER));
+  assert(res.status >= 400 && res.status < 500, `${res.status} ${JSON.stringify(payload)}`);
+  assertEquals(payload.recorded, undefined);
+  assert(!calls.some((c) => c.url.includes("/rpc/")));
+  assertEquals(calls.filter(forbidden), []);
+});

@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Dialog,
@@ -27,25 +27,58 @@ export function PrelaunchWaitlistDialog() {
   const [result, setResult] = useState<WaitlistResult | null>(null);
   const emailId = useId();
   const consentId = useId();
+  // Синхронна идентичност на сесията на формата. Всяко отваряне, затваряне
+  // или демонтиране я сменя, така че закъснял отговор от стара заявка не
+  // може да промени новата форма (резултат или „зает“).
+  const sessionRef = useRef(0);
+  // Синхронна преграда срещу двойно изпращане в една и съща сесия.
+  const inFlightRef = useRef<number | null>(null);
+
+  const newSession = useCallback(() => {
+    sessionRef.current += 1;
+    inFlightRef.current = null;
+    setBusy(false);
+    setEmail("");
+    setConsent(false);
+    setResult(null);
+  }, []);
 
   useEffect(() => {
     const onOpen = (e: Event) => {
       const f = (e as CustomEvent<{ feature?: unknown }>).detail?.feature;
       if (!isPrelaunchFeature(f)) return;
+      newSession();
       setFeature(f);
-      setEmail("");
-      setConsent(false);
-      setResult(null);
     };
     window.addEventListener(PRELAUNCH_WAITLIST_EVENT, onOpen);
-    return () => window.removeEventListener(PRELAUNCH_WAITLIST_EVENT, onOpen);
-  }, []);
+    return () => {
+      window.removeEventListener(PRELAUNCH_WAITLIST_EVENT, onOpen);
+      sessionRef.current += 1;
+      inFlightRef.current = null;
+    };
+  }, [newSession]);
+
+  const close = () => {
+    newSession();
+    setFeature(null);
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!feature || busy) return;
+    if (!feature) return;
+    const session = sessionRef.current;
+    if (inFlightRef.current === session) return;
+    inFlightRef.current = session;
     setBusy(true);
-    setResult(await submitPrelaunchWaitlist({ email, feature, consent }));
+    let outcome: WaitlistResult = "unavailable";
+    try {
+      outcome = await submitPrelaunchWaitlist({ email, feature, consent });
+    } catch {
+      outcome = "unavailable";
+    }
+    if (sessionRef.current !== session) return; // остарял отговор — игнорира се
+    inFlightRef.current = null;
+    setResult(outcome);
     setBusy(false);
   };
 
@@ -59,7 +92,7 @@ export function PrelaunchWaitlistDialog() {
           : "";
 
   return (
-    <Dialog open={feature !== null} onOpenChange={(o) => !o && setFeature(null)}>
+    <Dialog open={feature !== null} onOpenChange={(o) => { if (!o) close(); }}>
       <DialogContent className="max-w-md" data-testid="prelaunch-waitlist">
         <DialogHeader>
           <DialogTitle>{PRELAUNCH_COPY.title}</DialogTitle>
@@ -80,6 +113,7 @@ export function PrelaunchWaitlistDialog() {
                 inputMode="email"
                 className="min-h-11"
                 value={email}
+                disabled={busy}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
@@ -87,6 +121,7 @@ export function PrelaunchWaitlistDialog() {
               <Checkbox
                 id={consentId}
                 checked={consent}
+                disabled={busy}
                 onCheckedChange={(v) => setConsent(v === true)}
                 className="mt-1"
               />
@@ -98,7 +133,7 @@ export function PrelaunchWaitlistDialog() {
             <p className="text-xs text-muted-foreground">{PRELAUNCH_COPY.revokeHint}</p>
             <p aria-live="polite" className="min-h-5 text-sm">{message}</p>
             <DialogFooter className="gap-2">
-              <Button type="button" variant="outline" className="min-h-11" onClick={() => setFeature(null)}>
+              <Button type="button" variant="outline" className="min-h-11" onClick={close}>
                 {PRELAUNCH_COPY.close}
               </Button>
               <Button type="submit" className="min-h-11" disabled={busy || !consent} aria-busy={busy}>

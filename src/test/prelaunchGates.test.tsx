@@ -39,7 +39,7 @@ beforeEach(() => {
 
 describe("нова обработка ≠ запазено право", () => {
   it("абонат не получава нова AI обработка/покупка; не-AI право се запазва", () => {
-    for (const f of ["assistant", "document_review", "one_time_product", "subscription"]) {
+    for (const f of ["assistant", "document_review", "document_generation", "one_time_product", "subscription"]) {
       expect(canStartNewProcessing(f)).toBe(false);
       expect(canUseFeature(f, { hasActiveEntitlement: true })).toBe(false);
     }

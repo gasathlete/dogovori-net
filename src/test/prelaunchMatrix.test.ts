@@ -18,11 +18,13 @@ describe("матрица на предварителния режим", () => {
     }
     expect(canUseFeature("x", { hasActiveEntitlement: true })).toBe(false);
   });
-  it("проверките в Wizard и CompanionChip отчитат вече възникнало право", () => {
+  it("Wizard (AI генериране и download-blank) не пропуска абонати; CompanionChip пази статичното право", () => {
     const w = readFileSync("src/pages/Wizard.tsx", "utf8");
     const c = readFileSync("src/components/CompanionChip.tsx", "utf8");
     expect(w).not.toContain("isFeatureAvailable(");
-    expect(w.match(/canUseFeature\("[a-z_]+", \{ hasActiveEntitlement: isPro \}\)/g)?.length).toBe(4);
+    expect(w).not.toContain("canUseFeature(");
+    expect(w.match(/canStartNewProcessing\("(document_generation|blank_download)"\)/g)?.length).toBe(4);
+    expect(canUseFeature("document_generation", { hasActiveEntitlement: true })).toBe(false);
     expect(c).toContain('canUseFeature("blank_download", { hasActiveEntitlement: isPro })');
   });
   it("сценарий А: пътят за готови шаблони не вика AI", () => {
