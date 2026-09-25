@@ -279,7 +279,7 @@ T("refine-product: върната/неплатена покупка не пол�
 });
 
 T("refine-product: подменен записан резултат → 409 result_invalid", async () => {
-  const tampered = structuredClone(REFINED) as Row & { payload: { messages: Row[] } };
+  const tampered = structuredClone(REFINED) as unknown as Row & { payload: { messages: Row[] } };
   tampered.payload.messages[0].body = "Подменен текст.";
   for (
     const ref of [
