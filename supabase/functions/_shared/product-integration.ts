@@ -11,6 +11,7 @@
 import { PRODUCT_GENERATION_POLICY_VERSION } from "./product-generation-policy.ts";
 import { isLegalKnowledgeBaseReady, type LegalDbClient } from "./product-legal-basis.ts";
 import type { VerifierDeps } from "./legal-verification.ts";
+import { productTrustedSourceBlockers } from "./product-trusted-source.ts";
 
 export type EnvReader = (key: string) => string | undefined;
 
@@ -41,7 +42,8 @@ export type ProductIntegrationCode =
   | "legal_kb_not_ready"
   | "residency_not_allowed"
   | "migration_not_verified"
-  | "policy_version_mismatch";
+  | "policy_version_mismatch"
+  | "trusted_source_unavailable";
 
 /** Кратки, човешки съобщения. Без доставчик, без тайни, без технически детайли. */
 export const PRODUCT_INTEGRATION_MESSAGES: Readonly<Record<ProductIntegrationCode, string>> =
@@ -56,6 +58,8 @@ export const PRODUCT_INTEGRATION_MESSAGES: Readonly<Record<ProductIntegrationCod
     migration_not_verified: "Обработката още не е включена. Плащане не се извършва.",
     residency_not_allowed:
       "По Ваша настройка обработката с изкуствен интелект е ограничена до ЕИП. Променете настройката, за да продължите.",
+    trusted_source_unavailable:
+      "Проверката на произхода на документа още не е налична. Плащане не се извършва и нищо не се обработва.",
     policy_version_mismatch:
       "Правилата за обработка са обновени. Започнете отначало, за да е ясно какво получавате.",
   });
@@ -208,7 +212,8 @@ export interface ProductServiceGates {
 async function asyncBlockers(
   gates: ProductServiceGates,
 ): Promise<ProductIntegrationCode[]> {
-  const codes: ProductIntegrationCode[] = [];
+  // Произходът на източника е ПЪРВАТА асинхронна врата и не зависи от env.
+  const codes: ProductIntegrationCode[] = [...productTrustedSourceBlockers()];
   if (!gates.rpc || !(await isProductMigrationApplied(gates.rpc))) {
     codes.push("migration_not_verified");
   }
@@ -281,8 +286,11 @@ export async function productIntegrationReadiness(
   const fulfillmentBlockers = [...productFulfillmentBlockers(config)];
   if (!migrationReady) fulfillmentBlockers.push("migration_not_verified");
   if (!legalReady) fulfillmentBlockers.push("legal_kb_not_ready");
+  const trustedSource = productTrustedSourceBlockers();
+  fulfillmentBlockers.push(...trustedSource);
   const checkoutFor = (environment: "sandbox" | "live") =>
-    productCheckoutBlockers(config, environment).length === 0 && legalReady && migrationReady;
+    productCheckoutBlockers(config, environment).length === 0 && legalReady && migrationReady &&
+    trustedSource.length === 0;
   return Object.freeze({
     checkout_ready: Object.freeze({
       sandbox: checkoutFor("sandbox"),
