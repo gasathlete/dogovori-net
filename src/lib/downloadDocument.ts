@@ -49,8 +49,9 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
     }
 
   // Ново съдържание на документ не се изпраща към сървъра, докато записът на
-  // нов текст е затворен. Вече запазен документ (saved_document_id) остава.
-    if (p.kind === "contract" && !p.saved_document_id && !canWriteSavedDocumentContent()) {
+  // нов текст е затворен — за всеки `kind` ("template" не е доказателство).
+  // Вече запазен документ (saved_document_id) остава.
+    if (!p.saved_document_id && !canWriteSavedDocumentContent()) {
       trackDownload("fail", { ...fnProps, reason: "prelaunch_closed" });
       return { ok: false, error: "content_save_prelaunch_closed", status: 0 };
     }
