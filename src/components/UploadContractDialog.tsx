@@ -325,7 +325,7 @@ export function UploadContractDialog({
           return;
         }
         const msg = (aErr as any)?.context?.responseText || aErr.message;
-        trackGenerate("fail", { source: "upload_analyze", reason: uploadFailureReason(new Error(String(msg))) === "unknown" ? "analysis_failed" : uploadFailureReason(new Error(String(msg))) });
+        trackGenerate("fail", { source: "upload_analyze", reason: "analysis_failed" });
         toast.error("Грешка при анализа", { description: msg });
         onUploaded();
         setOpen(false);
