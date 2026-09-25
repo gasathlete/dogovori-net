@@ -2,6 +2,7 @@
 // Pulls from the staff-curated contract_question_bank and applies trigger_conditions
 // (simple equality match on existing answers). Public — used live by the wizard.
 
+import { matchesScope, parseLimit, parseScope } from "./filters.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -49,29 +50,34 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const body = await req.json().catch(() => ({}));
-    const sectorId: string | undefined = body.sector_id;
-    const contractType: string | undefined = body.contract_type;
-    const answers: Record<string, unknown> = body.answers ?? {};
-    const limit: number = Math.min(10, Math.max(1, body.limit ?? 5));
+    const raw = await req.json().catch(() => ({}));
+    const body = (raw && typeof raw === "object" && !Array.isArray(raw)) ? raw as Record<string, unknown> : {};
+    const scope = parseScope(body);
+    if (!scope.ok) {
+      return new Response(JSON.stringify({ error: "Невалидна стойност.", code: "invalid_input", field: scope.field, questions: [] }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { sectorId, contractType } = scope;
+    const answers: Record<string, unknown> =
+      body.answers && typeof body.answers === "object" && !Array.isArray(body.answers)
+        ? body.answers as Record<string, unknown>
+        : {};
+    const limit = parseLimit(body.limit);
 
-    let query = admin
+    // Входните стойности НЕ влизат в заявката: чете се фиксиран, подреден
+    // набор активни въпроси, а обхватът се проверява с точно равенство.
+    const { data, error } = await admin
       .from("contract_question_bank")
       .select("id, question_text, field_type, options, importance, trigger_conditions, contract_type, sector_id")
-      .eq("active", true);
-
-    // Match on sector or contract type if provided (OR with null for global).
-    if (sectorId) {
-      query = query.or(`sector_id.eq.${sectorId},sector_id.is.null`);
-    }
-    if (contractType) {
-      query = query.or(`contract_type.eq.${contractType},contract_type.is.null`);
-    }
-
-    const { data, error } = await query.order("importance", { ascending: false }).limit(50);
+      .eq("active", true)
+      .order("importance", { ascending: false })
+      .limit(500);
     if (error) throw error;
 
     const filtered = (data as Question[])
+      .filter((q) => matchesScope(q, sectorId, contractType))
       .filter((q) => conditionsMet(q.trigger_conditions ?? {}, answers))
       .slice(0, limit)
       .map((q) => ({
@@ -87,7 +93,7 @@ Deno.serve(async (req: Request) => {
     });
   } catch (e) {
     console.error("suggest-followup-questions error", e);
-    return new Response(JSON.stringify({ error: String(e?.message ?? e), questions: [] }), {
+    return new Response(JSON.stringify({ error: "Предложенията временно не са достъпни.", code: "unavailable", questions: [] }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
