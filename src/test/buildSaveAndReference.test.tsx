@@ -107,7 +107,7 @@ describe("ReferencePromptDialog в предварителен режим", () =>
     render(
       <MemoryRouter initialEntries={["/doc"]}>
         <Routes><Route path="*" element={<><Loc />
-          <ReferencePromptDialog reference={reference} parentTitle="Синтетичен родител"
+          <ReferencePromptDialog reference={reference} parentSavedId={null} parentUploadedId={null} onLinked={() => undefined} parentTitle="Синтетичен родител"
             parentContext={{ partiesA: ["Страна А"], subject: "Предмет" }} onClose={() => undefined} />
         </>} /></Routes>
       </MemoryRouter>,
