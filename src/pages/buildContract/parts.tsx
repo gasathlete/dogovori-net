@@ -20,6 +20,7 @@ export const buildPresetSignature = (params: URLSearchParams) => [
   params.get("parentSavedId") ?? "",
   params.get("parentUploadedId") ?? "",
   params.get("parentTitle") ?? "",
+  params.get("refCtx") ?? "",
   params.get("refNumber") ?? "",
   params.get("refType") ?? "",
   params.get("partiesA") ?? "",

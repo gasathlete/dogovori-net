@@ -14,6 +14,9 @@ import { toast } from "sonner";
 import type { DetectedReference } from "@/lib/documentReferences";
 import { linkChildToParent } from "@/lib/documentLinks";
 import { AddToKitDialog } from "@/components/AddToKitDialog";
+import { canStartNewProcessing } from "@/lib/prelaunch";
+import { openPrelaunchWaitlist } from "@/lib/prelaunchWaitlist";
+import { storeReferenceHandoff } from "@/lib/referenceHandoff";
 
 interface Props {
   reference: DetectedReference;
@@ -98,16 +101,25 @@ export function ReferencePromptDialog({
   };
 
   const handleGenerate = () => {
+    // Свързаният документ е ново генериране — затворено в предварителен режим.
+    if (!canStartNewProcessing("document_generation")) {
+      openPrelaunchWaitlist("document_generation", { source: "wizard" });
+      return;
+    }
     const params = new URLSearchParams();
     params.set("documentType", reference.documentTypeId);
     if (reference.number !== null) params.set("refNumber", String(reference.number));
     if (parentSavedId) params.set("parentSavedId", parentSavedId);
     if (parentUploadedId) params.set("parentUploadedId", parentUploadedId);
-    if (parentTitle) params.set("parentTitle", parentTitle);
     params.set("refType", reference.type);
-    if (parentContext?.partiesA?.length) params.set("partiesA", parentContext.partiesA.join("\n"));
-    if (parentContext?.partiesB?.length) params.set("partiesB", parentContext.partiesB.join("\n"));
-    if (parentContext?.subject) params.set("subject", parentContext.subject);
+    // Заглавие, страни и предмет НЕ се слагат в URL — само локално предаване.
+    const token = storeReferenceHandoff({
+      parentTitle,
+      partiesA: parentContext?.partiesA,
+      partiesB: parentContext?.partiesB,
+      subject: parentContext?.subject,
+    });
+    if (token) params.set("refCtx", token);
     navigate(`/build?${params.toString()}`);
     onClose();
   };
