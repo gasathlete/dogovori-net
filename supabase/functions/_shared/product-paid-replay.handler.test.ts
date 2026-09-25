@@ -326,3 +326,64 @@ T("fulfill-product: готово право при OFF → точно повто
   assert(!touched(calls, "/rest/v1/uploaded_contracts"));
   assert(!touched(calls, "product_rollout_capability"));
 });
+
+// ------------------------------------------------ всички env флагове "true"
+// Дори ако оператор по погрешка включи всички текущи флагове, неудостовереният
+// произход на източника затваря НОВАТА работа. Готовите/повторените платени
+// резултати остават достъпни, а истината за плащане/връщане не се променя.
+const ALL_FLAGS: Record<string, string> = {
+  [PRODUCT_INTEGRATION_ENV.checkoutEnabled]: "true",
+  [PRODUCT_INTEGRATION_ENV.fulfillmentEnabled]: "true",
+  [PRODUCT_INTEGRATION_ENV.zeroRetention]: "true",
+  LOVABLE_API_KEY: "stub-gateway-key",
+  STRIPE_LIVE_API_KEY: "sk_live_stub",
+  PAYMENTS_LIVE_WEBHOOK_SECRET: "whsec_stub",
+};
+async function withAllFlags<T>(fn: () => Promise<T>): Promise<T> {
+  for (const [k, v] of Object.entries(ALL_FLAGS)) Deno.env.set(k, v);
+  try { return await fn(); } finally { for (const k of Object.keys(ALL_FLAGS)) Deno.env.delete(k); }
+}
+
+T("fulfill-product: всички флагове true + ново платено право → 503 trusted_source_unavailable, без задача/доставчик/запис", async () => {
+  const { res, j, calls } = await withAllFlags(() =>
+    runFulfill(world({ ent: { status: "paid", result: null, result_schema_version: null } }))
+  );
+  assertEquals(res.status, 503, JSON.stringify(j));
+  assertEquals(j.error, "trusted_source_unavailable");
+  assert(!("result" in j));
+  assertEquals(calls.filter(mutation), []);
+  assert(!touched(calls, "claim_product_job"));
+  assert(!touched(calls, "ai.gateway"));
+});
+
+T("fulfill-product: всички флагове true + готово право → точно повторение", async () => {
+  const { res, j, calls } = await withAllFlags(() => runFulfill(world()));
+  assertEquals(res.status, 200, JSON.stringify(j));
+  assertEquals(j.result, BASE);
+  assertEquals(calls.filter(mutation), []);
+});
+
+T("refine-product: всички флагове true + нов ключ → 503 trusted_source_unavailable, без заемане/доставчик", async () => {
+  const { res, j, calls } = await withAllFlags(() =>
+    runRefine({ ...REFINE, idempotency_key: "k-all" }, world({ ref: okRef }))
+  );
+  assertEquals(res.status, 503, JSON.stringify(j));
+  assertEquals(j.error, "trusted_source_unavailable");
+  assertEquals(calls.filter(mutation), []);
+  assert(!touched(calls, "begin_product_result_refinement"));
+  assert(!touched(calls, "reserve_product_result_refinement_call"));
+});
+
+T("refine-product: всички флагове true + записано уточнение → точно повторение", async () => {
+  const { res, j, calls } = await withAllFlags(() => runRefine(REFINE, world({ ref: okRef })));
+  assertEquals(res.status, 200, JSON.stringify(j));
+  assertEquals(j.replay, true);
+  assertEquals(j.result, REFINED);
+  assertEquals(calls.filter(mutation), []);
+});
+
+T("refine-product: всички флагове true не възстановяват върната покупка", async () => {
+  const { res, j } = await withAllFlags(() => runRefine(REFINE, world({ ent: { status: "refunded" }, ref: okRef })));
+  assertEquals(res.status, 409, JSON.stringify(j));
+  assert(!("result" in j));
+});

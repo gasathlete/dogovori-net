@@ -1,6 +1,39 @@
 # Предварителен режим — Gate 9 и Gate 10 (source-only)
 
-Статус: **NOT_READY**. Gate 7 остава отворен. Нито една проверка по-долу не е проведена; всички са **NOT RUN**, докато няма запис с дата, среда и доказателство.
+Статус: **NOT_READY**. Gate 7 остава отворен.
+
+## Текущо обобщение (източник на истина; по-старите раздели по-долу са исторически)
+- **Тестове в изходния код са изпълнени** (виж „Изпълнени команди“). **Gate 10 staging/live сценариите НЕ са изпълнени** — всички са NOT RUN.
+- Default-OFF в кода **не доказва** реалната среда: стойностите на env в разгърнатите функции не са проверявани.
+- Всички подготвени миграции са `applied: false` (0041, 0044–0048, `stage_prelaunch_waitlist`). Нищо не е приложено, разгърнато или включено.
+- `stage_prelaunch_waitlist` = предварителната заявка; **0044** = клиентска преграда за суров текст (не е заявката).
+- Replay на прецизиране (`refine-product`) е поправен **без миграция**.
+- review-document, път на собственика: runtime 17/17 (`new-processing-gate.batch7.handler.test.ts`).
+- `download-blank` **има** сървърна преграда: `isNewProcessingOpen("download_blank")` след записания replay и преди резервация (`new-processing-gate.batch2.handler.test.ts`). По-старото твърдение „няма сървърен флаг“ беше грешно и е премахнато.
+- Анонимно генериране: **временно недостъпно** до проверен дизайн за идентичност/capability (възможни са няколко сигурни дизайна; нова колона не е задължителна). Факт: съществуващите задачи с `user_id IS NULL` нямат проверимо доказателство за собственост и се отказват.
+
+### Граница за суров вход и доверен източник (този пакет)
+| Път | Поправено в кода | Изисква прилагане / отделен бекенд |
+|---|---|---|
+| Пряко качване в `user-contracts` | — (само SQL) | **0046**: restrictive INSERT/UPDATE за anon/authenticated само за този bucket; четене/изтриване, 0045 екипно четене и service_role остават. Лимити за файл (тип/размер) са зависимост за бъдещия независим вход, не заместител. До прилагане прекият API запис остава **отворен**. |
+| Нов/променен `payload` в `saved_documents` | `savedDocumentWriteGuard` в BuildContract, DocumentPane, Document, useUploadedContractDoc, DocumentsTab (дубликат), downloadDocument (незапазен нов договор); сървър: `download-document` `DOCUMENT_CONTENT_SAVE_NEW_WRITE_ENABLED` OFF преди квота/запис | **0047** (SECURITY INVOKER тригер): клиент не може да вмъква/променя съдържание; позволени са метаданни, екипно пре-споделяне по 0045, точно възстановяване от собствена `document_versions`, service_role. |
+| Автоматичен запис на чернова | `syncDraft` → `prelaunch_closed` преди мрежа, локалното съдържание и указателят остават, без безкрайни опити; `draft-sync` `DRAFT_SYNC_NEW_WRITE_ENABLED` OFF преди тяло/rate-limit/auth/DB | няма миграция |
+| Продукти (checkout/fulfill/refine) | `PRODUCT_TRUSTED_SOURCE_BRIDGE.available = false` (твърдо в кода, не се чете от env/тяло/DB) → `trusted_source_unavailable` преди Stripe/задача/резервация/доставчик, **дори при всички env флагове `"true"`**; готов платен резултат и replay на прецизиране остават | Това е **защитно затваряне, НЕ проверка на извличане**. `verifyStoredProductSource` доказва само вътрешна съгласуваност на записани от браузъра метаданни. Преди пускане: независимо бекенд обвързване/атестация на източника (Azure PR6 е чернова, не е слята/разгърната; не е подменяна). |
+| `growth_snapshot` | — (само SQL) | **0048**: `current_user` (винаги собственикът `postgres` в SECURITY DEFINER) заменен с `COALESCE(auth.role(),'')='service_role'` или ненулев `auth.uid()` + `COALESCE(is_staff(...),false)`; NULL → отказ; `search_path = public, pg_temp`; REVOKE PUBLIC/anon. Живата функция не е извиквана. |
+
+Съзнателно оставени пътища (не са нов суров вход): `draft-claim` прехвърля вече съхранена чернова към собственика; `DocumentVersionsDialog` възстановява собствена версия (позволено от 0047); `assistant-edit` редактира само whitelist пътища, с проверени актьор/предложение/нишка/достъп и е зад AI преградите; `review-document` само чете.
+
+### Ред на прилагане (бъдещо, ръчно, атомарно; без автоматичен масов runner)
+`0044` → `0045` (+ preflight, STOP при ненулеви forged/mismatch/ambiguous) → `0046` → `0047` → `0048`; `stage_prelaunch_waitlist` отделно. Всяка миграция — в собствена транзакция, след преглед и backup. Rollback: 0046/0048 са обратими чрез възстановяване на предишните политики/функция (премахването отново отваря пряко качване / owner bypass — не се прави без решение); 0047 rollback премахва тригера и отново позволява клиентски запис на съдържание. Данни не се трият от нито една от тях.
+
+### Изпълнени команди (този пакет)
+- `bunx vitest run src/test/rawIngressGates.pglite.test.ts src/test/growthSnapshotAuthz.pglite.test.ts` — 14/14
+- `deno test` `_shared/raw-ingress-gate.handler.test.ts` — 7/7; продуктови тестове (`product-integration`, `product-trusted-source`, `product-paid-replay.handler`, checkout) — 54/0
+- `bunx vitest run` (activationDraft, activationDraftHook, draftSyncPrelaunch, savedDocumentWriteGuard, DocumentPane.race, prelaunchMatrix) — 84/84
+- `bun scripts/product-rollout-preflight.ts` — PASS (9 миграции)
+- `deno check` за download-document, draft-sync, fulfill-product, refine-product, create-product-checkout; пълен `bunx vitest run` — 1916 passed / 4 skipped / 0 failed; CI глоб `_shared/*.test.ts` + payments-webhook — 1013 passed / 0 failed.
+
+Нито една проверка в среда не е проведена; всички Gate 10 точки са **NOT RUN**, докато няма запис с дата, среда и доказателство.
 
 ## Какво е затворено в кода (клиентска + сървърна преграда)
 | Действие | Къде спира в клиента | Сървърна преграда (source; виж checkpoint 25.09.2026) |
@@ -24,7 +57,7 @@
 2. Правно одобрение: контролер, текст на съгласието, срок за съхранение.
 3. Сървърните флагове за `assistant-chat`, `create-checkout`, `create-strict-unlock-checkout` съществуват в кода и са OFF; включването им изисква отделно решение и проверка в среда.
 4. DPA с EU AI доставчик (Azure в provisioning), AI Act прозрачност.
-5. Приложени миграции 0039–0044 и pgTAP.
+5. Приложени миграции 0039–0048 и pgTAP (всички сега `applied: false`).
 
 ## Gate 10 — синтетична test-mode поръчка (всички NOT RUN)
 - [ ] Sandbox покупка `contract_check` 2,99 € → точно едно право след webhook.
@@ -164,7 +197,7 @@ A single aggregate read before this package (counts only, no rows) showed 0 path
 - **review-document, път на собственика без пропуск:** истински handler, синтетичен запазен документ (и версия) с реален каноничен текст/отпечатък: нов при OFF → 503 без модел/резервация/запис; записан → точен replay; чужд документ, чужд собственик на версия и остаряло обвързване → отказ без RPC/запис. `new-processing-gate.batch7.handler.test.ts` 17/17.
 
 ### Остава
-- `download-blank` няма собствен сървърен флаг (само клиентска преграда).
-- Ръчен запис на суров текст за вече съществуващи документи (`UploadedPane`/`useUploadedContractDoc`, `productUpload.ts`) остава клиентски път, който 0044 ще блокира след прилагане — изисква отделен бекенд.
+- ~~`download-blank` няма сървърен флаг~~ — невярно; има `isNewProcessingOpen("download_blank")` (виж обобщението).
+- Ръчен запис на суров текст (`useUploadedContractDoc`) вече е спрян и в клиента (`savedDocumentWriteGuard`); DB преградите 0044/0047 чакат прилагане.
 - Страницата /build е проверена чрез библиотеките и компонентите, не с пълен render на страницата.
 - Анонимен capability за стари `generate_jobs`, Gate 7, платено пускане.

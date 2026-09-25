@@ -1,3 +1,4 @@
+import { canWriteSavedDocumentContent, SAVED_DOCUMENT_CONTENT_BLOCKED_MESSAGE } from "@/lib/savedDocumentWriteGuard";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { presentAnalysisScore } from "@/lib/analysisVerification";
@@ -244,6 +245,11 @@ function DocumentsTab({
   };
 
   const duplicate = async (d: SavedDoc) => {
+    // Копието е нов ред със съдържание: затворено като всеки нов запис на текст.
+    if (!canWriteSavedDocumentContent()) {
+      toast.error(SAVED_DOCUMENT_CONTENT_BLOCKED_MESSAGE);
+      return;
+    }
     setBusy(d.id + "dup");
     const { data: userData } = await supabase.auth.getUser();
     const uid = userData.user?.id;

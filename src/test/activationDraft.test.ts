@@ -12,6 +12,13 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: { functions: { invoke: vi.fn() } },
 }));
 
+// Тези тестове проверяват оркестрацията на отворен сървърен запис. Затвореното
+// предварително състояние е покрито в draftSyncPrelaunch.test.ts.
+vi.mock("@/lib/prelaunch", async (orig) => ({
+  ...(await orig<typeof import("@/lib/prelaunch")>()),
+  canStartNewProcessing: () => true,
+}));
+
 const invokeMock = vi.fn();
 vi.mock("@/lib/invokeEdgeFunction", () => ({
   invokeEdgeFunction: (...args: unknown[]) => invokeMock(...args),

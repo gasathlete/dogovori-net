@@ -1,3 +1,4 @@
+import { canWriteSavedDocumentContent } from "@/lib/savedDocumentWriteGuard";
 import { supabase } from "@/integrations/supabase/client";
 import type { GeneratedContract } from "@/lib/exporters";
 import type { CompanionTemplate } from "@/data/companionTemplates";
@@ -45,6 +46,13 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
     if (!session) {
       trackDownload("fail", { ...fnProps, reason: "auth_required" });
       return { ok: false, error: "auth_required", status: 401 };
+    }
+
+  // Ново съдържание на документ не се изпраща към сървъра, докато записът на
+  // нов текст е затворен. Вече запазен документ (saved_document_id) остава.
+    if (p.kind === "contract" && !p.saved_document_id && !canWriteSavedDocumentContent()) {
+      trackDownload("fail", { ...fnProps, reason: "prelaunch_closed" });
+      return { ok: false, error: "content_save_prelaunch_closed", status: 0 };
     }
 
   // Require AI disclaimer acceptance once per session before any download.

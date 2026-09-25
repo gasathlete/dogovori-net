@@ -5,6 +5,7 @@
  * точния ключ за повторяемост, а сървърът проверява всичко наново.
  */
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
+import { productBlockedMessage } from "@/lib/productTrustedSource";
 import type { CorrectionDecision } from "../../supabase/functions/_shared/product-selections";
 
 export type ResultStateAccess =
@@ -73,7 +74,7 @@ function outcome<T>(
       ok: false,
       failure: {
         error: String(body.error),
-        message: typeof body.message === "string" ? body.message : NETWORK_FAILURE.message,
+        message: productBlockedMessage(body.error, body.message) ?? NETWORK_FAILURE.message,
         selection_version:
           typeof body.selection_version === "number" ? body.selection_version : null,
         status: error?.status,

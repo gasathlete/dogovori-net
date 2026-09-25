@@ -143,6 +143,9 @@ describe("manifest-ът и документите описват истинат�
       "0041_gate3_paid_fulfillment_exact_once",
       "0044_privacy_client_write_gate",
       "0045_team_file_binding",
+      "0046_storage_raw_ingress_gate",
+      "0047_saved_documents_client_payload_gate",
+      "0048_growth_snapshot_authz",
     ]);
     expect(MANIFEST.status).toContain("PENDING (not applied)");
     const record = JSON.stringify(MANIFEST.appliedRecord);

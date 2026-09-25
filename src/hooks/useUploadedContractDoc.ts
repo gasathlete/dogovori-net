@@ -15,6 +15,7 @@
  * Достъпът до базата е инжектируем, за да може поведението да се тества без мрежа.
  */
 
+import { canWriteSavedDocumentContent, SAVED_DOCUMENT_CONTENT_BLOCKED_MESSAGE } from "@/lib/savedDocumentWriteGuard";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { findRestrictedIdentifiers, restrictedIdentifierMessage } from "@/lib/privacyGate";
@@ -125,11 +126,15 @@ export const supabaseUploadedDocApi: UploadedDocApi = {
       .select("*")
       .maybeSingle() as unknown as Promise<DbResult<Contract>>,
   updateSavedCopy: (copyId, patch) =>
-    supabase.from("saved_documents").update(patch as Record<string, never>).eq("id", copyId) as unknown as Promise<
+    !canWriteSavedDocumentContent() && "payload" in (patch as Record<string, unknown>)
+      ? Promise.resolve({ data: null, error: { message: SAVED_DOCUMENT_CONTENT_BLOCKED_MESSAGE } } as DbResult<unknown>)
+      : supabase.from("saved_documents").update(patch as Record<string, never>).eq("id", copyId) as unknown as Promise<
       DbResult<unknown>
     >,
   createSavedCopy: ({ userId, contract, text }) =>
-    supabase
+    !canWriteSavedDocumentContent()
+      ? Promise.resolve({ data: null, error: { message: SAVED_DOCUMENT_CONTENT_BLOCKED_MESSAGE } } as DbResult<{ id: string }>)
+      : supabase
       .from("saved_documents")
       .insert({
         user_id: userId,

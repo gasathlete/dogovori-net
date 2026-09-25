@@ -27,6 +27,8 @@ export const NEW_PROCESSING_FLAGS = Object.freeze({
   generate_contract: "GENERATE_CONTRACT_NEW_PROCESSING_ENABLED",
   assistant_chat_anon: "ASSISTANT_CHAT_ANON_NEW_PROCESSING_ENABLED",
   build_custom_contract: "BUILD_CUSTOM_CONTRACT_NEW_PROCESSING_ENABLED",
+  draft_sync: "DRAFT_SYNC_NEW_WRITE_ENABLED",
+  document_content_save: "DOCUMENT_CONTENT_SAVE_NEW_WRITE_ENABLED",
 });
 export type NewProcessingSurface = keyof typeof NEW_PROCESSING_FLAGS;
 
@@ -47,6 +49,8 @@ export const NEW_PROCESSING_CODES: Readonly<Record<NewProcessingSurface, string>
   generate_contract: "generation_prelaunch_closed",
   assistant_chat_anon: "assistant_prelaunch_closed",
   build_custom_contract: "generation_prelaunch_closed",
+  draft_sync: "draft_sync_prelaunch_closed",
+  document_content_save: "content_save_prelaunch_closed",
 });
 
 const MESSAGES: Readonly<Record<NewProcessingSurface, string>> = Object.freeze({
@@ -66,6 +70,8 @@ const MESSAGES: Readonly<Record<NewProcessingSurface, string>> = Object.freeze({
   generate_contract: "Изготвянето на нов документ още не е отворено. Нищо не е изпратено и нищо не е таксувано.",
   assistant_chat_anon: "Новите въпроси към DogovaryAI още не са отворени. Нищо не е изпратено и не е използвано безплатно съобщение.",
   build_custom_contract: "Изготвянето на нов документ още не е отворено. Нищо не е изпратено и нищо не е таксувано.",
+  draft_sync: "Запазването на черновата на сървъра още не е отворено. Въведеното остава само в този браузър.",
+  document_content_save: "Запазването на нов документ още не е отворено. Нищо не е записано и нищо не е таксувано. Вече запазените документи могат да се свалят.",
 });
 
 const defaultEnv: EnvReader = (k) => {

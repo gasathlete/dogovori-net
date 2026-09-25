@@ -18,6 +18,7 @@
  *   - непотърсена → само с claim токена (в указателя);
  *   - присвоена   → само с JWT на собственика; токенът се маха от браузъра.
  */
+import { canStartNewProcessing } from "@/lib/prelaunch";
 import { getVariant } from "@/lib/ab";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
@@ -106,6 +107,7 @@ export type DraftErrorReason =
   | "unauthorized"
   | "different_owner"
   | "already_claimed"
+  | "prelaunch_closed"
   | "network";
 
 const KNOWN_REASONS: ReadonlySet<string> = new Set<DraftErrorReason>([
@@ -117,8 +119,18 @@ const KNOWN_REASONS: ReadonlySet<string> = new Set<DraftErrorReason>([
   "unauthorized",
   "different_owner",
   "already_claimed",
+  "prelaunch_closed",
   "network",
 ]);
+
+/**
+ * Предварителен режим: нов/променен суров запис на чернова към сървъра е
+ * затворен. Черновата остава само локално; възстановяване, присвояване и
+ * изтриване не минават оттук и остават достъпни.
+ */
+export function isDraftServerSyncOpen(): boolean {
+  return canStartNewProcessing("document_generation");
+}
 
 /** Преходни причини — има смисъл от повторен опит със същия указател. */
 export function isTransientDraftReason(reason: DraftErrorReason): boolean {
@@ -568,6 +580,8 @@ export async function syncDraft(
   },
   opts: { commit?: boolean } = {},
 ): Promise<SyncResult> {
+  // Отказ ПРЕДИ мрежата: никакво съдържание не напуска браузъра.
+  if (!isDraftServerSyncOpen()) return { ok: false, reason: "prelaunch_closed" };
   const p = input.pointer;
   // Снимка на хранилището в момента на изпращане — по нея решаваме дали
   // закъснял резултат още има право да пише (виж `SyncCommitOptions`).

@@ -19,6 +19,13 @@ vi.mock("sonner", () => ({
   },
 }));
 
+// Оркестрацията при отворен запис на съдържание; затвореното състояние е в
+// savedDocumentWriteGuard.test.tsx.
+vi.mock("@/lib/savedDocumentWriteGuard", async (orig) => ({
+  ...(await orig<typeof import("@/lib/savedDocumentWriteGuard")>()),
+  canWriteSavedDocumentContent: () => true,
+}));
+
 const setDirty = vi.fn();
 vi.mock("@/hooks/useConsoleStore", () => ({
   useConsoleStore: () => ({ setDirty }),

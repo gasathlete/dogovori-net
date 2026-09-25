@@ -227,3 +227,22 @@ T("create-product-checkout: флаг със стойност, различна �
     } finally { restore(); Deno.env.delete(PRODUCT_INTEGRATION_ENV.checkoutEnabled); }
   }
 });
+
+T("create-product-checkout: всички env флагове true + флагове в тялото → 503 trusted_source_unavailable, без Stripe/запис", async () => {
+  const h = await load("../create-product-checkout/index.ts");
+  for (const k of Object.keys(BODY_FLAGS)) Deno.env.set(k, "true");
+  const calls: Call[] = [];
+  const restore = install(calls);
+  try {
+    const res = await h(post({ ...CHECKOUT }));
+    const j = await res.json();
+    assertEquals(res.status, 503, JSON.stringify(j));
+    assertEquals(j.error, "trusted_source_unavailable");
+    assert(typeof j.message === "string" && j.message.includes("Плащане не се извършва"));
+    assertEquals(calls.filter(mutation), []);
+    assert(!calls.some((c) => c.url.includes("api.stripe.com")));
+  } finally {
+    restore();
+    for (const k of Object.keys(BODY_FLAGS)) Deno.env.delete(k);
+  }
+});

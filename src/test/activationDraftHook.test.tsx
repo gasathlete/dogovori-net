@@ -621,3 +621,26 @@ describe("първа чернова само след реално действ�
     expect(syncMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("предварителен режим: prelaunch_closed", () => {
+  it("не откача указателя, пази локалното съдържание и не повтаря безкрайно", async () => {
+    const p = pointer();
+    writePointer(p);
+    syncMock.mockImplementation(async () => ({ ok: false, reason: "prelaunch_closed" }));
+    const { result } = render();
+    act(() => result.current.persist({ answers: { a: "1" } }, { stepIdx: 1 }));
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
+    expect(syncMock).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      vi.advanceTimersByTime(600_000);
+      await Promise.resolve();
+    });
+    expect(syncMock).toHaveBeenCalledTimes(1); // без повторни опити
+    expect(localStorage.getItem("activation_draft_v1")).not.toBeNull(); // указателят остава
+    const stored = localStorage.getItem(`activation_draft_payload_v1:${p.draftId}`)
+      ?? sessionStorage.getItem(`activation_draft_payload_v1:${p.draftId}`);
+    expect(stored).toContain("\"a\":\"1\"");
+  });
+});

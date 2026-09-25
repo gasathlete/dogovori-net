@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { canWriteSavedDocumentContent, payloadChanged, SAVED_DOCUMENT_CONTENT_BLOCKED_MESSAGE } from "@/lib/savedDocumentWriteGuard";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ChevronLeft, ChevronRight, Download, FileDown, FileText, Loader2, Pencil, Save, Trash2, User } from "@/icons";
 import { Header } from "@/components/Header";
@@ -118,15 +119,17 @@ export default function DocumentPage() {
 
   const handleSave = async () => {
     if (!doc) return;
+    const contentChanged = payloadChanged(doc.payload, contract);
+    // Ново съдържание е затворено; метаданните (име, контакт, папка) остават.
+    if (contentChanged && !canWriteSavedDocumentContent()) {
+      toast.error(SAVED_DOCUMENT_CONTENT_BLOCKED_MESSAGE);
+      return;
+    }
     setSaving(true);
+    const meta = { title, contact_id: contactId || null, folder_id: folderId || null };
     const { error } = await supabase
       .from("saved_documents")
-      .update({
-        title,
-        contact_id: contactId || null,
-        folder_id: folderId || null,
-        payload: contract as any,
-      })
+      .update(contentChanged ? { ...meta, payload: contract as any } : meta)
       .eq("id", doc.id);
     setSaving(false);
     if (error) toast.error("Грешка", { description: error.message });
