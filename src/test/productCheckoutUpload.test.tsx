@@ -47,6 +47,12 @@ vi.mock("@/lib/products", async () => {
 
 import ProductCheckout from "@/pages/ProductCheckout";
 import {
+
+// Изолирано „отворено“ състояние: тестът проверява самия поток, не предварителния режим.
+vi.mock("@/lib/prelaunch", async (orig) => ({
+  ...(await orig<typeof import("@/lib/prelaunch")>()),
+  canStartNewProcessing: () => true,
+}));
   PRODUCT_PERSIST_FAILED_MESSAGE,
   PRODUCT_SCHEMA_UNAVAILABLE_MESSAGE,
   ProductUploadError,

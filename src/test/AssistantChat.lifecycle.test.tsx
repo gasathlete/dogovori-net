@@ -119,6 +119,12 @@ vi.mock("@/integrations/supabase/client", () => ({
 
 import { AssistantChat } from "@/components/AssistantChat";
 import {
+
+// Изолирано „отворено“ състояние: тестът проверява самия поток, не предварителния режим.
+vi.mock("@/lib/prelaunch", async (orig) => ({
+  ...(await orig<typeof import("@/lib/prelaunch")>()),
+  canStartNewProcessing: () => true,
+}));
   clearAssistantDocumentContext,
   setAssistantDocumentContext,
 } from "@/lib/assistantDocumentContext";
