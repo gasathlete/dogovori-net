@@ -212,3 +212,18 @@ T("PRODUCT_* флаговете се четат само от тези три о
     } catch (e) { if (!(e instanceof Deno.errors.NotFound)) throw e; }
   }
 });
+
+T("create-product-checkout: флаг със стойност, различна от точно \"true\" → затворено", async () => {
+  const h = await load("../create-product-checkout/index.ts");
+  for (const v of ["TRUE", "1", "yes", " true"]) {
+    Deno.env.set(PRODUCT_INTEGRATION_ENV.checkoutEnabled, v);
+    const calls: Call[] = [];
+    const restore = install(calls);
+    try {
+      const res = await h(post(CHECKOUT));
+      assertEquals(res.status, 503); await res.body?.cancel();
+      assertEquals(calls.filter(mutation), []);
+      if (v === "TRUE") console.log("OFF reads:", [...new Set(calls.map((c) => `${c.method} ${new URL(c.url).pathname}`))].join(" | "));
+    } finally { restore(); Deno.env.delete(PRODUCT_INTEGRATION_ENV.checkoutEnabled); }
+  }
+});
