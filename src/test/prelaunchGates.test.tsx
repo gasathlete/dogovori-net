@@ -7,8 +7,8 @@ const { invoke, rpc, trackFunnelEvent } = vi.hoisted(() => ({
   trackFunnelEvent: vi.fn(),
 }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc, functions: { invoke } } }));
-vi.mock("@/lib/analytics", async (orig) => ({
-  ...(await orig<typeof import("@/lib/analytics")>()),
+vi.mock("@/lib/funnel", async (orig) => ({
+  ...(await orig<typeof import("@/lib/funnel")>()),
   trackFunnelEvent,
 }));
 vi.mock("@stripe/react-stripe-js", () => ({
