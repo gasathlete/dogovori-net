@@ -111,12 +111,6 @@ describe("StripeEmbeddedCheckout → checkout_started", () => {
 // ---------------------------------------------------------------------------
 import { readFileSync } from "node:fs";
 
-// Изолирано „отворено“ състояние: тестът проверява самия поток, не предварителния режим.
-vi.mock("@/lib/prelaunch", async (orig) => ({
-  ...(await orig<typeof import("@/lib/prelaunch")>()),
-  canStartNewProcessing: () => true,
-}));
-
 const CALL_SITES: Array<{ file: string; source: string; price?: string; redirect?: string }> = [
   { file: "src/pages/account/SubscriptionTab.tsx", source: "account_subscription" },
   { file: "src/components/wizard/StrictDocumentPaywall.tsx", source: "strict_paywall", price: "strict_doc_unlock" },
@@ -155,3 +149,9 @@ describe("платените пътища използват общия адре
     expect(src).toContain("trackCheckoutCompleted");
   });
 });
+
+// Изолирано „отворено“ състояние: тестът проверява самия поток, не предварителния режим.
+vi.mock("@/lib/prelaunch", async (orig) => ({
+  ...(await orig<typeof import("@/lib/prelaunch")>()),
+  canStartNewProcessing: () => true,
+}));

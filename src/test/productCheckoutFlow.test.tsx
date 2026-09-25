@@ -50,12 +50,6 @@ import ProductCheckout from "@/pages/ProductCheckout";
 import CheckoutReturn from "@/pages/CheckoutReturn";
 import { ONE_TIME_PRODUCTS } from "@/lib/products";
 
-// Изолирано „отворено“ състояние: тестът проверява самия поток, не предварителния режим.
-vi.mock("@/lib/prelaunch", async (orig) => ({
-  ...(await orig<typeof import("@/lib/prelaunch")>()),
-  canStartNewProcessing: () => true,
-}));
-
 const SESSION = "cs_test_product";
 
 beforeEach(() => {
@@ -176,3 +170,9 @@ describe("връщане от продуктово плащане", () => {
     expect(trackCheckoutCompletedMock).not.toHaveBeenCalled();
   });
 });
+
+// Изолирано „отворено“ състояние: тестът проверява самия поток, не предварителния режим.
+vi.mock("@/lib/prelaunch", async (orig) => ({
+  ...(await orig<typeof import("@/lib/prelaunch")>()),
+  canStartNewProcessing: () => true,
+}));

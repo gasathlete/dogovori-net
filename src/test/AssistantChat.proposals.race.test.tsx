@@ -116,12 +116,6 @@ vi.mock("@/lib/assistantEditProposals", async () => {
 import { AssistantChat } from "@/components/AssistantChat";
 import { clearAssistantDocumentContext } from "@/lib/assistantDocumentContext";
 
-// Изолирано „отворено“ състояние: тестът проверява самия поток, не предварителния режим.
-vi.mock("@/lib/prelaunch", async (orig) => ({
-  ...(await orig<typeof import("@/lib/prelaunch")>()),
-  canStartNewProcessing: () => true,
-}));
-
 function proposal(over: Partial<any> & { id: string }) {
   return {
     threadId: "t-a",
@@ -271,3 +265,9 @@ describe("действия по предложение", () => {
     await waitFor(() => expect(loadCalls.length).toBe(2));
   });
 });
+
+// Изолирано „отворено“ състояние: тестът проверява самия поток, не предварителния режим.
+vi.mock("@/lib/prelaunch", async (orig) => ({
+  ...(await orig<typeof import("@/lib/prelaunch")>()),
+  canStartNewProcessing: () => true,
+}));
