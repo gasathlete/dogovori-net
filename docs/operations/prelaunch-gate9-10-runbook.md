@@ -123,3 +123,29 @@ A single aggregate read before this package (counts only, no rows) showed 0 path
 - the read-only preflight.
 
 **Pending (not changed):** bucket `user-contracts` size/MIME limits. The frontend accepts several formats in more than one place and no single project limit is defined, so a limit would be invented. Owner must choose the limit and MIME list; set it with the storage bucket tool, not SQL.
+
+## generate-job ownership — source-only finding (25.09.2026, base 8febd3fc)
+
+Статус: **NOT_READY** (само изходен код; нищо не е приложено/публикувано; флаговете остават OFF).
+
+Находка (независим одит): `generate-job` четеше `generation_jobs` по UUID през service client без проверка на собственика и дори обновяваше „висящи“ задачи при статус; идемпотентността беше глобална по клиентския ключ (без собственик/payload); нов старт записваше ред и препращаше payload към `generate-contract` без собствена преграда.
+
+Поправка (`supabase/functions/generate-job/index.ts`, `_shared/generation-job-auth.ts`):
+- Действие само `start` | `status`; непознато действие, невалидно тяло, `job_id` или ключ → 400 без мрежа.
+- Липсващ header или точно публичният anon ключ = анонимен; всеки друг Bearer трябва да е валидна сесия, иначе 401 (без понижаване). `user_id` от тялото се игнорира.
+- `status`: само удостоверен собственик, `SELECT … WHERE id = job_id AND user_id = auth user`; чужд/липсващ → 404. Само четене: стар `running` се показва като `job_timeout` без запис.
+- `start`: сървърен ключ `gj1:` + SHA-256(собственик, клиентски ключ, каноничен пълен payload), записан в съществуващата колона `idempotency_key`. Всяко търсене (нормално и след 23505) е по ключ И `user_id`, статус `running|done`, без 15-минутен прозорец (уникалният индекс покрива всички възрасти). Стари ключове не се преизползват.
+- Точно собствено възпроизвеждане (running/done) → преди преградата. Нов старт → `isNewProcessingOpen("generate_contract")` (същият server-side флаг) преди запис/фон/препращане/квота/доставчик; тялото не може да го отвори. Собствен стар `running` се затваря като `job_timeout` само при отворен флаг и само от собственика.
+- Анонимни задачи: няма проверим собственик/capability за стари редове с `user_id NULL` → статус отказан (401), нищо не се разкрива. Нов анонимен старт: 503 при OFF; при ON → 401 `requires_login` (без запис). **Ограничение:** преди отваряне на анонимно генериране трябва подписан capability (напр. по модела на `ANON_IDENTITY_SECRET`) и колона за него — не е направено тук, без нова тайна/миграция.
+- Клиент (`src/lib/generateContractJob.ts`): статус/повторно закачане на съществуващ job остава; НОВ старт е зад `canStartNewProcessing("document_generation")` (абонатите не заобикалят) и не изпраща payload. Wizard показва предварителната заявка.
+
+Метаданни (само четене, 25.09.2026): `generation_jobs` RLS=on, 0 policies; anon/authenticated имат table grants, но RLS отказва директни редове. Миграция не е нужна за поправката; по желание бъдещ reviewed `REVOKE ALL ON public.generation_jobs FROM anon, authenticated` (атомарно, не е изпълнявано).
+
+Тестове (истински обработчици, fetch изцяло подменен, синтетични редове):
+- `supabase/functions/_shared/generate-job.handler.test.ts` — 16/16: собствен done/running, стар running без запис, чужд/липсващ/невалиден Bearer/анонимен (вкл. стари анонимни) отказ, `user_id` от тялото, точно собствено replay при OFF, същия ключ чужд собственик, същия ключ различен payload, анонимен OFF без мрежа, невалидни действия/тела/ключове, OPTIONS без мрежа, ON нов старт (обвързан ключ + фон), 23505 състезание по собственик.
+- `supabase/functions/_shared/new-processing-gate.batch7.handler.test.ts` — 10/10: review-document (подписан пропуск на собственика: OFF нов → 503, записан → replay, чужд собственик → отказ, без пропуск → отказ), correct-uploaded (валиден preflight: OFF → 503, replay, чужд документ 404), negotiation-strategy (OFF → 503, replay, чужд анализ 403) — без модел/резервация/запис.
+- `src/test/generationReliability.test.ts` — 17/17 (затворен нов старт без мрежа, reattach остава, отказан статус не стартира нов).
+- CI глоб `_shared/*.test.ts` + payments-webhook: 971 passed / 0 failed; `deno check generate-job` добавен в CI.
+- Lockfile: `bun install --frozen-lockfile` — без промени (bun.lockb съдържа pglite); `package-lock.json` допълнен само с `@electric-sql/pglite@0.5.8`.
+
+Остава: review-document по пътя „запазен документ“ (без пропуск) е покрит от съществуващите unit тестове на `review-authorization`, не от handler тест; анонимният capability по-горе; Gate 7 и платеното пускане.

@@ -20,6 +20,7 @@
 import { invokeEdgeFunction, type InvokeResult } from "@/lib/invokeEdgeFunction";
 import { getOpSessionId } from "@/lib/opSession";
 import { classifyGenerationError, type GenerationError } from "@/lib/generationErrors";
+import { canStartNewProcessing } from "@/lib/prelaunch";
 
 export type JobStatusValue = "running" | "done" | "completed" | "error" | "rejected";
 
@@ -53,7 +54,15 @@ export interface GenerateJobOptions {
   onReattach?: (jobId: string) => void;
   /** Явен ключ за идемпотентност; по подразбиране се извежда от payload-а. */
   idempotencyKey?: string;
+  /**
+   * Разрешение за НОВ старт (не за статус/повторно закачане). По подразбиране
+   * е предварителната преграда; абонамент НЕ я заобикаля. Сървърът проверява
+   * отделно собствения си флаг.
+   */
+  canStartNew?: () => boolean;
 }
+
+export const GENERATION_PRELAUNCH_CODE = "generation_prelaunch_closed";
 
 export const POLL_INTERVAL_MS = 2500;
 export const MAX_WAIT_MS = 5 * 60 * 1000;
@@ -194,6 +203,19 @@ export async function generateContractJob<T>(
   // 2) Нов старт (с мрежови повторения — стартът е идемпотентен чрез ключа).
   let startAttempts = 0;
   if (!jobId) {
+    const allowed = (options.canStartNew ?? (() => canStartNewProcessing("document_generation")))();
+    if (!allowed) {
+      // Нищо не се изпраща: данните не напускат браузъра.
+      const message = "Изготвянето на нов документ още не е отворено. Нищо не е изпратено и нищо не е таксувано.";
+      const data = { error: message, code: GENERATION_PRELAUNCH_CODE, charge_state: "not_charged" };
+      return {
+        data: data as unknown as T,
+        error: { message },
+        correlationId,
+        generationError: classifyGenerationError({ error: { message, status: 503, code: GENERATION_PRELAUNCH_CODE }, data }),
+        startAttempts: 0,
+      };
+    }
     const start = await invokeEdgeFunction<{ job_id?: string; error?: string; code?: string; status?: string }>("generate-job", {
       retries: 3,
       onRetry: (attempt, max) => {

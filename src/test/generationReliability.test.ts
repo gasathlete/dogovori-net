@@ -103,6 +103,7 @@ const tick = async (n: number) => {
   }
 };
 const KEY = "abcdef12-testkey";
+const OPEN = () => true;
 
 beforeEach(() => {
   invoke.mockReset();
@@ -144,7 +145,7 @@ describe("generateContractJob", () => {
       .mockResolvedValueOnce({ data: { status: "running" }, error: null, correlationId: "cid-2" })
       .mockResolvedValueOnce({ data: { status: "completed", result: { ok: true } }, error: null, correlationId: "cid-3" });
 
-    const p = generateContractJob<{ ok: boolean }>({ slug: "x", answers: { a: 1 } }, { idempotencyKey: KEY });
+    const p = generateContractJob<{ ok: boolean }>({ slug: "x", answers: { a: 1 } }, { idempotencyKey: KEY, canStartNew: OPEN });
     await tick(2);
     const res = await p;
 
@@ -167,7 +168,7 @@ describe("generateContractJob", () => {
     invoke.mockResolvedValueOnce({ data: { status: "done", result: { ok: 1 } }, error: null, correlationId: "cid" });
     const onReattach = vi.fn();
 
-    const res = await generateContractJob(payload, { onReattach });
+    const res = await generateContractJob(payload, { onReattach, canStartNew: OPEN });
 
     expect(res.reattached).toBe(true);
     expect(res.data).toEqual({ ok: 1 });
@@ -185,7 +186,7 @@ describe("generateContractJob", () => {
       .mockResolvedValueOnce({ data: { job_id: "job-new" }, error: null, correlationId: "c1" })
       .mockResolvedValueOnce({ data: { status: "done", result: { v: 2 } }, error: null, correlationId: "c2" });
 
-    const p = generateContractJob(payload, { idempotencyKey: key });
+    const p = generateContractJob(payload, { idempotencyKey: key, canStartNew: OPEN });
     await tick(1);
     const res = await p;
 
@@ -204,7 +205,7 @@ describe("generateContractJob", () => {
         correlationId: "cid2",
       });
 
-    const p = generateContractJob<{ error?: string; quota?: unknown }>({ slug: "z" }, { idempotencyKey: KEY });
+    const p = generateContractJob<{ error?: string; quota?: unknown }>({ slug: "z" }, { idempotencyKey: KEY, canStartNew: OPEN });
     await tick(1);
     const res = await p;
 
@@ -217,7 +218,7 @@ describe("generateContractJob", () => {
 
   it("провален старт без job_id връща класифицирана грешка", async () => {
     invoke.mockResolvedValueOnce({ data: null, error: { message: "Failed to send a request to the Edge Function" }, correlationId: "cid" });
-    const res = await generateContractJob({ slug: "n" }, { idempotencyKey: KEY });
+    const res = await generateContractJob({ slug: "n" }, { idempotencyKey: KEY, canStartNew: OPEN });
     expect(res.jobId).toBeUndefined();
     expect(res.generationError?.code).toBe("network");
     expect(res.generationError?.retryable).toBe(true);
@@ -228,7 +229,7 @@ describe("generateContractJob", () => {
       .mockResolvedValueOnce({ data: { job_id: "job-s" }, error: null, correlationId: "cid" })
       .mockResolvedValue({ data: { status: "running" }, error: null, correlationId: "cid" });
     let stale = false;
-    const p = generateContractJob({ slug: "s" }, { isStale: () => stale, idempotencyKey: KEY });
+    const p = generateContractJob({ slug: "s" }, { isStale: () => stale, idempotencyKey: KEY, canStartNew: OPEN });
     await tick(1);
     stale = true;
     await tick(1);
@@ -236,5 +237,35 @@ describe("generateContractJob", () => {
     expect(res.data).toBeNull();
     expect(res.error).toBeNull();
     expect(res.jobId).toBe("job-s");
+  });
+});
+
+describe("generateContractJob — предварителна преграда за НОВ старт", () => {
+  it("по подразбиране (затворено) не изпраща payload и не стартира", async () => {
+    const res = await generateContractJob({ slug: "closed", answers: { secret: "x" } }, { idempotencyKey: "closed-key-0001" });
+    expect(invoke).not.toHaveBeenCalled();
+    expect((res.data as { code?: string }).code).toBe("generation_prelaunch_closed");
+    expect(res.jobId).toBeUndefined();
+    expect(res.startAttempts).toBe(0);
+  });
+
+  it("затворено: съществуващ собствен job остава достъпен чрез статус (без payload)", async () => {
+    rememberJob("reattach-key-001", "job-keep");
+    invoke.mockResolvedValueOnce({ data: { status: "done", result: { ok: 7 } }, error: null, correlationId: "c" });
+    const res = await generateContractJob({ slug: "r" }, { idempotencyKey: "reattach-key-001", canStartNew: () => false });
+    expect(res.data).toEqual({ ok: 7 });
+    expect(res.reattached).toBe(true);
+    expect(invoke).toHaveBeenCalledTimes(1);
+    const b = (invoke.mock.calls[0][1] as { body: Record<string, unknown> }).body;
+    expect(b).toEqual({ action: "status", job_id: "job-keep" });
+  });
+
+  it("затворено: отказан статус (401/404) → забравя job и НЕ стартира нов", async () => {
+    rememberJob("reattach-key-002", "job-foreign");
+    invoke.mockResolvedValueOnce({ data: null, error: { message: "not found", status: 404 }, correlationId: "c" });
+    const res = await generateContractJob({ slug: "q" }, { idempotencyKey: "reattach-key-002", canStartNew: () => false });
+    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(recallJob("reattach-key-002")).toBeNull();
+    expect((res.data as { code?: string }).code).toBe("generation_prelaunch_closed");
   });
 });

@@ -44,7 +44,7 @@ jobs:
       - name: Edge shared unit tests (incl. draft-auth и draft-writes)
         run: deno test --allow-net --allow-env --allow-read supabase/functions/_shared/*.test.ts supabase/functions/payments-webhook/handlers.test.ts
       - name: Type check draft functions
-        run: deno check supabase/functions/draft-sync/index.ts supabase/functions/draft-claim/index.ts supabase/functions/payments-webhook/index.ts supabase/functions/create-product-checkout/index.ts
+        run: deno check supabase/functions/generate-job/index.ts supabase/functions/draft-sync/index.ts supabase/functions/draft-claim/index.ts supabase/functions/payments-webhook/index.ts supabase/functions/create-product-checkout/index.ts
 
 
 

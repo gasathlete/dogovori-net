@@ -18,7 +18,7 @@ export interface MatrixRow {
 export const PRELAUNCH_MATRIX: readonly MatrixRow[] = Object.freeze([
   { target: "/shablon/:slug, /catalog, /blog, /rechnik, /legal*", status: "open_proven", control: "none", note: "само публично съдържание" },
   { target: "Изтегли бланка (нов потребител)", status: "gated", feature: "blank_download", control: "client", note: "download-blank е пряко достъпен — сървърна проверка предстои" },
-  { target: "Генериране в редактора (нов потребител)", status: "gated", feature: "document_generation", control: "client", note: "generate-job пряко достъпен" },
+  { target: "Генериране в редактора (нов потребител)", status: "gated", feature: "document_generation", control: "client", note: "generate-job: статус само за удостоверен собственик; нов старт зад server-side флаг generate_contract; анонимен нов старт затворен" },
   { target: "/analiz качване", status: "gated", feature: "document_review", control: "client+server", note: "Gate 8 + rollout флагове OFF" },
   { target: "/produkti/:slug/start", status: "gated", feature: "one_time_product", control: "client+server", note: "ONE_TIME_PURCHASES_AVAILABLE=false" },
   { target: "/assistant (ново съобщение и прикачване)", status: "gated", feature: "assistant", control: "client", note: "sendMessage/handleFiles спират преди мрежа; assistant-chat е пряко достъпен — сървърен флаг предстои" },
