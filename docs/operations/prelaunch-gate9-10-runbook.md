@@ -31,7 +31,7 @@
 - `deno test` `_shared/raw-ingress-gate.handler.test.ts` — 7/7; продуктови тестове (`product-integration`, `product-trusted-source`, `product-paid-replay.handler`, checkout) — 54/0
 - `bunx vitest run` (activationDraft, activationDraftHook, draftSyncPrelaunch, savedDocumentWriteGuard, DocumentPane.race, prelaunchMatrix) — 84/84
 - `bun scripts/product-rollout-preflight.ts` — PASS (9 миграции)
-- `deno check` за download-document, draft-sync, fulfill-product, refine-product, create-product-checkout; пълен `bunx vitest run`, CI глоб `_shared/*.test.ts` — виж последния отчет.
+- `deno check` за download-document, draft-sync, fulfill-product, refine-product, create-product-checkout; пълен `bunx vitest run` — 1916 passed / 4 skipped / 0 failed; CI глоб `_shared/*.test.ts` + payments-webhook — 1013 passed / 0 failed.
 
 Нито една проверка в среда не е проведена; всички Gate 10 точки са **NOT RUN**, докато няма запис с дата, среда и доказателство.
 
