@@ -92,7 +92,7 @@ const GATE_REASONS = [
   "illegal_content",
   "placeholder",
   "user_cancelled",
-];
+] as const;
 
 export function isGateReason(reason?: string): boolean {
   if (!reason) return false;
