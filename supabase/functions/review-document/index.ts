@@ -38,6 +38,7 @@ import {
   verifyIntentAssertions,
 } from "../_shared/intent-assertions.ts";
 import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
+import { isNewProcessingOpen, newProcessingClosedResponse } from "../_shared/new-processing-gate.ts";
 
 const SYSTEM_PROMPT = `Ти си независим български правен ревизор (втори проход). Получаваш ГОТОВ документ и правиш техническа ревизия. НЕ пренаписваш текста.
 
@@ -442,6 +443,17 @@ Deno.serve(async (req: Request) => {
         );
       }
       // absent: продължава през ВСИЧКИ безплатни проверки и чак тогава резервира.
+    }
+
+    // Gate 8: НОВА ревизия е затворена по подразбиране (server-side env). Стои
+    // след двете само-четящи възпроизвеждания и ПРЕДИ ограничителя, класификацията,
+    // резервацията, ключа на доставчика и модела.
+    if (!isNewProcessingOpen("review_document")) {
+      return newProcessingClosedResponse(
+        "review_document",
+        { ...corsHeaders, ...correlationHeaders(correlationId) },
+        { charge_state: "not_charged" },
+      );
     }
 
     // ПРЕГРАДА ЗА ОГРАНИЧЕНИ ИДЕНТИФИКАТОРИ — документът за ревизия и неговите
