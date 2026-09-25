@@ -191,9 +191,21 @@ export default function ProductCheckout() {
               {ONE_TIME_PRELAUNCH_MESSAGE} Не е извършено плащане и не е нужно да
               качвате документ.
             </p>
-            <Button asChild variant="outline" className="mt-5 min-h-11">
-              <Link to={productPath(product)}>Вижте продукта</Link>
-            </Button>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Button
+                type="button"
+                className="min-h-11"
+                data-testid="product-checkout-waitlist"
+                onClick={() =>
+                  openPrelaunchWaitlist("one_time_product", { source: "product_start", productId: product.id })
+                }
+              >
+                {PRELAUNCH_LABELS.cta}
+              </Button>
+              <Button asChild variant="outline" className="min-h-11">
+                <Link to={productPath(product)}>Вижте продукта</Link>
+              </Button>
+            </div>
           </div>
         </main>
       </>
