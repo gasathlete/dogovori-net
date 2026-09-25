@@ -15,7 +15,9 @@ Deno.env.set("STRIPE_SANDBOX_API_KEY", "sk_test_stub");
 Deno.env.set("STRIPE_LIVE_API_KEY", "sk_live_stub");
 for (const k of Object.values(NEW_PROCESSING_FLAGS)) Deno.env.delete(k);
 
+const cache = new Map<string, Handler>();
 async function load(path: string): Promise<Handler> {
+  if (cache.has(path)) return cache.get(path)!;
   let h: Handler | null = null;
   const orig = Deno.serve;
   // deno-lint-ignore no-explicit-any
@@ -30,6 +32,7 @@ async function load(path: string): Promise<Handler> {
     (Deno as any).serve = orig;
   }
   assert(h, `handler not captured: ${path}`);
+  cache.set(path, h!);
   return h!;
 }
 
