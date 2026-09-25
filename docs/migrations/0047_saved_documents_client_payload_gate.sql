@@ -15,13 +15,12 @@ BEGIN;
 CREATE OR REPLACE FUNCTION public.enforce_no_client_saved_document_payload_write()
 RETURNS trigger
 LANGUAGE plpgsql
-SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
 BEGIN
-  -- SECURITY DEFINER: current_user is the owner here, so the real caller role
-  -- comes from session_user-independent JWT claims; missing role = client.
-  IF COALESCE(auth.role(), '') = 'service_role' THEN
+  -- SECURITY INVOKER (same convention as 0045): current_user is the caller.
+  -- Only client roles are restricted; service_role/owner server paths pass.
+  IF current_user NOT IN ('anon', 'authenticated') THEN
     RETURN NEW;
   END IF;
   IF TG_OP = 'INSERT' THEN
@@ -44,7 +43,7 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-REVOKE ALL ON FUNCTION public.enforce_no_client_saved_document_payload_write() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.enforce_no_client_saved_document_payload_write() FROM PUBLIC, anon;
 
 DROP TRIGGER IF EXISTS saved_documents_no_client_payload_write ON public.saved_documents;
 CREATE TRIGGER saved_documents_no_client_payload_write
