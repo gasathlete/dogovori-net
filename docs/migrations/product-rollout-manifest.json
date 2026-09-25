@@ -338,6 +338,48 @@
       "dependsOn": "20260529092158 user_contracts_team_select",
       "purpose": "Bind team file sharing to trigger-written owner provenance; client INSERT binds user_id=auth.uid(); user_id immutable; file reference/team changed only by owner; storage team SELECT requires owner folder, storage owner_id and owner team membership. Legacy team rows untrusted until owner re-shares.",
       "tests": "src/test/teamFileBinding.pglite.test.ts (PGlite, synthetic)"
+    },
+    {
+      "id": "0046_storage_raw_ingress_gate",
+      "file": "docs/migrations/0046_storage_raw_ingress_gate.sql",
+      "pairedFile": "docs/migrations/stage_storage_raw_ingress_gate.sql",
+      "parity": "byte-identical copies, both in docs/migrations; drizzle/migrations and supabase/migrations are write-protected for source-only work",
+      "sha256": "9554ec79713b5d604c2c4102599eb2710311f8c3e34a55ca7ea5feb106ac052d",
+      "applied": false,
+      "dependsOn": "0045_team_file_binding",
+      "purpose": "Restrictive client INSERT/UPDATE deny on storage bucket user-contracts while no independent raw ingress exists; read/delete, 0045 team read and service_role unaffected; other buckets unaffected.",
+      "tests": [
+        "src/test/rawIngressGates.pglite.test.ts"
+      ],
+      "order": "atomic, reviewed, one migration at a time after 0044 -> 0045; never via a broad automatic runner"
+    },
+    {
+      "id": "0047_saved_documents_client_payload_gate",
+      "file": "docs/migrations/0047_saved_documents_client_payload_gate.sql",
+      "pairedFile": "docs/migrations/stage_saved_documents_client_payload_gate.sql",
+      "parity": "byte-identical copies, both in docs/migrations; drizzle/migrations and supabase/migrations are write-protected for source-only work",
+      "sha256": "fb751ad0d4f57128ecb74c54cdcd4415d835266b10055c99d6d4e5e38efe6425",
+      "applied": false,
+      "dependsOn": "0046_storage_raw_ingress_gate",
+      "purpose": "SECURITY INVOKER trigger: anon/authenticated cannot insert non-empty payload or change payload except exact own document_versions restore; metadata-only/team re-share, reads, deletes, service_role writes preserved.",
+      "tests": [
+        "src/test/rawIngressGates.pglite.test.ts"
+      ],
+      "order": "atomic, reviewed, one migration at a time after 0044 -> 0045; never via a broad automatic runner"
+    },
+    {
+      "id": "0048_growth_snapshot_authz",
+      "file": "docs/migrations/0048_growth_snapshot_authz.sql",
+      "pairedFile": "docs/migrations/stage_growth_snapshot_authz.sql",
+      "parity": "byte-identical copies, both in docs/migrations; drizzle/migrations and supabase/migrations are write-protected for source-only work",
+      "sha256": "8584c82036e3e0660f6e6bc214d2c205d9a686ae245d2eb94d7b9e05f69af0b0",
+      "applied": false,
+      "dependsOn": "0047_saved_documents_client_payload_gate",
+      "purpose": "Replace current_user owner bypass in SECURITY DEFINER growth_snapshot with COALESCE(auth.role())='service_role' or non-null auth.uid() staff; search_path public,pg_temp; revoke PUBLIC/anon EXECUTE.",
+      "tests": [
+        "src/test/growthSnapshotAuthz.pglite.test.ts"
+      ],
+      "order": "atomic, reviewed, one migration at a time after 0044 -> 0045; never via a broad automatic runner"
     }
   ],
   "gate3": {
