@@ -84,3 +84,42 @@
 - Gate 9: миграция 0044 (заявка за списък) неприложена; правно одобрение на съгласието и срока.
 - Gate 10: всички проверки в раздела по-горе — **NOT RUN**.
 - Два сигнала за сигурност (`legal_versions`, `legal_documents` с публично четене) — собственикът ги заяви като умишлено публични; трябва да бъдат отбелязани ръчно в изгледа за сигурност.
+
+## Team file binding — source-only finding (25.09.2026, base 759bf679)
+
+Status: **NOT_READY**. Fix exists only as source; nothing applied, no flags, no deploy.
+
+**Finding (live read-only metadata):** `uploaded_contracts_all_own` and `saved_documents_all_own` were `FOR ALL` with `auth.uid() = user_id OR is_team_member(auth.uid(), team_id)` in both USING and WITH CHECK. `user_contracts_team_select` trusted `uploaded_contracts.storage_path` / `saved_documents.payload->>'storage_path'` plus membership of the row's `team_id`. A member of team T could write a row (even with `user_id` = the victim) pointing at another user's file and give every member of T storage SELECT on it. `user-contracts` is private; `file_size_limit` and `allowed_mime_types` are NULL.
+
+**Fix (source):** `docs/migrations/stage_team_file_binding.sql` (proposed id `0045_team_file_binding`, `applied:false` in `product-rollout-manifest.json`). `drizzle/migrations` and `supabase/migrations` are write-protected for source-only work, so there is no twin copy.
+- Client INSERT: `user_id = auth.uid()`, membership required when `team_id` is set, file path must be in the owner's folder (`<user_id>/…`).
+- Client UPDATE: `user_id` immutable; file reference and `team_id` changed only by the row owner; team members keep content edits. DELETE unchanged (owner or team member).
+- New trigger-written provenance `team_shared_by/team_shared_at` (clients cannot set it).
+- Storage team SELECT requires `team_shared_by = user_id`, object in owner's folder, `storage.objects.owner_id = user_id`, owner is a member of the team, reader is a member.
+- `service_role` unchanged (trusted). Generated `saved_documents` without `storage_path` unaffected.
+
+**Legacy rows are NOT trusted automatically.** All existing team rows get `team_shared_by = NULL` and lose team file access until the owner shares again.
+
+**Apply procedure (fail-closed, not executed):**
+1. Run `docs/migrations/stage_team_file_binding_preflight.sql` (read-only aggregates). If `path_owner_mismatch`, `object_owner_mismatch`, `owner_not_in_team_forged` or `shared_path_ambiguous` is non-zero → STOP, report the counts, don't apply.
+2. Apply the migration in one transaction after review.
+3. Owner re-authorization: each owner who wants team file sharing sets the document's team to none and then back to the team (the trigger records them as the one who shared). No bulk backfill of `team_shared_by`.
+4. Re-run the preflight and the storage check.
+
+A single aggregate read before this package (counts only, no rows) showed 0 path/object-owner mismatches; `uploaded_contracts` has 0 team rows and `saved_documents` has 2 team rows with no file path. That result is recorded here, not proof of provenance.
+
+**Tests:** `bunx vitest run src/test/teamFileBinding.pglite.test.ts` — PGlite (real PostgreSQL), synthetic roles/auth.uid()/teams/storage: 9/9. They cover:
+- the attack under the old policies (both tables);
+- denial after the patch;
+- forged user_id/path/payload INSERT;
+- foreign team;
+- owner transfer UPDATE;
+- payload path reassignment;
+- generated documents without a path;
+- anon denied;
+- legacy forged row denied;
+- owner re-share;
+- service_role;
+- the read-only preflight.
+
+**Pending (not changed):** bucket `user-contracts` size/MIME limits. The frontend accepts several formats in more than one place and no single project limit is defined, so a limit would be invented. Owner must choose the limit and MIME list; set it with the storage bucket tool, not SQL.
