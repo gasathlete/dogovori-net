@@ -66,6 +66,10 @@ import {
   trackDocumentSaved,
 } from "@/lib/docFunnel";
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
+import { canStartNewProcessing } from "@/lib/prelaunch";
+import { openPrelaunchWaitlist } from "@/lib/prelaunchWaitlist";
+import { createResultSaveCoordinator } from "@/lib/resultSaveCoordinator";
+import { readReferenceHandoff } from "@/lib/referenceHandoff";
 import { classifyGenerationError, errorClassOf, type GenerationError } from "@/lib/generationErrors";
 import { getOpSessionId, getStableOpKey, releaseStableOpKey, opaqueOpScope } from "@/lib/opSession";
 import { PartyListEditor, parseParties, serializeParties } from "@/components/wizard/PartyListEditor";
@@ -115,12 +119,15 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   const presetBilingual = presetOverride?.bilingual ?? (searchParams.get("bilingual") === "1");
   const parentSavedIdParam = searchParams.get("parentSavedId");
   const parentUploadedIdParam = searchParams.get("parentUploadedId");
-  const parentTitleParam = searchParams.get("parentTitle");
+  // Контекстът от препратка идва през локално предаване (не през URL);
+  // стари адреси с параметри в URL остават четими за обратна съвместимост.
+  const refHandoff = useMemo(() => readReferenceHandoff(searchParams.get("refCtx")), [searchParams]);
+  const parentTitleParam = searchParams.get("parentTitle") ?? refHandoff?.parentTitle ?? null;
   const refNumberParam = searchParams.get("refNumber");
   const refTypeParam = searchParams.get("refType");
-  const prefillPartiesA = searchParams.get("partiesA");
-  const prefillPartiesB = searchParams.get("partiesB");
-  const prefillSubject = searchParams.get("subject");
+  const prefillPartiesA = searchParams.get("partiesA") ?? (refHandoff?.partiesA?.join("\n") || null);
+  const prefillPartiesB = searchParams.get("partiesB") ?? (refHandoff?.partiesB?.join("\n") || null);
+  const prefillSubject = searchParams.get("subject") ?? refHandoff?.subject ?? null;
   const fromDogovaryAI = searchParams.get("from") === "dogovaryai";
 
   useEffect(() => {
@@ -505,6 +512,12 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   const currentMissing = attemptedNext && !canGoNext ? missingForStep(safeStepIdx) : [];
 
   const handleGenerate = async (userConfirmed = false) => {
+    // Нова AI обработка: преградата е преди валидиране, сериализация, вход,
+    // аналитика и мрежа. Абонатите НЕ я заобикалят.
+    if (!canStartNewProcessing("document_generation")) {
+      openPrelaunchWaitlist("document_generation", { source: "wizard" });
+      return;
+    }
     const docDef = getDocumentType(documentType);
     if (!name.trim()) { toast.error("Въведете заглавие на документа"); return; }
     if (!categoryId) { toast.error("Изберете категория"); return; }
@@ -626,6 +639,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
       }
       // ДОКАЗАН КРАЕН УСПЕХ: единственият момент, в който ключът пада.
       releaseStableOpKey(buildOpScope);
+      setSavedDocId(undefined);
       setResult(data as AIResult);
       trackEvent("build_contract_generated", { category: categoryLabel });
       trackGenerate("success", { source: "build", doc_key: documentType, category: categoryLabel, ...genMeta });
@@ -670,61 +684,37 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     }
   };
 
-  // Auto-save the parent right after generation so children can be linked immediately.
-  // This unlocks the "create appendix/КСС" flow without waiting for an explicit Save click.
-  const autoSaveInFlight = useRef(false);
+  // Автоматичен запис веднага след генериране, за да могат да се свържат
+  // приложения. Идентичността е ТОЧНИЯТ резултат — никога категорията:
+  // нов резултат дава нов запис, съществуващ документ не се презаписва.
+  const saveCoordRef = useRef(createResultSaveCoordinator<object>());
+  const saveCoord = saveCoordRef.current;
+  saveCoord.setCurrent(result?.contract ?? null);
+  const insertResult = useCallback(async (r: AIResult, via: "autosave" | "save"): Promise<string> => {
+    const uid = userRef.current?.id;
+    if (!uid) throw new Error("not_signed_in");
+    const finalTitle = (name || r.contract.title).trim() || r.contract.title;
+    const { data, error } = await supabase
+      .from("saved_documents")
+      .insert({
+        user_id: uid,
+        kind: "contract",
+        title: finalTitle,
+        payload: { ...r.contract, title: finalTitle } as any,
+        source_id: categoryId === "__other__" ? "custom" : categoryId,
+      })
+      .select("id")
+      .single();
+    if (error) throw error;
+    trackDocumentSaved(data.id, { source: "build", doc_key: documentType, via });
+    return data.id as string;
+  }, [name, categoryId, documentType]);
   useEffect(() => {
-    if (!result || !user || savedDocId || saving) return;
-    if (autoSaveInFlight.current) return;
-    autoSaveInFlight.current = true;
-    (async () => {
-      try {
-        const finalTitle = (name || result.contract.title).trim() || result.contract.title;
-        const sourceId = categoryId === "__other__" ? "custom" : categoryId;
-        // Dedupe: reuse existing saved row for this user + source_id if present.
-        if (sourceId) {
-          const { data: existing } = await supabase
-            .from("saved_documents")
-            .select("id")
-            .eq("user_id", user.id)
-            .eq("source_id", sourceId)
-            .eq("kind", "contract")
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          if (existing?.id) {
-            await supabase
-              .from("saved_documents")
-              .update({
-                title: finalTitle,
-                payload: { ...result.contract, title: finalTitle } as any,
-              })
-              .eq("id", existing.id);
-            setSavedDocId(existing.id);
-            trackDocumentSaved(existing.id, { source: "build", doc_key: documentType, via: "autosave" });
-            return;
-          }
-        }
-        const { data, error } = await supabase
-          .from("saved_documents")
-          .insert({
-            user_id: user.id,
-            kind: "contract",
-            title: finalTitle,
-            payload: { ...result.contract, title: finalTitle } as any,
-            source_id: sourceId,
-          })
-          .select("id")
-          .single();
-        if (error) throw error;
-        setSavedDocId(data.id);
-        trackDocumentSaved(data.id, { source: "build", doc_key: documentType, via: "autosave" });
-      } catch (e) {
-        console.error("auto-save parent failed:", e);
-      } finally {
-        autoSaveInFlight.current = false;
-      }
-    })();
+    if (!result || !user || savedDocId) return;
+    const r = result;
+    saveCoord
+      .save(r.contract, () => insertResult(r, "autosave"), (id) => setSavedDocId(id))
+      .catch((e) => console.error("auto-save parent failed:", e));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result, user]);
 
@@ -831,6 +821,10 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
 
   const handleApplyCorrections = async (sel: CorrectionsSelection, correctionsConfirmed = false) => {
     if (!result) return;
+    if (!canStartNewProcessing("document_generation")) {
+      openPrelaunchWaitlist("document_generation", { source: "wizard" });
+      return;
+    }
     if (!userRef.current) {
       goAuth({ action: "Прилагане на корекции", onSuccess: () => handleApplyCorrections(sel, correctionsConfirmed) });
       return;
@@ -958,21 +952,8 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     }
     setSaving(true);
     try {
-      const finalTitle = (name || result.contract.title).trim() || result.contract.title;
-      const { data, error } = await supabase
-        .from("saved_documents")
-        .insert({
-          user_id: user.id,
-          kind: "contract",
-          title: finalTitle,
-          payload: { ...result.contract, title: finalTitle } as any,
-          source_id: categoryId === "__other__" ? "custom" : categoryId,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-      setSavedDocId(data.id);
-      trackDocumentSaved(data.id, { source: "build", doc_key: documentType, via: "save" });
+      const r = result;
+      await saveCoord.save(r.contract, () => insertResult(r, "save"), (id) => setSavedDocId(id));
       trackEvent("build_contract_saved");
       toast.success("Запазено в профила", { description: "Документи → Всички" });
     } catch (e: any) {
