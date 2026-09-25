@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { type StripeEnv, createStripeClient } from "../_shared/stripe.ts";
 import { resolveOrCreateCustomer } from "../_shared/customer.ts";
 import { buildCors } from "../_shared/cors.ts";
+import { isNewProcessingOpen, newProcessingClosedResponse } from "../_shared/new-processing-gate.ts";
 import {
   SandboxForbiddenError,
   assertEnvironmentAllowed,
@@ -43,6 +44,10 @@ Deno.serve(async (req) => {
     }
     const userId = userData.user.id;
     const email = userData.user.email ?? undefined;
+
+    // Сървърен флаг (default OFF): преди тялото, sandbox RPC, Stripe customer
+    // и session. Разрешение от тялото/клиента не се приема.
+    if (!isNewProcessingOpen("strict_unlock_checkout")) return newProcessingClosedResponse("strict_unlock_checkout", corsHeaders);
 
     const body = await req.json();
     const {
