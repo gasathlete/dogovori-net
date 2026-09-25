@@ -15,6 +15,7 @@ import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
 import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
+import { isNewProcessingOpen, newProcessingClosedResponse } from "../_shared/new-processing-gate.ts";
 import { CORRECTION_PRESERVATION_SUFFIX } from "./request.ts";
 import { runCorrectionPreflight, type AnalysisRow, type ContractRow } from "./preflight.ts";
 import { canonicalize, sha256Hex } from "../_shared/canonical-digest.ts";
@@ -167,6 +168,14 @@ Deno.serve(async (req: Request) => {
     }
     const blockedByLedger = ledgerBlockResponse(existing, ledgerHeaders);
     if (blockedByLedger) return blockedByLedger;
+
+    // Gate 8: НОВА AI обработка е затворена по подразбиране (само server-side env).
+    // Стои СЛЕД само-четящото възпроизвеждане на завършен резултат и ПРЕДИ
+    // лимита, guardIllegalContent (пише журнал), ключа, заземяването,
+    // резервацията, модела и всеки бизнес запис.
+    if (!isNewProcessingOpen("correct_uploaded")) {
+      return newProcessingClosedResponse("correct_uploaded", { ...corsHeaders, ...correlationHeaders(correlationId) }, { charge_state: "not_charged" });
+    }
 
     // Дневният лимит е честотно ограничение — след повторението.
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();

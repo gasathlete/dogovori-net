@@ -22,6 +22,7 @@ import {
   verifyIntentAssertions,
 } from "../_shared/intent-assertions.ts";
 import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
+import { isNewProcessingOpen, newProcessingClosedResponse } from "../_shared/new-processing-gate.ts";
 
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект. Получаваш съществуващ договор (в JSON) и списък от ИЗБРАНИ препоръки/слаби места, които трябва да коригираш в текста.
@@ -235,6 +236,14 @@ Deno.serve(async (req: Request) => {
 
     // Pro check. Free users get up to 2 free correction waves (per user, lifetime),
     // tracked via download_quota.corrections_free_used_count.
+    // Gate 8: НОВА AI обработка е затворена по подразбиране (само server-side env).
+    // Стои СЛЕД само-четящото възпроизвеждане на завършен резултат и ПРЕДИ
+    // лимита, guardIllegalContent (пише журнал), ключа, заземяването,
+    // резервацията, модела и всеки бизнес запис.
+    if (!isNewProcessingOpen("apply_corrections")) {
+      return newProcessingClosedResponse("apply_corrections", { ...corsHeaders, ...correlationHeaders(correlationId) }, { charge_state: "not_charged" });
+    }
+
     const { data: q } = await admin.from("download_quota")
       .select("plan, pro_until, corrections_free_used_count")
       .eq("user_id", userId).maybeSingle();

@@ -19,6 +19,9 @@ export const NEW_PROCESSING_FLAGS = Object.freeze({
   team_seat_increase: "TEAM_SEAT_INCREASE_ENABLED",
   analyze_contract: "ANALYZE_CONTRACT_NEW_PROCESSING_ENABLED",
   review_document: "REVIEW_DOCUMENT_NEW_PROCESSING_ENABLED",
+  correct_uploaded: "CORRECT_UPLOADED_NEW_PROCESSING_ENABLED",
+  apply_corrections: "APPLY_CORRECTIONS_NEW_PROCESSING_ENABLED",
+  refine_contract: "REFINE_CONTRACT_NEW_PROCESSING_ENABLED",
 });
 export type NewProcessingSurface = keyof typeof NEW_PROCESSING_FLAGS;
 
@@ -31,6 +34,9 @@ export const NEW_PROCESSING_CODES: Readonly<Record<NewProcessingSurface, string>
   team_seat_increase: "seat_increase_prelaunch_closed",
   analyze_contract: "analysis_prelaunch_closed",
   review_document: "review_prelaunch_closed",
+  correct_uploaded: "correction_prelaunch_closed",
+  apply_corrections: "correction_prelaunch_closed",
+  refine_contract: "refinement_prelaunch_closed",
 });
 
 const MESSAGES: Readonly<Record<NewProcessingSurface, string>> = Object.freeze({
@@ -42,6 +48,9 @@ const MESSAGES: Readonly<Record<NewProcessingSurface, string>> = Object.freeze({
   team_seat_increase: "Добавянето на места още не е отворено. Не е извършено плащане. Намаляването на места остава достъпно.",
   analyze_contract: "Новият анализ още не е отворен. Нищо не е изпратено и нищо не е таксувано.",
   review_document: "Новата проверка още не е отворена. Нищо не е изпратено и нищо не е таксувано.",
+  correct_uploaded: "Новата поправка още не е отворена. Нищо не е изпратено и нищо не е таксувано.",
+  apply_corrections: "Новата поправка още не е отворена. Нищо не е изпратено и нищо не е таксувано.",
+  refine_contract: "Новото прецизиране още не е отворено. Нищо не е изпратено и нищо не е таксувано.",
 });
 
 const defaultEnv: EnvReader = (k) => {
