@@ -101,31 +101,61 @@ export function isGateReason(reason?: string): boolean {
 }
 
 /**
- * Нормализира свободен текст на грешка до кратък, безопасен код за таблата.
- * Никога не връща празно — по-добре груб етикет, отколкото загубена причина.
+ * ЗАТВОРЕН списък с документирани кодове за причина. Всичко извън него става
+ * "unknown" или безопасна класификация — никога slug от свободен текст, защото
+ * съобщенията за грешка могат да съдържат имена, имейли, части от документи,
+ * номера или имена на файлове.
  */
-export function normalizeReason(reason?: string | null): string {
+export const FUNNEL_REASON_CODES = [
+  "unknown",
+  // Прегради (generation_blocked)
+  ...GATE_REASONS,
+  // Технически класификации
+  "network", "timeout", "aborted", "ai_parse_failed", "ai_upstream", "rate_limited",
+  "server_error", "input_not_processable", "legal_verification_unavailable",
+  // Идемпотентност / квота / права
+  "operation_conflict", "operation_in_progress", "operation_id_required", "invalid_operation_id",
+  "idempotency_key_conflict", "response_expired", "quota_unavailable", "entitlement_unavailable",
+  "reconciliation_required", "pro_required", "prelaunch_closed",
+  // Сваляне
+  "auth_required", "disclaimer_cancelled", "unfilled_placeholders",
+  // Качване / поверителност
+  "restricted_identifiers", "raw_file_blocked", "text_too_short", "missing_title", "missing_file",
+  "extraction_failed", "upload_failed", "session_expired", "save_failed", "analysis_failed",
+  // Чернови
+  "invalid_request", "payload_too_large", "expired", "invalid_token", "unauthorized",
+  "different_owner", "already_claimed",
+  // Подпис
+  "signing_failed",
+] as const;
+export type FunnelReasonCode = (typeof FUNNEL_REASON_CODES)[number] | `http_${4 | 5}${number}`;
+
+const REASON_SET: ReadonlySet<string> = new Set<string>(FUNNEL_REASON_CODES);
+
+export function isKnownReasonCode(reason: unknown): reason is FunnelReasonCode {
+  if (typeof reason !== "string") return false;
+  return REASON_SET.has(reason) || /^http_[45]\d\d$/.test(reason);
+}
+
+/**
+ * Нормализира причина до код от затворения списък. Познат код минава
+ * (без значение за главни букви); иначе само безопасна класификация по
+ * ключови думи; иначе "unknown". Никога не връща части от входния текст.
+ */
+export function normalizeReason(reason?: string | null): FunnelReasonCode {
   if (!reason) return "unknown";
-  const r = String(reason).trim();
+  const r = String(reason).trim().slice(0, 500);
   const lower = r.toLowerCase();
-  for (const g of GATE_REASONS) if (lower.includes(g)) return g;
-  if (/^[a-z0-9_.:-]{1,64}$/i.test(r)) return r.toLowerCase();
+  if (isKnownReasonCode(lower)) return lower;
+  for (const g of GATE_REASONS) if (lower.includes(g)) return g as FunnelReasonCode;
   if (/failed to send|failed to fetch|load failed|networkerror|network error|relay|econnreset|socket|connection/i.test(r)) return "network";
   if (/timed? ?out|timeout|твърде дълго/i.test(r)) return "timeout";
   if (/abort/i.test(r)) return "aborted";
   if (/json|парсн|анализиран/i.test(r)) return "ai_parse_failed";
   if (/rate|429|лимит/i.test(r) && /много|rate|429/i.test(r)) return "rate_limited";
-  const m = r.match(/\b(4\d\d|5\d\d)\b/);
-  if (m) return `http_${m[1]}`;
-  // Последна възможност: slug от първите думи (без пунктуация/цифри → без PII).
-  const slug = lower
-    .replace(/[^\p{L}\s]/gu, " ")
-    .trim()
-    .split(/\s+/)
-    .slice(0, 5)
-    .join("_")
-    .slice(0, 48);
-  return slug || "unknown";
+  const m = r.match(/\b(?:status(?: code)?|http|non-2xx status code)\s*[:=]?\s*([45]\d\d)\b/i);
+  if (m) return `http_${m[1]}` as FunnelReasonCode;
+  return "unknown";
 }
 
 /** Всички събития носят активните A/B варианти + санитизирани свойства. */

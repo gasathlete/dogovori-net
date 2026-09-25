@@ -17,8 +17,10 @@ export interface MatrixRow {
 
 export const PRELAUNCH_MATRIX: readonly MatrixRow[] = Object.freeze([
   { target: "/shablon/:slug, /catalog, /blog, /rechnik, /legal*", status: "open_proven", control: "none", note: "само публично съдържание" },
-  { target: "Изтегли бланка (нов потребител)", status: "gated", feature: "blank_download", control: "client", note: "download-blank е пряко достъпен — сървърна проверка предстои" },
-  { target: "Генериране в редактора (нов потребител)", status: "gated", feature: "document_generation", control: "client", note: "generate-job: статус само за удостоверен собственик; нов старт зад server-side флаг generate_contract; анонимен нов старт затворен" },
+  { target: "Изтегли бланка с AI в Wizard (всички, вкл. абонати)", status: "gated", feature: "blank_download", control: "client", note: "Wizard: canStartNewProcessing преди invoke; download-blank НЯМА собствен сървърен флаг — пряко достъпен, сървърна преграда предстои" },
+  { target: "Генериране в Wizard/редактора (всички, вкл. абонати)", status: "gated", feature: "document_generation", control: "client+server", note: "Wizard и /build: canStartNewProcessing преди сериализация/invoke; generate-job/generate-contract/build-custom-contract/apply-corrections зад server-side флагове (default OFF); статус и точен replay на собствена задача остават достъпни" },
+  { target: "Добави договор (нов текст: анализ или само запис)", status: "gated", feature: "document_review", control: "client+server", note: "UploadContractDialog спира преди хеш/сесия/запис; клиентски запис на нов суров текст е забранен от 0044 до отделен бекенд" },
+  { target: "Свързан документ от препратка", status: "gated", feature: "document_generation", control: "client", note: "ReferencePromptDialog спира преди навигация; контекстът не се слага в URL" },
   { target: "/analiz качване", status: "gated", feature: "document_review", control: "client+server", note: "Gate 8 + rollout флагове OFF" },
   { target: "/produkti/:slug/start", status: "gated", feature: "one_time_product", control: "client+server", note: "ONE_TIME_PURCHASES_AVAILABLE=false" },
   { target: "/assistant (ново съобщение и прикачване)", status: "gated", feature: "assistant", control: "client", note: "sendMessage/handleFiles спират преди мрежа; assistant-chat е пряко достъпен — сървърен флаг предстои" },
@@ -34,5 +36,5 @@ export const PRELAUNCH_MATRIX: readonly MatrixRow[] = Object.freeze([
   { target: "payments-webhook (вкл. реверси)", status: "never_gated", control: "server", note: "възникнали задължения" },
   { target: "customer-portal", status: "never_gated", control: "server", note: "управление на активен абонамент" },
   { target: "вход и запазени документи на съществуващи потребители", status: "never_gated", control: "none", note: "съществуващ достъп" },
-  { target: "активен абонат: бланки и генериране", status: "never_gated", control: "client", note: "canUseFeature пропуска вече възникнало право" },
+  { target: "активен абонат: готов статичен шаблон (CompanionChip)", status: "never_gated", control: "client", note: "canUseFeature пропуска вече възникнало право само за статично сваляне без AI" },
 ]);

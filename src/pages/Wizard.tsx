@@ -44,7 +44,7 @@ import { parseExtraPartyTypes } from "@/components/wizard/liveDraft/clauseBuilde
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { generateContractJob, GENERATION_PRELAUNCH_CODE } from "@/lib/generateContractJob";
 import { findRestrictedIdentifiersDeep, restrictedIdentifierMessage } from "@/lib/privacyGate";
-import { canUseFeature } from "@/lib/prelaunch";
+import { canStartNewProcessing } from "@/lib/prelaunch";
 import { openPrelaunchWaitlist } from "@/lib/prelaunchWaitlist";
 import { classifyGenerationError, errorClassOf, type GenerationError } from "@/lib/generationErrors";
 import { getOpSessionId, getStableOpKey, releaseStableOpKey, opaqueOpScope } from "@/lib/opSession";
@@ -471,7 +471,7 @@ export default function WizardPage() {
 
   const handleGenerate = async (userConfirmed = false) => {
     // Предварителен режим: без AI генериране, докато не е доказано съответствие.
-    if (!canUseFeature("document_generation", { hasActiveEntitlement: isPro })) {
+    if (!canStartNewProcessing("document_generation")) {
       openPrelaunchWaitlist("document_generation");
       return;
     }
@@ -1305,7 +1305,7 @@ export default function WizardPage() {
     { icon: Download, label: "Бланката ще бъде свалена до 10 секунди…" },
   ];
   const runBlankDownload = async () => {
-    if (!canUseFeature("blank_download", { hasActiveEntitlement: isPro })) {
+    if (!canStartNewProcessing("blank_download")) {
       openPrelaunchWaitlist("blank_download");
       return;
     }
@@ -1383,7 +1383,7 @@ export default function WizardPage() {
 
   const requireAuth = useRequireAuth();
   const handleDownloadBlank = async () => {
-    if (!canUseFeature("blank_download", { hasActiveEntitlement: isPro })) {
+    if (!canStartNewProcessing("blank_download")) {
       openPrelaunchWaitlist("blank_download");
       return;
     }
@@ -1402,7 +1402,7 @@ export default function WizardPage() {
   useEffect(() => {
     if (autoBlankTriggered.current) return;
     if (searchParams.get("blank") !== "1") return;
-    if (!canUseFeature("blank_download", { hasActiveEntitlement: isPro })) {
+    if (!canStartNewProcessing("blank_download")) {
       autoBlankTriggered.current = true;
       openPrelaunchWaitlist("blank_download");
       return;

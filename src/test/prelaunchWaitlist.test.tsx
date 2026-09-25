@@ -72,6 +72,7 @@ describe("свързване", () => {
     const sql = readFileSync("docs/migrations/stage_prelaunch_waitlist.sql", "utf8");
     expect(sql).toContain("REVOKE ALL ON TABLE public.prelaunch_waitlist FROM PUBLIC, anon, authenticated");
     expect(sql).toMatch(/withdraw_prelaunch_waitlist\(text\) FROM PUBLIC, anon, authenticated/);
-    expect(sql).toContain("retention_until timestamptz NULL");
+    expect(sql).toContain("retention_until timestamptz NOT NULL");
+    expect(sql).not.toMatch(/retention_until timestamptz NULL/);
   });
 });
