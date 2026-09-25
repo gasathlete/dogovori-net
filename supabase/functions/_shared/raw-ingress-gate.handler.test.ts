@@ -107,7 +107,10 @@ T("download-document OFF: ново съдържание (contract) → 503, бе
   const calls: Call[] = [];
   const restore = install(calls);
   try {
-    const res = await h(post({ kind: "contract", title: "Нов", payload: { title: "Нов", sections: [] }, ...ALL_BODY_FLAGS }));
+    // Непознатите ключове (напр. флагове в тялото) вече са отказ 400 без запис.
+    const bad = await h(post({ kind: "contract", title: "Нов", payload: {}, ...ALL_BODY_FLAGS }));
+    assertEquals(bad.status, 400); await bad.body?.cancel();
+    const res = await h(post({ kind: "contract", title: "Нов", payload: { title: "Нов", sections: [] } }));
     const j = await res.json().catch(() => ({}));
     assertEquals(res.status, 503, JSON.stringify(j));
     assertEquals(j.code, "content_save_prelaunch_closed");
