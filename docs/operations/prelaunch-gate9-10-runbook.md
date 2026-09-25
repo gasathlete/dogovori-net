@@ -38,7 +38,9 @@
 - `deno test` `_shared/raw-ingress-gate.handler.test.ts` — 7/7; продуктови тестове (`product-integration`, `product-trusted-source`, `product-paid-replay.handler`, checkout) — 54/0
 - `bunx vitest run` (activationDraft, activationDraftHook, draftSyncPrelaunch, savedDocumentWriteGuard, DocumentPane.race, prelaunchMatrix) — 84/84
 - `bun scripts/product-rollout-preflight.ts` — PASS (9 миграции)
-- `deno check` за download-document, draft-sync, fulfill-product, refine-product, create-product-checkout; пълен `bunx vitest run` — 1916 passed / 4 skipped / 0 failed; CI глоб `_shared/*.test.ts` + payments-webhook — 1013 passed / 0 failed.
+- `deno check` за download-document, draft-sync, fulfill-product, refine-product, create-product-checkout.
+- Локално, текущо състояние: `bunx tsgo --noEmit` — чисто; пълен `bunx vitest run` — **1930 passed / 4 skipped / 0 failed**; `deno test --allow-all supabase/functions/_shared/*.test.ts supabase/functions/payments-webhook` **от корена на хранилището** — **1013 passed / 0 failed** (същите тестове, стартирани от `supabase/functions`, падат заради относителни пътища при четене на източника — командата се изпълнява от корена).
+- Последният проверен CI пробег (GitHub Tests 36144364587, job 108101697235, UI head 65426c) дава **1894 passed / 4 skipped** за приложението и **978 passed / 0 failed** за Edge (978 = 971 + 7 нови теста за пътя на собственика). Това е друг (по-стар) commit и различен обхват от локалните числа по-горе; по-ранната цифра 997 не идва от този пробег и не се използва.
 
 Нито една проверка в среда не е проведена; всички Gate 10 точки са **NOT RUN**, докато няма запис с дата, среда и доказателство.
 
