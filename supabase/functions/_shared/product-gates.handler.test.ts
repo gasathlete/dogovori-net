@@ -63,7 +63,7 @@ function install(calls: Call[], entOwner = USER_ID) {
   return () => { globalThis.fetch = orig; };
 }
 const mutation = (c: Call) =>
-  c.url.includes("stripe") || c.url.includes("ai.gateway") || c.url.includes("/storage/v1/") ||
+  c.url.includes("connector-gateway") || c.url.includes("api.stripe.com") || c.url.includes("ai.gateway") || c.url.includes("/storage/v1/") ||
   (c.url.includes("/rpc/") && !READ_RPCS.some((r) => c.url.includes(r))) ||
   (c.url.includes("/rest/v1/") && !c.url.includes("/rpc/") && !["GET", "HEAD"].includes(c.method));
 
@@ -80,7 +80,7 @@ const BODY_FLAGS = {
 };
 const CHECKOUT = {
   productId: "contract_check", uploadedContractId: DOC_ID, requestId: REQ_ID, environment: "live",
-  context: {}, termsAccepted: true, aiAckAccepted: true, immediatePerformanceConsent: true,
+  context: { role: "Наемател", objective: "Да проверя сроковете." }, termsAccepted: true, aiAckAccepted: true, immediatePerformanceConsent: true,
   withdrawalLossAcknowledged: true,
 };
 const REFINE = {
