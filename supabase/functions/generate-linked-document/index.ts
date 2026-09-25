@@ -28,6 +28,7 @@ import {
   reserveDocumentOperation,
 } from "../_shared/ai-document-ledger.ts";
 import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
+import { isNewProcessingOpen, newProcessingClosedResponse } from "../_shared/new-processing-gate.ts";
 
 const KIND_SPECS: Record<string, { label: string; addendum: string }> = {
   appendix: {
@@ -188,6 +189,13 @@ Deno.serve(async (req: Request) => {
     }
     const blockedByLedger = ledgerBlockResponse(existing, ledgerHeaders);
     if (blockedByLedger) return blockedByLedger;
+
+    // Gate 8: НОВА AI обработка е затворена по подразбиране (само server-side env).
+    // След само-четящото възпроизвеждане; преди лимита, ключа, заземяването,
+    // резервацията, модела и всеки бизнес запис.
+    if (!isNewProcessingOpen("generate_linked_document")) {
+      return newProcessingClosedResponse("generate_linked_document", ledgerHeaders, { charge_state: "not_charged" });
+    }
 
     // Честотен лимит: 5 генерации за 24 часа на профил.
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();

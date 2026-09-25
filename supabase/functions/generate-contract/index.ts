@@ -10,6 +10,7 @@ import { getDocumentTypeSpec, inferDocumentType } from "../_shared/document-type
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { unredact } from "../_shared/redact.ts";
 import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
+import { isNewProcessingOpen, newProcessingClosedResponse } from "../_shared/new-processing-gate.ts";
 import {
   anonRequestDigest as _unusedAnonRequestDigest,
   cancelAnonDelivery,
@@ -397,6 +398,13 @@ Deno.serve(async (req: Request) => {
         return exactReplayResponse(anonLookup.response);
       }
       // status === "absent" → нормален нов опит, продължаваме надолу.
+    }
+
+    // Gate 8: НОВА AI обработка е затворена по подразбиране (само server-side env).
+    // След само-четящото възпроизвеждане; преди лимита, ключа, заземяването,
+    // резервацията, модела и всеки бизнес запис.
+    if (!isNewProcessingOpen("generate_contract")) {
+      return newProcessingClosedResponse("generate_contract", { ...corsHeaders, ...correlationHeaders(correlationId) }, { charge_state: "not_charged" });
     }
 
     // Illegal content guard — block before AI call, log + alert admin.
