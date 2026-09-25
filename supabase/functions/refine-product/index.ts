@@ -20,7 +20,12 @@ import { correlationHeaders, getCorrelationId } from "../_shared/correlation.ts"
 import {
   loadReadyPaidProduct,
   type PaidAccessDbClient,
+  paidAccessMessage,
 } from "../_shared/product-paid-access.ts";
+import {
+  findSucceededRefinementReplay,
+  type RefinementReplayDbClient,
+} from "../_shared/product-refinement-replay.ts";
 import {
   evaluateProductEligibility,
 } from "../_shared/product-eligibility.ts";
@@ -192,6 +197,65 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    // Повторение на ВЕЧЕ успешно уточнение: само четене, ПРЕДИ текущата версия,
+    // източника, крана на интеграцията и доставчика. Платеното право се проверява
+    // изцяло (плащане, съгласия, политика, статус „ready“) — без текста на
+    // документа. Нищо не се записва.
+    {
+      const paid = await loadReadyPaidProduct(admin as unknown as PaidAccessDbClient, userId, entitlementId, {
+        withSourceText: false,
+      });
+      if (!paid.ok) return fail(paid.code, paid.status, headers, cid, paid.message);
+      if (paid.spec.id !== "negotiation_package") {
+        return fail("not_refinable", 409, headers, cid, refinementMessage("not_refinable"));
+      }
+      const paidBaseDigest = await sha256Hex(canonical(paid.resultRaw));
+      const lookup = await findSucceededRefinementReplay(
+        admin as unknown as RefinementReplayDbClient,
+        {
+          userId,
+          entitlementId,
+          idempotencyKey,
+          baseDigest: paidBaseDigest,
+          expectedDigest,
+          instructionDigest: await sha256Hex(instruction),
+          expectedVersion,
+          base: paid.result as NegotiationPackageResult,
+          binding: paid.binding,
+        },
+        { canonical, sha256Hex },
+      );
+      if (lookup.kind === "unavailable") return fail("internal", 500, headers, cid);
+      if (lookup.kind === "invalid") {
+        return fail("result_invalid", 409, headers, cid, paidAccessMessage("result_invalid"));
+      }
+      if (lookup.kind === "conflict") {
+        return json(
+          {
+            error: "idempotency_conflict",
+            message: MESSAGES.version_conflict,
+            correlation_id: cid,
+          },
+          409,
+          headers,
+        );
+      }
+      if (lookup.kind === "replay") {
+        return json(
+          {
+            status: "ready",
+            replay: true,
+            result: lookup.result,
+            result_digest: lookup.resultDigest,
+            base_result_digest: paidBaseDigest,
+            correlation_id: cid,
+          },
+          200,
+          headers,
+        );
+      }
+    }
 
     const access = await loadReadyPaidProduct(admin as unknown as PaidAccessDbClient, userId, entitlementId, {
       withSourceText: true,
