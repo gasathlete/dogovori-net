@@ -96,9 +96,43 @@ export function canUseFeature(
   feature: string,
   ctx: { hasActiveEntitlement: boolean },
 ): boolean {
+  if (isNewRawProcessingFeature(feature)) return isFeatureAvailable(feature);
   if (isFeatureAvailable(feature)) return true;
   return isPrelaunchFeature(feature) && ctx.hasActiveEntitlement === true;
 }
+
+/**
+ * НОВА обработка на суров текст/документ от потребителя чрез AI или ново
+ * плащане. Активен абонамент или платено право НЕ е доказателство, че такава
+ * нова обработка е готова — затова тук няма изключение за абонати.
+ * Достъпът до вече получени резултати, история и сметка НЕ минава оттук и
+ * никога не се затваря; правата не се отнемат и не се консумират.
+ */
+const NEW_RAW_PROCESSING: ReadonlySet<PrelaunchFeature> = new Set<PrelaunchFeature>([
+  "document_review",
+  "assistant",
+  "one_time_product",
+  "subscription",
+]);
+
+export function isNewRawProcessingFeature(feature: string): boolean {
+  return isPrelaunchFeature(feature) && NEW_RAW_PROCESSING.has(feature);
+}
+
+/** Разрешение за НОВА обработка/покупка — само доказано отворена функция. */
+export function canStartNewProcessing(feature: string): boolean {
+  return isFeatureAvailable(feature);
+}
+
+/** Общи етикети за недостъпни състояния — едни и същи навсякъде. */
+export const PRELAUNCH_LABELS = {
+  badge: "Предстои",
+  cta: "Предварителна заявка",
+  purchaseUnavailable: "Плащането още не е отворено. Не е извършено плащане.",
+  processingUnavailable: "Новата обработка още не е отворена. Нищо не е изпратено.",
+  sending: "Изпращаме…",
+  retry: "Опитайте отново",
+} as const;
 
 /** Липсващи доказателства по функция. Не са правни изводи. */
 export const PRELAUNCH_BLOCKERS: Readonly<Record<PrelaunchFeature, readonly string[]>> = Object.freeze({
