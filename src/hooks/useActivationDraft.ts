@@ -301,6 +301,9 @@ export function useActivationDraft(opts: UseActivationDraftOptions): UseActivati
         source: flow,
         reason,
       });
+      // Предварителен режим: възстановимо състояние. Съдържанието остава
+      // локално, указателят НЕ се откача и НЕ се планира повторен опит.
+      if (reason === "prelaunch_closed") return false;
       if (isTransientDraftReason(reason) || reason === "payload_too_large" || reason === "invalid_request") {
         // Съдържанието остава в таба; следващият запис ще опита пак.
         return false;

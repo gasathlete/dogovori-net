@@ -45,6 +45,7 @@ import {
   RESTRICTED_IDENTIFIER_BLOCKED_CODE,
   restrictedIdentifierMessage,
 } from "../_shared/text-identifier-gate.ts";
+import { isNewProcessingOpen, newProcessingClosedResponse } from "../_shared/new-processing-gate.ts";
 
 
 interface Body {
@@ -92,6 +93,15 @@ Deno.serve(async (req) => {
   };
 
   try {
+    // ПРЕДВАРИТЕЛЕН РЕЖИМ: нов/променен суров запис на чернова е ЗАТВОРЕН,
+    // преди да се прочете тялото, преди rate-limit запис, auth и база.
+    // Разрешението идва само от server env, никога от тялото. Присвояване,
+    // изтриване и права на потребителя минават през други функции.
+    if (!isNewProcessingOpen("draft_sync")) {
+      logDraft("draft-sync", { reason: "prelaunch_closed", status: 503 });
+      return newProcessingClosedResponse("draft_sync", cors, { ok: false, reason: "prelaunch_closed" });
+    }
+
     const body = (await req.json().catch(() => ({}))) as Body;
 
     if (!isValidFlow(body.flow)) return fail("invalid_request");
