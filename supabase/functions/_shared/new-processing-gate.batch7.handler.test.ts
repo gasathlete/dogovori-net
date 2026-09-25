@@ -242,9 +242,10 @@ import { renderCanonicalPlainText } from "./generated-document-quality.ts";
 const SAVED_ID = "44444444-5555-4666-8777-888888888888";
 const SAVED_PAYLOAD = {
   title: "Договор за услуга",
-  sections: [
-    { heading: "Предмет", body: "Изпълнителят поддържа уебсайта на Възложителя." },
-    { heading: "Цена", body: "Възнаграждението е 300 EUR месечно без ДДС, платимо до 5-о число." },
+  preamble: "Днес страните сключиха настоящия договор за поддръжка на уебсайт.",
+  clauses: [
+    { number: "1.", title: "Предмет", body: "Изпълнителят поддържа уебсайта на Възложителя." },
+    { number: "2.", title: "Цена", body: "Възнаграждението е 300 EUR месечно без ДДС, платимо до 5-о число." },
   ],
 };
 const SAVED_TEXT = renderCanonicalPlainText(SAVED_PAYLOAD);
@@ -255,7 +256,7 @@ const ownedTables = (owner: string, versionOwner = owner): Tables => ({
 const ownedBody = (extra: Record<string, unknown> = {}) =>
   ({ documentText: SAVED_TEXT, documentTitle: "Договор за услуга", operation_id: OP_ID, document_id: SAVED_ID, ...extra });
 
-T("review-document (собственик, без пропуск): фикстурата е непразен канонечен текст", () => {
+T("review-document (собственик, без пропуск): фикстурата е непразен каноничен текст", () => {
   assert(SAVED_TEXT.includes("Изпълнителят поддържа уебсайта"), SAVED_TEXT);
 });
 
