@@ -322,6 +322,22 @@
       ],
       "pgTap": "none authored (single trigger; behaviour is role-dependent and needs a live database with anon/authenticated roles)",
       "recovery": "forward-fix only; DROP TRIGGER uploaded_contracts_no_client_text_write restores the previous behaviour without touching data"
+    },
+    {
+      "id": "0045_team_file_binding",
+      "file": "docs/migrations/0045_team_file_binding.sql",
+      "pairedFile": "docs/migrations/stage_team_file_binding.sql",
+      "parity": "byte-identical copies, both in docs/migrations; drizzle/migrations and supabase/migrations are write-protected for source-only work",
+      "sha256": "86bd04fd9e51203974a5007ac24acca0f903281034bf5d7aab24e3991d20a841",
+      "preflight": {
+        "file": "docs/migrations/stage_team_file_binding_preflight.sql",
+        "sha256": "b95506b4d97068cdf26c7015f16dbea0c487547e4b2352ca41f1eb46784c444d",
+        "mode": "read-only aggregates; any non-zero *_forged/*_mismatch/*_ambiguous = STOP"
+      },
+      "applied": false,
+      "dependsOn": "20260529092158 user_contracts_team_select",
+      "purpose": "Bind team file sharing to trigger-written owner provenance; client INSERT binds user_id=auth.uid(); user_id immutable; file reference/team changed only by owner; storage team SELECT requires owner folder, storage owner_id and owner team membership. Legacy team rows untrusted until owner re-shares.",
+      "tests": "src/test/teamFileBinding.pglite.test.ts (PGlite, synthetic)"
     }
   ],
   "gate3": {
