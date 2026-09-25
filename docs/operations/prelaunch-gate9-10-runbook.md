@@ -91,7 +91,7 @@ Status: **NOT_READY**. Fix exists only as source; nothing applied, no flags, no 
 
 **Finding (live read-only metadata):** `uploaded_contracts_all_own` and `saved_documents_all_own` were `FOR ALL` with `auth.uid() = user_id OR is_team_member(auth.uid(), team_id)` in both USING and WITH CHECK. `user_contracts_team_select` trusted `uploaded_contracts.storage_path` / `saved_documents.payload->>'storage_path'` plus membership of the row's `team_id`. A member of team T could write a row (even with `user_id` = the victim) pointing at another user's file and give every member of T storage SELECT on it. `user-contracts` is private; `file_size_limit` and `allowed_mime_types` are NULL.
 
-**Fix (source):** `docs/migrations/stage_team_file_binding.sql` (proposed id `0045_team_file_binding`, `applied:false` in `product-rollout-manifest.json`). `drizzle/migrations` and `supabase/migrations` are write-protected for source-only work, so there is no twin copy.
+**Fix (source):** `docs/migrations/stage_team_file_binding.sql` (byte-identical copy `docs/migrations/0045_team_file_binding.sql`, `applied:false` in `product-rollout-manifest.json`). `drizzle/migrations` and `supabase/migrations` are write-protected for source-only work, so both copies live in `docs/migrations`.
 - Client INSERT: `user_id = auth.uid()`, membership required when `team_id` is set, file path must be in the owner's folder (`<user_id>/…`).
 - Client UPDATE: `user_id` immutable; file reference and `team_id` changed only by the row owner; team members keep content edits. DELETE unchanged (owner or team member).
 - New trigger-written provenance `team_shared_by/team_shared_at` (clients cannot set it).

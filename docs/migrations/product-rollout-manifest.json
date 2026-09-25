@@ -325,9 +325,9 @@
     },
     {
       "id": "0045_team_file_binding",
-      "file": "docs/migrations/stage_team_file_binding.sql",
-      "pairedFile": null,
-      "parity": "single reviewed source; drizzle/migrations and supabase/migrations are write-protected for source-only work",
+      "file": "docs/migrations/0045_team_file_binding.sql",
+      "pairedFile": "docs/migrations/stage_team_file_binding.sql",
+      "parity": "byte-identical copies, both in docs/migrations; drizzle/migrations and supabase/migrations are write-protected for source-only work",
       "sha256": "86bd04fd9e51203974a5007ac24acca0f903281034bf5d7aab24e3991d20a841",
       "preflight": {
         "file": "docs/migrations/stage_team_file_binding_preflight.sql",
