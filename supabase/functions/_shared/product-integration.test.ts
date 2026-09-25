@@ -535,8 +535,10 @@ Deno.test("prepayment gate fails closed on legal, migration and residency", asyn
     residencyDb: profileDb({ allow_third_country_ai: true }),
     userId: "u1",
   };
-  assertEquals(await productPrepaymentBlockers(config, "live", open), []);
-  assertEquals(await productFulfillmentIntegrationBlockers(config, open), []);
+  // Всички env флагове и всички врати са отворени — остава САМО изходно
+  // кодираното затваряне на неудостоверения произход на източника.
+  assertEquals(await productPrepaymentBlockers(config, "live", open), ["trusted_source_unavailable"]);
+  assertEquals(await productFulfillmentIntegrationBlockers(config, open), ["trusted_source_unavailable"]);
   assert(
     (await productPrepaymentBlockers(config, "live", { ...open, rpc: rpcProbe(false) })).includes(
       "migration_not_verified",
@@ -572,11 +574,12 @@ Deno.test("readiness exposes only safe booleans and codes", async () => {
     rpcProbe(MIGRATION_CAPABILITY_OK),
     STRICT_DEPS,
   );
-  assert(readiness.fulfillment_ready);
-  assert(readiness.checkout_ready.live);
+  assertFalse(readiness.fulfillment_ready);
+  assertFalse(readiness.checkout_ready.live);
+  assertFalse(readiness.checkout_ready.sandbox);
   assert(readiness.legal_kb_ready);
   assert(readiness.migration_ready);
-  assertEquals(readiness.blockers, []);
+  assertEquals(readiness.blockers, ["trusted_source_unavailable"]);
   const serialized = JSON.stringify(readiness);
   assertFalse(serialized.includes("sk_live"));
   assertFalse(serialized.includes("whsec_live"));
