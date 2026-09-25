@@ -178,3 +178,12 @@ export function assertNoRestrictedIdentifiers(value: unknown): void {
   const kinds = findRestrictedIdentifiersDeep(value);
   if (kinds.length > 0) throw new RestrictedIdentifierError(kinds);
 }
+
+/**
+ * Клиентски запис на НОВ суров текст в uploaded_contracts е забранен от
+ * миграция 0044 (enforce_no_client_document_text_write), докато няма отделен
+ * контролиран бекенд. Затова интерфейсът не предлага „само запис“ за нов текст.
+ */
+export const CLIENT_RAW_TEXT_WRITE_ALLOWED = false;
+export const CLIENT_RAW_TEXT_WRITE_BLOCKED_MESSAGE =
+  "Запазването на нов текст още не е отворено. Нищо не е изпратено. Вече запазените документи остават достъпни.";

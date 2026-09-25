@@ -24,8 +24,13 @@ import {
   RAW_FILE_BLOCKED_MESSAGE,
   RAW_FILE_BLOCKED_TITLE,
   RAW_FILE_INGRESS_ALLOWED,
+  CLIENT_RAW_TEXT_WRITE_ALLOWED,
+  CLIENT_RAW_TEXT_WRITE_BLOCKED_MESSAGE,
   assertNoRestrictedIdentifiers,
 } from "@/lib/privacyGate";
+import { canStartNewProcessing } from "@/lib/prelaunch";
+import { openPrelaunchWaitlist } from "@/lib/prelaunchWaitlist";
+import { UploadStepError, uploadFailureReason } from "@/lib/uploadFailureReason";
 
 type Folder = { id: string; name: string; is_favorites: boolean };
 type Contact = { id: string; name: string };
@@ -190,6 +195,16 @@ export function UploadContractDialog({
   };
 
   const submit = async (skipAnalysis = false) => {
+    // Преградите са ПРЕДИ четене на файл, хеш, сесия и запис в базата.
+    if (!skipAnalysis && !canStartNewProcessing("document_review")) {
+      openPrelaunchWaitlist("document_review", { source: "analyze" });
+      return;
+    }
+    // „Само запис“ на нов текст е забранен от 0044 до отделен бекенд.
+    if (skipAnalysis && !CLIENT_RAW_TEXT_WRITE_ALLOWED) {
+      toast.error(CLIENT_RAW_TEXT_WRITE_BLOCKED_MESSAGE);
+      return;
+    }
     if (!user) return;
     if (!title.trim()) { toast.error("Добавете заглавие"); return; }
 
@@ -206,14 +221,14 @@ export function UploadContractDialog({
 
       if (tab === "paste") {
         text = pasted.trim();
-        if (text.length < 80) throw new Error("Текстът е твърде кратък (минимум 80 знака)");
+        if (text.length < 80) throw new UploadStepError("text_too_short", "Текстът е твърде кратък (минимум 80 знака)");
         // Fail-closed ПРЕДИ всяка заявка: ограничени идентификатори не излизат.
         assertNoRestrictedIdentifiers([title, text]);
       } else {
-        if (!RAW_FILE_INGRESS_ALLOWED) throw new Error(RAW_FILE_BLOCKED_MESSAGE);
-        if (!file) throw new Error("Моля, изберете файл");
+        if (!RAW_FILE_INGRESS_ALLOWED) throw new UploadStepError("raw_file_blocked", RAW_FILE_BLOCKED_MESSAGE);
+        if (!file) throw new UploadStepError("missing_file", "Моля, изберете файл");
         text = await extractTextFromFile(file, tab, (p) => setPhase(p));
-        if (text.length < 80) throw new Error("Не успяхме да извлечем достатъчно текст от файла. Опитайте с друг формат или поставете текста ръчно.");
+        if (text.length < 80) throw new UploadStepError("extraction_failed", "Не успяхме да извлечем достатъчно текст от файла. Опитайте с друг формат или поставете текста ръчно.");
 
         setPhase("Качване на оригинала...");
         await ensureFreshUploadSession();
@@ -247,7 +262,7 @@ export function UploadContractDialog({
         .select("id")
         .single();
 
-      if (insertRes.error) throw new Error(insertRes.error.message);
+      if (insertRes.error) throw new UploadStepError("save_failed", "Не успяхме да запазим документа. Опитайте отново.");
       const newId = insertRes.data!.id as string;
 
       if (skipAnalysis) {
@@ -310,7 +325,7 @@ export function UploadContractDialog({
           return;
         }
         const msg = (aErr as any)?.context?.responseText || aErr.message;
-        trackGenerate("fail", { source: "upload_analyze", reason: String(msg).slice(0, 80) });
+        trackGenerate("fail", { source: "upload_analyze", reason: uploadFailureReason(new Error(String(msg))) === "unknown" ? "analysis_failed" : uploadFailureReason(new Error(String(msg))) });
         toast.error("Грешка при анализа", { description: msg });
         onUploaded();
         setOpen(false);
@@ -348,7 +363,7 @@ export function UploadContractDialog({
           navigate(`/uploaded/${newId}`);
           return;
         }
-        trackGenerate("fail", { source: "upload_analyze", reason: String((aData as any).error).slice(0, 80) });
+        trackGenerate("fail", { source: "upload_analyze", reason: "analysis_failed" });
         toast.error((aData as any).error);
         onUploaded();
         setOpen(false);
@@ -365,7 +380,7 @@ export function UploadContractDialog({
       onUploaded();
       navigate(`/uploaded/${newId}`);
     } catch (e: any) {
-      trackGenerate("fail", { source: "upload_analyze", reason: String(e?.message ?? "unknown").slice(0, 80) });
+      trackGenerate("fail", { source: "upload_analyze", reason: uploadFailureReason(e) });
       toast.error(e?.message ?? "Грешка");
 
     } finally {
@@ -474,14 +489,16 @@ export function UploadContractDialog({
           <Button onClick={() => submit(false)} disabled={busy} className="bg-gradient-gold text-navy">
             {busy ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{phase || "Обработка..."}</> : "Качи и анализирай"}
           </Button>
-          <Button
-            onClick={() => submit(true)}
-            disabled={busy}
-            variant="outline"
-            className="border-gold/40 hover:bg-gold/10 hover:text-gold"
-          >
-            Качи без анализ (само редакция)
-          </Button>
+          {CLIENT_RAW_TEXT_WRITE_ALLOWED && (
+            <Button
+              onClick={() => submit(true)}
+              disabled={busy}
+              variant="outline"
+              className="border-gold/40 hover:bg-gold/10 hover:text-gold"
+            >
+              Качи без анализ (само редакция)
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
