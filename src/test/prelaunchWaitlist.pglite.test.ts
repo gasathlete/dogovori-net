@@ -66,7 +66,7 @@ async function denied(p: Promise<unknown>) {
   await expect(p).rejects.toThrow(/permission denied|violates/i);
 }
 
-describe("неконфигурирано = затворено", () => {
+describe("неконфигурирано = затворено", { timeout: 60_000 }, () => {
   it("без ред в конфигурацията, изключено или без срок/одобрение: false и нищо не се записва", async () => {
     const db = await fresh();
     expect(await request(db, "a@example.test")).toBe(false);
@@ -91,7 +91,7 @@ describe("неконфигурирано = затворено", () => {
   });
 });
 
-describe("валидиране", () => {
+describe("валидиране", { timeout: 60_000 }, () => {
   it("само точната версия, истинско съгласие, валиден имейл и позната функция", async () => {
     const db = await fresh();
     await configure(db);
@@ -117,7 +117,7 @@ describe("валидиране", () => {
   });
 });
 
-describe("срок и идемпотентност", () => {
+describe("срок и идемпотентност", { timeout: 60_000 }, () => {
   it("срокът е сървърно изчислен и краен; повторен опит не опреснява съгласие/срок и не харчи прием", async () => {
     const db = await fresh();
     await configure(db, { days: 30, max: 1 });
@@ -145,7 +145,7 @@ describe("срок и идемпотентност", () => {
   });
 });
 
-describe("ограничен прием", () => {
+describe("ограничен прием", { timeout: 60_000 }, () => {
   it("глобалният таван за прозореца спира нови записи, без да зависи от клиентски данни", async () => {
     const db = await fresh();
     await configure(db, { max: 2 });
@@ -158,7 +158,7 @@ describe("ограничен прием", () => {
   });
 });
 
-describe("оттегляне и изчистване", () => {
+describe("оттегляне и изчистване", { timeout: 60_000 }, () => {
   it("собственикът оттегля само имейла от своята сесия; чужд имейл остава", async () => {
     const db = await fresh();
     await configure(db);

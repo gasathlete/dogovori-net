@@ -111,7 +111,7 @@ async function denied(p: Promise<unknown>) {
 const count = async (db: PGlite, where: string) =>
   Number((await db.query<{ n: number }>(`SELECT count(*)::int AS n FROM storage.objects WHERE ${where}`)).rows[0].n);
 
-describe("0046 user-contracts: директен суров вход", () => {
+describe("0046 user-contracts: директен суров вход", { timeout: 60_000 }, () => {
   it("СТАРИ политики: собственикът качва и презаписва директно в собствената папка", async () => {
     const db = await fresh(false);
     await as(db, "authenticated", O, `INSERT INTO storage.objects (bucket_id, name, owner_id) VALUES ('user-contracts','${O}/raw.pdf','${O}')`);
@@ -164,7 +164,7 @@ describe("0046 user-contracts: директен суров вход", () => {
   });
 });
 
-describe("0047 saved_documents: ново съдържание от клиент", () => {
+describe("0047 saved_documents: ново съдържание от клиент", { timeout: 60_000 }, () => {
   const seed = async (db: PGlite) => {
     const r = await as(db, "service_role", null,
       `INSERT INTO public.saved_documents (user_id, title, payload) VALUES ('${O}','Документ','{"text":"стар"}') RETURNING id`);

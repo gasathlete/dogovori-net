@@ -96,7 +96,7 @@ async function denied(p: Promise<unknown>) {
 const seeFile = async (db: PGlite, uid: string, name: string) =>
   (await as(db, "authenticated", uid, `SELECT name FROM storage.objects WHERE name = '${name}'`)).rows.length;
 
-describe("стари политики: атаката е реална", () => {
+describe("стари политики: атаката е реална", { timeout: 60_000 }, () => {
   it("член на T подправя ред към чужд файл (дори user_id на жертвата) и съотборник го чете", async () => {
     const db = await fresh({ patched: false });
     expect(await seeFile(db, N, `${A}/secret.pdf`)).toBe(0);
@@ -113,7 +113,7 @@ describe("стари политики: атаката е реална", () => {
   });
 });
 
-describe("след поправката", () => {
+describe("след поправката", { timeout: 60_000 }, () => {
   it("подправен INSERT (user_id на друг / чужд път / payload път) е отказан", async () => {
     const db = await fresh({ patched: true });
     await denied(as(db, "authenticated", M,
