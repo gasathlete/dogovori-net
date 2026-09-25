@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { canUseFeature, PRELAUNCH_BLOCKERS, PRELAUNCH_FEATURES } from "@/lib/prelaunch";
+import { canUseFeature, isNewRawProcessingFeature, PRELAUNCH_BLOCKERS, PRELAUNCH_FEATURES } from "@/lib/prelaunch";
 import { PRELAUNCH_MATRIX } from "@/lib/prelaunchMatrix";
 
 describe("матрица на предварителния режим", () => {
@@ -10,9 +10,9 @@ describe("матрица на предварителния режим", () => {
       expect(row?.status, t).toBe("never_gated");
     }
   });
-  it("активно право пропуска; нов потребител отива към заявка; непознато — затворено", () => {
+  it("активно право пропуска само за не-AI функции; нова AI обработка/покупка — затворена и за абонати", () => {
     for (const f of PRELAUNCH_FEATURES) {
-      expect(canUseFeature(f, { hasActiveEntitlement: true })).toBe(true);
+      expect(canUseFeature(f, { hasActiveEntitlement: true })).toBe(!isNewRawProcessingFeature(f));
       expect(canUseFeature(f, { hasActiveEntitlement: false })).toBe(false);
       expect(PRELAUNCH_BLOCKERS[f].length).toBeGreaterThan(0);
     }
