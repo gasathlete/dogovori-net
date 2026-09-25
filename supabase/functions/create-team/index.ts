@@ -1,3 +1,4 @@
+import { isNewProcessingOpen, newProcessingClosedResponse } from "../_shared/new-processing-gate.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { type StripeEnv, createStripeClient } from "../_shared/stripe.ts";
 import { resolveOrCreateCustomer } from "../_shared/customer.ts";
@@ -34,6 +35,9 @@ Deno.serve(async (req) => {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Сървърен флаг (default OFF): преди тялото, DB запис на екип, Stripe.
+    if (!isNewProcessingOpen("team_checkout")) return newProcessingClosedResponse("team_checkout", corsHeaders);
 
     const body = await req.json();
     const { name, seats, billing, returnUrl, environment } = body as {

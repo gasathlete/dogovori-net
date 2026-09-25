@@ -91,6 +91,8 @@ export interface MinimalPrice {
   type?: string | null;
   lookup_key?: string | null;
   recurring?: unknown;
+  /** Stripe връща id или разгънат обект; само типово поле, без runtime промяна. */
+  product?: string | { id: string } | null;
 }
 
 /**

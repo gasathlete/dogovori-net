@@ -1,3 +1,4 @@
+import { isNewProcessingOpen, newProcessingClosedResponse } from "../_shared/new-processing-gate.ts";
 // Edge function: lazy generation + signed-URL delivery of blank document templates (.docx)
 // - Looks up an existing blank in `document_blanks` for { sector_id, document_name }.
 // - If absent, generates a professional Bulgarian legal blank via Lovable AI Gateway,
@@ -517,6 +518,13 @@ Deno.serve(async (req: Request) => {
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    }
+
+    // Предварителен режим (default OFF): вече завършената операция по-горе се
+    // връща; НОВА операция спира преди ключа, правната база, резервацията,
+    // storage и модела. Разрешение от тялото не се приема.
+    if (!isNewProcessingOpen("download_blank")) {
+      return newProcessingClosedResponse("download_blank", corsHeaders, { charge_state: "not_charged" });
     }
 
     // Ключът на доставчика се изисква САМО за НОВА операция. Вече завършена и
