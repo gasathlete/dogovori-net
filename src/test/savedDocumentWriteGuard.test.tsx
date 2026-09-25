@@ -7,6 +7,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 import {
   assertSavedDocumentContentWrite,
   canWriteSavedDocumentContent,
+  isStoragePointerOnlyDelta,
   metadataOnly,
   payloadChanged,
   SavedDocumentContentBlockedError,
@@ -25,6 +26,13 @@ describe("клиентска преграда за ново съдържание
     expect(() => assertSavedDocumentContentWrite({ title: "Ново име", folder_id: null })).not.toThrow();
     expect(metadataOnly({ title: "t", payload: { x: 1 } })).toEqual({ title: "t" });
     expect(payloadChanged({ a: [1, { b: 2 }] }, { a: [1, { b: 2 }] })).toBe(false);
+  });
+  it("само указателят storage_path може да се смени (0045), но не и текстът", () => {
+    const prev = { text: "стар", storage_path: "u/a.pdf" };
+    expect(isStoragePointerOnlyDelta(prev, { text: "стар", storage_path: "u/b.pdf" })).toBe(true);
+    expect(isStoragePointerOnlyDelta(prev, { text: "нов", storage_path: "u/b.pdf" })).toBe(false);
+    expect(() => assertSavedDocumentContentWrite({ payload: { text: "стар", storage_path: "u/b.pdf" } }, prev)).not.toThrow();
+    expect(() => assertSavedDocumentContentWrite({ payload: { text: "нов", storage_path: "u/b.pdf" } }, prev)).toThrow();
   });
   it("сваляне на НЕзапазено ново съдържание не вика сървъра", async () => {
     const res = await downloadDocument({ kind: "contract", title: "Нов", payload: {}, format: "pdf" } as never);

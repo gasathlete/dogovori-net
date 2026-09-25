@@ -35,6 +35,27 @@ export function payloadChanged(previous: unknown, next: unknown): boolean {
   return stable(previous) !== stable(next);
 }
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+}
+
+/**
+ * Разликата е САМО в указателя `storage_path` (пресвързване на файл по 0045)?
+ * Всичко останало трябва да е непроменено — така текст не може да мине оттук.
+ */
+export function isStoragePointerOnlyDelta(previous: unknown, next: unknown): boolean {
+  const a = asObject(previous);
+  const b = asObject(next);
+  if (!a || !b) return false;
+  const strip = (o: Record<string, unknown>) => {
+    const { storage_path: _s, ...rest } = o;
+    return rest;
+  };
+  if (stable(strip(a)) !== stable(strip(b))) return false;
+  const p = b.storage_path;
+  return p === undefined || typeof p === "string";
+}
+
 /** Може ли да се запише НОВО съдържание? (вмъкване с payload / промяна на payload) */
 export function canWriteSavedDocumentContent(): boolean {
   return SAVED_DOCUMENT_CONTENT_WRITE_ALLOWED === true;
@@ -48,6 +69,7 @@ export function assertSavedDocumentContentWrite(
   if (canWriteSavedDocumentContent()) return;
   if (!("payload" in patch)) return;
   if (previousPayload !== undefined && !payloadChanged(previousPayload, patch.payload)) return;
+  if (previousPayload !== undefined && isStoragePointerOnlyDelta(previousPayload, patch.payload)) return;
   throw new SavedDocumentContentBlockedError();
 }
 

@@ -70,7 +70,30 @@ GRANT ALL ON public.uploaded_contracts, public.saved_documents, public.document_
 ALTER TABLE public.uploaded_contracts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.saved_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.document_versions ENABLE ROW LEVEL SECURITY;
+-- Живите политики на document_versions (20260629115605): SELECT/INSERT/DELETE own.
 CREATE POLICY document_versions_select_own ON public.document_versions FOR SELECT TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY document_versions_insert_own ON public.document_versions FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+CREATE POLICY document_versions_delete_own ON public.document_versions FOR DELETE TO authenticated USING (auth.uid() = user_id);
+-- Живият SECURITY DEFINER snapshot (20260629115605), включително пазенето на последните 20.
+CREATE FUNCTION public.snapshot_saved_document_version() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $snap$
+DECLARE next_no integer;
+BEGIN
+  IF OLD.payload IS DISTINCT FROM NEW.payload OR OLD.title IS DISTINCT FROM NEW.title THEN
+    SELECT COALESCE(MAX(version_no), 0) + 1 INTO next_no
+      FROM public.document_versions WHERE saved_document_id = OLD.id;
+    INSERT INTO public.document_versions(saved_document_id, user_id, title, payload, version_no)
+      VALUES (OLD.id, OLD.user_id, OLD.title, OLD.payload, next_no);
+    DELETE FROM public.document_versions
+      WHERE saved_document_id = OLD.id
+        AND id NOT IN (SELECT id FROM public.document_versions
+          WHERE saved_document_id = OLD.id ORDER BY version_no DESC LIMIT 20);
+  END IF;
+  RETURN NEW;
+END;
+$snap$;
+CREATE TRIGGER trg_snapshot_saved_document BEFORE UPDATE ON public.saved_documents
+  FOR EACH ROW EXECUTE FUNCTION public.snapshot_saved_document_version();
 CREATE POLICY saved_documents_all_own ON public.saved_documents FOR ALL TO authenticated
   USING (auth.uid() = user_id OR (team_id IS NOT NULL AND public.is_team_member(auth.uid(), team_id)))
   WITH CHECK (auth.uid() = user_id OR (team_id IS NOT NULL AND public.is_team_member(auth.uid(), team_id)));
@@ -204,5 +227,96 @@ describe("0047 saved_documents: ново съдържание от клиент"
     const db = await fresh(true);
     const id = await seed(db);
     await as(db, "service_role", null, `UPDATE public.saved_documents SET payload = '{"text":"сървър"}' WHERE id = '${id}'`);
+  });
+
+  it("СЛЕД: само указателят storage_path се сменя (0045 пресвързване), но не и текст", async () => {
+    const db = await fresh(true);
+    const r = await as(db, "service_role", null,
+      `INSERT INTO public.saved_documents (user_id, title, payload)
+         VALUES ('${O}','Документ','{"text":"стар","storage_path":"${O}/existing.pdf"}') RETURNING id`);
+    const id = String(r.rows[0].id);
+    // свой файл: пресвързване + пресподеляне към екип
+    await as(db, "authenticated", O,
+      `UPDATE public.saved_documents SET payload = '{"text":"стар","storage_path":"${O}/other.pdf"}', team_id = '${T}' WHERE id = '${id}'`);
+    const row = await db.query<{ payload: { storage_path: string } }>(`SELECT payload FROM public.saved_documents WHERE id = '${id}'`);
+    expect(row.rows[0].payload.storage_path).toBe(`${O}/other.pdf`);
+    // указател + промяна на текста заедно: отказано
+    await denied(as(db, "authenticated", O,
+      `UPDATE public.saved_documents SET payload = '{"text":"нов","storage_path":"${O}/third.pdf"}' WHERE id = '${id}'`));
+    // указател към чужда папка: 0045 обвързването отказва
+    await denied(as(db, "authenticated", N,
+      `UPDATE public.saved_documents SET payload = '{"text":"стар","storage_path":"${X}/foreign.pdf"}' WHERE id = '${id}'`));
+    // указател-само вмъкване остава възможно
+    await as(db, "authenticated", O,
+      `INSERT INTO public.saved_documents (user_id, title, payload) VALUES ('${O}','Указател','{"storage_path":"${O}/existing.pdf"}')`);
+  });
+});
+
+describe("0047 document_versions: заобикаляне през своя версия", { timeout: 60_000 }, () => {
+  const seed = async (db: PGlite) => {
+    const r = await as(db, "service_role", null,
+      `INSERT INTO public.saved_documents (user_id, title, payload) VALUES ('${O}','Документ','{"text":"стар"}') RETURNING id`);
+    const id = String(r.rows[0].id);
+    await as(db, "service_role", null,
+      `INSERT INTO public.document_versions (saved_document_id, user_id, title, payload, version_no) VALUES ('${id}','${O}','Документ','{"text":"версия 1"}',1)`);
+    return id;
+  };
+
+  it("СТАРИ политики: клиентът вмъква своя версия с произволен текст и я 'възстановява'", async () => {
+    const db = await fresh(false);
+    const id = await seed(db);
+    await as(db, "authenticated", O,
+      `INSERT INTO public.document_versions (saved_document_id, user_id, title, payload, version_no)
+         VALUES ('${id}','${O}','Подправена','{"text":"инжектиран"}',99)`);
+    await as(db, "authenticated", O, `UPDATE public.saved_documents SET payload = '{"text":"инжектиран"}' WHERE id = '${id}'`);
+    const row = await db.query<{ payload: unknown }>(`SELECT payload FROM public.saved_documents WHERE id = '${id}'`);
+    expect(row.rows[0].payload).toEqual({ text: "инжектиран" });
+  });
+
+  it("СЛЕД: директният клиентски запис на версия е отказан, а заобикалянето пада", async () => {
+    const db = await fresh(true);
+    const id = await seed(db);
+    await denied(as(db, "authenticated", O,
+      `INSERT INTO public.document_versions (saved_document_id, user_id, title, payload, version_no)
+         VALUES ('${id}','${O}','Подправена','{"text":"инжектиран"}',99)`));
+    await denied(as(db, "anon", null,
+      `INSERT INTO public.document_versions (saved_document_id, user_id, title, payload, version_no)
+         VALUES ('${id}','${O}','Подправена','{"text":"инжектиран"}',98)`));
+    await denied(as(db, "authenticated", O,
+      `UPDATE public.document_versions SET payload = '{"text":"инжектиран"}' WHERE saved_document_id = '${id}'`));
+    await denied(as(db, "authenticated", O, `UPDATE public.saved_documents SET payload = '{"text":"инжектиран"}' WHERE id = '${id}'`));
+    const row = await db.query<{ payload: unknown }>(`SELECT payload FROM public.saved_documents WHERE id = '${id}'`);
+    expect(row.rows[0].payload).toEqual({ text: "стар" });
+  });
+
+  it("СЛЕД: доверената снимка при смяна на името работи; чужда версия не се приема", async () => {
+    const db = await fresh(true);
+    const id = await seed(db);
+    // само метаданни: definer снимката пише старото съдържание като нова версия
+    await as(db, "authenticated", O, `UPDATE public.saved_documents SET title = 'Ново име' WHERE id = '${id}'`);
+    const v = await as(db, "authenticated", O,
+      `SELECT payload, title FROM public.document_versions WHERE saved_document_id = '${id}' ORDER BY version_no DESC`);
+    expect(v.rows.length).toBe(2);
+    expect(v.rows[0].payload).toEqual({ text: "стар" });
+    // чужд документ/собственик: версията на друг потребител не е видима и не върши работа
+    const foreign = await as(db, "service_role", null,
+      `INSERT INTO public.saved_documents (user_id, title, payload) VALUES ('${X}','Чужд','{"text":"чужд"}') RETURNING id`);
+    await as(db, "service_role", null,
+      `INSERT INTO public.document_versions (saved_document_id, user_id, title, payload, version_no)
+         VALUES ('${String(foreign.rows[0].id)}','${X}','Чужд','{"text":"чужд"}',1)`);
+    await denied(as(db, "authenticated", O, `UPDATE public.saved_documents SET payload = '{"text":"чужд"}' WHERE id = '${id}'`));
+  });
+
+  it("СЛЕД: собственото четене и изтриване на версии остават; service_role пише версии", async () => {
+    const db = await fresh(true);
+    const id = await seed(db);
+    const sel = await as(db, "authenticated", O, `SELECT id FROM public.document_versions WHERE saved_document_id = '${id}'`);
+    expect(sel.rows.length).toBe(1);
+    // възстановяване на съществуваща доверена версия продължава да работи
+    await as(db, "authenticated", O, `UPDATE public.saved_documents SET payload = '{"text":"версия 1"}' WHERE id = '${id}'`);
+    const del = await as(db, "authenticated", O, `DELETE FROM public.document_versions WHERE saved_document_id = '${id}' AND version_no = 1 RETURNING id`);
+    expect(del.rows.length).toBe(1);
+    await as(db, "service_role", null,
+      `INSERT INTO public.document_versions (saved_document_id, user_id, title, payload, version_no) VALUES ('${id}','${O}','Документ','{"text":"сървър"}',7)`);
   });
 });
