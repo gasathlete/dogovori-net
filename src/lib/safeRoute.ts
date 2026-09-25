@@ -16,6 +16,15 @@ const DEFAULT_ORIGIN = "https://dogovori.net";
 /** Технически параметри, които не бива да „пътуват“ с маршрута след вход. */
 const STRIPPED_PARAM_RE = /^(ab_|utm_|debug$|gclid$|fbclid$)/i;
 
+/**
+ * Лични данни, текст и платежни/сесийни тайни — никога не се пазят в
+ * маршрута за връщане. (`token` на покана за екип остава: без него поканата
+ * не може да бъде приета след вход; той е еднократен и се проверява от сървъра.)
+ */
+const SENSITIVE_PARAM_RE =
+  /^(e-?mail|phone|tel|password|egn|iban|text|content|message|file|filename|access_token|refresh_token|id_token|client_secret|payment_intent(_client_secret)?|setup_intent)$/i;
+const MAX_PARAM_VALUE = 200;
+
 /** Управляващи символи (вкл. таб/нов ред), които URL парсерът би „изял“. */
 // eslint-disable-next-line no-control-regex
 const CONTROL_CHARS_RE = /[\u0000-\u001f\u007f]/;
@@ -50,7 +59,13 @@ export function sanitizeDraftRoute(pathname: string, search: string): string {
     return pathname;
   }
   for (const key of [...params.keys()]) {
-    if (STRIPPED_PARAM_RE.test(key)) params.delete(key);
+    if (STRIPPED_PARAM_RE.test(key) || SENSITIVE_PARAM_RE.test(key)) {
+      params.delete(key);
+      continue;
+    }
+    // Стойност, която прилича на имейл или е дълъг свободен текст, не пътува.
+    const values = params.getAll(key);
+    if (values.some((v) => v.includes("@") || v.length > MAX_PARAM_VALUE)) params.delete(key);
   }
   const rest = params.toString();
   return rest ? `${pathname}?${rest}` : pathname;
