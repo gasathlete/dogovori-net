@@ -42,7 +42,7 @@ import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhili
 import { adaptGraphToWizardQuestions } from "@/data/questionGraphs/adapter";
 import { parseExtraPartyTypes } from "@/components/wizard/liveDraft/clauseBuilders";
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
-import { generateContractJob } from "@/lib/generateContractJob";
+import { generateContractJob, GENERATION_PRELAUNCH_CODE } from "@/lib/generateContractJob";
 import { findRestrictedIdentifiersDeep, restrictedIdentifierMessage } from "@/lib/privacyGate";
 import { canUseFeature } from "@/lib/prelaunch";
 import { openPrelaunchWaitlist } from "@/lib/prelaunchWaitlist";
@@ -566,6 +566,10 @@ export default function WizardPage() {
         },
       );
       const { data, error, correlationId } = job;
+      if ((data as { code?: string } | null)?.code === GENERATION_PRELAUNCH_CODE) {
+        openPrelaunchWaitlist("document_generation");
+        return;
+      }
       const genMeta = {
         correlation_id: correlationId,
         attempts: job.startAttempts ?? 1,

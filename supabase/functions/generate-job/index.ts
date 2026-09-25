@@ -10,10 +10,10 @@
 // по време на полването е безвреден — резултатът чака в базата.
 //
 // Надеждност:
-//  - `idempotency_key`: същият ключ в рамките на 15 мин връща същия job (без
-//    двойно създаване/таксуване при „Опитай отново" или втори таб).
-//  - Таймаут на upstream извикването + маркиране на „висящи" jobs като
-//    `job_timeout` при проверка на статуса — няма вечно `running`.
+//  - `idempotency_key`: сървърен ключ (собственик + payload + клиентски ключ)
+//    връща същия собствен job (без двойно създаване/таксуване).
+//  - Таймаут на upstream извикването; „висящ" job се показва като
+//    `job_timeout` при статус (само четене) — няма вечно `running`.
 //  - Типизиран `error_code` за всеки неуспех.
 //  - Статус по HTTP е каноничен (`completed`), в базата остава `done`.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -21,7 +21,6 @@ import { buildCors } from "../_shared/cors.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
 import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
 import {
-  IDEMPOTENCY_WINDOW_MS,
   JOB_MAX_RUNTIME_MS,
   STORED_STATUS,
   UPSTREAM_TIMEOUT_MS,
@@ -30,12 +29,17 @@ import {
   normalizeJobStatus,
 } from "../_shared/generation-status.ts";
 
-interface StartBody {
-  action?: "start" | "status";
-  job_id?: string;
-  payload?: Record<string, unknown>;
-  idempotency_key?: string;
-}
+// Сигурност (Gate 8):
+//  - status: САМО удостоверен собственик; SELECT е ограничен по id И user_id.
+//    Невалиден Bearer НЕ се понижава до анонимен. Статусът е само четене —
+//    „висящ" job се показва като job_timeout, без запис.
+//  - Стари анонимни задачи (user_id NULL) нямат доказуем собственик → отказ.
+//  - start: сървърният ключ се извежда от проверения собственик + каноничен
+//    payload + клиентския ключ; всяко търсене е ограничено и по user_id.
+//  - Нов старт минава през същия server-side флаг generate_contract СЛЕД
+//    точното възпроизвеждане и ПРЕДИ запис/фон/препращане.
+import { isNewProcessingOpen, newProcessingClosedResponse } from "../_shared/new-processing-gate.ts";
+import { generationJobServerKey, readOnlyJobView } from "../_shared/generation-job-auth.ts";
 
 interface JobRow {
   id: string;
@@ -48,6 +52,7 @@ interface JobRow {
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const JOB_COLS = "id, status, result, error, error_code, http_status, created_at";
 
 function jobResponse(job: JobRow) {
   return {
@@ -70,58 +75,78 @@ Deno.serve(async (req: Request) => {
     });
 
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "Методът не е разрешен", code: "method_not_allowed" }, 405);
 
   try {
+    const raw = await req.json().catch(() => null);
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return json({ error: "Невалидна заявка", code: "bad_request" }, 400);
+    }
+    const body = raw as Record<string, unknown>;
+    const action = body.action;
+    if (action !== "start" && action !== "status") {
+      return json({ error: "Непознато действие", code: "bad_request" }, 400);
+    }
+
+    // Предварителна валидация БЕЗ мрежа.
+    if (action === "status") {
+      if (typeof body.job_id !== "string" || !UUID_RE.test(body.job_id)) {
+        return json({ error: "Липсва или невалиден job_id", code: "bad_request" }, 400);
+      }
+    } else {
+      const p = body.payload;
+      if (!p || typeof p !== "object" || Array.isArray(p)) {
+        return json({ error: "Липсват данни за генериране", code: "bad_request" }, 400);
+      }
+      if (!isValidIdempotencyKey(body.idempotency_key)) {
+        return json({ error: "Невалиден ключ на заявката", code: "bad_request" }, 400);
+      }
+    }
+
+    // Удостоверяване. Липсващ header или точно публичният anon ключ = анонимен.
+    // Всеки друг Bearer трябва да е валидна сесия; иначе 401 (без понижаване).
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+    let userId: string | null = null;
+    if (authHeader) {
+      const m = /^Bearer (\S+)$/.exec(authHeader);
+      if (!m) return json({ error: "Невалидна сесия", code: "unauthorized" }, 401);
+      const token = m[1];
+      if (!(anonKey && token === anonKey)) {
+        const { data: u, error: uErr } = await admin.auth.getUser(token);
+        const id = u?.user?.id;
+        if (uErr || typeof id !== "string" || !UUID_RE.test(id)) {
+          return json({ error: "Невалидна сесия", code: "unauthorized" }, 401);
+        }
+        userId = id;
+      }
+    }
 
-    const body = (await req.json().catch(() => ({}))) as StartBody;
-    const action = body.action ?? "start";
-    const authHeader = req.headers.get("Authorization") ?? "";
-
-    // ---------- status ----------
+    // ---------- status (само четене, само собственик) ----------
     if (action === "status") {
-      if (!body.job_id || typeof body.job_id !== "string" || !UUID_RE.test(body.job_id)) {
-        return json({ error: "Липсва или невалиден job_id", code: "bad_request" }, 400);
+      if (!userId) {
+        // Няма доказуем собственик за анонимни задачи → не разкриваме нищо.
+        return json({ error: "Влезте в профила си, за да видите заявката.", code: "unauthorized", requires_login: true }, 401);
       }
       const { data: job, error } = await admin
         .from("generation_jobs")
-        .select("id, status, result, error, error_code, http_status, created_at")
-        .eq("id", body.job_id)
+        .select(JOB_COLS)
+        .eq("id", body.job_id as string)
+        .eq("user_id", userId)
         .maybeSingle();
       if (error) return json({ error: "Неуспешна проверка на статуса", code: "internal_error" }, 500);
       if (!job) return json({ error: "Заявката не е намерена", code: "not_found" }, 404);
-
-      // Stale sweeper: job, който „виси" над лимита, се затваря като таймаут,
-      // за да не полва клиентът до безкрай и за да е измерим провалът.
-      const row = job as JobRow;
-      if (normalizeJobStatus(row.status) === "running" && row.created_at) {
-        const age = Date.now() - Date.parse(row.created_at);
-        if (Number.isFinite(age) && age > JOB_MAX_RUNTIME_MS) {
-          const patch = {
-            status: STORED_STATUS.error,
-            error: "Генерирането надхвърли максималното време.",
-            error_code: "job_timeout",
-            duration_ms: Math.round(age),
-            updated_at: new Date().toISOString(),
-          };
-          await admin.from("generation_jobs").update(patch).eq("id", row.id).eq("status", "running");
-          return json(jobResponse({ ...row, ...patch }));
-        }
-      }
-      return json(jobResponse(row));
+      return json(jobResponse(readOnlyJobView(job as JobRow, Date.now(), JOB_MAX_RUNTIME_MS)));
     }
 
     // ---------- start ----------
-    const payload = body.payload;
-    if (!payload || typeof payload !== "object") {
-      return json({ error: "Липсват данни за генериране", code: "bad_request" }, 400);
-    }
+    const payload = body.payload as Record<string, unknown>;
 
-    // Преграда за ограничени идентификатори: ПРЕДИ създаване на задача и
-    // ПРЕДИ препращане към генератора.
+    // Преграда за ограничени идентификатори: ПРЕДИ всяко четене/запис.
     {
       const blocked = restrictedIdentifierBlock(payload, {
         ...corsHeaders,
@@ -130,31 +155,54 @@ Deno.serve(async (req: Request) => {
       if (blocked) return blocked;
     }
 
-    let userId: string | null = null;
-    if (authHeader.startsWith("Bearer ")) {
-      const { data: u } = await admin.auth.getUser(authHeader.replace("Bearer ", ""));
-      userId = u?.user?.id ?? null;
+    if (!userId) {
+      // Нова анонимна обработка: затворена в предварителния режим; дори при
+      // отворен флаг няма проверим собственик за последващ статус → вход.
+      if (!isNewProcessingOpen("generate_contract")) {
+        return newProcessingClosedResponse("generate_contract", { ...corsHeaders, ...correlationHeaders(correlationId) }, { charge_state: "not_charged" });
+      }
+      return json({ error: "Влезте в профила си, за да изготвите документа.", code: "unauthorized", requires_login: true }, 401);
     }
 
-    const idemKey = isValidIdempotencyKey(body.idempotency_key) ? body.idempotency_key : null;
+    const idemKey = await generationJobServerKey(userId, payload, body.idempotency_key as string);
 
-    // Идемпотентност: същият ключ → същият job (ако още върви или е готов).
-    if (idemKey) {
-      const since = new Date(Date.now() - IDEMPOTENCY_WINDOW_MS).toISOString();
-      const { data: existing } = await admin
-        .from("generation_jobs")
-        .select("id, status, result, error, error_code, http_status, created_at")
-        .eq("idempotency_key", idemKey)
-        .gte("created_at", since)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (existing) {
-        const st = normalizeJobStatus((existing as JobRow).status);
-        if (st === "running" || st === "completed") {
-          return json({ ...jobResponse(existing as JobRow), reused: true }, st === "running" ? 202 : 200);
-        }
+    const lookupOwn = async () => await admin
+      .from("generation_jobs")
+      .select(JOB_COLS)
+      .eq("idempotency_key", idemKey)
+      .eq("user_id", userId)
+      .in("status", [STORED_STATUS.running, STORED_STATUS.completed])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // Точно възпроизвеждане на собствен running/done job (без времеви прозорец:
+    // уникалният индекс покрива running/done независимо от възрастта).
+    const { data: existing, error: exErr } = await lookupOwn();
+    if (exErr) return json({ error: "Неуспешна проверка на заявката", code: "internal_error" }, 500);
+    let staleId: string | null = null;
+    if (existing) {
+      const view = readOnlyJobView(existing as JobRow, Date.now(), JOB_MAX_RUNTIME_MS);
+      const st = normalizeJobStatus(view.status);
+      if (st === "running" || st === "completed") {
+        return json({ ...jobResponse(view), reused: true }, st === "running" ? 202 : 200);
       }
+      staleId = (existing as JobRow).id;
+    }
+
+    // Gate 8: нова обработка — само server-side флаг; тялото не може да я отвори.
+    if (!isNewProcessingOpen("generate_contract")) {
+      return newProcessingClosedResponse("generate_contract", { ...corsHeaders, ...correlationHeaders(correlationId) }, { charge_state: "not_charged" });
+    }
+
+    if (staleId) {
+      // Собствен „висящ" job освобождава ключа (само собственик, само running).
+      await admin.from("generation_jobs").update({
+        status: STORED_STATUS.error,
+        error: "Генерирането надхвърли максималното време.",
+        error_code: "job_timeout",
+        updated_at: new Date().toISOString(),
+      }).eq("id", staleId).eq("user_id", userId).eq("status", STORED_STATUS.running);
     }
 
     const { data: job, error: insErr } = await admin
@@ -163,22 +211,20 @@ Deno.serve(async (req: Request) => {
         user_id: userId,
         status: STORED_STATUS.running,
         correlation_id: correlationId,
-        ...(idemKey ? { idempotency_key: idemKey } : {}),
+        idempotency_key: idemKey,
       })
       .select("id")
       .single();
     if (insErr || !job) {
-      // Състезание между два старта с еднакъв ключ → уникалният индекс отхвърля
-      // втория; връщаме първия job вместо грешка.
-      if (idemKey && insErr && /duplicate|unique|23505/i.test(`${insErr.code ?? ""} ${insErr.message ?? ""}`)) {
-        const { data: winner } = await admin
-          .from("generation_jobs")
-          .select("id, status, result, error, error_code, http_status, created_at")
-          .eq("idempotency_key", idemKey)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (winner) return json({ ...jobResponse(winner as JobRow), reused: true }, 202);
+      // Състезание: уникалният индекс отхвърля втория старт → връщаме СОБСТВЕНИЯ
+      // победител (ключът вече съдържа собственика; търсенето също е по user_id).
+      if (insErr && /duplicate|unique|23505/i.test(`${insErr.code ?? ""} ${insErr.message ?? ""}`)) {
+        const { data: winner } = await lookupOwn();
+        if (winner) {
+          const view = readOnlyJobView(winner as JobRow, Date.now(), JOB_MAX_RUNTIME_MS);
+          return json({ ...jobResponse(view), reused: true }, normalizeJobStatus(view.status) === "completed" ? 200 : 202);
+        }
+        return json({ error: "Заявката вече се обработва", code: "idempotency_conflict" }, 409);
       }
       console.error("generate-job insert failed", insErr);
       return json({ error: "Неуспешно стартиране на генерирането", code: "internal_error" }, 500);
