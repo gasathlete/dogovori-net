@@ -17,7 +17,7 @@ export interface MatrixRow {
 
 export const PRELAUNCH_MATRIX: readonly MatrixRow[] = Object.freeze([
   { target: "/shablon/:slug, /catalog, /blog, /rechnik, /legal*", status: "open_proven", control: "none", note: "само публично съдържание" },
-  { target: "Изтегли бланка с AI в Wizard (всички, вкл. абонати)", status: "gated", feature: "blank_download", control: "client", note: "Wizard: canStartNewProcessing преди invoke; download-blank НЯМА собствен сървърен флаг — пряко достъпен, сървърна преграда предстои" },
+  { target: "Изтегли бланка с AI в Wizard (всички, вкл. абонати)", status: "gated", feature: "blank_download", control: "client+server", note: "Wizard: canStartNewProcessing преди invoke; download-blank: isNewProcessingOpen('download_blank') след записан replay, преди резервация (batch2 handler test)" },
   { target: "Генериране в Wizard/редактора (всички, вкл. абонати)", status: "gated", feature: "document_generation", control: "client+server", note: "Wizard и /build: canStartNewProcessing преди сериализация/invoke; generate-job/generate-contract/build-custom-contract/apply-corrections зад server-side флагове (default OFF); статус и точен replay на собствена задача остават достъпни" },
   { target: "Добави договор (нов текст: анализ или само запис)", status: "gated", feature: "document_review", control: "client+server", note: "UploadContractDialog спира преди хеш/сесия/запис; клиентски запис на нов суров текст е забранен от 0044 до отделен бекенд" },
   { target: "Свързан документ от препратка", status: "gated", feature: "document_generation", control: "client", note: "ReferencePromptDialog спира преди навигация; контекстът не се слага в URL" },
