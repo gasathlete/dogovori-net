@@ -2,7 +2,7 @@
 // Pulls from the staff-curated contract_question_bank and applies trigger_conditions
 // (simple equality match on existing answers). Public — used live by the wizard.
 
-import { matchesScope, parseLimit, parseScope } from "./filters.ts";
+import { matchesScope, mergeRanked, parseLimit, parseScope, SCOPE_CAPACITY, scopeCombos } from "./filters.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -66,17 +66,33 @@ Deno.serve(async (req: Request) => {
         : {};
     const limit = parseLimit(body.limit);
 
-    // Входните стойности НЕ влизат в заявката: чете се фиксиран, подреден
-    // набор активни въпроси, а обхватът се проверява с точно равенство.
-    const { data, error } = await admin
-      .from("contract_question_bank")
-      .select("id, question_text, field_type, options, importance, trigger_conditions, contract_type, sector_id")
-      .eq("active", true)
-      .order("importance", { ascending: false })
-      .limit(500);
-    if (error) throw error;
+    // Всяка комбинация (стойност | NULL) е отделна заявка с `.eq`/`.is`.
+    // Всяка е ограничена до SCOPE_CAPACITY + 1 реда: надхвърляне означава, че
+    // пълнотата не е доказана → честна грешка, никога тихо отрязан резултат.
+    const groups: Question[][] = [];
+    for (const combo of scopeCombos(sectorId, contractType)) {
+      let q = admin
+        .from("contract_question_bank")
+        .select("id, question_text, field_type, options, importance, trigger_conditions, contract_type, sector_id")
+        .eq("active", true);
+      for (const f of combo) q = f.value === null ? q.is(f.column, null) : q.eq(f.column, f.value);
+      const { data, error } = await q
+        .order("importance", { ascending: false })
+        .order("id", { ascending: true })
+        .limit(SCOPE_CAPACITY + 1);
+      if (error) throw error;
+      const rows = (data ?? []) as Question[];
+      if (rows.length > SCOPE_CAPACITY) {
+        return new Response(JSON.stringify({
+          error: "Предложенията временно не са достъпни.",
+          code: "capacity_exceeded",
+          questions: [],
+        }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      groups.push(rows);
+    }
 
-    const filtered = (data as Question[])
+    const filtered = mergeRanked(groups)
       .filter((q) => matchesScope(q, sectorId, contractType))
       .filter((q) => conditionsMet(q.trigger_conditions ?? {}, answers))
       .slice(0, limit)
