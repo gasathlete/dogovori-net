@@ -358,10 +358,10 @@
       "file": "docs/migrations/0047_saved_documents_client_payload_gate.sql",
       "pairedFile": "docs/migrations/stage_saved_documents_client_payload_gate.sql",
       "parity": "byte-identical copies, both in docs/migrations; drizzle/migrations and supabase/migrations are write-protected for source-only work",
-      "sha256": "fb751ad0d4f57128ecb74c54cdcd4415d835266b10055c99d6d4e5e38efe6425",
+      "sha256": "744b376b5594d70b6c4b84241027c0f00878c6b489763fb19b117fac36c64588",
       "applied": false,
       "dependsOn": "0046_storage_raw_ingress_gate",
-      "purpose": "SECURITY INVOKER trigger: anon/authenticated cannot insert non-empty payload or change payload except exact own document_versions restore; metadata-only/team re-share, reads, deletes, service_role writes preserved.",
+      "purpose": "SECURITY INVOKER trigger: anon/authenticated cannot insert non-empty payload or change payload except (a) exact restore of an own definer-written document_versions snapshot or (b) a storage_path-only pointer delta (0045 file re-binding); pointer-only inserts allowed. Also closes the version-history bypass: direct client INSERT/UPDATE on public.document_versions is revoked and blocked by restrictive policies, while the SECURITY DEFINER snapshot_saved_document_version() trigger, own SELECT/DELETE of versions, metadata-only/team re-share, reads, deletes and service_role writes are preserved.",
       "tests": [
         "src/test/rawIngressGates.pglite.test.ts"
       ],

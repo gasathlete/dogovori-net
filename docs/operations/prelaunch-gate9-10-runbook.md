@@ -5,7 +5,7 @@
 ## Текущо обобщение (източник на истина; по-старите раздели по-долу са исторически)
 - **Тестове в изходния код са изпълнени** (виж „Изпълнени команди“). **Gate 10 staging/live сценариите НЕ са изпълнени** — всички са NOT RUN.
 - Default-OFF в кода **не доказва** реалната среда: стойностите на env в разгърнатите функции не са проверявани.
-- Всички подготвени миграции са `applied: false` (0041, 0044–0048, `stage_prelaunch_waitlist`). Нищо не е приложено, разгърнато или включено.
+- Среди се различават: **0039–0042** бяха приложени и тествани в отделния staging по историческите Gate 1–6; **0041, 0044–0048** и `stage_prelaunch_waitlist` са `applied: false` в свързаната продукция и **не е извършвано ново staging прилагане**. Нищо от този пакет не е приложено, разгърнато или включено.
 - `stage_prelaunch_waitlist` = предварителната заявка; **0044** = клиентска преграда за суров текст (не е заявката).
 - Replay на прецизиране (`refine-product`) е поправен **без миграция**.
 - review-document, път на собственика: runtime 17/17 (`new-processing-gate.batch7.handler.test.ts`).
@@ -16,9 +16,10 @@
 | Път | Поправено в кода | Изисква прилагане / отделен бекенд |
 |---|---|---|
 | Пряко качване в `user-contracts` | — (само SQL) | **0046**: restrictive INSERT/UPDATE за anon/authenticated само за този bucket; четене/изтриване, 0045 екипно четене и service_role остават. Лимити за файл (тип/размер) са зависимост за бъдещия независим вход, не заместител. До прилагане прекият API запис остава **отворен**. |
-| Нов/променен `payload` в `saved_documents` | `savedDocumentWriteGuard` в BuildContract, DocumentPane, Document, useUploadedContractDoc, DocumentsTab (дубликат), downloadDocument (незапазен нов договор); сървър: `download-document` `DOCUMENT_CONTENT_SAVE_NEW_WRITE_ENABLED` OFF преди квота/запис | **0047** (SECURITY INVOKER тригер): клиент не може да вмъква/променя съдържание; позволени са метаданни, екипно пре-споделяне по 0045, точно възстановяване от собствена `document_versions`, service_role. |
+| Нов/променен `payload` в `saved_documents` | `savedDocumentWriteGuard` в BuildContract, DocumentPane, Document, useUploadedContractDoc, DocumentsTab (дубликат), downloadDocument (незапазен нов договор); сървър: `download-document` `DOCUMENT_CONTENT_SAVE_NEW_WRITE_ENABLED` OFF преди квота/запис | **0047** (SECURITY INVOKER тригер): клиент не може да вмъква/променя съдържание; позволени са метаданни, екипно пре-споделяне по 0045, точно възстановяване от собствена `document_versions`, само-указателна разлика `storage_path` (пресвързване по 0045) и указател-само вмъкване, service_role. |
 | Автоматичен запис на чернова | `syncDraft` → `prelaunch_closed` преди мрежа, локалното съдържание и указателят остават, без безкрайни опити; `draft-sync` `DRAFT_SYNC_NEW_WRITE_ENABLED` OFF преди тяло/rate-limit/auth/DB | няма миграция |
 | Продукти (checkout/fulfill/refine) | `PRODUCT_TRUSTED_SOURCE_BRIDGE.available = false` (твърдо в кода, не се чете от env/тяло/DB) → `trusted_source_unavailable` преди Stripe/задача/резервация/доставчик, **дори при всички env флагове `"true"`**; готов платен резултат и replay на прецизиране остават | Това е **защитно затваряне, НЕ проверка на извличане**. `verifyStoredProductSource` доказва само вътрешна съгласуваност на записани от браузъра метаданни. Преди пускане: независимо бекенд обвързване/атестация на източника (Azure PR6 е чернова, не е слята/разгърната; не е подменяна). |
+| Заобикаляне през `document_versions` | `savedDocumentWriteGuard` не записва версии от клиента | **0047** (същата миграция): само `document_versions_insert_own` не пазеше нищо — клиент можеше да вмъкне своя версия с произволен текст и да я „възстанови“ в `saved_documents`. Сега прекият клиентски INSERT/UPDATE е отнет (REVOKE) и блокиран с restrictive политики; SECURITY DEFINER `snapshot_saved_document_version()` (снимка при промяна на съдържание **или** име, последни 20), собственото SELECT/DELETE и service_role остават. В PGlite: старите политики допускат атаката, след поправката пада. |
 | `growth_snapshot` | — (само SQL) | **0048**: `current_user` (винаги собственикът `postgres` в SECURITY DEFINER) заменен с `COALESCE(auth.role(),'')='service_role'` или ненулев `auth.uid()` + `COALESCE(is_staff(...),false)`; NULL → отказ; `search_path = public, pg_temp`; REVOKE PUBLIC/anon. Живата функция не е извиквана. |
 
 Съзнателно оставени пътища (не са нов суров вход): `draft-claim` прехвърля вече съхранена чернова към собственика; `DocumentVersionsDialog` възстановява собствена версия (позволено от 0047); `assistant-edit` редактира само whitelist пътища, с проверени актьор/предложение/нишка/достъп и е зад AI преградите; `review-document` само чете.
@@ -30,7 +31,7 @@
 `prelaunchMatrix.ts` описва само контролите в кода; `DEPLOYED_READINESS = "NOT_VERIFIED"`. assistant-chat, create-checkout и create-strict-unlock-checkout имат сървърни прегради (`prelaunchMatrixServerTruth.test.ts`).
 
 ### Ред на прилагане (бъдещо, ръчно, атомарно; без автоматичен масов runner)
-`0044` → `0045` (+ preflight, STOP при ненулеви forged/mismatch/ambiguous) → `0046` → `0047` → `0048`; `stage_prelaunch_waitlist` отделно. Всяка миграция — в собствена транзакция, след преглед и backup. Rollback: 0046/0048 са обратими чрез възстановяване на предишните политики/функция (премахването отново отваря пряко качване / owner bypass — не се прави без решение); 0047 rollback премахва тригера и отново позволява клиентски запис на съдържание. Данни не се трият от нито една от тях.
+`0044` → `0045` (+ preflight, STOP при ненулеви forged/mismatch/ambiguous) → `0046` → `0047` → `0048`; `stage_prelaunch_waitlist` отделно. Всяка миграция — в собствена транзакция, след преглед и backup. Rollback: 0046/0048 са обратими чрез възстановяване на предишните политики/функция (премахването отново отваря пряко качване / owner bypass — не се прави без решение); 0047 rollback премахва тригера, двете restrictive политики на `document_versions` и връща `GRANT INSERT` там — с което отново се отварят и клиентският запис на съдържание, и заобикалянето през версия. Данни не се трият от нито една от тях.
 
 ### Изпълнени команди (този пакет)
 - `bunx vitest run src/test/rawIngressGates.pglite.test.ts src/test/growthSnapshotAuthz.pglite.test.ts` — 14/14
@@ -63,7 +64,7 @@
 2. Правно одобрение: контролер, текст на съгласието, срок за съхранение.
 3. Сървърните флагове за `assistant-chat`, `create-checkout`, `create-strict-unlock-checkout` съществуват в кода и са OFF; включването им изисква отделно решение и проверка в среда.
 4. DPA с EU AI доставчик (Azure в provisioning), AI Act прозрачност.
-5. Приложени миграции 0039–0048 и pgTAP (всички сега `applied: false`).
+5. Прилагане на 0044–0048 в свързаната продукция и pgTAP (всички сега `applied: false`; 0039–0042 вече са минали през отделния staging по Gate 1–6).
 
 ## Gate 10 — синтетична test-mode поръчка (всички NOT RUN)
 - [ ] Sandbox покупка `contract_check` 2,99 € → точно едно право след webhook.
