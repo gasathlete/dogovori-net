@@ -25,6 +25,8 @@ export const NEW_PROCESSING_FLAGS = Object.freeze({
   negotiation_strategy: "NEGOTIATION_STRATEGY_NEW_PROCESSING_ENABLED",
   generate_linked_document: "GENERATE_LINKED_DOCUMENT_NEW_PROCESSING_ENABLED",
   generate_contract: "GENERATE_CONTRACT_NEW_PROCESSING_ENABLED",
+  assistant_chat_anon: "ASSISTANT_CHAT_ANON_NEW_PROCESSING_ENABLED",
+  build_custom_contract: "BUILD_CUSTOM_CONTRACT_NEW_PROCESSING_ENABLED",
 });
 export type NewProcessingSurface = keyof typeof NEW_PROCESSING_FLAGS;
 
@@ -43,6 +45,8 @@ export const NEW_PROCESSING_CODES: Readonly<Record<NewProcessingSurface, string>
   negotiation_strategy: "strategy_prelaunch_closed",
   generate_linked_document: "generation_prelaunch_closed",
   generate_contract: "generation_prelaunch_closed",
+  assistant_chat_anon: "assistant_prelaunch_closed",
+  build_custom_contract: "generation_prelaunch_closed",
 });
 
 const MESSAGES: Readonly<Record<NewProcessingSurface, string>> = Object.freeze({
@@ -60,6 +64,8 @@ const MESSAGES: Readonly<Record<NewProcessingSurface, string>> = Object.freeze({
   negotiation_strategy: "Новата преговорна стратегия още не е отворена. Нищо не е изпратено и нищо не е таксувано.",
   generate_linked_document: "Изготвянето на нов документ още не е отворено. Нищо не е изпратено и нищо не е таксувано.",
   generate_contract: "Изготвянето на нов документ още не е отворено. Нищо не е изпратено и нищо не е таксувано.",
+  assistant_chat_anon: "Новите въпроси към DogovaryAI още не са отворени. Нищо не е изпратено и не е използвано безплатно съобщение.",
+  build_custom_contract: "Изготвянето на нов документ още не е отворено. Нищо не е изпратено и нищо не е таксувано.",
 });
 
 const defaultEnv: EnvReader = (k) => {
