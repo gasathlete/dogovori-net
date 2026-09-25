@@ -166,12 +166,6 @@ export function ReferencePromptDialog({
           >
             <Wand2 className="mr-2 h-4 w-4" /> Не — изготви го с AI
           </Button>
-          <Button
-            onClick={handleGenerate}
-            className="w-full bg-gradient-gold text-navy hover:shadow-gold"
-          >
-            <Wand2 className="mr-2 h-4 w-4" /> Не — изготви го с AI
-          </Button>
           {user && (
             <Button
               variant="outline"
