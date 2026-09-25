@@ -39,4 +39,9 @@ describe("клиентска преграда за ново съдържание
     expect(res).toMatchObject({ ok: false, error: "content_save_prelaunch_closed" });
     expect(supabase.functions.invoke).not.toHaveBeenCalled();
   });
+  it("kind=template с ново съдържание също не вика сървъра", async () => {
+    const res = await downloadDocument({ kind: "template", title: "Преименуван", payload: { sections: [{ body: "суров" }] }, format: "pdf" } as never);
+    expect(res).toMatchObject({ ok: false, error: "content_save_prelaunch_closed" });
+    expect(supabase.functions.invoke).not.toHaveBeenCalled();
+  });
 });
