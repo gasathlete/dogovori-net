@@ -24,20 +24,40 @@ async function load(): Promise<Handler> {
   return handler!;
 }
 
-const ROWS = [
-  { id: "a", question_text: "Глобален", field_type: "text", options: null, importance: 9, trigger_conditions: {}, contract_type: null, sector_id: null },
-  { id: "b", question_text: "Услуги", field_type: "text", options: null, importance: 8, trigger_conditions: {}, contract_type: "Договор за услуги", sector_id: "services" },
-  { id: "c", question_text: "Наем", field_type: "text", options: null, importance: 7, trigger_conditions: {}, contract_type: "Договор за наем", sector_id: "rent" },
-  { id: "d", question_text: "Условен", field_type: "text", options: null, importance: 6, trigger_conditions: { pay: "monthly" }, contract_type: null, sector_id: "services" },
+type Row = { id: string; question_text: string; field_type: string; options: null; importance: number; trigger_conditions: Record<string, unknown>; contract_type: string | null; sector_id: string | null; active: boolean };
+const row = (id: string, importance: number, sector_id: string | null, contract_type: string | null, trigger_conditions: Record<string, unknown> = {}): Row =>
+  ({ id, question_text: id, field_type: "text", options: null, importance, trigger_conditions, contract_type, sector_id, active: true });
+const BASE: Row[] = [
+  row("a", 9, null, null),
+  row("b", 8, "services", "Договор за услуги"),
+  row("c", 7, "rent", "Договор за наем"),
+  row("d", 6, "services", null, { pay: "monthly" }),
 ];
 
-async function call(body: unknown) {
+// Минимален PostgREST емулатор: eq/is филтри, order importance.desc,id.asc, limit.
+function serve(rows: Row[], url: URL): Row[] {
+  let out = rows.slice();
+  for (const [k, v] of url.searchParams) {
+    if (k === "select" || k === "order" || k === "limit") continue;
+    if (v.startsWith("eq.")) {
+      const val = v.slice(3);
+      out = out.filter((r) => String((r as Record<string, unknown>)[k]) === val);
+    } else if (v === "is.null") {
+      out = out.filter((r) => (r as Record<string, unknown>)[k] === null);
+    } else throw new Error(`unsupported filter ${k}=${v}`);
+  }
+  out.sort((x, y) => y.importance - x.importance || (x.id < y.id ? -1 : 1));
+  const lim = url.searchParams.get("limit");
+  return lim ? out.slice(0, Number(lim)) : out;
+}
+
+async function call(body: unknown, rows: Row[] = BASE) {
   const urls: string[] = [];
   const orig = globalThis.fetch;
   globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
-    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-    urls.push(`${(init?.method ?? "GET").toUpperCase()} ${decodeURIComponent(url)}`);
-    return new Response(JSON.stringify(ROWS), { status: 200, headers: { "Content-Type": "application/json" } });
+    const raw = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    urls.push(`${(init?.method ?? "GET").toUpperCase()} ${decodeURIComponent(raw)}`);
+    return new Response(JSON.stringify(serve(rows, new URL(raw))), { status: 200, headers: { "Content-Type": "application/json" } });
   }) as typeof fetch;
   try {
     const h = await load();
@@ -45,6 +65,7 @@ async function call(body: unknown) {
     return { res, payload: await res.json(), urls };
   } finally { globalThis.fetch = orig; }
 }
+const ids = (p: { questions: { id: string }[] }) => p.questions.map((q) => q.id);
 
 T("parseScope: нормални стойности (вкл. кирилица и интервали) се приемат", () => {
   assertEquals(parseScope({ sector_id: "services", contract_type: "Договор за услуги" }), { ok: true, sectorId: "services", contractType: "Договор за услуги" });
@@ -73,16 +94,41 @@ T("handler: нормален резултат — сектор + глобалн�
   assertEquals(payload.questions.map((q: { id: string }) => q.id), ["a", "b", "d"]);
 });
 
-T("handler: filter injection не влиза в заявката и не разширява резултата", async () => {
+T("handler: filter injection не влиза като филтър и не разширява обхвата", async () => {
   for (const inj of ["services,sector_id.neq.zzz", "x),or(active.eq.false", "*", "sector_id.is.null,contract_type.like.*"]) {
     const { res, payload, urls } = await call({ sector_id: inj, contract_type: inj });
     assertEquals(res.status, 200);
-    assertEquals(payload.questions.map((q: { id: string }) => q.id), ["a"], inj);
-    assertEquals(urls.length, 1);
-    assert(!urls[0].includes(inj), urls[0]);
-    assert(!urls[0].includes("or="), urls[0]);
-    assert(urls[0].startsWith("GET ") && urls[0].includes("active=eq.true"), urls[0]);
+    assertEquals(ids(payload), ["a"], inj);
+    assertEquals(urls.length, 4);
+    for (const u of urls) {
+      assert(u.startsWith("GET ") && u.includes("active=eq.true"), u);
+      assert(!u.includes("or="), u);
+      // Стойността се появява само като литерал на eq.
+      if (u.includes(inj)) assert(u.includes(`=eq.${inj}`), u);
+    }
   }
+});
+
+T("regression: >500 нерелевантни с висок importance не скриват релевантния въпрос; общите се включват", async () => {
+  const noise: Row[] = Array.from({ length: 700 }, (_, i) => row(`n${String(i).padStart(4, "0")}`, 100, "other", "Друг"));
+  const rows = [...noise, row("relevant", 1, "services", "Договор за услуги"), row("global", 0, null, null)];
+  const { res, payload } = await call({ sector_id: "services", contract_type: "Договор за услуги", limit: 10 }, rows);
+  assertEquals(res.status, 200);
+  assertEquals(ids(payload), ["relevant", "global"]);
+});
+
+T("регресия: детерминистичен ред и дедупликация", async () => {
+  const rows = [row("z", 5, "services", null), row("y", 5, null, "Договор за услуги"), row("x", 5, null, null)];
+  const { payload } = await call({ sector_id: "services", contract_type: "Договор за услуги" }, rows);
+  assertEquals(ids(payload), ["x", "y", "z"]);
+});
+
+T("защитен максимум: над 500 в един обхват → 503 capacity_exceeded, не частичен резултат", async () => {
+  const many: Row[] = Array.from({ length: 501 }, (_, i) => row(`g${i}`, 1, null, null));
+  const { res, payload } = await call({}, many);
+  assertEquals(res.status, 503);
+  assertEquals(payload.code, "capacity_exceeded");
+  assertEquals(payload.questions, []);
 });
 
 T("handler: невалидни типове → 400 без заявка към базата", async () => {
