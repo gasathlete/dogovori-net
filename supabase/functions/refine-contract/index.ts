@@ -12,6 +12,7 @@ import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
 import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
+import { isNewProcessingOpen, newProcessingClosedResponse } from "../_shared/new-processing-gate.ts";
 
 
 const SYSTEM_PROMPT = `Ти си водещ български правен архитект. Получаваш вече генериран договор (в JSON) и КРАТКА обратна връзка от потребителя за пропуск/грешка/подобрение.
@@ -206,6 +207,14 @@ Deno.serve(async (req: Request) => {
         kind: "analysis",
       });
       return billingReconciliationResponse({ ...corsHeaders, ...correlationHeaders(correlationId) });
+    }
+
+    // Gate 8: НОВА AI обработка е затворена по подразбиране (само server-side env).
+    // Стои СЛЕД само-четящото възпроизвеждане на завършен резултат и ПРЕДИ
+    // лимита, guardIllegalContent (пише журнал), ключа, заземяването,
+    // резервацията, модела и всеки бизнес запис.
+    if (!isNewProcessingOpen("refine_contract")) {
+      return newProcessingClosedResponse("refine_contract", { ...corsHeaders, ...correlationHeaders(correlationId) }, { charge_state: "not_charged" });
     }
 
     // Daily rate limit
