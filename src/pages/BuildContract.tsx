@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { assertSavedDocumentContentWrite } from "@/lib/savedDocumentWriteGuard";
 import { useActivationDraft } from "@/hooks/useActivationDraft";
 import { currentDraftRoute } from "@/lib/activationDraft";
 import { OpsHintBar } from "@/components/wizard/OpsHintBar";
@@ -694,6 +695,8 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     const uid = userRef.current?.id;
     if (!uid) throw new Error("not_signed_in");
     const finalTitle = (name || r.contract.title).trim() || r.contract.title;
+    // Ново съдържание: отказ ПРЕДИ мрежата, докато няма контролиран бекенд.
+    assertSavedDocumentContentWrite({ payload: r.contract });
     const { data, error } = await supabase
       .from("saved_documents")
       .insert({

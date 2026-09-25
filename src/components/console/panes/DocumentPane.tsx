@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { canWriteSavedDocumentContent, payloadChanged, SAVED_DOCUMENT_CONTENT_BLOCKED_MESSAGE } from "@/lib/savedDocumentWriteGuard";
 import { SAVED_DOCUMENT_UPDATED_EVENT } from "@/lib/assistantEditProposals";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -137,9 +138,14 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
     } else {
       try { payload = JSON.parse(rawText); } catch { payload = { ...payload, text: rawText }; }
     }
+    if (!canWriteSavedDocumentContent() && payloadChanged(doc.payload || {}, payload)) {
+      setSaving(false);
+      toast.error(SAVED_DOCUMENT_CONTENT_BLOCKED_MESSAGE);
+      return;
+    }
     const { data, error } = await supabase
       .from("saved_documents")
-      .update({ title, payload })
+      .update(canWriteSavedDocumentContent() ? { title, payload } : { title })
       .eq("id", forDocumentId)
       .eq("updated_at", baseUpdatedAt)
       .select("*")
