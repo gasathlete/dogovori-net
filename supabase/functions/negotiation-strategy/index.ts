@@ -5,6 +5,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCors } from "../_shared/cors.ts";
 import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
+import { isNewProcessingOpen, newProcessingClosedResponse } from "../_shared/new-processing-gate.ts";
 import { extractJson } from "../_shared/json.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { redactForAI, unredact } from "../_shared/redact.ts";
@@ -260,6 +261,13 @@ Deno.serve(async (req) => {
     }
     const existingBlock = ledgerBlockResponse(existing, cors);
     if (existingBlock) return existingBlock;
+
+    // Gate 8: НОВА AI обработка е затворена по подразбиране (само server-side env).
+    // След само-четящото възпроизвеждане; преди лимита, ключа, заземяването,
+    // резервацията, модела и всеки бизнес запис.
+    if (!isNewProcessingOpen("negotiation_strategy")) {
+      return newProcessingClosedResponse("negotiation_strategy", cors, { charge_state: "not_charged" });
+    }
 
     // Ключът на доставчика — след повторението и ПРЕДИ резервацията, за да
     // няма резервирана квота при липсваща настройка.

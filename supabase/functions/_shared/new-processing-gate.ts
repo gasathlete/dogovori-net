@@ -22,6 +22,9 @@ export const NEW_PROCESSING_FLAGS = Object.freeze({
   correct_uploaded: "CORRECT_UPLOADED_NEW_PROCESSING_ENABLED",
   apply_corrections: "APPLY_CORRECTIONS_NEW_PROCESSING_ENABLED",
   refine_contract: "REFINE_CONTRACT_NEW_PROCESSING_ENABLED",
+  negotiation_strategy: "NEGOTIATION_STRATEGY_NEW_PROCESSING_ENABLED",
+  generate_linked_document: "GENERATE_LINKED_DOCUMENT_NEW_PROCESSING_ENABLED",
+  generate_contract: "GENERATE_CONTRACT_NEW_PROCESSING_ENABLED",
 });
 export type NewProcessingSurface = keyof typeof NEW_PROCESSING_FLAGS;
 
@@ -37,6 +40,9 @@ export const NEW_PROCESSING_CODES: Readonly<Record<NewProcessingSurface, string>
   correct_uploaded: "correction_prelaunch_closed",
   apply_corrections: "correction_prelaunch_closed",
   refine_contract: "refinement_prelaunch_closed",
+  negotiation_strategy: "strategy_prelaunch_closed",
+  generate_linked_document: "generation_prelaunch_closed",
+  generate_contract: "generation_prelaunch_closed",
 });
 
 const MESSAGES: Readonly<Record<NewProcessingSurface, string>> = Object.freeze({
@@ -51,6 +57,9 @@ const MESSAGES: Readonly<Record<NewProcessingSurface, string>> = Object.freeze({
   correct_uploaded: "Новата поправка още не е отворена. Нищо не е изпратено и нищо не е таксувано.",
   apply_corrections: "Новата поправка още не е отворена. Нищо не е изпратено и нищо не е таксувано.",
   refine_contract: "Новото прецизиране още не е отворено. Нищо не е изпратено и нищо не е таксувано.",
+  negotiation_strategy: "Новата преговорна стратегия още не е отворена. Нищо не е изпратено и нищо не е таксувано.",
+  generate_linked_document: "Изготвянето на нов документ още не е отворено. Нищо не е изпратено и нищо не е таксувано.",
+  generate_contract: "Изготвянето на нов документ още не е отворено. Нищо не е изпратено и нищо не е таксувано.",
 });
 
 const defaultEnv: EnvReader = (k) => {
