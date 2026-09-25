@@ -4,6 +4,10 @@
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { isNewProcessingOpen, NEW_PROCESSING_FLAGS } from "./new-processing-gate.ts";
 
+// Supabase клиентът пуска таймер за refresh; не е мрежа.
+const T = (name: string, fn: () => Promise<void> | void) =>
+  Deno.test({ name, fn, sanitizeOps: false, sanitizeResources: false });
+
 type Handler = (req: Request) => Promise<Response> | Response;
 const USER_ID = "99999999-8888-4777-8666-555555555555";
 const OP_ID = "11111111-2222-4333-8444-555555555555";
@@ -61,11 +65,12 @@ function installFetch(calls: Call[], lookup: Lookup) {
 }
 
 const isForbidden = (c: Call) =>
+  !c.url.includes("/rpc/assistant_turn_lookup") && !c.url.includes("/auth/v1/user") && (
   c.url.includes("stripe.com") ||
   c.url.includes("ai.gateway") ||
   c.url.includes("lovable.dev") ||
   (c.url.includes("/rest/v1/") && c.method !== "GET") ||
-  (c.url.includes("/rpc/") && !c.url.includes("/rpc/assistant_turn_lookup"));
+  c.url.includes("/rpc/"));
 
 const post = (body: unknown, auth = true) =>
   new Request("http://stub.local/fn", {
@@ -74,7 +79,7 @@ const post = (body: unknown, auth = true) =>
     body: JSON.stringify(body),
   });
 
-Deno.test("флаг: само точен 'true' отваря", () => {
+T("флаг: само точен 'true' отваря", () => {
   for (const v of [undefined, "", "TRUE", "1", "yes", " true"]) {
     assertEquals(isNewProcessingOpen("assistant", () => v), false);
   }
@@ -87,7 +92,7 @@ const checkouts: Array<[string, Record<string, unknown>]> = [
 ];
 
 for (const [path, body] of checkouts) {
-  Deno.test(`${path}: OFF → 503, без Stripe и без запис`, async () => {
+  T(`${path}: OFF → 503, без Stripe и без запис`, async () => {
     const h = await load(path);
     const calls: Call[] = [];
     const restore = installFetch(calls, "absent");
@@ -100,7 +105,7 @@ for (const [path, body] of checkouts) {
     } finally { restore(); }
   });
 
-  Deno.test(`${path}: OPTIONS 2xx и липсващ auth = 401`, async () => {
+  T(`${path}: OPTIONS 2xx и липсващ auth = 401`, async () => {
     const h = await load(path);
     const calls: Call[] = [];
     const restore = installFetch(calls, "absent");
@@ -116,7 +121,7 @@ for (const [path, body] of checkouts) {
   });
 }
 
-Deno.test("assistant-chat: OFF + нов ход → 503, без доставчик и без запис", async () => {
+T("assistant-chat: OFF + нов ход → 503, без доставчик и без запис", async () => {
   const h = await load("../assistant-chat/index.ts");
   const calls: Call[] = [];
   const restore = installFetch(calls, "absent");
@@ -129,7 +134,7 @@ Deno.test("assistant-chat: OFF + нов ход → 503, без доставчи�
   } finally { restore(); }
 });
 
-Deno.test("assistant-chat: OFF + записан ход → възпроизвеждане", async () => {
+T("assistant-chat: OFF + записан ход → възпроизвеждане", async () => {
   const h = await load("../assistant-chat/index.ts");
   const calls: Call[] = [];
   const restore = installFetch(calls, "committed");
@@ -142,7 +147,7 @@ Deno.test("assistant-chat: OFF + записан ход → възпроизве�
   } finally { restore(); }
 });
 
-Deno.test("assistant-chat: OPTIONS и 401 без auth", async () => {
+T("assistant-chat: OPTIONS и 401 без auth", async () => {
   const h = await load("../assistant-chat/index.ts");
   const calls: Call[] = [];
   const restore = installFetch(calls, "absent");
