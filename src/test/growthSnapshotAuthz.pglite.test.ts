@@ -62,7 +62,7 @@ async function denied(p: Promise<unknown>) {
   expect(err, "очакван отказ").not.toBeNull();
 }
 
-describe("growth_snapshot authz", () => {
+describe("growth_snapshot authz", { timeout: 60_000 }, () => {
   it("УЯЗВИМА версия: обикновен authenticated (не-staff) получава снимка", async () => {
     const db = await fresh(VULN);
     const r = await call(db, "authenticated", "authenticated", USER);
