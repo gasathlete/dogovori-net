@@ -143,3 +143,28 @@ T("refine-contract (изходен код): ред на преградата", (
   order("../refine-contract/index.ts", "refine_contract",
     ["lookupCommittedOperation(ledgerDb", "exactReplayResponse(stored)"],
     ["guardIllegalContent({", "reserveQuota(ledgerDb", "ai.gateway.lovable.dev"]));
+
+// Документирано поведение: при състояние „reconciliation“ от предишен опит
+// обработчикът записва служебна бележка ПРЕДИ преградата. Това не е нова AI
+// обработка — не се извиква модел, не се резервира и не се таксува.
+T("refine-contract: reconciliation пише служебна бележка преди преградата, без модел/резервация", async () => {
+  const h = await load("../refine-contract/index.ts");
+  const calls: Call[] = [];
+  const orig = globalThis.fetch;
+  globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    const method = (init?.method ?? "GET").toUpperCase();
+    calls.push({ method, url });
+    if (url.includes("/auth/v1/user")) return json({ id: USER_ID, aud: "authenticated" });
+    if (url.includes("/rpc/quota_operation_lookup")) return json({ status: "reconciliation", reason: "stub" });
+    return json(null);
+  }) as typeof fetch;
+  try {
+    const res = await h(post({ contract: CONTRACT, feedback: "Добавете срок за плащане.", operation_id: OP_ID }));
+    const j = await res.json();
+    assert(j.code !== "refinement_prelaunch_closed");
+    const extra = calls.filter((c) => !c.url.includes("/auth/v1/") && !c.url.includes("/rpc/quota_operation_lookup"));
+    assert(extra.length >= 1, "очаква се служебен запис за изравняване");
+    assert(!calls.some((c) => c.url.includes("ai.gateway") || c.url.includes("quota_reserve")));
+  } finally { globalThis.fetch = orig; }
+});
