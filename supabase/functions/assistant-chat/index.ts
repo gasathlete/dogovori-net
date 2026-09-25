@@ -7,6 +7,7 @@ import { buildCors } from "../_shared/cors.ts";
 import { extractJson } from "../_shared/json.ts";
 import { loadActivePrompt, loadActivePromptMeta } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
+import { isNewProcessingOpen, newProcessingClosedResponse } from "../_shared/new-processing-gate.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { retrieveLegalContext } from "../_shared/legal-rag.ts";
@@ -431,7 +432,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    const blockedChat = await guardIllegalContent({
+    // Сървърен флаг (default OFF). При затворена нова обработка НЕ записваме
+    // нищо (guardIllegalContent и audit log пишат): само четем, за да
+    // възпроизведем вече записан ход, и отказваме всичко ново след търсенето.
+    const newProcessingOpen = isNewProcessingOpen("assistant");
+
+    const blockedChat = !newProcessingOpen ? null : await guardIllegalContent({
       admin,
       text: newMessage,
       functionName: "assistant-chat",
@@ -443,7 +449,7 @@ Deno.serve(async (req) => {
     if (blockedChat) return blockedChat;
 
     const chatClassification = classifyDocumentBeforeAI(newMessage);
-    if (chatClassification.contains_special_category_data) {
+    if (newProcessingOpen && chatClassification.contains_special_category_data) {
       await logAiAudit({
         user_id: userId, operation: "assistant-chat", model: "",
         classification: chatClassification, redaction_applied: false,
@@ -605,6 +611,12 @@ Deno.serve(async (req) => {
     const lookup = await lookupTurn(admin, operationId, userId, binding);
     if (lookup.kind === "committed") return replayResponse(lookup.result);
     if (lookup.kind !== "absent") return ledgerStateResponse(lookup.kind);
+
+    // ---- Предварителен режим: ход е доказано нов → отказ ПРЕДИ ключ на
+    // доставчика, права, правна база, reserveTurn и модел. Без запис.
+    if (!newProcessingOpen) {
+      return newProcessingClosedResponse("assistant", corsHeaders, { correlation_id: corr });
+    }
 
     // ПРЕГРАДА ЗА ОГРАНИЧЕНИ ИДЕНТИФИКАТОРИ — новото съобщение, заредената
     // история и разрешеният документен контекст (заглавие и текст). Стои СЛЕД
