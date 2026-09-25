@@ -32,6 +32,9 @@ import {
   productPriceLabel,
   type OneTimeProduct,
 } from "@/lib/products";
+import { PRELAUNCH_LABELS } from "@/lib/prelaunch";
+import { openPrelaunchWaitlist } from "@/lib/prelaunchWaitlist";
+
 
 const SITE = "https://dogovori.net";
 
@@ -156,6 +159,18 @@ export default function ProductDetail() {
                   >
                     Покупките предстоят
                   </span>
+                )}
+                {!ONE_TIME_PURCHASES_AVAILABLE && (
+                  <button
+                    type="button"
+                    data-testid="product-prelaunch-waitlist"
+                    onClick={() =>
+                      openPrelaunchWaitlist("one_time_product", { source: "product_detail", productId: product.id })
+                    }
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-gold/40 px-5 text-[14px] font-semibold text-foreground hover:bg-gold/10"
+                  >
+                    {PRELAUNCH_LABELS.cta}
+                  </button>
                 )}
                 <Link
                   to="/produkti"

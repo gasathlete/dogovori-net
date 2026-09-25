@@ -233,3 +233,9 @@ describe("E2E: checkout сценарий и съответствие на пла
     }
   });
 });
+
+// Изолирано „отворено“ състояние: тестът проверява самия поток, не предварителния режим.
+vi.mock("@/lib/prelaunch", async (orig) => ({
+  ...(await orig<typeof import("@/lib/prelaunch")>()),
+  canStartNewProcessing: () => true,
+}));

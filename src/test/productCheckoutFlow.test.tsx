@@ -170,3 +170,9 @@ describe("връщане от продуктово плащане", () => {
     expect(trackCheckoutCompletedMock).not.toHaveBeenCalled();
   });
 });
+
+// Изолирано „отворено“ състояние: тестът проверява самия поток, не предварителния режим.
+vi.mock("@/lib/prelaunch", async (orig) => ({
+  ...(await orig<typeof import("@/lib/prelaunch")>()),
+  canStartNewProcessing: () => true,
+}));

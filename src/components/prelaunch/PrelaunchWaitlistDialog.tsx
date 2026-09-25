@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { PRELAUNCH_COPY, isPrelaunchFeature, type PrelaunchFeature } from "@/lib/prelaunch";
+import { PRELAUNCH_COPY, PRELAUNCH_LABELS, isPrelaunchFeature, type PrelaunchFeature } from "@/lib/prelaunch";
 import {
   PRELAUNCH_WAITLIST_EVENT,
   submitPrelaunchWaitlist,
@@ -101,8 +101,12 @@ export function PrelaunchWaitlistDialog() {
               <Button type="button" variant="outline" className="min-h-11" onClick={() => setFeature(null)}>
                 {PRELAUNCH_COPY.close}
               </Button>
-              <Button type="submit" className="min-h-11" disabled={busy || !consent}>
-                {PRELAUNCH_COPY.submit}
+              <Button type="submit" className="min-h-11" disabled={busy || !consent} aria-busy={busy}>
+                {busy
+                  ? PRELAUNCH_LABELS.sending
+                  : result === "unavailable"
+                    ? PRELAUNCH_LABELS.retry
+                    : PRELAUNCH_COPY.submit}
               </Button>
             </DialogFooter>
           </form>

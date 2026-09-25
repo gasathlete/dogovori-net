@@ -223,3 +223,9 @@ describe("неочаквана грешка", () => {
     expect(screen.getByRole("button", { name: /^Продължете$/ })).not.toBeDisabled();
   });
 });
+
+// Изолирано „отворено“ състояние: тестът проверява самия поток, не предварителния режим.
+vi.mock("@/lib/prelaunch", async (orig) => ({
+  ...(await orig<typeof import("@/lib/prelaunch")>()),
+  canStartNewProcessing: () => true,
+}));

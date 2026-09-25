@@ -11,6 +11,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsPro } from "@/hooks/useIsPro";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { toast } from "sonner";
+import { canStartNewProcessing } from "@/lib/prelaunch";
+import { openPrelaunchWaitlist } from "@/lib/prelaunchWaitlist";
 import {
   clearTurnOperation,
   clearTurnOperationsForOtherUsers,
@@ -607,6 +609,14 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
     let sendingReleased = false;
     const releaseSending = () => { sendingReleased = true; sendingRef.current = false; };
     try {
+    // Предварителен режим: нова AI обработка не е отворена — дори за абонати.
+    // Историята и вече получените отговори остават достъпни; нищо не се
+    // резервира, не се таксува и не се изпраща към сървъра.
+    if (!canStartNewProcessing("assistant")) {
+      openPrelaunchWaitlist("assistant", { source: "assistant" });
+      releaseSending();
+      return;
+    }
     // Не изпращаме, преди обвързаният контекст на маршрутния разговор да е
     // прочетен от сървъра — иначе бихме пратили чужд или празен обхват.
     if (routeHydrationPending) { releaseSending(); return; }
@@ -928,13 +938,18 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
   // File drop → upload analyzer
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    // Предварителен режим: файлът НЕ се чете, не се качва и не се изпраща.
+    if (!canStartNewProcessing("document_review")) {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      openPrelaunchWaitlist("document_review", { source: "assistant_attach" });
+      return;
+    }
     const f = files[0];
     const ok = /\.(pdf|docx?|txt)$/i.test(f.name);
     if (!ok) {
       toast.error("Поддържат се PDF / DOCX / TXT файлове");
       return;
     }
-    toast.info(`Качване на „${f.name}" в анализатора...`);
     // Defer to /analyze which has full upload + analysis pipeline
     navigate("/analyze");
   };

@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { trackCheckoutAbandoned, trackCheckoutFailed, trackCheckoutStarted } from "@/lib/metrics";
 import { categorizeCheckoutError, describePriceId } from "@/lib/checkoutAnalytics";
 import { checkoutValueNote, saveCheckoutIntent } from "@/lib/checkoutIntent";
+import { canStartNewProcessing, PRELAUNCH_LABELS } from "@/lib/prelaunch";
+import { openPrelaunchWaitlist } from "@/lib/prelaunchWaitlist";
 
 interface Props {
   /** When provided, used directly instead of calling create-checkout. */
@@ -106,6 +108,30 @@ export function StripeEmbeddedCheckout({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientSecret, priceId, quantity, customerEmail, userId, returnUrl, attempt]);
+
+  // Предварителен режим: ново плащане не е отворено. Не монтираме Stripe,
+  // следователно не се създава сесия и не се отчита „стартиран checkout“.
+  // Управлението на съществуващ абонамент (портал) не минава оттук.
+  if (!canStartNewProcessing("subscription")) {
+    return (
+      <div
+        data-testid="checkout-prelaunch"
+        role="status"
+        className="flex flex-col items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-6 text-center"
+      >
+        <p className="text-sm font-semibold text-foreground">{PRELAUNCH_LABELS.badge}</p>
+        <p className="text-xs text-muted-foreground">{PRELAUNCH_LABELS.purchaseUnavailable}</p>
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11"
+          onClick={() => openPrelaunchWaitlist("subscription", { source: "checkout" })}
+        >
+          {PRELAUNCH_LABELS.cta}
+        </Button>
+      </div>
+    );
+  }
 
   if (failed) {
     return (

@@ -588,3 +588,9 @@ describe("смяна на разговор при ИДЕНТИЧЕН конте�
     );
   });
 });
+
+// Изолирано „отворено“ състояние: тестът проверява самия поток, не предварителния режим.
+vi.mock("@/lib/prelaunch", async (orig) => ({
+  ...(await orig<typeof import("@/lib/prelaunch")>()),
+  canStartNewProcessing: () => true,
+}));

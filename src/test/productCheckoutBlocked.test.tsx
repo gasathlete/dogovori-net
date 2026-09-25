@@ -42,3 +42,9 @@ describe("купуване при затворена преграда", () => {
     expect(document.getElementById("product-file")).toBeNull();
   });
 });
+
+// Изолирано „отворено“ състояние: тестът проверява самия поток, не предварителния режим.
+vi.mock("@/lib/prelaunch", async (orig) => ({
+  ...(await orig<typeof import("@/lib/prelaunch")>()),
+  canStartNewProcessing: () => true,
+}));
