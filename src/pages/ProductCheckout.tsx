@@ -24,6 +24,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
+import { PRELAUNCH_LABELS } from "@/lib/prelaunch";
+import { openPrelaunchWaitlist } from "@/lib/prelaunchWaitlist";
 import { ProductPrice } from "@/components/products/ProductPrice";
 import {
   CheckoutStepper,
