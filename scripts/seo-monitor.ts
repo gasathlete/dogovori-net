@@ -27,6 +27,7 @@
 
 import { appendFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { crawlSitemaps } from "./lib/sitemapCrawl";
 
 const BASE = (process.env.SEO_BASE_URL ?? "https://dogovori.net").replace(/\/$/, "");
 const SITEMAP = process.env.SEO_SITEMAP_URL ?? `${BASE}/sitemap.xml`;
@@ -63,14 +64,13 @@ function attr(html: string, re: RegExp): string | null {
 }
 
 async function fetchSitemap(): Promise<string[]> {
-  try {
-    const res = await fetch(SITEMAP);
-    if (!res.ok) return [];
-    const xml = await res.text();
-    return Array.from(xml.matchAll(/<loc>([^<]+)<\/loc>/g)).map((m) => m[1].trim());
-  } catch {
-    return [];
-  }
+  const result = await crawlSitemaps(SITEMAP, BASE, async (u) => {
+    const res = await fetch(u, { headers: { "user-agent": "DogovoriSEOMonitor/1.0" } });
+    return { ok: res.ok, status: res.status, text: res.ok ? await res.text() : "" };
+  });
+  console.log(`  sitemaps visited: ${result.sitemapsVisited.length}`);
+  for (const p of result.problems) add("warning", p.url, "sitemap", p.message);
+  return result.pages;
 }
 
 async function check(url: string) {
