@@ -33,7 +33,6 @@ export default function Sign() {
 
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState("");
-  const [debugCode, setDebugCode] = useState<string | undefined>();
   const [signature, setSignature] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -69,12 +68,26 @@ export default function Sign() {
   }
   useEffect(() => { load(); }, [token]);
 
+  const SIGN_ERRORS: Record<string, string> = {
+    otp_invalid: "Кодът е грешен или е изтекъл.",
+    otp_locked: "Твърде много грешни опити. Поискайте нов код.",
+    otp_required: "Първо поискайте код за потвърждение.",
+    otp_resend_too_soon: "Изчакайте минута преди нов код.",
+    otp_resend_limit: "Достигнахте лимита за кодове. Опитайте по-късно.",
+    already_signed: "Документът вече е подписан.",
+    otp_unavailable: "Потвърждението с код временно не е налично.",
+    payload_too_large: "Файлът или заявката са твърде големи.",
+    qes_file_too_large: "Файлът с подпис е твърде голям (до 16 MB).",
+    qes_file_type: "Неподдържан формат на файла с подпис.",
+  };
+  const signError = (code: unknown) => (typeof code === "string" && SIGN_ERRORS[code]) || "Грешка";
+
   async function sendOtp() {
     setBusy(true);
     const { data } = await supabase.functions.invoke("signer-action", { body: { token, action: "send_otp" } });
     setBusy(false);
-    if (data?.ok) { setOtpSent(true); setDebugCode(data.debug_code); toast.success("Код за потвърждение е изпратен на имейла"); }
-    else toast.error(data?.error ?? "Грешка");
+    if (data?.ok) { setOtpSent(true); toast.success("Код за потвърждение е изпратен на имейла"); }
+    else toast.error(signError(data?.error));
   }
   async function onQesFileChange(f: File | null) {
     setQesFile(f);
@@ -138,7 +151,7 @@ export default function Sign() {
       load();
     } else {
       trackSign("fail", { source: "sign_link", method: sigMethod, reason: String(data?.error ?? "unknown").slice(0, 120) });
-      toast.error(data?.error ?? "Грешка");
+      toast.error(signError(data?.error));
     }
   }
 
@@ -153,7 +166,7 @@ export default function Sign() {
       toast.success("Отказано");
       load();
     } else {
-      toast.error(data?.error ?? "Грешка");
+      toast.error(signError(data?.error));
     }
   }
 
@@ -334,7 +347,7 @@ export default function Sign() {
 
                 <div>
                   <label className="text-sm font-medium block mb-1">
-                    Код от имейла {debugCode ? <span className="text-xs text-amber-600">(dev: {debugCode})</span> : null}
+                    Код от имейла
                   </label>
                   <Input value={otpCode} onChange={(e) => setOtpCode(e.target.value)} maxLength={6} />
                 </div>
