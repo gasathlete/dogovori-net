@@ -29,7 +29,7 @@ const CTABand = lazy(() => import("@/components/CTABand").then((m) => ({ default
 
 export function HomeSections() {
   return (
-    <main className="route-fade" data-home-variant="responsive">
+    <main data-home-variant="responsive">
       <Hero />
 
       {/* Social proof веднага под херото — зарежда се веднага, без lazy gate */}
