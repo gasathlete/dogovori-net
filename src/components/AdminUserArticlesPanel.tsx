@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { MediaImg } from "@/components/MediaImg";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -59,11 +60,14 @@ export function AdminUserArticlesPanel() {
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [filter]);
 
   const setStatus = async (id: string, status: "approved" | "rejected") => {
-    const patch = status === "approved"
-      ? { status, reviewed_at: new Date().toISOString(), published_at: new Date().toISOString() }
-      : { status, reviewed_at: new Date().toISOString() };
-    const { error } = await supabase.from("user_articles").update(patch).eq("id", id);
-    if (error) { toast.error(error.message); return; }
+    if (status === "approved") {
+      // Одобрението публикува снимката от частната staging кофа (сървърно).
+      const { data, error } = await supabase.functions.invoke("approve-media", { body: { kind: "article", id } });
+      if (error || (data as { error?: string } | null)?.error) { toast.error("Одобрението не беше записано."); return; }
+    } else {
+      const { error } = await supabase.from("user_articles").update({ status, reviewed_at: new Date().toISOString() }).eq("id", id);
+      if (error) { toast.error(error.message); return; }
+    }
     toast.success(status === "approved" ? "Публикувана" : "Отхвърлена");
     load();
   };
@@ -182,7 +186,7 @@ export function AdminUserArticlesPanel() {
           <DialogHeader><DialogTitle>{preview?.title}</DialogTitle></DialogHeader>
           {preview && (
             <article className="space-y-4 text-sm">
-              <img loading="lazy" decoding="async" src={preview.image_url} alt="" className="aspect-[16/9] w-full rounded-lg object-cover" />
+              <MediaImg loading="lazy" decoding="async" src={preview.image_url} alt="" className="aspect-[16/9] w-full rounded-lg object-cover" />
               <p className="italic text-muted-foreground">{preview.summary}</p>
               <p className="whitespace-pre-line">{preview.intro}</p>
               {(preview.sections ?? []).map((s, i) => (
