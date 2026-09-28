@@ -196,6 +196,32 @@ serve(async (req) => {
         }
       }
 
+      // OTP се проверява ПРЕДИ всяка работа с хранилището и с общия лимит от
+      // 5 опита (иначе стъпката „sign“ позволява неограничено налучкване).
+      if (!signer.otp_code_hash || !signer.otp_expires_at) {
+        return new Response(JSON.stringify({ error: "otp_required" }), {
+          status: 400, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+      if ((signer.otp_attempts ?? 0) >= 5) {
+        return new Response(JSON.stringify({ error: "otp_locked" }), {
+          status: 429, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+      if (new Date(signer.otp_expires_at) < new Date()) {
+        return new Response(JSON.stringify({ error: "otp_invalid" }), {
+          status: 401, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+      const otpHash = await sha256(String(otp_code ?? "") + "|" + signer.id);
+      if (otpHash !== signer.otp_code_hash) {
+        await admin.from("signing_request_signers")
+          .update({ otp_attempts: (signer.otp_attempts ?? 0) + 1 }).eq("id", signer.id);
+        return new Response(JSON.stringify({ error: "otp_invalid" }), {
+          status: 401, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+
       // QES upload — validate & store the qualified signature file (server-side)
       let qesPath: string | null = null;
       let qesSize: number | null = null;
@@ -241,19 +267,6 @@ serve(async (req) => {
           });
         }
         qesPath = objectPath;
-      }
-
-      // OTP must be verified within this call (or skip if there isn't one yet — strict mode)
-      if (!signer.otp_code_hash) {
-        return new Response(JSON.stringify({ error: "otp_required" }), {
-          status: 400, headers: { ...cors, "Content-Type": "application/json" },
-        });
-      }
-      const hash = await sha256(String(otp_code ?? "") + "|" + signer.id);
-      if (hash !== signer.otp_code_hash || new Date(signer.otp_expires_at!) < new Date()) {
-        return new Response(JSON.stringify({ error: "otp_invalid" }), {
-          status: 401, headers: { ...cors, "Content-Type": "application/json" },
-        });
       }
 
       const cleanName = signer_name.trim().slice(0, 120);
