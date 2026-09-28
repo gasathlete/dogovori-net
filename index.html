@@ -27,7 +27,7 @@
       if (location.pathname === "/") {
         var l = document.createElement("link");
         l.rel = "preload"; l.as = "image"; l.setAttribute("fetchpriority", "high");
-        l.setAttribute("imagesrcset", "/hero/hero-poster-960.webp 960w, /hero/hero-poster-1280.webp 1280w");
+        l.setAttribute("imagesrcset", "/hero/hero-poster-720.webp 720w, /hero/hero-poster-960.webp 960w, /hero/hero-poster-1280.webp 1280w");
         l.setAttribute("imagesizes", "100vw"); l.href = "/hero/hero-poster-1280.webp";
         document.head.appendChild(l);
       }

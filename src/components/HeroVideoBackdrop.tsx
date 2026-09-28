@@ -13,7 +13,7 @@ import videoAsset from "@/assets/hero-bg-video.mp4.asset.json";
  *   tab is hidden, and the user can pause it with a 44px control.
  */
 export const HERO_POSTER_SRC = "/hero/hero-poster-1280.webp";
-export const HERO_POSTER_SRCSET = "/hero/hero-poster-960.webp 960w, /hero/hero-poster-1280.webp 1280w";
+export const HERO_POSTER_SRCSET = "/hero/hero-poster-720.webp 720w, /hero/hero-poster-960.webp 960w, /hero/hero-poster-1280.webp 1280w";
 
 export function HeroVideoBackdrop() {
   const [video, setVideo] = useState<HTMLVideoElement | null>(null);
