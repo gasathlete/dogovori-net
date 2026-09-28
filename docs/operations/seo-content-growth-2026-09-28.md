@@ -39,3 +39,7 @@ Production publishing remains coordinated with the concurrent security release: 
 - https://developer.mozilla.org/en-US/docs/Learn_web_development/Extensions/Testing/Introduction — agreed browser/device testing scope; official MDN text retrieved.
 
 The examples and preparation workflows are editorial practical suggestions; they are not presented as statutory forms or universal legal outcomes.
+
+## Build prerequisite repaired
+
+The initial CI run stopped before tests/build because main's package.json security overrides were newer than bun.lockb. Migrated the current npm lock to Bun 1.4.2's text bun.lock, retained package.json and all nested overrides, and removed the obsolete binary lock. The new lock uses public npm tarball locations with the existing integrity hashes instead of environment-specific Lovable cache URLs. No dependency manifest or security rule was relaxed. Local `bun install --frozen-lockfile --ignore-scripts` succeeds; CI will perform the complete install and build.
