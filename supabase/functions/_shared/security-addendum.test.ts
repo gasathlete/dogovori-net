@@ -78,7 +78,10 @@ Deno.test("signer-action source: OTP gate precedes QES upload and signing is ato
   const otpAt = src.indexOf('error: "otp_locked"', signAt);
   const uploadAt = src.indexOf('from("qes-signatures").upload', signAt);
   assert(signAt > 0 && otpAt > signAt && uploadAt > otpAt, "OTP check must come before QES upload");
-  assert(src.includes('.eq("otp_code_hash", signer.otp_code_hash)'));
+  // Signing CAS is bound to the hash that was actually verified (re-read at check time).
+  const casAt = src.indexOf('.eq("otp_code_hash", hashAtCheck)', signAt);
+  assert(casAt > uploadAt, "signing update must be conditional on the verified OTP hash");
+  assert(!src.includes("SIGNING_DEBUG_OTP") && !src.includes("debug_code"), "no debug OTP exposure");
   assert(src.includes('"otp_resend_too_soon"') && src.includes('"otp_resend_limit"'));
 });
 
