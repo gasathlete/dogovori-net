@@ -17,6 +17,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@fontsource-variable/ibm-plex-sans": "^5.2.8",
+    "@fontsource-variable/libre-baskerville": "^5.2.10",
     "@fontsource/ibm-plex-sans": "^5.2.8",
     "@fontsource/libre-baskerville": "^5.2.10",
     "@hookform/resolvers": "^3.10.0",
