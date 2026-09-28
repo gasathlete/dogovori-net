@@ -24,7 +24,7 @@ export function LaunchPurchaseBanner({
       data-testid="launch-purchase-banner"
       className={cn(
         "flex flex-col gap-3 border border-gold/30 bg-gold/[0.06] sm:flex-row sm:items-center sm:justify-between",
-        compact ? "rounded-lg p-3" : "rounded-xl p-4 sm:p-5",
+        compact ? "rounded-lg p-3 sm:flex-col sm:items-stretch" : "rounded-xl p-4 sm:p-5",
         className,
       )}
       aria-label="Покупките предстоят"
@@ -43,7 +43,7 @@ export function LaunchPurchaseBanner({
       <Button
         type="button"
         variant="outline"
-        className="min-h-11 shrink-0 border-gold/40 bg-background/40 text-foreground hover:bg-gold/10"
+        className={cn("min-h-11 shrink-0 border-gold/40 bg-background/40 text-foreground hover:bg-gold/10", compact && "w-full whitespace-normal")}
         onClick={() => openPrelaunchWaitlist(feature, { source, productId })}
       >
         <Bell className="mr-2 size-4" aria-hidden="true" />

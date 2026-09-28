@@ -37,6 +37,7 @@ export const SECTOR_PACKAGES: readonly SectorPackage[] = [
     documents: [
       { stage: "01 · Условия", title: "Уговаряте основните условия", docName: "Протокол за оглед на имот под наем", status: "browseable" },
       { stage: "02 · Договор и депозит", title: "Оформяте наема и плащането", docName: "Договор за наем на жилище", status: "browseable" },
+      { stage: "02 · Договор и депозит", title: "Документирате наема или депозита", docName: "Разписка за получена сума (наем/депозит)", status: "browseable" },
       { stage: "03 · Предаване", title: "Описвате състоянието и имуществото", docName: "Приемно-предавателен протокол", status: "browseable" },
       { stage: "03 · Предаване", title: "Приложение с наличното имущество", docName: "Опис на инвентар към договор за наем", status: "browseable" },
       { stage: "04 · Промяна", title: "Подновявате срока при съгласие", docName: "Анекс за подновяване на наем", status: "browseable" },
@@ -105,4 +106,11 @@ export const SECTOR_PACKAGES: readonly SectorPackage[] = [
 
 export function getSectorPackage(slug: string | undefined): SectorPackage | undefined {
   return SECTOR_PACKAGES.find((item) => item.slug === slug);
+}
+
+export function getSectorPackageAvailability(item: SectorPackage, canonicalNames: ReadonlySet<string>) {
+  const available = item.documents.filter((document) =>
+    document.status === "browseable" && Boolean(document.docName) && canonicalNames.has(document.docName),
+  ).length;
+  return { available, planned: item.documents.length - available };
 }

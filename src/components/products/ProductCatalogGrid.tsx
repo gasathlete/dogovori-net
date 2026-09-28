@@ -13,6 +13,7 @@ import {
   type OneTimeProductId,
 } from "@/lib/products";
 import { cn } from "@/lib/utils";
+import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
 import checkStillLife from "@/assets/product-check-still-life.jpg";
 import improveStillLife from "@/assets/product-improve-still-life.jpg";
 import negotiationStillLife from "@/assets/product-negotiation-still-life.jpg";
@@ -55,7 +56,7 @@ export function ProductCatalogGrid({ source }: { source: string }) {
   return (
     <div
       data-testid="product-catalog-grid"
-      className="grid grid-cols-2 items-stretch gap-3 sm:gap-5 lg:grid-cols-12"
+      className="grid grid-cols-1 items-stretch gap-3 sm:gap-5 lg:grid-cols-12"
     >
       {displayProducts.map((product) => {
         const Icon = PRODUCT_ICON[product.id];
@@ -70,8 +71,8 @@ export function ProductCatalogGrid({ source }: { source: string }) {
               "group flex min-w-0 flex-col overflow-hidden rounded-2xl border bg-card/45 transition-[border-color,box-shadow,transform] duration-300 motion-reduce:transition-none",
               "hover:-translate-y-0.5 hover:border-gold/50 hover:shadow-elegant motion-reduce:hover:translate-y-0",
               featured
-                ? "col-span-2 border-gold/50 ring-1 ring-gold/15 lg:col-span-6"
-                : "col-span-1 border-border/70 lg:col-span-3",
+                ? "border-gold/50 ring-1 ring-gold/15 lg:col-span-6"
+                : "border-border/70 lg:col-span-3",
             )}
           >
             <div
@@ -157,6 +158,9 @@ export function ProductCatalogGrid({ source }: { source: string }) {
             </div>
 
             <div className="mt-auto p-3 pt-4 sm:p-4 sm:pt-4">
+              {!ONE_TIME_PURCHASES_AVAILABLE && (
+                <LaunchPurchaseBanner compact className="mb-3" source="product_card" productId={product.id} />
+              )}
               <Link
                 to={ONE_TIME_PURCHASES_AVAILABLE ? product.ctaHref : productPath(product)}
                 onClick={() =>
@@ -188,7 +192,7 @@ export function ProductCatalogGrid({ source }: { source: string }) {
         );
       })}
 
-      <p className="col-span-2 text-center text-sm text-muted-foreground lg:col-span-12">
+      <p className="text-center text-sm text-muted-foreground lg:col-span-12">
         {ONE_TIME_TERMS}
       </p>
     </div>

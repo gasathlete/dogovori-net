@@ -72,7 +72,7 @@ describe("каталожна продуктова витрина", () => {
   it("извежда препоръчания продукт като широк редакционен акцент", () => {
     renderGrid();
     expect(screen.getByTestId("catalog-product-contract_improve").className).toContain(
-      "col-span-2",
+      "lg:col-span-6",
     );
     expect(screen.getAllByRole("img")).toHaveLength(3);
     expect(screen.getByAltText(/разпечатан документ/)).toBeInTheDocument();

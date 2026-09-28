@@ -8,6 +8,7 @@ import { Seo } from "@/components/Seo";
 import { breadcrumbSchema } from "@/lib/jsonLd";
 import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
 import { getKit, type KitItem } from "@/data/documentKits";
+import { FEATURED_KIT_STAGES, isFeaturedKitId, itemsForStage, type KitLifecycleStage } from "@/data/featuredKitStages";
 import { allTemplates } from "@/lib/templateIndex";
 
 export default function KitDetailPage() {
@@ -24,15 +25,19 @@ export default function KitDetailPage() {
     return m;
   }, []);
 
-  const grouped = useMemo(() => {
-    if (!kit) return { primary: [], appendix: [], companion: [] };
-    const primary = kit.items.filter((i) => i.role === "primary");
-    const appendix = kit.items.filter((i) => i.role === "appendix");
-    const companion = kit.items.filter((i) => i.role === "companion");
-    return { primary, appendix, companion };
+  const sections = useMemo(() => {
+    if (!kit) return [];
+    if (isFeaturedKitId(kit.id)) {
+      return FEATURED_KIT_STAGES[kit.id].map((stage) => ({ stage, items: itemsForStage(kit.items, stage) }));
+    }
+    return [
+      { stage: { id: "osnovni", label: "Основни документи", documentNames: [] }, items: kit.items.filter((item) => item.role === "primary") },
+      { stage: { id: "prilozheniya", label: "Приложения", documentNames: [] }, items: kit.items.filter((item) => item.role === "appendix") },
+      { stage: { id: "svurzani", label: "Свързани документи", documentNames: [] }, items: kit.items.filter((item) => item.role === "companion") },
+    ];
   }, [kit]);
   if (!kit) return <Navigate to="/komplekti" replace />;
-  const Icon = (Icons as Record<string, typeof Icons.Package>)[kit.icon] ?? Icons.Package;
+  const Icon = (Icons as unknown as Record<string, typeof Icons.Package>)[kit.icon] ?? Icons.Package;
 
   return (
     <>
@@ -94,7 +99,7 @@ export default function KitDetailPage() {
                 </div>
               </div>
             </div>
-            <LaunchPurchaseBanner className="mt-7" source="kit_detail" productId={`kit_${kit.id.replaceAll("-", "_")}`} />
+            <LaunchPurchaseBanner className="mt-7" source="kit_detail" productId={`kit_${kit.id.replace(/-/g, "_")}`} />
           </div>
         </section>
 
@@ -102,9 +107,9 @@ export default function KitDetailPage() {
           <h2 className="font-serif text-2xl font-bold">Документите в реда на ситуацията</h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">Разгледайте всеки наличен документ. Конкретният случай може да изисква различен обхват или допълнителен правен преглед.</p>
           <div className="mt-7 grid gap-8 lg:grid-cols-3">
-            <KitSection label="01 · Основна договорка" items={grouped.primary} templatesIndex={templatesIndex} />
-            <KitSection label="02 · Приложения и изпълнение" items={grouped.appendix} templatesIndex={templatesIndex} />
-            <KitSection label="03 · Следващи действия" items={grouped.companion} templatesIndex={templatesIndex} />
+            {sections.map(({ stage, items }, index) => (
+              <KitSection key={stage.id} label={`${String(index + 1).padStart(2, "0")} · ${stage.label}`} items={items} plannedItem={stage.plannedItem} templatesIndex={templatesIndex} />
+            ))}
           </div>
 
           <div className="mt-12 rounded-xl border border-gold/20 bg-gold/5 p-6">
@@ -121,13 +126,14 @@ export default function KitDetailPage() {
 }
 
 function KitSection({
-  label, items, templatesIndex,
+  label, items, plannedItem, templatesIndex,
 }: {
   label: string;
   items: KitItem[];
+  plannedItem?: KitLifecycleStage["plannedItem"];
   templatesIndex: Map<string, { slug: string }>;
 }) {
-  if (items.length === 0) return null;
+  if (items.length === 0 && !plannedItem) return null;
   return (
     <div>
       <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/80">
@@ -172,6 +178,17 @@ function KitSection({
             </li>
           );
         })}
+        {plannedItem && (
+          <li>
+            <div className="flex items-start gap-3 rounded-lg border border-dashed border-border/60 bg-card/25 px-3 py-3">
+              <Package className="mt-0.5 h-4 w-4 shrink-0 text-gold/70" />
+              <div>
+                <p className="text-sm font-medium text-foreground">{plannedItem}</p>
+                <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Планирано</p>
+              </div>
+            </div>
+          </li>
+        )}
       </ul>
     </div>
   );

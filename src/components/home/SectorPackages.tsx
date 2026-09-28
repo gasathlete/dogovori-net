@@ -2,13 +2,15 @@ import * as Icons from "@/icons";
 import { ArrowRight, FileText } from "@/icons";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
-import { SECTOR_PACKAGES } from "@/data/sectorPackages";
+import { getSectorPackageAvailability, SECTOR_PACKAGES } from "@/data/sectorPackages";
+import { allTemplates } from "@/lib/templateIndex";
 import rentImage from "@/assets/kits/kit-real-estate.jpg";
 import servicesImage from "@/assets/scenarios/sc-freelance.jpg";
 import digitalImage from "@/assets/kits/kit-digital.jpg";
 import employmentImage from "@/assets/kits/kit-employment.jpg";
 
 const IMAGES = { rentals: rentImage, services: servicesImage, digital: digitalImage, employment: employmentImage } as const;
+const CANONICAL_TEMPLATE_NAMES = new Set(allTemplates().map((entry) => entry.doc.name));
 
 export function SectorPackages() {
   return (
@@ -27,7 +29,7 @@ export function SectorPackages() {
         <div className="mt-8 grid gap-4 md:grid-cols-2">
           {SECTOR_PACKAGES.map((item) => {
             const Icon = Icons[item.icon];
-            const browseable = item.documents.filter((document) => document.status === "browseable").length;
+            const availability = getSectorPackageAvailability(item, CANONICAL_TEMPLATE_NAMES);
             return (
               <article key={item.id} className="group overflow-hidden rounded-xl border border-gold/25 bg-card/65 shadow-soft transition-colors hover:border-gold/50">
                 <div className="grid h-full sm:grid-cols-[170px_1fr]">
@@ -37,7 +39,7 @@ export function SectorPackages() {
                     <span className="absolute bottom-3 left-3 inline-flex size-10 items-center justify-center rounded-lg border border-gold/35 bg-background/85 text-gold"><Icon className="size-5" /></span>
                   </div>
                   <div className="flex min-w-0 flex-col p-5">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gold/80">{browseable} налични документа · пълен цикъл</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gold/80">{availability.available} налични · {availability.planned} планирани</p>
                     <h3 className="mt-2 font-serif text-xl font-bold text-foreground">{item.title}</h3>
                     <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.outcome}</p>
                     <div className="mt-4 flex flex-wrap gap-1.5" aria-label="Етапи">
