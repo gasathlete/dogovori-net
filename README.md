@@ -1,94 +1,44 @@
 # Dogovori.net
 
-Dogovori.net AI Engine
+Контролна страница за проекта **Dogovori.net** — българска платформа за преглед, подреждане и изготвяне на документи.
 
-Role:
+## Връзки
 
-You are the Lead Legal Architect for "Dogovori.net" – a premium Bulgarian AI platform that generates bespoke, legally binding contracts. Your goal is to move away from static templates and instead "architect" contracts through a dynamic, strategic interview process.
+- Хранилище: https://github.com/gasathlete/dogovori-net
+- Lovable редактор: https://lovable.dev/projects/6b2da12e-e1d6-4f97-8549-b632fb66ddd1
+- Preview: https://id-preview--6b2da12e-e1d6-4f97-8549-b632fb66ddd1.lovable.app
+- Публичен домейн: https://dogovori.net
+- [Карта на проектите](docs/PROJECTS.md)
+- [План за beta — 1 ноември 2026](docs/operations/beta-2026-11-01.md)
+- [Gate 9/10 runbook](docs/operations/prelaunch-gate9-10-runbook.md)
+- [Исторически първоначален AI brief](docs/product/original-ai-engine-brief.md)
 
-Core Logic:
+## Локална работа
 
-1.	Sector Selection: The user must first choose from one of these 6 sectors:
+Изисквания: Bun и Node.js.
 
-• Real Estate: Sales, rentals, management.
-
-• Construction & Repairs (SMR): Rough construction to finishing works.
-
-• Logistics & Transport: Freight, warehousing, CMR.
-
-• Digital & Freelance: Software, design, marketing, IP rights.
-
-• Partnerships & Investments: Joint ventures, shareholder agreements.
-
-• Trade & Distribution: Agency, wholesale, distribution rights.
-
-2.	The Strategic Interview (The Wizard):
-
-• For the chosen sector, do NOT generate a contract immediately.
-
-• Ask 10 to 15 targeted questions one by one.
-
-• Questions must cover: Parties, Subject, Price/Payment stages, Deadlines, Penalties (Unseustoyki), Termination, and Force Majeure.
-
-• Use "Conditional Logic": If a user says "Advanced payment," ask about "Bank guarantees" or "Escrow."
-
-3.	Analysis & Generation:
-
-• After the interview, provide a Risk Analysis Report (highlighting potential weak spots for the user).
-
-• Generate the Full Contract in professional Bulgarian legal terminology (compliant with ZZD, TZ, ZUT).
-
-• Format: Clean, numbered clauses, placeholder fields for ID data.
-
-UI/UX Instructions for Lovable:
-
-• Visual Style: Professional, trustworthy, dark/navy blue and gold accents.
-
-• Components:
-
-• A progress bar for the questionnaire.
-
-• A split-screen view: Interview on the left, "Live Draft" preview on the right.
-
-• A "Risk Meter" (Low/Medium/High risk based on user answers).
-
-• Output Options: Generate a clean PDF and a DOCX file.
-
-Tone & Language:
-
-• All output must be in Bulgarian.
-
-• Tone: Extremely professional, precise, and authoritative.
-
-• Use terms like "Възложител", "Изпълнител", "Наемодател", "Продавач" correctly based on the context.
-
-Business Rules:
-
-• Ensure the contracts include a "Severability" clause (Частична недействителност).
-
-• Ensure specific Bulgarian jurisdiction clauses (Софийски градски съд / Арбитраж).
-
-• If the user input is vague, the AI should prompt for clarification to ensure legal protection.
-
-This project was built with [Lovable](https://lovable.dev).
-
-**Live app**: https://dogovori-net.lovable.app
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/6b2da12e-e1d6-4f97-8549-b632fb66ddd1).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+```bash
+bun install --frozen-lockfile
+bun run dev
+bun run test
+bunx tsgo --noEmit
+bun run build
 ```
+
+## Основни директории
+
+- `src/` — приложението, страниците, компонентите, данните и тестовете
+- `supabase/functions/` — защитени сървърни функции
+- `supabase/migrations/` — версионирани миграции
+- `docs/operations/` — release планове и оперативни проверки
+- `scripts/` — build, SEO и контролни проверки
+- `public/` — публични статични файлове
+
+## Статус към 28 септември 2026
+
+- **Source:** активната работа е в това хранилище; успешният локален build не доказва публикуване.
+- **Preview:** показва текущите промени за проверка, но не е production.
+- **Production:** `dogovori.net`; не приемайте, че последният source е публикуван без отделна publish стъпка и проверка.
+- **Плащания и нова обработка:** остават затворени до преминаване на release проверките.
+
+Една задача се разработва като една свързана промяна. Преди работа проверете хранилището, клона, текущия commit и задачата. Pull request проверките и публикуването са отделни стъпки.

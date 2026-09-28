@@ -14,6 +14,7 @@ import { SECTORS } from "@/data/sectors";
 import { ALL_POSTS } from "@/lib/blog";
 import { allTemplates } from "@/lib/templateIndex";
 import { buildKartaSchemas } from "@/lib/seo/schemas";
+import { SECTOR_PACKAGES } from "@/data/sectorPackages";
 
 export default function SiteMapPage() {
   const templates = allTemplates();
@@ -120,6 +121,14 @@ export default function SiteMapPage() {
               );
             })}
           </div>
+        </section>
+
+        <section className="mt-10" aria-labelledby="packages-heading">
+          <h2 id="packages-heading" className="font-serif text-xl font-bold md:text-2xl">Пакети по сектор</h2>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+            <li><Link to="/paketi" className="text-sm font-semibold hover:text-gold">Всички пакети</Link></li>
+            {SECTOR_PACKAGES.map((item) => <li key={item.id}><Link to={`/paketi/${item.slug}`} className="text-sm hover:text-gold">{item.title}</Link></li>)}
+          </ul>
         </section>
 
         <section className="mt-10" aria-labelledby="blog-heading">

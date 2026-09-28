@@ -123,6 +123,16 @@ export function SeoFooter() {
                 </li>
               ))}
               <li>
+                <Link to="/paketi" className="transition-colors hover:text-gold">
+                  Пакети по сектор
+                </Link>
+              </li>
+              <li>
+                <Link to="/komplekti" className="transition-colors hover:text-gold">
+                  Комплекти по ситуация
+                </Link>
+              </li>
+              <li>
                 <Link to="/produkti" className="transition-colors hover:text-gold">
                   Всички продукти
                 </Link>

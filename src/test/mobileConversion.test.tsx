@@ -82,16 +82,16 @@ describe("hero — безплатното начало е водещо", () => {
   });
 });
 
-describe("DogovaryAI рано на началната страница", () => {
+describe("DogovaryAI в началната страница", () => {
   const home = read("src/components/home/HomeSections.tsx");
 
-  it("стои веднага след продуктовата секция и преди комплектите", () => {
+  it("стои след пакетите, комплектите и продуктовата секция", () => {
     const products = home.indexOf("<ProductsSection />");
     const ai = home.indexOf("<DogovaryAIShowcase />");
     const kits = home.indexOf("<LifeScenarios />");
     expect(products).toBeGreaterThan(-1);
+    expect(kits).toBeLessThan(products);
     expect(ai).toBeGreaterThan(products);
-    expect(ai).toBeLessThan(kits);
   });
 
   it("има точно едно място в композицията", () => {

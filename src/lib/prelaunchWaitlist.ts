@@ -20,6 +20,12 @@ export const WAITLIST_SOURCES = [
   "product_start",
   "checkout",
   "strict_unlock",
+  "package_catalog",
+  "package_detail",
+  "kit_catalog",
+  "kit_detail",
+  "product_card",
+  "plans",
   "other",
 ] as const;
 export type WaitlistSource = (typeof WAITLIST_SOURCES)[number];

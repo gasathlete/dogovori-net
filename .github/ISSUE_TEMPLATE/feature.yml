@@ -1,0 +1,29 @@
+name: Предложение за функция
+description: Предложение за конкретно подобрение в Dogovori.net
+title: "[Feature] "
+body:
+  - type: dropdown
+    id: project
+    attributes:
+      label: Проект
+      options:
+        - Dogovori.net
+    validations:
+      required: true
+  - type: textarea
+    id: need
+    attributes:
+      label: Потребителска нужда
+      description: Какъв реален проблем решава предложението?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Желан резултат
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Граници и изключения

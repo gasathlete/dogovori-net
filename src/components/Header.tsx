@@ -17,6 +17,7 @@ import { prefetchHandlers } from "@/lib/routePrefetch";
 const NAV = [
   { to: "/produkti", label: "Продукти" },
   { to: "/plans", label: "Планове" },
+  { to: "/paketi", label: "Пакети" },
   { to: "/build", label: "Изготви документ" },
   { to: "/catalog", label: "Каталог" },
   { to: "__tools__", label: "Инструменти" },
@@ -35,6 +36,7 @@ const MOBILE_PRIMARY: { to: string; label: string }[] = [
 ];
 
 const MOBILE_MORE: { to: string; label: string }[] = [
+  { to: "/paketi", label: "Пакети по сектор" },
   { to: "/catalog", label: "Каталог с шаблони" },
   { to: "/komplekti", label: "Комплекти документи" },
   { to: "__tools__", label: "Инструменти" },

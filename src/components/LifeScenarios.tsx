@@ -4,6 +4,8 @@ import { ArrowRight, Compass, ChevronDown } from "@/icons";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { LIFE_SCENARIOS } from "@/data/lifeScenarios";
 import { getKit } from "@/data/documentKits";
+import { Button } from "@/components/ui/button";
+import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
 import rentOutImage from "@/assets/scenarios/sc-rent-out.jpg";
 import buySellRealEstateImage from "@/assets/scenarios/sc-buy-sell-re.jpg";
 import startBusinessImage from "@/assets/scenarios/sc-start-biz.jpg";
@@ -47,7 +49,8 @@ const SCENARIO_IMAGE: Record<string, string> = {
   unsure: unsureImage,
 };
 
-const INITIAL_COUNT = 8;
+const FEATURED_IDS = ["rent-out", "freelance", "digital", "hire", "buy-sell-re", "vehicle"] as const;
+const FEATURED = FEATURED_IDS.map((id) => LIFE_SCENARIOS.find((scenario) => scenario.id === id)).filter((scenario): scenario is (typeof LIFE_SCENARIOS)[number] => Boolean(scenario));
 
 /**
  * "What do you want to accomplish?" — real-life scenarios entry point.
@@ -55,8 +58,9 @@ const INITIAL_COUNT = 8;
  */
 export function LifeScenarios() {
   const [expanded, setExpanded] = useState(false);
-  const visible = expanded ? LIFE_SCENARIOS : LIFE_SCENARIOS.slice(0, INITIAL_COUNT);
-  const hiddenCount = LIFE_SCENARIOS.length - INITIAL_COUNT;
+  const remaining = LIFE_SCENARIOS.filter((scenario) => !FEATURED_IDS.includes(scenario.id as (typeof FEATURED_IDS)[number]));
+  const visible = expanded ? [...FEATURED, ...remaining] : FEATURED;
+  const hiddenCount = remaining.length;
 
   return (
     <section
@@ -66,7 +70,6 @@ export function LifeScenarios() {
     >
       <div className="mb-8 max-w-2xl md:mb-10">
         <div className="eyebrow mb-3">
-          <span className="section-number font-serif text-base font-normal tracking-normal text-gold/60">03</span>
           <span className="h-px w-6 bg-gold/40" />
           <Compass className="h-3 w-3" />
           Готови комплекти
@@ -75,10 +78,10 @@ export function LifeScenarios() {
           id="scenarios-heading"
           className="font-serif text-2xl font-bold leading-[1.15] text-balance sm:text-3xl md:text-4xl lg:text-[40px]"
         >
-          Какво имате нужда, да се догов<span className="text-accent-gradient stress-accent">о</span>ри ?&nbsp;
+          Комплекти за конкретна ситуация
         </h2>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-          Изберете ситуация от ежедневието — ще получите комплект от всички нужни документи.
+          Следвайте подредените етапи и разгледайте наличните документи. Обхватът зависи от конкретния случай.
         </p>
       </div>
 
@@ -87,7 +90,7 @@ export function LifeScenarios() {
           const Icon = (Icons as any)[s.icon] ?? Icons.FileText;
           const kit = s.kitId ? getKit(s.kitId) : undefined;
           const to = s.href ?? (kit ? `/komplekti/${kit.id}` : "/komplekti");
-          const meta = kit ? `${kit.items.length} документа` : "Всички комплекти";
+           const meta = kit ? `${kit.items.length} документа в каталога` : "Всички комплекти";
           return (
             <li key={s.id} className="card-contain">
               <Link
@@ -129,17 +132,20 @@ export function LifeScenarios() {
         })}
       </ul>
 
+      <LaunchPurchaseBanner className="mt-6" source="kit_catalog" productId="kit_catalog" />
+
       <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
         {hiddenCount > 0 && (
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => setExpanded((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-gold/40 bg-gold/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-gold transition-colors hover:bg-gold/20"
+            className="min-h-11 border-gold/40 bg-gold/10 text-xs font-semibold text-gold hover:bg-gold/20"
             aria-expanded={expanded}
           >
             {expanded ? "Виж по-малко" : `Виж още ${hiddenCount} ситуации`}
             <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
-          </button>
+          </Button>
         )}
         <Link to="/komplekti" className="btn-ghost-gold normal-case tracking-normal">
           Преглед на всички комплекти <ArrowRight className="h-4 w-4" />
