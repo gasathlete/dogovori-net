@@ -56,3 +56,9 @@ The pillar guard now asserts that every one of the 35 original article slugs is 
 Resolved PR #9 conflicts by integrating main `976c494f7cb039707902d1e9acdad06471c5fdac` into the existing SEO branch. All current security code, migrations, package.json and npm lock remain unchanged. The resulting diff initially contained only the 22 SEO/content/report files.
 
 The new CI exposed an existing main Bun lock mismatch: the lock omitted nested package.json overrides. Regenerated only bun.lock with Bun 1.4.2, preserving the manifest and security constraints. The resulting change records nested docx/postcss/glob overrides and resolves docx/nanoid from 6.0.1 to the explicitly required 5.1.16; no other package entries changed. Local frozen install with scripts disabled succeeded (812 installed packages). This is installation validation, not full application validation. Complete CI must pass before merge; publication and Google indexing are still unconfirmed.
+
+## Verified merge outcome
+
+PR #9 merged as `7fe3b4cc6eabe04ff1ac3508e12acde3897299a4`. All three checks for head `1baf5c631f2cd8ab965713ae130860c6cf997004` succeeded: Tests run 36479777736, Security scan 36479777779, Build & SEO Verification 36479777718. The application suite passed 1,998 tests in 155 files, with four skipped; repeated subsets are not added to that total. Edge tests, draft type checks and the final wizard audit also succeeded.
+
+Build evidence confirms 39 published article modules, 769 sitemap URLs and 663 remaining SEO warnings (previous package: 682). These are build results, not public deployment or Google indexing measurements. No frontend deployment was initiated in this continuation; coordinated security-release/public-site verification remains outstanding. Eight of the original twelve article briefs remain unwritten.
