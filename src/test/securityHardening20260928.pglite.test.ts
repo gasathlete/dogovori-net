@@ -307,7 +307,7 @@ describe("security hardening 2026-09-28", { timeout: 120_000 }, () => {
     expect(versions.rows.length).toBe(1);
   });
 
-  it("S9 fixed: growth_snapshot refuses anon and non-staff, staff and service role allowed", async () => {
+  it("S9 reproduces and fixes: growth_snapshot refuses anon and non-staff callers", async () => {
     const pre = await fresh(false);
     const leak = await as<{ r: { ok: boolean } }>(pre, "authenticated", ALICE, `SELECT public.growth_snapshot(now(), now()) AS r`);
     expect(leak.rows[0].r.ok).toBe(true); // reproduces: postgres-owned definer → current_user guard true
