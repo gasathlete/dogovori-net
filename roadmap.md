@@ -23,3 +23,8 @@
 - [x] Скрий „Тестов период“ в header под 640 px, обнови stored shell и провери 390 px с отворено „Затвори“.
 - [x] Security audit 28.09: dependency patches, PDF.js hardening, SigningPane columns, DB hardening patch + PGlite tests, report.
 - [ ] Owner: review/apply docs/migrations/security_hardening_2026_09_28.sql, then publish (blocked on owner review).
+- [ ] Security follow-through 28.09: S12 targeted guard (no blanket revoke); S15 saved_documents/uploaded_contracts owner-forgery guard + PGlite proof.
+- [ ] Bucket size limits applied; private staging for pending partner/article media + approval publication.
+- [ ] OTP: versioned HMAC, legacy compat, timing-safe, atomic attempts/resend, body cap, no debug code; tests.
+- [ ] CSP unsafe-eval review; runtime advisories (react-router, minimatch) with exact IDs.
+- [ ] Deploy changed Edge functions (+ cors.ts consumers); report applied vs staged.
