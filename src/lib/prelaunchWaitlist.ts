@@ -88,12 +88,9 @@ export async function submitPrelaunchWaitlist(input: {
   if (args === null) return "invalid";
   let result: WaitlistResult = "unavailable";
   try {
-    // RPC още не е в генерираните типове (миграцията не е приложена).
-    const rpc = supabase.rpc as unknown as (
-      fn: string,
-      a: Record<string, unknown>,
-    ) => Promise<{ data: unknown; error: unknown }>;
-    const { data, error } = await rpc("request_prelaunch_waitlist", { ...args });
+    // Извикване през самия клиент (запазва `this`); отделена референция към
+    // `supabase.rpc` губи контекста и винаги връща „unavailable“.
+    const { data, error } = await supabase.rpc("request_prelaunch_waitlist", { ...args });
     result = !error && data === true ? "accepted" : "unavailable";
   } catch {
     result = "unavailable";
