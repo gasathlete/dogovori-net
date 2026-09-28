@@ -18,12 +18,15 @@ const SITE = "https://dogovori.net";
 // No build-date or filesystem-mtime lastmod: a fresh checkout is not a content edit.
 // Non-editorial routes omit this optional field until a reliable change ledger exists.
 const staticEntries: SitemapEntry[] = [
-  "/", "/produkti", ...ONE_TIME_PRODUCT_PATHS, "/catalog", "/paketi",
+  { loc: "/" },
+  { loc: "/produkti" },
+  ...[...ONE_TIME_PRODUCT_PATHS, "/catalog", "/paketi",
   ...SECTOR_PACKAGES.map((p) => `/paketi/${p.slug}`),
   "/komplekti", ...DOCUMENT_KITS.map((k) => `/komplekti/${k.id}`),
   "/karta", "/blog", "/tools", "/ai", "/contacts", "/terms", "/privacy", "/cookies", "/refund",
   ...CALCULATORS.map((c) => `/tools/${c.slug}`),
-].map((loc) => ({ loc }));
+  ].map((loc) => ({ loc })),
+];
 // /build, /auth, purchase/results, private routes and query variants stay out.
 const blogEntries: SitemapEntry[] = (await loadPublishedBlogPosts(resolve("src/content/blog"))).map((post) => ({
   loc: `/blog/${post.slug}`, lastmod: resolveDateModified(post),
