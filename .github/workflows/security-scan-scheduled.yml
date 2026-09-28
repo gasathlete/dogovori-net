@@ -19,13 +19,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Gitleaks below is explicitly a full-history scan.
+          fetch-depth: 0  # Full history is required by Gitleaks below.
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: "1.4.2"
 
-      # No application install needed: this scanner uses built-in modules.
+      # Built-in modules only: no application install required.
 
       - name: Run full-repo security-scan
         run: |

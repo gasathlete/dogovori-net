@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Upload } from "@/icons";
 import { useNavigate } from "react-router-dom";
+import { PENDING_BUCKETS, pendingMediaMarker } from "@/lib/pendingMedia";
 
 type Props = {
   open: boolean;
@@ -38,24 +39,23 @@ export function PartnerSubmitDialog({ open, onOpenChange, onSubmitted }: Props) 
     }
     if (!name.trim()) return toast.error("Въведете име на фирмата");
     if (!file) return toast.error("Качете лого");
-    if (file.size > 2 * 1024 * 1024) return toast.error("Логото трябва да е до 2MB");
+    if (file.size > 2.5 * 1024 * 1024) return toast.error("Логото трябва да е до 2,5 MB");
     if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) return toast.error("Файлът трябва да е изображение (PNG, JPEG или WebP)");
 
     setBusy(true);
     try {
-      const ext = file.name.split(".").pop() || "png";
+      const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
       const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+      // Частна staging кофа: логото става публично едва след одобрение.
       const { error: upErr } = await supabase.storage
-        .from("partner-logos")
+        .from(PENDING_BUCKETS.partner)
         .upload(path, file, { contentType: file.type, upsert: false });
       if (upErr) throw upErr;
-
-      const { data: pub } = supabase.storage.from("partner-logos").getPublicUrl(path);
 
       const { error: insErr } = await supabase.from("partners").insert({
         name: name.trim(),
         website_url: website.trim() || null,
-        logo_url: pub.publicUrl,
+        logo_url: pendingMediaMarker("partner", path),
         submitted_by: user.id,
         status: "pending",
       });
@@ -93,7 +93,7 @@ export function PartnerSubmitDialog({ open, onOpenChange, onSubmitted }: Props) 
           </div>
           <div>
             <Label htmlFor="p-logo" className="flex items-center gap-2">
-              <Upload className="h-4 w-4" /> Лого (PNG/SVG/JPG, до 2MB)
+              <Upload className="h-4 w-4" /> Лого (PNG, JPEG или WebP, до 2,5 MB)
             </Label>
             <Input
               id="p-logo"

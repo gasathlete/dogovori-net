@@ -94,7 +94,7 @@ function resolveSlug(docName: string): string | null {
   // article / law number — a candidate without that number is the WRONG
   // document even if the rest matches (e.g. "Акт обр. 19" must not pick
   // "акт обр. 14").
-  const numberTokens = (wanted.match(/\d+/g) || []).filter((n) => n.length >= 1);
+  const numberTokens: string[] = wanted.match(/\d+/g) ?? [];
 
   const kindPrefix = detectKindPrefix(docName);
   // Tokens belonging to the kind prefix itself (e.g. "dogovor") are too

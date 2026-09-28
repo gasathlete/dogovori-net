@@ -22,10 +22,9 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: "1.4.2"
 
-      # The scanner uses only built-in modules. Run it before any dependency
-      # installation, even when application lockfiles are out of sync.
+      # Built-in modules only: scan independently of application installation.
 
       # Custom static scan — only on files changed in this PR/push.
       # Existing findings are grandfathered; CI blocks NEW SECURITY DEFINER

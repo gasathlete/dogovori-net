@@ -1,5 +1,6 @@
 // Submit a user-authored blog article. Pro plan required.
 // Performs validation (>=300 words, image, legal category) and inserts as 'pending'.
+import { parsePendingMedia } from "../_shared/pending-media.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 
@@ -92,7 +93,9 @@ Deno.serve(async (req: Request) => {
     const errors: string[] = [];
     if (!body.title || body.title.trim().length < 8) errors.push("Заглавието трябва да е поне 8 символа.");
     if (!body.category || !ALLOWED_CATEGORIES.includes(body.category)) errors.push("Невалидна категория.");
-    if (!body.imageUrl || !/^https?:\/\//.test(body.imageUrl)) errors.push("Изисква се изображение.");
+    // Само собствен файл в частната staging кофа; публичен адрес се издава при одобрение.
+    const media = parsePendingMedia(body.imageUrl, "article");
+    if (!media || media.path.split("/")[0] !== userId) errors.push("Изисква се изображение.");
     if (!body.intro || !Array.isArray(body.sections) || body.sections.length === 0)
       errors.push("Статията трябва да има въведение и поне една секция.");
     if (!body.summary || body.summary.trim().length < 30) errors.push("Резюмето трябва да е поне 30 символа.");
