@@ -66,6 +66,11 @@ export default function PrivacyPage() {
             <td className="py-2 pr-3 align-top">email, име, предпочитания</td>
             <td className="py-2 align-top">Чл. 6, ал. 1, б. „а" — изрично съгласие, оттегляемо по всяко време</td>
           </tr>
+          <tr className="border-b border-border/30">
+            <td className="py-2 pr-3 align-top">Известие при пускане на услуга</td>
+            <td className="py-2 pr-3 align-top">имейл, избрана група услуги, версия и момент на съгласието</td>
+            <td className="py-2 align-top">Чл. 6, ал. 1, б. „а" — изрично съгласие; съхранение до 90 дни, след това автоматично ежедневно изтриване</td>
+          </tr>
           <tr>
             <td className="py-2 pr-3 align-top">Съгласия</td>
             <td className="py-2 pr-3 align-top">тип, версия, дата, IP хеш, UA</td>
