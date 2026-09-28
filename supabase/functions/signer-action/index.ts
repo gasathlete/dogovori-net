@@ -5,10 +5,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, clientIp, hashIp } from "../_shared/cors.ts";
 import { sendAppEmail } from "../_shared/transactional-email-templates/send-and-log.ts";
 
-async function sha256(s: string): Promise<string> {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
+import {
+  BodyTooLargeError, consumeAttemptAndVerify, hashOtpV2, OTP_DAILY_FAILURE_CAP, OTP_MAX_SENDS_PER_HOUR,
+  OTP_RESEND_COOLDOWN_MS, OtpConfigError, otpSecret, readBoundedJson, SIGNER_BODY_MAX_BYTES,
+  type AttemptStore,
+} from "../_shared/signing-otp.ts";
 
 function otp6(): string {
   const n = crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000;
@@ -19,9 +20,25 @@ serve(async (req) => {
   const cors = buildCors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   try {
-    const body = await req.json().catch(() => ({}));
-    const { token, action } = body as { token?: string; action?: string };
-    if (!token || !action) {
+    if (req.method !== "POST") {
+      return new Response(JSON.stringify({ error: "method_not_allowed" }), {
+        status: 405, headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+    // Таван ПРЕДИ JSON/base64 декодиране (публичен, неавтентикиран вход).
+    let body: unknown;
+    try {
+      body = await readBoundedJson(req, SIGNER_BODY_MAX_BYTES);
+    } catch (e) {
+      if (e instanceof BodyTooLargeError) {
+        return new Response(JSON.stringify({ error: "payload_too_large" }), {
+          status: 413, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+      throw e;
+    }
+    const { token, action } = (body ?? {}) as { token?: string; action?: string };
+    if (typeof token !== "string" || token.length < 16 || token.length > 200 || typeof action !== "string") {
       return new Response(JSON.stringify({ error: "invalid_input" }), {
         status: 400, headers: { ...cors, "Content-Type": "application/json" },
       });
@@ -77,71 +94,105 @@ serve(async (req) => {
     const ua = req.headers.get("user-agent") ?? null;
     const now = new Date().toISOString();
 
+    const attemptStore: AttemptStore = {
+      read: async () => {
+        const { data } = await admin.from("signing_request_signers")
+          .select("otp_attempts, otp_code_hash, otp_expires_at").eq("id", signer.id).maybeSingle();
+        return data ?? { otp_attempts: null, otp_code_hash: null, otp_expires_at: null };
+      },
+      casAttempts: async (expected, expectedHash) => {
+        let q = admin.from("signing_request_signers").update({ otp_attempts: expected + 1 })
+          .eq("id", signer.id).eq("otp_code_hash", expectedHash);
+        q = expected === 0 ? q.or("otp_attempts.is.null,otp_attempts.eq.0") : q.eq("otp_attempts", expected);
+        const { data } = await q.select("id");
+        return !!data && data.length === 1;
+      },
+    };
+    const dayAgo = new Date(Date.now() - 24 * 3600_000).toISOString();
+    const recentEvents = async (type: string, since: string) => {
+      const { count } = await admin.from("signing_audit_events").select("id", { count: "exact", head: true })
+        .eq("signer_id", signer.id).eq("event_type", type).gte("created_at", since);
+      return count ?? 0;
+    };
+    const otpFailure = async (result: string) => {
+      await admin.from("signing_audit_events").insert({
+        request_id: env.id, signer_id: signer.id, event_type: "otp_failed",
+        ip_hash: ipHash, user_agent: ua, metadata: { result },
+      });
+    };
+    let secret: string | null = null;
+    try { secret = otpSecret(); } catch { secret = null; }
+
     if (action === "send_otp") {
-      // Ограничение на повторното изпращане: всеки нов код дава нови 5 опита,
-      // затова кодове се издават най-много веднъж на 60 s и 5 пъти на час.
-      const OTP_TTL_MS = 10 * 60_000;
-      if (signer.otp_expires_at && new Date(signer.otp_expires_at).getTime() - Date.now() > OTP_TTL_MS - 60_000) {
+      if (!secret) {
+        return new Response(JSON.stringify({ error: "otp_unavailable" }), {
+          status: 503, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+      const hourAgo = new Date(Date.now() - 3600_000).toISOString();
+      const lastWindow = new Date(Date.now() - OTP_RESEND_COOLDOWN_MS).toISOString();
+      if (await recentEvents("otp_failed", dayAgo) >= OTP_DAILY_FAILURE_CAP) {
+        return new Response(JSON.stringify({ error: "otp_locked" }), {
+          status: 429, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+      if (await recentEvents("otp_sent", lastWindow) > 0) {
         return new Response(JSON.stringify({ error: "otp_resend_too_soon" }), {
           status: 429, headers: { ...cors, "Content-Type": "application/json" },
         });
       }
-      const { count: recentSends } = await admin.from("signing_audit_events")
-        .select("id", { count: "exact", head: true })
-        .eq("signer_id", signer.id).eq("event_type", "otp_sent")
-        .gte("created_at", new Date(Date.now() - 3_600_000).toISOString());
-      if ((recentSends ?? 0) >= 5) {
+      if (await recentEvents("otp_sent", hourAgo) >= OTP_MAX_SENDS_PER_HOUR) {
         return new Response(JSON.stringify({ error: "otp_resend_limit" }), {
           status: 429, headers: { ...cors, "Content-Type": "application/json" },
         });
       }
       const code = otp6();
-      const hash = await sha256(code + "|" + signer.id);
+      const hash = await hashOtpV2(code, signer.id, secret);
       const exp = new Date(Date.now() + 10 * 60_000).toISOString();
-      await admin.from("signing_request_signers").update({
+      // Атомарно: само една паралелна заявка може да смени текущия код.
+      let upd = admin.from("signing_request_signers").update({
         otp_code_hash: hash, otp_expires_at: exp, otp_attempts: 0,
         status: signer.status === "pending" || signer.status === "viewed" ? "otp_sent" : signer.status,
       }).eq("id", signer.id);
+      upd = signer.otp_expires_at ? upd.eq("otp_expires_at", signer.otp_expires_at) : upd.is("otp_expires_at", null);
+      const { data: won } = await upd.select("id");
+      if (!won || won.length !== 1) {
+        return new Response(JSON.stringify({ error: "otp_resend_too_soon" }), {
+          status: 429, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
       await admin.from("signing_audit_events").insert({
         request_id: env.id, signer_id: signer.id, event_type: "otp_sent",
         ip_hash: ipHash, user_agent: ua, metadata: { email: signer.email },
       });
-      // Send OTP email (best-effort)
       sendAppEmail(admin, "signing-otp", signer.email, {
-        idempotencyKey: `signing-otp-${signer.id}-${Date.now()}`,
+        idempotencyKey: `signing-otp-${signer.id}-${exp}`,
         templateData: { code, documentTitle: env.title },
       }).catch(() => {});
-      const debugCode = Deno.env.get("SIGNING_DEBUG_OTP") === "1" ? code : undefined;
-      return new Response(JSON.stringify({ ok: true, expires_at: exp, debug_code: debugCode }), {
+      // Кодът НИКОГА не се връща в отговора (няма debug режим).
+      return new Response(JSON.stringify({ ok: true, expires_at: exp }), {
         headers: { ...cors, "Content-Type": "application/json" },
       });
     }
 
     if (action === "verify_otp") {
-      const { code } = body as { code?: string };
-      if (!code || !signer.otp_code_hash || !signer.otp_expires_at) {
-        return new Response(JSON.stringify({ error: "no_otp" }), {
-          status: 400, headers: { ...cors, "Content-Type": "application/json" },
-        });
-      }
-      if (new Date(signer.otp_expires_at) < new Date()) {
-        return new Response(JSON.stringify({ error: "otp_expired" }), {
-          status: 410, headers: { ...cors, "Content-Type": "application/json" },
-        });
-      }
-      if ((signer.otp_attempts ?? 0) >= 5) {
-        return new Response(JSON.stringify({ error: "too_many_attempts" }), {
+      const { code } = body as { code?: unknown };
+      if (await recentEvents("otp_failed", dayAgo) >= OTP_DAILY_FAILURE_CAP) {
+        return new Response(JSON.stringify({ error: "otp_locked" }), {
           status: 429, headers: { ...cors, "Content-Type": "application/json" },
         });
       }
-      const hash = await sha256(String(code) + "|" + signer.id);
-      if (hash !== signer.otp_code_hash) {
-        await admin.from("signing_request_signers")
-          .update({ otp_attempts: (signer.otp_attempts ?? 0) + 1 }).eq("id", signer.id);
-        return new Response(JSON.stringify({ error: "otp_mismatch" }), {
-          status: 401, headers: { ...cors, "Content-Type": "application/json" },
+      const r = await consumeAttemptAndVerify(attemptStore, signer.id, code, secret);
+      if (r !== "ok") {
+        if (r === "otp_invalid") await otpFailure(r);
+        return new Response(JSON.stringify({ error: r }), {
+          status: r === "otp_locked" ? 429 : r === "otp_required" ? 400 : 401,
+          headers: { ...cors, "Content-Type": "application/json" },
         });
       }
+      // Успешната проверка не изразходва кода; подписът го изисква отново.
+      await admin.from("signing_request_signers").update({ otp_attempts: 0 })
+        .eq("id", signer.id);
       await admin.from("signing_audit_events").insert({
         request_id: env.id, signer_id: signer.id, event_type: "otp_verified",
         ip_hash: ipHash, user_agent: ua,
@@ -215,29 +266,19 @@ serve(async (req) => {
 
       // OTP се проверява ПРЕДИ всяка работа с хранилището и с общия лимит от
       // 5 опита (иначе стъпката „sign“ позволява неограничено налучкване).
-      if (!signer.otp_code_hash || !signer.otp_expires_at) {
-        return new Response(JSON.stringify({ error: "otp_required" }), {
-          status: 400, headers: { ...cors, "Content-Type": "application/json" },
-        });
-      }
-      if ((signer.otp_attempts ?? 0) >= 5) {
+      if (await recentEvents("otp_failed", dayAgo) >= OTP_DAILY_FAILURE_CAP) {
         return new Response(JSON.stringify({ error: "otp_locked" }), {
           status: 429, headers: { ...cors, "Content-Type": "application/json" },
         });
       }
-      if (new Date(signer.otp_expires_at) < new Date()) {
-        return new Response(JSON.stringify({ error: "otp_invalid" }), {
-          status: 401, headers: { ...cors, "Content-Type": "application/json" },
-        });
-      }
-      const otpHash = await sha256(String(otp_code ?? "") + "|" + signer.id);
-      if (otpHash !== signer.otp_code_hash) {
-        // Атомарно увеличение само ако броячът не е променен паралелно.
-        await admin.from("signing_request_signers")
-          .update({ otp_attempts: (signer.otp_attempts ?? 0) + 1 })
-          .eq("id", signer.id).eq("otp_attempts", signer.otp_attempts ?? 0);
-        return new Response(JSON.stringify({ error: "otp_invalid" }), {
-          status: 401, headers: { ...cors, "Content-Type": "application/json" },
+      const hashAtCheck = (await attemptStore.read()).otp_code_hash;
+      const otpResult = await consumeAttemptAndVerify(attemptStore, signer.id, otp_code, secret);
+      if (otpResult !== "ok" || !hashAtCheck) {
+        if (otpResult === "otp_invalid") await otpFailure(otpResult);
+        const err = otpResult === "ok" ? "otp_required" : otpResult;
+        return new Response(JSON.stringify({ error: err }), {
+          status: err === "otp_locked" ? 429 : err === "otp_required" ? 400 : 401,
+          headers: { ...cors, "Content-Type": "application/json" },
         });
       }
 
@@ -256,6 +297,12 @@ serve(async (req) => {
         if (!ALLOWED_EXT.test(qes_file_name)) {
           return new Response(JSON.stringify({ error: "qes_file_type" }), {
             status: 400, headers: { ...cors, "Content-Type": "application/json" },
+          });
+        }
+        // Таван върху base64 дължината ПРЕДИ декодиране (15 MB файл ≈ 20 MB base64).
+        if (typeof qes_file_base64 !== "string" || qes_file_base64.length > Math.ceil(15 * 1024 * 1024 / 3) * 4) {
+          return new Response(JSON.stringify({ error: "qes_file_too_large" }), {
+            status: 413, headers: { ...cors, "Content-Type": "application/json" },
           });
         }
         let bytes: Uint8Array;
@@ -311,7 +358,7 @@ serve(async (req) => {
       })
         .eq("id", signer.id)
         // Атомарно: същият OTP не може да подпише два пъти при паралелни заявки.
-        .eq("otp_code_hash", signer.otp_code_hash)
+        .eq("otp_code_hash", hashAtCheck)
         .neq("status", "signed")
         .select("id");
       if (!signedRows || signedRows.length === 0) {
