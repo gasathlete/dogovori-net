@@ -1,4 +1,5 @@
 import { getTemplateDiscoveryProfile } from "../src/lib/templateDiscovery";
+import { CONTACT_EMAIL, CONTACT_COMPANY, CONTACT_EIK, CONTACT_ADDRESS } from "../src/data/contactPublicInfo";
 import { renderTemplatePreparation } from "./lib/templateDiscovery";
 import { loadPublishedBlogPosts } from "./lib/blogContent";
 import { resolveDateModified, hasVerifiedSources } from "../src/lib/blogEditorial";
@@ -203,6 +204,14 @@ function bodyForTemplate(
 
 
 const pages: PageMeta[] = [];
+
+pages.push({
+  path: "/contacts",
+  title: "Контакти | Dogovori.net",
+  description: "Официални канали за връзка с Dogovori.net — поддръжка, GDPR права, сигурност, правни съобщения и рекламации.",
+  bodyHtml: `<main><h1>Контакти</h1><h2>Търговец</h2><p>${escapeHtml(CONTACT_COMPANY)}</p><p>ЕИК: ${escapeHtml(CONTACT_EIK)}</p><p>${escapeHtml(CONTACT_ADDRESS)}</p><h2>Канали за връзка</h2><p>Обща поддръжка, защита на личните данни, сигурност, правни съобщения и рекламации.</p><p>Посочете темата на писмото си: <a href="mailto:${escapeHtml(CONTACT_EMAIL)}">${escapeHtml(CONTACT_EMAIL)}</a>.</p><p><a href="/provider-info">Информация за доставчика</a> · <a href="/privacy">Политика за поверителност</a></p></main>`,
+  jsonLd: [{ "@context": "https://schema.org", "@type": "ContactPage", url: `${SITE}/contacts`, name: "Контакти" }],
+});
 
 pages.push(...buildCollectionPages(allTemplates()));
 
