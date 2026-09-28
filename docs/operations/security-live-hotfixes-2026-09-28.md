@@ -48,7 +48,7 @@ Public legal_sources currently contains 21 active BG law/code sources (13 laws, 
 
 Broader report: docs/operations/security-hardening-2026-09-28.md (in progress at the time this note was recorded).
 
-## Live checkpoint — 2026-09-28 18:13 UTC
+## Live checkpoint — 2026-09-28 18:08 UTC
 
 Root has now applied the independently reviewed S1–S8 portion (only) of `docs/migrations/security_hardening_2026_09_28.sql`. All referenced columns and existing column ACLs were checked against production; client call sites were reviewed. Production metadata verifies: client charge-ledger INSERT false; signer-status UPDATE false; team seat_count UPDATE false; profile assistant counter UPDATE false; consent UPDATE false. Allowed profile name/team name edits and envelope cancellation column remain granted; service_role signer and membership INSERT/UPDATE remain granted. Cancellation is further constrained by the new trigger. No customer rows were modified.
 
@@ -71,3 +71,11 @@ S9 growth is already live as recorded below. S10's two additional RPCs, S11 loya
 A read-only negative test using SET LOCAL ROLE in a SQL DO block returned API499/request_cancelled. It is NOT a passed live test. Permission/definition metadata reads did succeed; isolated PGlite tests are separate evidence.
 
 No security frontend/Edge deployment has yet been performed by root. Shared main also contains a separate SEO change; preserve it during release coordination.
+
+## Further root verification
+
+- **S11 loyalty is now LIVE:** root reviewed and applied the two replacement functions from the staged patch. Metadata verifies authenticated EXECUTE retained, anon denied, canonical download_quota/team_usage counters used, and no `IF _total_ops >=` browser-trusting comparison. No function was invoked for an actual user and no historical award was rewritten.
+- Storage preflight (aggregate only): 57 uploaded rows have storage paths and 0 violate the owner prefix/path checks; saved_documents has 0 storage_path entries. This is a compatibility preflight, not a test of the future guards.
+- Root found an additional CORS suffix issue in the addendum: `attacker--<project-id>.lovable.app` matched the suffix rule. Code commit `2808710c68d1fc31fc664ebaf1d497faf94272e9` uses exact project hosts and checks a syntactically exact origin. Regression tests committed in `8e4ce6ea084f12a93a38a68c18cd2d0c8470645b` cover this bypass. Root separately ran 4 accepted + 7 rejected origin assertions against the changed helper after stripping only its two TypeScript signatures. Passed. Full Deno/CI/deployment remains to follow. Preserve this stricter helper when deploying all consumers.
+- A direct read-only HEAD request from root's local runtime returned URLError; it is NOT evidence that production headers passed or failed. Check actual served HTTP headers from an available network runtime after deployment.
+- Separate draft PR #8 (`security/anti-hack-shield-20260928`) supplies scanner coverage and public-header regression/probe tooling; it is not merged by root. Preserve it and distinguish its independent scanner successes from application CI, which still needs coherent frozen locks.
