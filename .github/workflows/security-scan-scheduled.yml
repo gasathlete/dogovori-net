@@ -25,8 +25,7 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install deps
-        run: bun install --frozen-lockfile
+      # No application install needed: this scanner uses built-in modules.
 
       - name: Run full-repo security-scan
         run: |

@@ -24,8 +24,8 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install deps
-        run: bun install --frozen-lockfile
+      # The scanner uses only built-in modules. Run it before any dependency
+      # installation, even when application lockfiles are out of sync.
 
       # Custom static scan — only on files changed in this PR/push.
       # Existing findings are grandfathered; CI blocks NEW SECURITY DEFINER
