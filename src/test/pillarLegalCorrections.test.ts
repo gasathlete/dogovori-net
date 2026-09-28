@@ -54,9 +54,46 @@ const PROTOCOL_TEXT = [
 ].join("\n");
 
 describe("pillar posts: preserved identity and URLs", () => {
-  it("keeps the article count and every slug", () => {
-    expect(ALL_POSTS.length).toBe(35);
-    expect(new Set(ALL_POSTS.map((p) => p.slug)).size).toBe(35);
+  it("preserves every existing article URL while allowing approved new guides", () => {
+    const legacySlugs = [
+  "brachen-dogovor-balgaria",
+  "ddt-i-dogovor-grazhdanski",
+  "deklaracia-patuvane-dete-chuzhbina",
+  "dogovor-za-darenie",
+  "dogovor-za-deystvitelnost-prikazka",
+  "dogovor-za-frenchayz",
+  "dogovor-za-izrabotka-zzd",
+  "dogovor-za-poruchka",
+  "dogovor-za-prodazhba-na-avtomobil",
+  "dogovor-za-prodazhba-na-firma",
+  "dogovor-za-stroitelstvo-fidic",
+  "dogovor-za-uslugi-mezhdu-firmi",
+  "dogovor-za-zaem-mezhdu-fizicheski-litsa",
+  "dogovor-za-zaem-na-vesht",
+  "garantsia-na-stoka",
+  "gdpr-za-malki-firmi",
+  "grazhdanski-dogovor-vs-trudov-dogovor",
+  "izdrazhka-detsa-razvod",
+  "kak-da-napravim-dogovor-za-naem",
+  "kak-da-osporim-glob",
+  "kak-da-prekratim-dogovor-za-naem",
+  "kak-se-vadi-pik-ot-nap",
+  "molba-za-napuskane-rakovodstvo",
+  "nda-spogodba-za-poveritelnost",
+  "neustojka-v-dogovor",
+  "obshti-uslovia-onlayn-magazin",
+  "platen-godishen-otpusk-rakovodstvo",
+  "podpis-elektronen-zes",
+  "politika-za-poveritelnost-shablon",
+  "predizvestie-uvolnenie",
+  "predvaritelen-dogovor-za-pokupka-na-imot",
+  "pulnomoshtno-vidove-obrazci",
+  "trudov-dogovor-osnovni-elementi",
+  "ucheniecheski-dogovor-stipendia",
+  "vrushtane-na-stoka-online"
+];
+    expect(ALL_POSTS.map((p) => p.slug)).toEqual(expect.arrayContaining(legacySlugs));
+    expect(new Set(ALL_POSTS.map((p) => p.slug)).size).toBe(ALL_POSTS.length);
     expect(ALL_POSTS.every((p) => p.publishedAt.match(/^\d{4}-\d{2}-\d{2}$/))).toBe(true);
   });
 

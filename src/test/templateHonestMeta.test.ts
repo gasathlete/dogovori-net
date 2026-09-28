@@ -65,7 +65,7 @@ describe("Organic 2 — точни overrides за трите high-intent slug-а
   });
 
   it("overrides се прилагат в Template.tsx за title и description, без да пипат H1", () => {
-    expect(templateSrc).toMatch(/const metaOverride = getSeoTemplateMeta\(entry\.slug\);/);
+    expect(templateSrc).toMatch(/const metaOverride = getSeoTemplateMeta\(entry\.slug\) \?\? discovery;/);
     expect(templateSrc).toMatch(
       /const pageTitle = metaOverride\?\.title \?\? `\$\{doc\.name\} — образец на български`;/,
     );
