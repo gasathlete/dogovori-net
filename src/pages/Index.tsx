@@ -19,8 +19,8 @@ const Index = () => {
   }, [location]);
 
 
-
-  // Връзките към каталога го зареждат при посочване/докосване (PrefetchLink).
+  // Каталогът не се зарежда предварително от началната страница; връзките към
+  // него го зареждат при посочване/докосване (PrefetchLink).
 
   // Bridge legacy event name to the global DogovAI bubble
   useEffect(() => {

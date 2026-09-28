@@ -9,7 +9,7 @@ import digitalImage from "@/assets/kits/kit-digital.jpg";
 import employmentImage from "@/assets/kits/kit-employment.jpg";
 
 const IMAGES = { rentals: rentImage, services: servicesImage, digital: digitalImage, employment: employmentImage } as const;
-// Началната страница не зарежда каталожния chunk (~160 KB, ~43 KB gzip): броим декларираните
+// Началната страница не зарежда каталожния chunk (~43 KB gzip): броим декларираните
 // позиции, а тестът sectorPackageAvailability гарантира, че всяко име
 // съществува в каноничния каталог, така че броят не може тихо да се размине.
 
