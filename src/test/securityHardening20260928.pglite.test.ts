@@ -214,7 +214,7 @@ describe("security hardening 2026-09-28", { timeout: 120_000 }, () => {
     expect(foreign.rows.length).toBe(0);
   });
 
-  it("S2 reproduces: envelope owner reads OTP hash and marks the signer as signed", async () => {
+  it("S2 reproduces: envelope owner forges signer status (synthetic base only; production OTP hash SELECT was already denied)", async () => {
     const db = await fresh(false);
     const r = await as<{ otp_code_hash: string }>(db, "authenticated", ALICE, `SELECT otp_code_hash FROM public.signing_request_signers`);
     expect(r.rows[0].otp_code_hash).toBe("hash");
