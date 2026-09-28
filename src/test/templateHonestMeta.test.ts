@@ -198,10 +198,11 @@ describe("Organic 2 — prerender заглавия", () => {
     ).toBe("Молба за напускане по чл. 326 — Word/PDF образец");
   });
 
-  it("генеричните заглавия запазват суфикса | Dogovori.net", () => {
+  it("генеричните заглавия съвпадат с runtime без допълнителен брандов суфикс", () => {
     expect(prerenderTitle(undefined, { name: "Разписка" })).toBe(
-      "Разписка — образец на български | Dogovori.net",
+      "Разписка — образец на български",
     );
+    expect(templateSrc).toContain('`${doc.name} — образец на български`');
   });
 });
 

@@ -3,6 +3,7 @@
  */
 import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
+import { PRODUCTS_SEO } from "@/lib/products";
 import { SeoFooter } from "@/components/SeoFooter";
 import { ProductShowcaseCarousel } from "@/components/products/ProductShowcaseCarousel";
 import { ProductComparisonList } from "@/components/products/ProductComparisonList";
@@ -51,8 +52,8 @@ export default function Products() {
   return (
     <>
       <Seo
-        title="Продукти — проверка на договор, поправка и подготовка за преговори"
-        description="Три еднократни продукта за един документ: подробна проверка преди подпис, конкретна поправка на текста и пълен пакет за преговори. Плащате веднъж, без абонамент."
+        title={PRODUCTS_SEO.title}
+        description={PRODUCTS_SEO.description}
         canonical="/produkti"
         jsonLd={jsonLd}
       />
