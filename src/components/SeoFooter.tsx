@@ -166,13 +166,13 @@ export function SeoFooter() {
 
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-border/40 py-6 text-xs text-muted-foreground">
           <div>© {new Date().getFullYear()} Dogovori.net · Изготвените договори не заместват консултация с адвокат.</div>
-          <nav className="flex flex-wrap gap-x-4 gap-y-1">
-            <Link to="/terms" className="hover:text-gold">Общи условия</Link>
-            <Link to="/privacy" className="hover:text-gold">Поверителност</Link>
-            <Link to="/cookies" className="hover:text-gold">Бисквитки</Link>
-            <Link to="/refund" className="hover:text-gold">Възстановяване</Link>
-            <Link to="/blog" className="hover:text-gold">Блог</Link>
-            <Link to="/contacts" className="hover:text-gold">Контакти</Link>
+          <nav aria-label="Правна информация" className="flex flex-wrap gap-x-4">
+            <Link to="/terms" className="inline-flex min-h-11 items-center hover:text-gold">Общи условия</Link>
+            <Link to="/privacy" className="inline-flex min-h-11 items-center hover:text-gold">Поверителност</Link>
+            <Link to="/cookies" className="inline-flex min-h-11 items-center hover:text-gold">Бисквитки</Link>
+            <Link to="/refund" className="inline-flex min-h-11 items-center hover:text-gold">Възстановяване</Link>
+            <Link to="/blog" className="inline-flex min-h-11 items-center hover:text-gold">Блог</Link>
+            <Link to="/contacts" className="inline-flex min-h-11 items-center hover:text-gold">Контакти</Link>
           </nav>
         </div>
       </div>

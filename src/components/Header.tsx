@@ -162,10 +162,11 @@ export function Header() {
                   ? `Профил (${unreadCount} непрочетени известия)`
                   : "Профил"
               }
-              className="relative inline-flex h-10 items-center gap-2 rounded-lg border border-gold/30 bg-gold/[0.08] px-4 text-[13px] font-semibold tracking-wide text-gold transition-colors hover:border-gold/50 hover:bg-gold/15"
+              className="relative hidden h-11 min-w-11 items-center justify-center gap-2 rounded-lg border border-gold/30 bg-gold/[0.08] px-4 text-[13px] font-semibold tracking-wide text-gold transition-colors hover:border-gold/50 hover:bg-gold/15"
             >
+              {/* Под 640px профилът е в долната навигация — тук не се дублира. */}
               <UserIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">Профил</span>
+              <span>Профил</span>
               {unreadCount > 0 && (
                 <span
                   aria-hidden="true"
