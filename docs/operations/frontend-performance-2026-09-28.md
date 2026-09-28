@@ -5,7 +5,7 @@
 ## Метод (възпроизводим)
 - `bun run build` → `bunx vite preview --port 4173 --strictPort` (локален production build, не live сайт).
 - Lighthouse 12 (npm, локално в /tmp), Chromium headless, само категория Performance; mobile = стандартен симулиран throttling, desktop = `--preset=desktop`; 3 пуска на маршрут и форма, медиана.
-- Скрипт: `LH=<lighthouse> bash scripts/perf/lighthouse-median.sh <label> / /paketi`; сурови резултати: `reports/perf/before/runs.jsonl`, `reports/perf/after/runs.jsonl`.
+- Скрипт: `LH=<lighthouse> bash scripts/perf/lighthouse-median.sh <label> / /paketi`; сурови резултати: `reports/perf/before/runs.jsonl`, `reports/perf/after/runs.jsonl`, `reports/perf/final/runs.jsonl`, `reports/perf/final-fonts/runs.jsonl`. Скриптът занулява целевия файл, използва нова временна директория и спира при Lighthouse грешка/непълен JSON — не може да отчете стар `/tmp` резултат.
 - Ограничения: локална машина/sandbox, не реално устройство и не CDN; Lighthouse не скролва, затова ленивите секции са мерени отделно с Playwright (скрол CLS, височини, заявки).
 
 ## Преди → след (медиана от 3)
@@ -84,3 +84,28 @@ Playwright, скрол на началната до края (layout-shift по 
 - `bunx vitest run`: 1971 passed, 0 failed, 0 skipped.
 - Server тестове с командата от CI: 995 passed, 0 failed. Пускането на цялата папка с `deno test -A` дава 10 провала в тестове извън CI набора; те не са засегнати от тази работа.
 - `bunx tsgo --noEmit -p tsconfig.app.json` и `bun run build` (SEO проверката) минаха.
+
+## Финален проход (от eafaca6e)
+
+### Шрифтове и начални заявки
+- Преди: 10 статични WOFF2 файла в build-а — IBM Plex Sans 400/500/600/700 поотделно за кирилица и латиница, плюс Libre Baskerville 400/700.
+- След: същите семейства и реални тегла 400–700 чрез variable WOFF2. На българската начална страница браузърът реално заявява 3 файла: IBM Plex Sans кирилица + латиница и Libre Baskerville normal. Italic Libre Baskerville остава наличен и се заявява само когато е нужен.
+- Lighthouse transfer total намалява с 86 KB на `/` (697→611 KB) и 85 KB на `/paketi` (661→576 KB). JS и изображенията са непроменени; спестяването е от шрифтове. Празният `BetaDisclaimerModal` вече не се монтира/изтегля след idle; самият no-op файл остава непроменен.
+
+### Финални резултати — Lighthouse 12.8.2, същият production-preview режим
+Медиана от 3; сурови редове: `reports/perf/final-fonts/runs.jsonl`.
+
+| Страница | Устр. | Score | FCP ms | LCP ms | TBT ms | CLS | JS KB | Img KB | Total KB |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `/` | телефон | 79 | 3405 | 3603 | 234 | 0 | 338 | 67 | 611 |
+| `/paketi` | телефон | 84 | 3392 | 3429 | 67 | 0 | 384 | 24 | 576 |
+| `/` | desktop | 99 | 671 | 733 | 0 | 0.001 | 357 | 84 | 646 |
+| `/paketi` | desktop | 99 | 667 | 711 | 0 | 0.001 | 402 | 33 | 604 |
+
+Спрямо втория проход: `/` mobile 77→79 и LCP 3911→3603 ms; `/paketi` mobile 79→84 и LCP 3951→3429 ms. Целта ≥90 / LCP<2,5 s все още **не е достигната**; няма скрити елементи или метрики от неуспешен audit. Един от трите `/` пуска е по-бавен (score 60, LCP 5777, CLS 0.091), затова суровите три пуска са запазени, а не премахнати.
+
+### Финални визуални и build проверки
+- При 320/390/768/1280 px същите шрифтови семейства се изчисляват и няма хоризонтално преливане. При 390 px значката „Тестов период“ вече е скрита, логото е четимо, а отвореният бутон „Затвори“ е 44 px и не се застъпва. От 640 px значката се показва. Доказателство: `docs/operations/screenshots/auth-header-390-final.png`.
+- Stored shell е прихванат наново със същия `sm:inline-flex`. `src/test/homeShell.test.ts` пази текста/CTA/poster parity и mobile badge класа.
+- `scripts/verify-build.ts` проверява всяка локална image/font препратка от stored shell и построения `/index.html`; финалният build потвърди 3/18 съществуващи локални ресурса.
+- Проверки са локални, не GitHub CI. Известните 10 провала от non-CI пускането на цялата server test папка остават отделни и не са препускани в този фокусиран frontend проход.

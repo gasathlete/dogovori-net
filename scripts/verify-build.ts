@@ -18,6 +18,22 @@ const required = [
   { path: "index.html", minBytes: 500, mustContain: "<html" },
 ];
 
+function localAssetPaths(source: string): string[] {
+  const paths = new Set<string>();
+  const add = (raw: string) => {
+    const clean = raw.trim().split(/[?#]/, 1)[0];
+    if (clean.startsWith("/assets/") || clean.startsWith("/hero/") || clean.startsWith("assets/")) {
+      paths.add(clean.replace(/^\//, ""));
+    }
+  };
+  for (const match of source.matchAll(/\b(?:src|href)="([^"]+)"/g)) add(match[1]);
+  for (const match of source.matchAll(/\bsrcset="([^"]+)"/g)) {
+    for (const candidate of match[1].split(",")) add(candidate.trim().split(/\s+/, 1)[0]);
+  }
+  for (const match of source.matchAll(/url\((?:"|')?([^"')]+)(?:"|')?\)/g)) add(match[1]);
+  return [...paths];
+}
+
 let failed = false;
 for (const f of required) {
   const full = resolve(DIST, f.path);
@@ -49,6 +65,27 @@ for (const f of required) {
     }
   }
   console.log(`✓ dist/${f.path} (${size} bytes)`);
+}
+
+// The stored home shell is copied into production HTML. Fail the build if a
+// local image or hashed font/image URL embedded by the shell/CSS is absent.
+const shellPath = resolve(process.cwd(), "scripts/generated/home-shell.html");
+const homePath = resolve(DIST, "index.html");
+for (const [label, sourcePath] of [["stored home shell", shellPath], ["built home HTML", homePath]] as const) {
+  if (!existsSync(sourcePath)) {
+    console.error(`✗ MISSING: ${sourcePath}`);
+    failed = true;
+    continue;
+  }
+  const source = readFileSync(sourcePath, "utf8");
+  const assets = localAssetPaths(source);
+  for (const asset of assets) {
+    if (!existsSync(resolve(DIST, asset))) {
+      console.error(`✗ ${label} references missing local asset: /${asset}`);
+      failed = true;
+    }
+  }
+  console.log(`✓ ${label}: ${assets.length} local image/font asset reference(s) exist`);
 }
 
 // ---------------------------------------------------------------------------

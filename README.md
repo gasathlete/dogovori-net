@@ -13,7 +13,7 @@
 - [Gate 9/10 runbook](docs/operations/prelaunch-gate9-10-runbook.md)
 - [Тестов месец — release отчет](docs/operations/test-month-release-2026-09-28.md)
 - [Статус: Пакети и комплекти](docs/operations/sector-packages-2026-09-28.md)
-- [Фронтенд производителност 28.09.2026](docs/operations/frontend-performance-2026-09-28.md) — втори проход: телефон `/` 60→77, LCP 6,1→3,9 s (локален Lighthouse, не production)
+- [Фронтенд производителност 28.09.2026](docs/operations/frontend-performance-2026-09-28.md) — финален source проход: телефон `/` 60→79, LCP 6,1→3,6 s; `/paketi` 64→84, LCP 5,6→3,4 s (локален Lighthouse, не production; целта <2,5 s не е достигната)
 - [Исторически първоначален AI brief](docs/product/original-ai-engine-brief.md)
 
 ## Локална работа

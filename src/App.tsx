@@ -72,9 +72,6 @@ const PrelaunchWaitlistDialog = reactLazy(() =>
 const Sonner = reactLazy(() =>
   import("@/components/ui/sonner").then((m) => ({ default: m.Toaster })),
 );
-const BetaDisclaimerModal = reactLazy(() =>
-  import("@/components/BetaDisclaimerModal").then((m) => ({ default: m.BetaDisclaimerModal })),
-);
 const ExitIntentLeadMagnet = reactLazy(() =>
   import("@/components/funnel/ExitIntentLeadMagnet").then((m) => ({ default: m.ExitIntentLeadMagnet })),
 );
@@ -268,7 +265,6 @@ function DeferredOverlays() {
     <Suspense fallback={null}>
       <PaymentTestModeBanner />
       <CookieBanner />
-      <BetaDisclaimerModal />
       <UsernamePrompt />
       <GlobalProUpgradeListener />
       {/* Only one floating helper — the DogovAI bubble. */}
