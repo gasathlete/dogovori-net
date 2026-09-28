@@ -531,20 +531,67 @@ REVOKE EXECUTE ON FUNCTION public.award_team_loyalty(uuid, integer) FROM PUBLIC,
 GRANT EXECUTE ON FUNCTION public.award_user_loyalty(integer) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.award_team_loyalty(uuid, integer) TO authenticated, service_role;
 
--- S12 (high) shared_links: owner could rewrite counterparty-signature, signed
--- PDF path, QES and token columns. Links are created only by the
--- create-share-link function (service role). Clients keep SELECT on their own
--- rows and may only (a) owner-sign once, (b) revoke. Target ownership is also
--- enforced server-side in get-/sign-shared-document.
-DROP POLICY IF EXISTS shared_links_insert_own ON public.shared_links;
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.shared_links FROM PUBLIC, anon, authenticated;
-GRANT UPDATE (owner_signed_at, owner_signature, owner_signer_name, revoked_at)
-  ON public.shared_links TO authenticated;
+-- S12 (high) shared_links: owner could write counterparty-signature, signed
+-- PDF, QES, view and token columns. Automatic review REJECTED a blanket client
+-- INSERT/UPDATE revocation, so this is a targeted guard instead:
+--   * client INSERT stays allowed (policy + grants unchanged) but server-only
+--     evidence columns must be empty;
+--   * client UPDATE may change ONLY owner_signed_at/owner_signature/
+--     owner_signer_name (once) and revoked_at (once);
+--   * service_role / definer paths (create-share-link, sign-shared-document,
+--     get-shared-document) are not affected.
+-- The ownership WITH CHECK below is byte-equivalent to the live hotfix
+-- (docs/operations/security-live-hotfixes-2026-09-28.md); re-applying is a no-op.
+ALTER POLICY shared_links_insert_own ON public.shared_links WITH CHECK ((auth.uid() = owner_id) AND (
+(document_id IS NOT NULL AND uploaded_contract_id IS NULL AND EXISTS (
+SELECT 1 FROM public.saved_documents d WHERE d.id = shared_links.document_id AND d.user_id = auth.uid()
+))
+OR
+(uploaded_contract_id IS NOT NULL AND document_id IS NULL AND EXISTS (
+SELECT 1 FROM public.uploaded_contracts u WHERE u.id = shared_links.uploaded_contract_id AND u.user_id = auth.uid()
+AND (u.storage_path IS NULL OR split_part(u.storage_path, '/', 1) = u.user_id::text)
+))
+));
+ALTER POLICY shared_links_update_own ON public.shared_links WITH CHECK ((auth.uid() = owner_id) AND (
+(document_id IS NOT NULL AND uploaded_contract_id IS NULL AND EXISTS (
+SELECT 1 FROM public.saved_documents d WHERE d.id = shared_links.document_id AND d.user_id = auth.uid()
+))
+OR
+(uploaded_contract_id IS NOT NULL AND document_id IS NULL AND EXISTS (
+SELECT 1 FROM public.uploaded_contracts u WHERE u.id = shared_links.uploaded_contract_id AND u.user_id = auth.uid()
+AND (u.storage_path IS NULL OR split_part(u.storage_path, '/', 1) = u.user_id::text)
+))
+));
 
-CREATE OR REPLACE FUNCTION public.shared_links_client_update_guard()
+DROP TRIGGER IF EXISTS trg_shared_links_client_update_guard ON public.shared_links;
+DROP FUNCTION IF EXISTS public.shared_links_client_update_guard();
+CREATE OR REPLACE FUNCTION public.shared_links_client_guard()
 RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
+DECLARE
+  _allowed constant text[] := ARRAY['owner_signed_at','owner_signature','owner_signer_name','revoked_at'];
+  _server_only constant text[] := ARRAY['viewed_at','signed_at','signed_signature','signer_name','signer_ip_hash',
+    'signed_pdf_path','signature_method','qes_file_path','qes_file_name','qes_file_mime','qes_file_size'];
+  _k text;
+  _n jsonb;
+  _o jsonb;
 BEGIN
   IF current_user NOT IN ('authenticated', 'anon') THEN RETURN NEW; END IF;
+  _n := to_jsonb(NEW);
+  IF TG_OP = 'INSERT' THEN
+    FOREACH _k IN ARRAY _server_only LOOP
+      IF _n ? _k AND _n->_k <> 'null'::jsonb THEN
+        RAISE EXCEPTION 'shared_link_server_field' USING ERRCODE = '42501';
+      END IF;
+    END LOOP;
+    IF NEW.revoked_at IS NOT NULL OR NEW.owner_signed_at IS NOT NULL THEN
+      RAISE EXCEPTION 'shared_link_server_field' USING ERRCODE = '42501';
+    END IF;
+    RETURN NEW;
+  END IF;
+  _o := to_jsonb(OLD);
+  IF (_n - _allowed) IS DISTINCT FROM (_o - _allowed) THEN
+    RAISE EXCEPTION 'shared_link_column_immutable' USING ERRCODE = '42501';
+  END IF;
   IF OLD.owner_signed_at IS NOT NULL AND (
        NEW.owner_signed_at IS DISTINCT FROM OLD.owner_signed_at
     OR NEW.owner_signature IS DISTINCT FROM OLD.owner_signature
@@ -556,11 +603,11 @@ BEGIN
   END IF;
   RETURN NEW;
 END $$;
-REVOKE EXECUTE ON FUNCTION public.shared_links_client_update_guard() FROM PUBLIC, anon, authenticated;
-DROP TRIGGER IF EXISTS trg_shared_links_client_update_guard ON public.shared_links;
-CREATE TRIGGER trg_shared_links_client_update_guard
-  BEFORE UPDATE ON public.shared_links
-  FOR EACH ROW EXECUTE FUNCTION public.shared_links_client_update_guard();
+REVOKE EXECUTE ON FUNCTION public.shared_links_client_guard() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS trg_shared_links_client_guard ON public.shared_links;
+CREATE TRIGGER trg_shared_links_client_guard
+  BEFORE INSERT OR UPDATE ON public.shared_links
+  FOR EACH ROW EXECUTE FUNCTION public.shared_links_client_guard();
 
 -- S13 (medium) uploaded_contracts.storage_path: a browser-written path could
 -- point into another user's folder. Require the owner's own folder prefix
@@ -572,6 +619,73 @@ ALTER TABLE public.uploaded_contracts DROP CONSTRAINT IF EXISTS uploaded_contrac
 ALTER TABLE public.uploaded_contracts ADD CONSTRAINT uploaded_contracts_storage_path_owner
   CHECK (storage_path IS NULL OR (split_part(storage_path, '/', 1) = user_id::text
          AND position('..' in storage_path) = 0)) NOT VALID;
+
+-- S15 (high) saved_documents / uploaded_contracts owner+path forgery.
+-- Production *_all_own policies accept WITH CHECK auth.uid() = user_id OR
+-- is_team_member(auth.uid(), team_id). A team member could therefore INSERT a
+-- row carrying ANOTHER user's user_id and that user's storage_path, or UPDATE
+-- user_id/storage_path of a teammate's row; storage.objects
+-- user_contracts_team_select then trusts the row. Targeted client guard:
+--   * INSERT: user_id must be auth.uid();
+--   * UPDATE: user_id cannot change; only the row owner may change the file
+--     pointer (uploaded_contracts.storage_path / saved_documents payload
+--     storage_path); team members keep editing metadata (title, folder, ...);
+--   * any pointer must be relative, in the row owner's folder, without "..".
+-- Service role and SECURITY DEFINER paths (owner postgres) are unaffected.
+CREATE OR REPLACE FUNCTION public.storage_pointer_ok(_path text, _owner uuid)
+RETURNS boolean LANGUAGE sql IMMUTABLE SET search_path = public AS $$
+  SELECT _path IS NULL OR (
+    _owner IS NOT NULL
+    AND length(_path) BETWEEN 38 AND 1024
+    AND split_part(_path, '/', 1) = _owner::text
+    AND position('..' in _path) = 0
+    AND position('//' in _path) = 0
+    AND left(_path, 1) <> '/'
+    AND _path !~ '[\x01-\x1f\\]')
+$$;
+
+CREATE OR REPLACE FUNCTION public.document_row_client_guard()
+RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
+DECLARE
+  _uid uuid := auth.uid();
+  _new_path text;
+  _old_path text;
+BEGIN
+  IF current_user NOT IN ('authenticated', 'anon') THEN RETURN NEW; END IF;
+  IF TG_TABLE_NAME = 'uploaded_contracts' THEN
+    _new_path := to_jsonb(NEW)->>'storage_path';
+    _old_path := CASE WHEN TG_OP = 'UPDATE' THEN to_jsonb(OLD)->>'storage_path' END;
+  ELSE
+    _new_path := to_jsonb(NEW)->'payload'->>'storage_path';
+    _old_path := CASE WHEN TG_OP = 'UPDATE' THEN to_jsonb(OLD)->'payload'->>'storage_path' END;
+  END IF;
+  IF TG_OP = 'INSERT' THEN
+    IF _uid IS NULL OR NEW.user_id IS DISTINCT FROM _uid THEN
+      RAISE EXCEPTION 'document_owner_forged' USING ERRCODE = '42501';
+    END IF;
+  ELSE
+    IF NEW.user_id IS DISTINCT FROM OLD.user_id THEN
+      RAISE EXCEPTION 'document_owner_immutable' USING ERRCODE = '42501';
+    END IF;
+    IF _new_path IS DISTINCT FROM _old_path AND OLD.user_id IS DISTINCT FROM _uid THEN
+      RAISE EXCEPTION 'document_pointer_owner_only' USING ERRCODE = '42501';
+    END IF;
+  END IF;
+  IF (TG_OP = 'INSERT' OR _new_path IS DISTINCT FROM _old_path)
+     AND NOT public.storage_pointer_ok(_new_path, NEW.user_id) THEN
+    RAISE EXCEPTION 'document_pointer_invalid' USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE EXECUTE ON FUNCTION public.document_row_client_guard() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS trg_uploaded_contracts_client_guard ON public.uploaded_contracts;
+CREATE TRIGGER trg_uploaded_contracts_client_guard
+  BEFORE INSERT OR UPDATE ON public.uploaded_contracts
+  FOR EACH ROW EXECUTE FUNCTION public.document_row_client_guard();
+DROP TRIGGER IF EXISTS trg_saved_documents_client_guard ON public.saved_documents;
+CREATE TRIGGER trg_saved_documents_client_guard
+  BEFORE INSERT OR UPDATE ON public.saved_documents
+  FOR EACH ROW EXECUTE FUNCTION public.document_row_client_guard();
 
 -- S14 = S4 above (profiles counters): already covered by the column-level
 -- profiles grants in this file; no separate statement.
