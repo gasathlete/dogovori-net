@@ -148,7 +148,21 @@ function renderPage(meta: PageMeta): string {
 function writeRoute(meta: PageMeta) {
   const out = resolve(DIST, meta.path.replace(/^\//, ""), "index.html");
   mkdirSync(dirname(out), { recursive: true });
-  writeFileSync(out, renderPage(meta), "utf8");
+  let html = renderPage(meta);
+  // "/" е входът за повечето първи посещения: стиловете се вграждат, за да се
+  // нарисуват Header + Hero без отделна блокираща заявка, която се бори за
+  // трафик с JS модулите. Останалите страници ползват кеширания .css файл.
+  if (meta.path === "/") html = inlineStylesheet(html);
+  writeFileSync(out, html, "utf8");
+}
+
+function inlineStylesheet(html: string): string {
+  return html.replace(/<link rel="stylesheet" crossorigin href="(\/assets\/[^"]+\.css)">/, (tag, href: string) => {
+    const file = resolve(DIST, href.replace(/^\//, ""));
+    if (!existsSync(file)) return tag;
+    const css = readFileSync(file, "utf8").replace(/<\/style/gi, "<\\/style");
+    return `<style data-inline-css="${href}">${css}</style>`;
+  });
 }
 
 function bodyForTemplate(
