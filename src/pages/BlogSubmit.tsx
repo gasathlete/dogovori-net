@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Loader2, Plus, Trash2, Crown, ArrowLeft, Upload } from "@/icons";
 import { toast } from "sonner";
+import { PENDING_BUCKETS, pendingMediaMarker } from "@/lib/pendingMedia";
 
 const CATEGORIES = [
   "Договорно право",
