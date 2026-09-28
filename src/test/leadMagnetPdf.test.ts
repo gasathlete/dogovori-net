@@ -330,7 +330,7 @@ describe("lead-magnet PDF — извлечен текст (pdf.js)", () => {
       }
     }
     const meta = await pdf.getMetadata();
-    await pdf.destroy();
+    await task.destroy();
     return { pages, links: linkUrls.length, linkUrls, info: meta.info as Record<string, unknown> };
   }
 
