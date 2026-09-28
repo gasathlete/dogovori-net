@@ -38,13 +38,13 @@ export function HomeSections() {
       </Suspense>
 
       {/* Пакети и комплекти стоят последователно, непосредствено след доверието. */}
-      <LazyOnVisible minHeight={[2556, 1150, 1150]}>
+      <LazyOnVisible minHeight={[2556, 1904, 1150]}>
         <Suspense fallback={<SectionSkeleton />}>
           <SectorPackages />
         </Suspense>
       </LazyOnVisible>
 
-      <LazyOnVisible minHeight={[2229, 1062, 1062]}>
+      <LazyOnVisible minHeight={[2229, 1046, 1062]}>
         <Suspense fallback={<SectionSkeleton />}>
           <BackdropSection variant="rings">
             <LifeScenarios />
@@ -52,7 +52,7 @@ export function HomeSections() {
         </Suspense>
       </LazyOnVisible>
 
-      <LazyOnVisible minHeight={[3485, 1562, 1562]}>
+      <LazyOnVisible minHeight={[3485, 4060, 1562]}>
         <Suspense fallback={<SectionSkeleton />}>
           <BackdropSection variant="grid" align="center">
             <ProductsSection />
@@ -66,7 +66,7 @@ export function HomeSections() {
         </Suspense>
       </LazyOnVisible>
 
-      <LazyOnVisible minHeight={[1481, 902, 902]}>
+      <LazyOnVisible minHeight={[1481, 1284, 902]}>
         <Suspense fallback={<SectionSkeleton />}>
           <BackdropSection variant="rings" align="center">
             <DogovaryAIShowcase />
@@ -75,7 +75,7 @@ export function HomeSections() {
       </LazyOnVisible>
 
       {/* Персонално брандиране — веднага под функциите на приложението */}
-      <LazyOnVisible minHeight={[1420, 755, 755]}>
+      <LazyOnVisible minHeight={[1420, 1250, 755]}>
         <Suspense fallback={<SectionSkeleton />}>
           <BackdropSection variant="dots" align="center">
             <BrandedDocumentShowcase />
@@ -83,7 +83,7 @@ export function HomeSections() {
         </Suspense>
       </LazyOnVisible>
 
-      <LazyOnVisible minHeight={[1909, 868, 868]}>
+      <LazyOnVisible minHeight={[1909, 1432, 868]}>
         <Suspense fallback={<SectionSkeleton />}>
           <BackdropSection variant="papers" align="bottom">
             <FeaturedBlanks />
@@ -91,7 +91,7 @@ export function HomeSections() {
         </Suspense>
       </LazyOnVisible>
 
-      <LazyOnVisible minHeight={[1041, 618, 618]}>
+      <LazyOnVisible minHeight={[1041, 767, 618]}>
         <Suspense fallback={<SectionSkeleton />}>
           <BackdropSection variant="grid" align="top">
             <PlatformCapabilities />
@@ -99,7 +99,7 @@ export function HomeSections() {
         </Suspense>
       </LazyOnVisible>
 
-      <LazyOnVisible minHeight={[745, 836, 836]}>
+      <LazyOnVisible minHeight={[745, 860, 836]}>
         <Suspense fallback={<SectionSkeleton />}>
           <BackdropSection variant="dots">
             <Testimonials />
@@ -107,7 +107,7 @@ export function HomeSections() {
         </Suspense>
       </LazyOnVisible>
 
-      <LazyOnVisible minHeight={[1111, 790, 790]}>
+      <LazyOnVisible minHeight={[1111, 941, 790]}>
         <Suspense fallback={<SectionSkeleton />}>
           <BackdropSection variant="rings">
             <PainSolution />
@@ -115,7 +115,7 @@ export function HomeSections() {
         </Suspense>
       </LazyOnVisible>
 
-      <LazyOnVisible minHeight={[1505, 780, 780]}>
+      <LazyOnVisible minHeight={[1505, 838, 780]}>
         <Suspense fallback={<SectionSkeleton />}>
           <BackdropSection variant="grid" align="center">
             <ComparisonTable />
@@ -123,7 +123,7 @@ export function HomeSections() {
         </Suspense>
       </LazyOnVisible>
 
-      <LazyOnVisible minHeight={[1517, 1041, 1041]}>
+      <LazyOnVisible minHeight={[1517, 1206, 1041]}>
         <Suspense fallback={<SectionSkeleton />}>
           <BackdropSection variant="shield" intensity="medium">
             <ComplianceSection />
@@ -139,7 +139,7 @@ export function HomeSections() {
         </Suspense>
       </LazyOnVisible>
 
-      <LazyOnVisible minHeight={[633, 715, 715]}>
+      <LazyOnVisible minHeight={[633, 732, 715]}>
         <Suspense fallback={<SectionSkeleton />}>
           <BackdropSection variant="flow" align="center">
             <CTABand />
