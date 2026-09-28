@@ -78,6 +78,23 @@ serve(async (req) => {
     const now = new Date().toISOString();
 
     if (action === "send_otp") {
+      // Ограничение на повторното изпращане: всеки нов код дава нови 5 опита,
+      // затова кодове се издават най-много веднъж на 60 s и 5 пъти на час.
+      const OTP_TTL_MS = 10 * 60_000;
+      if (signer.otp_expires_at && new Date(signer.otp_expires_at).getTime() - Date.now() > OTP_TTL_MS - 60_000) {
+        return new Response(JSON.stringify({ error: "otp_resend_too_soon" }), {
+          status: 429, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+      const { count: recentSends } = await admin.from("signing_audit_events")
+        .select("id", { count: "exact", head: true })
+        .eq("signer_id", signer.id).eq("event_type", "otp_sent")
+        .gte("created_at", new Date(Date.now() - 3_600_000).toISOString());
+      if ((recentSends ?? 0) >= 5) {
+        return new Response(JSON.stringify({ error: "otp_resend_limit" }), {
+          status: 429, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
       const code = otp6();
       const hash = await sha256(code + "|" + signer.id);
       const exp = new Date(Date.now() + 10 * 60_000).toISOString();
@@ -215,8 +232,10 @@ serve(async (req) => {
       }
       const otpHash = await sha256(String(otp_code ?? "") + "|" + signer.id);
       if (otpHash !== signer.otp_code_hash) {
+        // Атомарно увеличение само ако броячът не е променен паралелно.
         await admin.from("signing_request_signers")
-          .update({ otp_attempts: (signer.otp_attempts ?? 0) + 1 }).eq("id", signer.id);
+          .update({ otp_attempts: (signer.otp_attempts ?? 0) + 1 })
+          .eq("id", signer.id).eq("otp_attempts", signer.otp_attempts ?? 0);
         return new Response(JSON.stringify({ error: "otp_invalid" }), {
           status: 401, headers: { ...cors, "Content-Type": "application/json" },
         });
