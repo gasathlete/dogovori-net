@@ -107,10 +107,12 @@ REVOKE UPDATE, DELETE, TRUNCATE ON public.user_consents FROM PUBLIC, anon, authe
 -- ─────────────────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.is_staff(_user_id uuid)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
-  SELECT _user_id IS NOT NULL
-     AND (_user_id = auth.uid() OR auth.role() = 'service_role')
-     AND EXISTS (SELECT 1 FROM public.user_roles
-                 WHERE user_id = _user_id AND role IN ('admin', 'moderator'))
+  SELECT COALESCE(
+       _user_id IS NOT NULL
+       AND (_user_id = auth.uid() OR auth.role() = 'service_role')
+       AND EXISTS (SELECT 1 FROM public.user_roles
+                 WHERE user_id = _user_id AND role IN ('admin', 'moderator')),
+       false)
 $$;
 
 -- ─────────────────────────────────────────────────────────────────────────
