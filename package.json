@@ -143,9 +143,6 @@
     "vite": "$vite",
     "@lovable.dev/mcp-js": {
       "esbuild": "^0.28.2"
-    },
-    "@esbuild-kit/core-utils": {
-      "esbuild": "^0.25.12"
     }
   }
 }
