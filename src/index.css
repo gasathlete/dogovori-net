@@ -342,6 +342,11 @@
   p, h1, h2, h3, h4 { overflow-wrap: break-word; }
 
   /* Offscreen sections skip rendering work but reserve space */
+  /* LazyOnVisible reservation: follows breakpoints on rotate/resize. */
+  .lov-reserve { min-height: var(--lov-phone); }
+  @media (min-width: 768px) { .lov-reserve { min-height: var(--lov-tablet); } }
+  @media (min-width: 1024px) { .lov-reserve { min-height: var(--lov-desktop); } }
+
   .cv-auto {
     content-visibility: auto;
     contain-intrinsic-size: auto 600px;

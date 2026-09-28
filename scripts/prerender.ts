@@ -148,7 +148,21 @@ function renderPage(meta: PageMeta): string {
 function writeRoute(meta: PageMeta) {
   const out = resolve(DIST, meta.path.replace(/^\//, ""), "index.html");
   mkdirSync(dirname(out), { recursive: true });
-  writeFileSync(out, renderPage(meta), "utf8");
+  let html = renderPage(meta);
+  // "/" е входът за повечето първи посещения: стиловете се вграждат, за да се
+  // нарисуват Header + Hero без отделна блокираща заявка, която се бори за
+  // трафик с JS модулите. Останалите страници ползват кеширания .css файл.
+  if (meta.path === "/") html = inlineStylesheet(html);
+  writeFileSync(out, html, "utf8");
+}
+
+function inlineStylesheet(html: string): string {
+  return html.replace(/<link rel="stylesheet" crossorigin href="(\/assets\/[^"]+\.css)">/, (tag, href: string) => {
+    const file = resolve(DIST, href.replace(/^\//, ""));
+    if (!existsSync(file)) return tag;
+    const css = readFileSync(file, "utf8").replace(/<\/style/gi, "<\\/style");
+    return `<style data-inline-css="${href}">${css}</style>`;
+  });
 }
 
 function bodyForTemplate(
@@ -201,20 +215,26 @@ for (const item of SECTOR_PACKAGES) {
 // Броят идва от каталога, не от твърдение в текст — така не остарява.
 const totalDocs = CATALOG.reduce((s, c) => s + c.documents.length, 0);
 
+// Истинските Header + Hero, заснети от production build
+// (scripts/perf/capture-home-shell.py). Първото рисуване е същото дърво,
+// което React рендерира веднага след това — без скрит или дублиран текст.
+const HOME_SHELL = readFileSync(resolve(process.cwd(), "scripts/generated/home-shell.html"), "utf8");
+const [HOME_SHELL_HEADER, HOME_SHELL_HERO] = HOME_SHELL.split("<!--hero-->").map((part) => part.trim());
+
 // Index
 pages.push({
   path: "/",
   title: "Договори и документи на български — Dogovori.net",
   description: `Изготвяте документ по образец от ${totalDocs} шаблона, проверявате чужд документ преди подпис и го сваляте в PDF или DOCX. Първият документ е безплатен.`,
-  bodyHtml: `<main style="font-family:Georgia,serif;max-width:800px;margin:2rem auto;padding:1rem">
-      <h1>Dogovori.net — договори и документи на български</h1>
+  bodyHtml: `<div class="min-h-dvh" data-home-shell="true">${HOME_SHELL_HEADER}<main data-home-variant="responsive">${HOME_SHELL_HERO}<section class="container max-w-3xl py-10 text-sm leading-relaxed text-muted-foreground">
+      <h2 class="font-serif text-xl font-bold text-foreground">Dogovori.net — договори и документи на български</h2>
       <p>Изготвяте документ по образец от ${totalDocs} шаблона по ЗЗД, ТЗ и КТ, проверявате чужд документ преди подпис и го сваляте в PDF или DOCX. Първият документ е безплатен.</p>
       <h2>Категории</h2>
       <ul>${CATALOG.map((c) => `<li><a href="/kategoria/${c.id}">${escapeHtml(c.title)}</a> — ${c.documents.length} шаблона</li>`).join("")}</ul>
       <h2>Еднократни продукти за един документ</h2>
       <ul>${ONE_TIME_PRODUCTS.map((p) => `<li><a href="/produkti/${p.slug}">${escapeHtml(p.name)}</a> — ${escapeHtml(p.shortOutcome)} ${priceText(p.priceEur)}</li>`).join("")}</ul>
       <p><a href="/produkti">Продукти</a> · <a href="/plans">Планове</a> · <a href="/catalog">Пълен каталог</a> · <a href="/karta">Карта на сайта</a> · <a href="/blog">Блог</a></p>
-    </main>`,
+    </section></main></div>`,
   jsonLd: [],
 });
 

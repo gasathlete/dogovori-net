@@ -1,3 +1,4 @@
+import { startTransition } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./fonts.ts";
@@ -52,7 +53,10 @@ window.addEventListener("unhandledrejection", (e) =>
 // трябва да е записан преди това (иначе се хваща едва при следващо зареждане).
 applyAbOverridesFromUrl(window.location.search);
 
-createRoot(document.getElementById("root")!).render(<App />);
+// The prerendered Header + Hero are already painted; rendering the app in a
+// transition lets React yield between chunks instead of one long blocking task.
+const root = createRoot(document.getElementById("root")!);
+startTransition(() => root.render(<App />));
 
 // Collect Web Vitals on every route — non-blocking, fires on idle.
 initWebVitalsReporter();

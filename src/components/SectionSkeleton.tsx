@@ -2,6 +2,7 @@ export function SectionSkeleton({ minHeight = 400 }: { minHeight?: number }) {
   return (
     <section
       aria-hidden="true"
+      data-section-skeleton=""
       className="container py-12 sm:py-16"
       style={{ minHeight }}
     >

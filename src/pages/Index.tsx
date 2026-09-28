@@ -1,15 +1,13 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { shouldPrefetch } from "@/lib/routePrefetch";
 import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
-import { SectionSkeleton } from "@/components/SectionSkeleton";
 import { buildFaqJsonLd } from "@/data/faqItems";
 
-// Една и съща подредба на телефон и десктоп — богатият hero, социалното
-// доказателство и продуктите. Модулът е ленив само за да не влиза в първия
-// bundle; съдържанието и метаданните са идентични при двата размера.
-const HomeSections = lazy(() => import("@/components/home/HomeSections").then((m) => ({ default: m.HomeSections })));
+// Hero е над сгъвката, затова HomeSections се зарежда заедно със страницата
+// (без skeleton и допълнителна заявка); секциите под сгъвката остават лениви.
+import { HomeSections } from "@/components/home/HomeSections";
 
 const Index = () => {
   const location = useLocation();
@@ -20,9 +18,9 @@ const Index = () => {
     }
   }, [location]);
 
-  // Каталогът вече не се зарежда предварително от началната страница — това
-  // теглеше около 1 MB код за страница, която част от посетителите не отварят.
-  // Връзките към каталога го зареждат при посочване/докосване (PrefetchLink).
+
+  // Каталогът не се зарежда предварително от началната страница; връзките към
+  // него го зареждат при посочване/докосване (PrefetchLink).
 
   // Bridge legacy event name to the global DogovAI bubble
   useEffect(() => {
@@ -67,9 +65,7 @@ const Index = () => {
         jsonLd={jsonLd}
       />
       <Header />
-      <Suspense fallback={<SectionSkeleton />}>
-        <HomeSections />
-      </Suspense>
+      <HomeSections />
     </div>
   );
 };

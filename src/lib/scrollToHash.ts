@@ -19,10 +19,10 @@ export function scrollToHash(id: string, opts?: { updateHash?: boolean; timeoutM
     return false;
   };
 
+  // Mount every lazy section so the target exists; scroll once it is in the DOM
+  // (scrolling to the bottom only mounted the last sections).
+  window.dispatchEvent(new Event("dogovori:lazy-mount-all"));
   if (tryScroll()) return;
-
-  // Force lazy sections below the fold to mount by scrolling near the bottom first.
-  window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "auto" });
 
   const tick = () => {
     if (tryScroll()) return;
