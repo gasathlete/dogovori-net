@@ -37,6 +37,13 @@ describe("заявка", () => {
     expect(await submitPrelaunchWaitlist({ email: "A@B.bg ", feature: "blank_download", consent: true })).toBe("unavailable");
     expect(rpc).toHaveBeenCalledWith("request_prelaunch_waitlist", expect.objectContaining({ _email: "a@b.bg", _consent: true }));
   });
+  it("извиква rpc през клиента (запазен this), а не през отделена референция", async () => {
+    const mod = await import("@/integrations/supabase/client");
+    let self: unknown = null;
+    rpc.mockImplementation(function (this: unknown) { self = this; return Promise.resolve({ data: true, error: null }); });
+    expect(await submitPrelaunchWaitlist({ email: "a@b.bg", feature: "assistant", consent: true })).toBe("accepted");
+    expect(self).toBe(mod.supabase);
+  });
   it("само data===true е приета", async () => {
     rpc.mockResolvedValue({ data: true, error: null });
     expect(await submitPrelaunchWaitlist({ email: "a@b.bg", feature: "assistant", consent: true })).toBe("accepted");
