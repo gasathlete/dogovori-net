@@ -19,7 +19,8 @@
 
 - `bunx vitest run src/test/sectorPackagesExperience.test.tsx src/test/kits.test.ts src/test/prelaunchWaitlist.test.tsx src/test/prelaunchWaitlistRace.test.tsx src/test/publicConversionRoutes.test.tsx src/test/positioningOffer.test.ts` — 60/60 успешни.
 - Review регресии: `bunx vitest run src/test/handoverProtocolSpelling.test.ts src/test/productCatalogGrid.test.tsx src/test/products.test.tsx src/test/sectorPackagesExperience.test.tsx src/test/kits.test.ts src/test/mobileConversion.test.tsx` — 82/82 успешни, 0 пропуснати.
-- Окончателен пълен run: `bun run test` — 1956/1956 успешни, 0 пропуснати.
+- Независимо потвърден GitHub CI за код `ba3d278f5e88ae5b702f51162cdc16558f56ab2b`: `bun run test` — 1952 успешни и 4 пропуснати (1956 общо), 147 успешни тестови файла; Edge функции — 995 успешни, 0 неуспешни. [Tests run](https://github.com/gasathlete/dogovori-net/actions/runs/36433632951).
+- Build & SEO Verification и Security scan за същия код — успешни. Настоящата корекция е само документация; горните резултати се отнасят за посочения кодов commit.
 - `bunx tsgo --noEmit -p tsconfig.app.json` — успешно.
 - `bun run build` — успешно, само локален build.
 - Локалната browser проверка на 390 px потвърди три карти с ширина 326 px, три заключени състояния, отваряне на диалога с неизбрано съгласие, видими етапи на наемния комплект и липса на хоризонтално преливане.
