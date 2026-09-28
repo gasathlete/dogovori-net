@@ -49,3 +49,10 @@ The initial CI run stopped before tests/build because main's package.json securi
 The full suite additionally exposed a missing `@testing-library/dom` peer, the older pillar test's fixed 35-article assertion, and an extra dollar-quote delimiter before END in `security_privacy_kpis_authz_2026_09_28.sql`. Added the DOM peer explicitly as a dev dependency (10.4.2) and synchronized npm/Bun locks; ten test-only dependency versions were added, with no previous package versions removed. All security overrides remain identical. Kept the existing npm-lock URLs for unchanged versions; Bun's public-registry lock retains the integrity hashes.
 
 The pillar guard now asserts that every one of the 35 original article slugs is retained and all routes remain unique. Build-loader fixtures now live under the test root and use the node environment so Vite can import them in CI. The SQL change removes only the premature function delimiter; the existing PGlite test passes, including replay, denial for anonymous/nonstaff callers and retained staff metrics. No SQL was applied to production by this SEO task.
+
+
+## Integration follow-through — 28 September, 20:30 UTC
+
+Resolved PR #9 conflicts by integrating main `976c494f7cb039707902d1e9acdad06471c5fdac` into the existing SEO branch. All current security code, migrations, package.json and npm lock remain unchanged. The resulting diff initially contained only the 22 SEO/content/report files.
+
+The new CI exposed an existing main Bun lock mismatch: the lock omitted nested package.json overrides. Regenerated only bun.lock with Bun 1.4.2, preserving the manifest and security constraints. The resulting change records nested docx/postcss/glob overrides and resolves docx/nanoid from 6.0.1 to the explicitly required 5.1.16; no other package entries changed. Local frozen install with scripts disabled succeeded (812 installed packages). This is installation validation, not full application validation. Complete CI must pass before merge; publication and Google indexing are still unconfirmed.
