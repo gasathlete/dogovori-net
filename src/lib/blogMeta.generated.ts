@@ -16,7 +16,7 @@ export interface BlogPostMeta {
 export const BLOG_POST_META: readonly BlogPostMeta[] = [
   {
     "slug": "dlazhnostna-harakteristika-podgotovka",
-    "title": "Длъжностна характеристика: подготовка с пример",
+    "title": "Длъжностна характеристика: насоки и пример",
     "summary": "Как да съберете задължения, отчетност, правомощия и изисквания за длъжностна характеристика. Пример за офис координатор.",
     "category": "Трудово право",
     "image": "/blog/trudov-dogovor-osnovni-elementi.webp",

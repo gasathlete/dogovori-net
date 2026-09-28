@@ -51,6 +51,8 @@ describe("practical guides and canonical document discovery", () => {
     for (const slug of NEW_GUIDES) {
       const post = ALL_POSTS.find((article) => article.slug === slug)!;
       expect(hasVerifiedSources(post)).toBe(true);
+      expect([...`${post.title} | Dogovori.net`].length).toBeLessThanOrEqual(60);
+      expect([...post.metaDescription].length).toBeLessThanOrEqual(160);
       expect(post.sources!.every((source) => source.url.startsWith("https://") && source.note)).toBe(true);
       expect(post.cta?.href.startsWith("/shablon/")).toBe(true);
       expect(catalog.has(post.cta!.href.replace("/shablon/", ""))).toBe(true);

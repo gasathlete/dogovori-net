@@ -2,7 +2,7 @@ import type { BlogPostModule } from "../../lib/blogEditorial";
 
 export const POST: BlogPostModule = {
   "slug": "dlazhnostna-harakteristika-podgotovka",
-  "title": "Длъжностна характеристика: подготовка с пример",
+  "title": "Длъжностна характеристика: насоки и пример",
   "keyword": "как се подготвя длъжностна характеристика",
   "category": "Трудово право",
   "summary": "Как да съберете задължения, отчетност, правомощия и изисквания за длъжностна характеристика. Пример за офис координатор.",
