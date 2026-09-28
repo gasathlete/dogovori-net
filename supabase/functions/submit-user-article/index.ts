@@ -1,5 +1,6 @@
 // Submit a user-authored blog article. Pro plan required.
 // Performs validation (>=300 words, image, legal category) and inserts as 'pending'.
+import { parsePendingMedia } from "../_shared/pending-media.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 
