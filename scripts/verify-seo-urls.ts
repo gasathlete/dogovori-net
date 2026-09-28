@@ -18,6 +18,8 @@ import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { ONE_TIME_PRODUCTS } from "../src/lib/products";
 import { fmtEur } from "../src/lib/pricing";
+import { allTemplates } from "../src/lib/templateIndex";
+import { buildCollectionPages } from "./lib/collectionPages";
 
 const SITE = "https://dogovori.net";
 const DIST = resolve(process.cwd(), "dist");
@@ -248,6 +250,24 @@ function checkProductPages() {
   }
 }
 
+function checkCollectionPages(sitemapUrls: string[]) {
+  const sitemap = new Set(sitemapUrls);
+  for (const page of buildCollectionPages(allTemplates())) {
+    const url = `${SITE}${page.path}`;
+    if (!sitemap.has(url)) add("error", url, "collection-sitemap", "Collection route is missing from sitemap");
+    const file = join(DIST, page.path.slice(1), "index.html");
+    if (!existsSync(file)) {
+      add("error", url, "collection-static", "Collection must have its own static HTML, not the homepage fallback");
+      continue;
+    }
+    const html = readFileSync(file, "utf8");
+    for (const match of page.bodyHtml.matchAll(/href="([^\"]+)"/g)) {
+      if (!html.includes(match[0])) add("error", url, "collection-link", `Missing canonical collection link: ${match[1]}`);
+    }
+    if (!html.includes("покупката остават затворени")) add("error", url, "collection-availability", "Missing current browse-only availability");
+  }
+}
+
 function main() {
   if (!existsSync(DIST)) {
     console.error("✗ dist/ not found — run vite build first");
@@ -257,6 +277,7 @@ function main() {
   console.log(`▶ verifying ${urls.length} URLs from sitemaps…`);
   for (const u of urls) checkUrl(u);
   checkProductPages();
+  checkCollectionPages(urls);
 
 
   const errors = issues.filter((i) => i.level === "error");

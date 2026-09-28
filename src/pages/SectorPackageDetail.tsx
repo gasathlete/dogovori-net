@@ -1,3 +1,4 @@
+import { getPackageGuides } from "@/lib/seoCollections";
 import { useMemo } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import * as Icons from "@/icons";
@@ -14,6 +15,7 @@ export default function SectorPackageDetailPage() {
   const item = getSectorPackage(slug);
   const templateByName = useMemo(() => new Map(allTemplates().map((entry) => [entry.doc.name, entry])), []);
   if (!item) return <Navigate to="/paketi" replace />;
+  const guides = getPackageGuides(item.id);
   const Icon = Icons[item.icon];
   const stages = [...new Set(item.documents.map((document) => document.stage))];
 
@@ -51,6 +53,10 @@ export default function SectorPackageDetailPage() {
               );
             })}
           </div>
+          {guides.length > 0 && <section className="mt-10" aria-label="Практически ръководства">
+            <h2 className="font-serif text-xl font-bold">Практически ръководства</h2>
+            <ul className="mt-3 space-y-2">{guides.map((post) => <li key={post.slug}><Link to={`/blog/${post.slug}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-gold underline-offset-4 hover:underline">{post.title}</Link></li>)}</ul>
+          </section>}
           <div className="mt-10 grid gap-4 rounded-xl border border-gold/20 bg-gold/[0.04] p-5 sm:grid-cols-2 sm:p-6">
             <div><h2 className="flex items-center gap-2 font-serif text-xl font-bold"><CheckCircle2 className="size-5 text-gold" />Какво можете да разгледате</h2><p className="mt-2 text-sm leading-relaxed text-muted-foreground">Всеки публикуван документ води към съществуващата му страница с описание и пример. Това не е покупка и не създава нов документ.</p></div>
             <div><h2 className="font-serif text-xl font-bold">Свързан комплект</h2><p className="mt-2 text-sm text-muted-foreground">За конкретна ситуация вижте подбрания комплект и неговите документи.</p><Link to={`/komplekti/${item.relatedKitId}`} className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-gold">Разгледайте комплекта <ArrowRight className="size-4" /></Link></div>

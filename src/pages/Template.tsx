@@ -1,3 +1,5 @@
+import { RelatedSectorPackages } from "@/components/RelatedSectorPackages";
+import { getSectorPackagesForDocument } from "@/lib/seoCollections";
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
@@ -505,6 +507,8 @@ export default function TemplatePage() {
           </div>
         </Section>
 
+        <RelatedSectorPackages packages={getSectorPackagesForDocument(doc.name)} />
+
         {related.length > 0 && (
           <Section title="Свързани шаблони">
             <div className="grid gap-3 md:grid-cols-3">
@@ -582,3 +586,4 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     </section>
   );
 }
+

@@ -21,6 +21,7 @@ import { slugify } from "../src/lib/slugify";
 import { ONE_TIME_PRODUCT_PATHS } from "../src/lib/products";
 import { CALCULATORS } from "../src/data/calculators";
 import { SECTOR_PACKAGES } from "../src/data/sectorPackages";
+import { DOCUMENT_KITS } from "../src/data/documentKits";
 
 
 const SITE = "https://dogovori.net";
@@ -57,6 +58,7 @@ const staticEntries: Entry[] = [
   { loc: "/paketi", changefreq: "weekly", priority: "0.9", lastmod: fileMtime("src/data/sectorPackages.ts") },
   ...SECTOR_PACKAGES.map<Entry>((item) => ({ loc: `/paketi/${item.slug}`, changefreq: "monthly", priority: "0.85", lastmod: fileMtime("src/data/sectorPackages.ts") })),
   { loc: "/komplekti", changefreq: "weekly", priority: "0.9", lastmod: fileMtime("src/data/documentKits.ts") },
+  ...DOCUMENT_KITS.map<Entry>((kit) => ({ loc: `/komplekti/${kit.id}`, changefreq: "monthly", priority: "0.8", lastmod: [fileMtime("src/data/documentKits.ts"), fileMtime("src/data/featuredKitStages.ts")].sort()[1] })),
   { loc: "/karta", changefreq: "weekly", priority: "0.9", lastmod: catalogDate },
   // /build е Disallow: в robots.txt (private conversational entry point) — не в sitemap.
   { loc: "/blog", changefreq: "weekly", priority: "0.85", lastmod: fileMtime("src/pages/Blog.tsx") },
