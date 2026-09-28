@@ -491,7 +491,7 @@ export default function CatalogPage() {
           <p className="mx-auto mt-2 max-w-xl text-balance text-[15px] leading-relaxed text-muted-foreground">
             Изберете сектор и попълнете документа стъпка по стъпка.
           </p>
-          <Link to="/#sectors" className="btn-gold btn-sheen mt-5 min-h-11">
+          <Link to="/catalog" className="btn-gold btn-sheen mt-5 min-h-11">
             Изберете сектор <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

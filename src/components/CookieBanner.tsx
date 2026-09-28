@@ -55,23 +55,23 @@ export function CookieBanner() {
               </Link>
             </p>
           </div>
-          <div className="mt-2.5 flex items-center gap-2 sm:mt-0 sm:justify-end">
+          <div className="mt-2.5 flex flex-wrap items-center gap-2 sm:mt-0 sm:justify-end">
             <button
               onClick={() => setShowSettings(true)}
-              className="min-h-10 rounded-md px-3 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="min-h-11 rounded-md px-3 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               Настройки
             </button>
             <button
               onClick={onlyNecessary}
-              className="min-h-10 rounded-md border border-border/50 px-3 text-[12px] font-medium text-foreground/80 transition-colors hover:bg-muted/40"
+              className="min-h-11 rounded-md border border-border/50 px-3 text-[12px] font-medium text-foreground/80 transition-colors hover:bg-muted/40"
             >
               Само необходими
             </button>
             <Button
               size="sm"
               onClick={acceptAll}
-              className="h-10 flex-1 bg-gradient-gold px-3 text-[13px] font-semibold text-navy sm:flex-none"
+              className="h-11 min-w-[8.5rem] flex-1 bg-gradient-gold px-3 text-[13px] font-semibold text-navy sm:flex-none"
             >
               Приемам всички
             </Button>

@@ -17,13 +17,23 @@ export function LazyOnVisible({
 }: {
   children: ReactNode;
   rootMargin?: string;
-  minHeight?: number;
+  /** Reserved height; `[phone, desktop(>=1024px)]` to match real section size and avoid scroll jumps. */
+  minHeight?: number | readonly [number, number];
   fallback?: ReactNode;
   /** Hydrate during idle time even if never scrolled into view. */
   idleMount?: boolean;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const [visible, setVisible] = useState(false);
+  // A deep link (/#produkti) must find its target: mount everything at once
+  // instead of relying on scrolling past lazy placeholders.
+  const [visible, setVisible] = useState(
+    () => typeof window !== "undefined" && window.location.hash.length > 1,
+  );
+  const reserved = typeof minHeight === "number"
+    ? minHeight
+    : typeof window !== "undefined" && window.matchMedia?.("(min-width: 1024px)").matches
+      ? minHeight[1]
+      : minHeight[0];
 
   useEffect(() => {
     if (visible) return;
@@ -66,7 +76,7 @@ export function LazyOnVisible({
       style={{
         // `contain-intrinsic-size` via .cv-auto reserves space; we still set
         // minHeight for browsers without content-visibility support.
-        ...(visible ? null : { minHeight, containIntrinsicSize: `1px ${minHeight}px` as any }),
+        ...(visible ? null : { minHeight: reserved, containIntrinsicSize: `1px ${reserved}px` }),
       }}
     >
       {visible ? children : fallback}

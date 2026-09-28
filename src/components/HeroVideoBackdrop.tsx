@@ -1,29 +1,30 @@
 import { useEffect, useRef, useState } from "react";
 import { Pause, Play } from "@/icons";
 import videoAsset from "@/assets/hero-bg-video.mp4.asset.json";
-import posterUrl from "@/assets/hero-bg-poster.jpg";
 
 /**
  * Full-bleed video background for the Hero section.
  *
- * - Autoplay + muted + loop + playsInline (mobile Safari friendly).
- * - Respects `prefers-reduced-motion` → renders poster image only.
- * - Pauses when off-screen to save CPU/battery.
- * - User can toggle playback via a small control in the bottom-right;
- *   when paused, only the poster image is visible.
- * - Layered overlays keep foreground text readable.
+ * - Poster is the LCP image: static files in /public/hero, preloaded from
+ *   index.html with the same srcset, so it is discovered before JS runs.
+ * - No video on phones / coarse pointers, save-data, slow networks or
+ *   reduced motion — poster only.
+ * - Video mounts after load + idle; it pauses while off-screen or while the
+ *   tab is hidden, and the user can pause it with a 44px control.
  */
+export const HERO_POSTER_SRC = "/hero/hero-poster-1280.webp";
+export const HERO_POSTER_SRCSET = "/hero/hero-poster-960.webp 960w, /hero/hero-poster-1280.webp 1280w";
+
 export function HeroVideoBackdrop() {
+  const [video, setVideo] = useState<HTMLVideoElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  videoRef.current = video;
   const [reducedMotion, setReducedMotion] = useState(false);
   const [paused, setPaused] = useState(false);
-  // Видеото е чист декор: на мобилни устройства, при data-saver и при бавна
-  // мрежа показваме само постера — това спестява декодиране на видео на
-  // главната нишка и стотици килобайта трафик.
   const [videoAllowed, setVideoAllowed] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !window.matchMedia) return;
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     setReducedMotion(mq.matches);
     const onChange = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
@@ -31,59 +32,60 @@ export function HeroVideoBackdrop() {
     return () => mq.removeEventListener?.("change", onChange);
   }, []);
 
-
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const conn = (navigator as any).connection;
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const conn = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
     const capable =
       window.matchMedia("(min-width: 768px) and (pointer: fine)").matches &&
       !conn?.saveData &&
       !/(^|-)(2g|slow-2g|3g)$/.test(String(conn?.effectiveType ?? ""));
     if (!capable) return;
-    // Стартираме видеото едва след пълно зареждане + idle, за да не се
-    // конкурира с LCP на херото.
-    let handle = 0;
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+      cancelIdleCallback?: (h: number) => void;
+    };
+    let idleHandle: number | undefined;
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
     const arm = () => {
-      const ric = (window as any).requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 1200));
-      handle = ric(() => setVideoAllowed(true), { timeout: 3000 });
+      if (w.requestIdleCallback) idleHandle = w.requestIdleCallback(() => setVideoAllowed(true), { timeout: 3000 });
+      else timeoutHandle = setTimeout(() => setVideoAllowed(true), 1200);
     };
     if (document.readyState === "complete") arm();
     else window.addEventListener("load", arm, { once: true });
     return () => {
-      const cic = (window as any).cancelIdleCallback;
-      if (cic && handle) cic(handle);
-      clearTimeout(handle);
+      window.removeEventListener("load", arm);
+      if (idleHandle !== undefined) w.cancelIdleCallback?.(idleHandle);
+      if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
     };
   }, []);
 
+  // Depends on the actual <video> node (callback ref), so the observer attaches
+  // once the video mounts after idle — not only on the first render.
   useEffect(() => {
-    const video = videoRef.current;
     if (!video || reducedMotion || paused) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          video.play().catch(() => void 0);
-        } else {
-          video.pause();
-        }
-      },
-      { threshold: 0.05 },
-    );
-    observer.observe(video);
-    return () => observer.disconnect();
-  }, [reducedMotion, paused]);
+    let onScreen = true;
+    const sync = () => {
+      if (onScreen && document.visibilityState === "visible") video.play().catch(() => void 0);
+      else video.pause();
+    };
+    const observer = typeof IntersectionObserver === "undefined"
+      ? null
+      : new IntersectionObserver(([entry]) => { onScreen = entry.isIntersecting; sync(); }, { threshold: 0.05 });
+    observer?.observe(video);
+    document.addEventListener("visibilitychange", sync);
+    return () => {
+      observer?.disconnect();
+      document.removeEventListener("visibilitychange", sync);
+      video.pause();
+    };
+  }, [video, reducedMotion, paused]);
 
   const showPoster = reducedMotion || paused || !videoAllowed;
 
-
   const toggle = () => {
-    const video = videoRef.current;
     setPaused((prev) => {
       const next = !prev;
-      if (video) {
-        if (next) video.pause();
-        else video.play().catch(() => void 0);
-      }
+      if (next) videoRef.current?.pause();
       return next;
     });
   };
@@ -93,37 +95,35 @@ export function HeroVideoBackdrop() {
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
         {showPoster ? (
           <img
-            src={posterUrl}
+            src={HERO_POSTER_SRC}
+            srcSet={HERO_POSTER_SRCSET}
+            sizes="100vw"
             alt=""
             className="absolute inset-0 h-full w-full object-cover"
-            width={1920}
-            height={1080}
+            width={1280}
+            height={720}
             decoding="async"
             loading="eager"
-            {...({ fetchpriority: "high" } as any)}
-
+            {...({ fetchpriority: "high" } as Record<string, string>)}
           />
         ) : (
           <video
-            ref={videoRef}
+            ref={setVideo}
             className="absolute inset-0 h-full w-full object-cover"
             src={videoAsset.url}
-            poster={posterUrl}
+            poster={HERO_POSTER_SRC}
             autoPlay
             muted
             loop
             playsInline
             preload="metadata"
+            data-testid="hero-video"
           />
         )}
 
-        {/* Main veil — tuned to the page background so the video melts into the next section */}
         <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/55 to-background" />
-        {/* Warm gold highlight tying the video to the site's accent palette */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(var(--gold)/0.10),transparent_55%)]" />
-        {/* Soft vignette — lighter than before so the composition still feels airy */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--background)/0.25)_100%)]" />
-        {/* Bottom fade — bridges the hero into the following section without a hard edge */}
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-background" />
       </div>
 
@@ -133,9 +133,9 @@ export function HeroVideoBackdrop() {
           onClick={toggle}
           aria-label={paused ? "Пусни фоновото видео" : "Спри фоновото видео"}
           aria-pressed={paused}
-          className="absolute bottom-4 right-4 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/60 text-foreground/80 backdrop-blur-md transition hover:bg-background/80 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="absolute bottom-4 right-4 z-20 inline-flex size-11 items-center justify-center rounded-full border border-gold/40 bg-background/70 text-gold backdrop-blur-sm transition-colors hover:bg-background/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
         >
-          {paused ? <Play className="h-4 w-4" aria-hidden="true" /> : <Pause className="h-4 w-4" aria-hidden="true" />}
+          {paused ? <Play className="size-4" /> : <Pause className="size-4" />}
         </button>
       )}
     </>
