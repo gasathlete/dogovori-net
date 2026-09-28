@@ -60,8 +60,8 @@ describe("позициониране на началната страница", 
     expect(index.indexOf("<DogovaryAIShowcase />")).toBeGreaterThan(
       index.indexOf("<ProductsSection />"),
     );
-    expect(index.indexOf("<DogovaryAIShowcase />")).toBeLessThan(
-      index.indexOf("<LifeScenarios />"),
+    expect(index.indexOf("<LifeScenarios />")).toBeLessThan(
+      index.indexOf("<DogovaryAIShowcase />"),
     );
   });
 });
@@ -78,9 +78,9 @@ describe("оферта: еднократно срещу абонамент", () 
   });
 
   it("има точно една реализация на CTA за входния пакет", () => {
-    expect(plans.match(/entryPackCtaHref\(/g) ?? []).toHaveLength(1);
     expect(plans.match(/<EntryPackCta /g) ?? []).toHaveLength(1);
     expect(plans.match(/source: "public_entry_pack"/g) ?? []).toHaveLength(1);
+    expect(plans).toContain('productId: "entry_pack"');
     // CTA-то е само линк — без собствена рамка вътре в картата за еднократно плащане.
     expect(plans).not.toContain("border-2 border-brand/40 bg-brand/[0.04]");
     expect(plans.match(/Конкретен документ/g) ?? []).toHaveLength(1);
