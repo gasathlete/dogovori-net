@@ -76,13 +76,13 @@ export default function BlogSubmit() {
     try {
       if (imageFile) {
         setUploading(true);
-        const ext = imageFile.name.split(".").pop()?.toLowerCase() || "jpg";
+        const ext = imageFile.type === "image/png" ? "png" : imageFile.type === "image/webp" ? "webp" : "jpg";
         const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("user-articles")
+        // Частна staging кофа: снимката става публична едва след одобрение.
+        const { error: upErr } = await supabase.storage.from(PENDING_BUCKETS.article)
           .upload(path, imageFile, { contentType: imageFile.type, upsert: false });
         if (upErr) throw upErr;
-        const { data: pub } = supabase.storage.from("user-articles").getPublicUrl(path);
-        imageUrl = pub.publicUrl;
+        imageUrl = pendingMediaMarker("article", path);
         setUploading(false);
       }
 
