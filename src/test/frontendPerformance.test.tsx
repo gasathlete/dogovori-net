@@ -63,7 +63,7 @@ describe("LazyOnVisible", () => {
   it("mounts immediately when the URL has a section hash so deep links resolve", () => {
     vi.stubGlobal("IntersectionObserver", FakeIO);
     window.history.replaceState(null, "", "/#produkti");
-    render(<LazyOnVisible minHeight={[900, 500]}><section id="produkti">Продукти</section></LazyOnVisible>);
+    render(<LazyOnVisible minHeight={[900, 700, 500]}><section id="produkti">Продукти</section></LazyOnVisible>);
     expect(document.getElementById("produkti")).not.toBeNull();
   });
 

@@ -1,3 +1,4 @@
+import { HERO_POSTER_SRCSET } from "@/components/HeroVideoBackdrop";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -27,7 +28,7 @@ describe("prerendered home shell", () => {
   });
 
   it("uses the same preloaded poster and never bakes in video or session state", () => {
-    expect(hero).toContain('srcset="/hero/hero-poster-960.webp 960w, /hero/hero-poster-1280.webp 1280w"');
+    expect(hero).toContain(`srcset="${HERO_POSTER_SRCSET}"`);
     expect(shell).not.toContain("<video");
     expect(shell).not.toMatch(/Изход|Моят профил|@/);
   });
