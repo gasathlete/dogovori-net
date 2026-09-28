@@ -139,3 +139,15 @@ Deployed this step: `sign-shared-document`, `signer-action`, `approve-media`, `s
 - `'unsafe-inline'` scripts remain. Stripe.js was not exercised because purchases are locked.
 - Branch protection, code scanning, leaked-password and MFA settings need GitHub/Auth admin access, which is not available here.
 - Frontend not published. No real email, signature or payment.
+
+## Dependency follow-through — esbuild (2026-09-28, 21:45 UTC request, base a9b23df/562f93ca)
+
+Before (bun audit, public registry, bun.lock v3): 2 advisories — GHSA-67mh-4wv8-2f99 (moderate, esbuild <=0.24.2; copy 0.18.20 via drizzle-kit → @esbuild-kit/esm-loader → @esbuild-kit/core-utils) and GHSA-g7r4-m6w7-qqqr (low, esbuild >=0.27.3 <0.28.1; copy 0.27.7 via @lovable.dev/mcp-js 0.20.1).
+
+Fix: narrow nested override `"@lovable.dev/mcp-js": { "esbuild": "^0.28.2" }`; all existing overrides kept. Resolved esbuild copies: root 0.25.12, mcp-js 0.28.2, tsx 0.28.2, @esbuild-kit/core-utils 0.18.20 (npm lock also lovable-tagger 0.25.0).
+
+After: 1 advisory — GHSA-67mh-4wv8-2f99 (moderate), one copy only (0.18.20). GHSA-g7r4-m6w7-qqqr resolved. Each advisory counted once.
+
+Drizzle chain (not fixed, blocker documented): drizzle-kit 0.31.11 (kept, not downgraded) still depends on the deprecated @esbuild-kit/core-utils, which pins esbuild ~0.18.20. A tried override `"@esbuild-kit/core-utils": { "esbuild": "^0.25.12" }` produced a bun.lock that Bun 1.4.2 `install --frozen-lockfile` rejects on a clean copy ("overrides changed since bun.lock was saved"), and npm ignored it in package-lock.json. That attempt was reverted. Exposure: dev tooling only (drizzle-kit loading its config); GHSA-67mh concerns esbuild's serve mode, which that path does not start; nothing is shipped to browsers. Proper fix needs an upstream drizzle-kit release without @esbuild-kit.
+
+Verification: Bun 1.4.2 clean-copy frozen install (801 packages) OK; tsc -p tsconfig.app.json OK; vitest 156 files, 2007 passed, 4 skipped, 0 failed; vite build OK; security-shield 10/10; drizzle-kit check OK; @lovable.dev/mcp-js import OK. No database, email, signing or payment actions. Not published.
