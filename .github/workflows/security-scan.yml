@@ -42,7 +42,8 @@ jobs:
             head="${{ github.sha }}"
           fi
           git diff --name-only -z --diff-filter=AM "$base" "$head" -- \
-            'supabase/migrations/*.sql' 'src/**/*' 'supabase/functions/**/*' 'scripts/**/*' \
+            'supabase/migrations/*.sql' 'drizzle/migrations/*.sql' 'docs/migrations/*.sql' \
+            'src/**/*' 'supabase/functions/**/*' 'scripts/**/*' \
             > reports/security-changed-files.bin
           if [ -s reports/security-changed-files.bin ]; then
             echo "has_files=true" >> "$GITHUB_OUTPUT"

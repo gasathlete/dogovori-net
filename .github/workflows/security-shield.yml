@@ -1,0 +1,54 @@
+name: Security shield
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: '23 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-shield-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Security boundary regression tests (no dependencies or credentials)
+        run: node --experimental-strip-types --test scripts/tests/security-shield.test.mjs
+
+  public-headers:
+    # These are live configuration findings, not code-regression failures.
+    # Run against production only on dispatch/schedule, never on untrusted PR code.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Three read-only public page requests
+        run: node scripts/security-shield-check.mjs --out=reports/security-shield.json
+      - name: Keep the result even when the live baseline fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-shield-headers
+          path: reports/security-shield.json
+          retention-days: 14
