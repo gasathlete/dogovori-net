@@ -121,6 +121,63 @@ CREATE FUNCTION public.cleanup_anonymous_drafts() RETURNS int LANGUAGE sql SECUR
 CREATE FUNCTION public.verify_cron_secret(_secret text) RETURNS boolean LANGUAGE sql SECURITY DEFINER AS $$ SELECT false $$;
 CREATE FUNCTION public.admin_list_users(_search text, _limit int) RETURNS int LANGUAGE sql SECURITY DEFINER AS $$ SELECT 0 $$;
 
+-- Addendum S9–S14 fixtures (live-shaped, incl. root's ownership policies).
+CREATE FUNCTION public.is_team_member(_user_id uuid, _team_id uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS
+  $$ SELECT EXISTS (SELECT 1 FROM public.team_members WHERE user_id = _user_id AND team_id = _team_id) $$;
+CREATE TABLE public.download_quota (user_id uuid PRIMARY KEY, total_used int DEFAULT 0);
+CREATE TABLE public.team_usage (team_id uuid PRIMARY KEY, lifetime_ops int DEFAULT 0);
+CREATE TABLE public.loyalty_unlocks (subject_type text, subject_id uuid, tier_id text, UNIQUE (subject_type, subject_id, tier_id));
+CREATE TABLE public.notifications (id uuid DEFAULT gen_random_uuid(), user_id uuid, kind text, title text, body text, link text);
+INSERT INTO public.download_quota VALUES ('${ALICE}', 12), ('${BOB}', 1200);
+INSERT INTO public.team_usage VALUES ('${TEAM}', 10);
+CREATE FUNCTION public.award_user_loyalty(_total_ops integer) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF _total_ops >= 1000 THEN
+    INSERT INTO public.loyalty_unlocks VALUES ('user', auth.uid(), 'gold_entrepreneur') ON CONFLICT DO NOTHING;
+  END IF;
+  RETURN '{}'::jsonb;
+END $$;
+CREATE FUNCTION public.award_team_loyalty(_team_id uuid, _total_ops integer) RETURNS jsonb LANGUAGE sql SECURITY DEFINER AS $$ SELECT '{}'::jsonb $$;
+CREATE FUNCTION public.charge_corrections_wave(p_user_id uuid, p_batch_id uuid, p_count integer) RETURNS jsonb LANGUAGE sql SECURITY DEFINER AS $$ SELECT '{}'::jsonb $$;
+CREATE FUNCTION public.rate_limit_check(_key text, _max integer, _window_s integer) RETURNS boolean LANGUAGE sql SECURITY DEFINER AS $$ SELECT true $$;
+CREATE FUNCTION public.growth_snapshot(_from timestamptz, _to timestamptz) RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF current_user IN ('service_role','supabase_admin','postgres') OR public.is_staff(auth.uid()) THEN RETURN '{"ok":true}'::jsonb; END IF;
+  RAISE EXCEPTION 'forbidden';
+END $$;
+CREATE TABLE public.saved_documents (id uuid PRIMARY KEY, user_id uuid, team_id uuid, payload jsonb);
+CREATE TABLE public.uploaded_contracts (id uuid PRIMARY KEY, user_id uuid, team_id uuid, storage_path text);
+INSERT INTO public.saved_documents VALUES ('99999999-0000-4000-8000-00000000000a', '${ALICE}', NULL, '{}'), ('99999999-0000-4000-8000-00000000000b', '${BOB}', NULL, '{}');
+CREATE TABLE public.shared_links (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), document_id uuid, uploaded_contract_id uuid, owner_id uuid,
+  token text, expires_at timestamptz, viewed_at timestamptz, signed_at timestamptz, signed_signature text, signer_name text,
+  signer_ip_hash text, revoked_at timestamptz, created_at timestamptz DEFAULT now(), owner_signed_at timestamptz, owner_signature text,
+  owner_signer_name text, signed_pdf_path text, password_hash text, password_salt text, signature_method text, qes_file_path text,
+  qes_file_name text, qes_file_mime text, qes_file_size int);
+ALTER TABLE public.shared_links ENABLE ROW LEVEL SECURITY;
+CREATE POLICY shared_links_select_own ON public.shared_links FOR SELECT USING (auth.uid() = owner_id);
+-- Root's live ownership policies (security-live-hotfixes-2026-09-28.md).
+CREATE POLICY shared_links_insert_own ON public.shared_links FOR INSERT TO authenticated WITH CHECK ((auth.uid() = owner_id) AND (
+  (document_id IS NOT NULL AND uploaded_contract_id IS NULL AND EXISTS (SELECT 1 FROM public.saved_documents d WHERE d.id = shared_links.document_id AND d.user_id = auth.uid()))
+  OR (uploaded_contract_id IS NOT NULL AND document_id IS NULL AND EXISTS (SELECT 1 FROM public.uploaded_contracts u WHERE u.id = shared_links.uploaded_contract_id AND u.user_id = auth.uid()
+      AND (u.storage_path IS NULL OR split_part(u.storage_path, '/', 1) = u.user_id::text)))));
+CREATE POLICY shared_links_update_own ON public.shared_links FOR UPDATE USING (auth.uid() = owner_id) WITH CHECK ((auth.uid() = owner_id) AND (
+  (document_id IS NOT NULL AND uploaded_contract_id IS NULL AND EXISTS (SELECT 1 FROM public.saved_documents d WHERE d.id = shared_links.document_id AND d.user_id = auth.uid()))
+  OR (uploaded_contract_id IS NOT NULL AND document_id IS NULL AND EXISTS (SELECT 1 FROM public.uploaded_contracts u WHERE u.id = shared_links.uploaded_contract_id AND u.user_id = auth.uid()
+      AND (u.storage_path IS NULL OR split_part(u.storage_path, '/', 1) = u.user_id::text)))));
+INSERT INTO public.shared_links (id, document_id, owner_id, token) VALUES ('88888888-0000-4000-8000-000000000001', '99999999-0000-4000-8000-00000000000a', '${ALICE}', 't1');
+CREATE SCHEMA storage;
+GRANT USAGE ON SCHEMA storage TO anon, authenticated, service_role;
+CREATE TABLE storage.objects (bucket_id text, name text);
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+GRANT SELECT ON storage.objects TO authenticated;
+CREATE POLICY user_contracts_team_select ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'user-contracts' AND (
+  EXISTS (SELECT 1 FROM public.uploaded_contracts uc WHERE uc.storage_path = objects.name AND uc.team_id IS NOT NULL AND public.is_team_member(auth.uid(), uc.team_id))));
+INSERT INTO public.team_members (team_id, user_id, role) VALUES ('${TEAM}', '${BOB}', 'member'), ('${TEAM}', 'cccccccc-0000-4000-8000-000000000009', 'member');
+INSERT INTO storage.objects VALUES ('user-contracts', '${ALICE}/secret.pdf');
+-- Bob (team member) points a TEAM record at Alice's private file.
+INSERT INTO public.uploaded_contracts VALUES (gen_random_uuid(), '${BOB}', '${TEAM}', '${ALICE}/secret.pdf');
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated;
+
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
 `;
@@ -267,6 +324,96 @@ describe("security hardening 2026-09-28", { timeout: 120_000 }, () => {
     expect(staffDocs.rows.length).toBe(2);
     const versions = await as(db, "anon", null, `SELECT id FROM public.legal_versions`);
     expect(versions.rows.length).toBe(1);
+  });
+
+  it("S9 reproduces and fixes: growth_snapshot refuses anon and non-staff callers", async () => {
+    const pre = await fresh(false);
+    const leak = await as<{ r: { ok: boolean } }>(pre, "authenticated", ALICE, `SELECT public.growth_snapshot(now(), now()) AS r`);
+    expect(leak.rows[0].r.ok).toBe(true);
+    const db = await fresh(true);
+    await fails(as(db, "anon", null, `SELECT public.growth_snapshot(now(), now())`));
+    await fails(as(db, "authenticated", ALICE, `SELECT public.growth_snapshot(now(), now())`));
+  });
+
+  it("S10: root's eight internal RPCs are service-only", async () => {
+    const db = await fresh(true);
+    await fails(as(db, "authenticated", ALICE, `SELECT public.charge_corrections_wave('${BOB}', gen_random_uuid(), 5)`));
+    await fails(as(db, "authenticated", ALICE, `SELECT public.rate_limit_check('any-key', 1000000, 1)`));
+    await fails(as(db, "anon", null, `SELECT public.cleanup_anonymous_drafts()`));
+    await as(db, "service_role", null, `SELECT public.charge_corrections_wave('${BOB}', gen_random_uuid(), 5)`);
+    await as(db, "service_role", null, `SELECT public.rate_limit_check('k', 1, 60)`);
+  });
+
+  it("S11 reproduces and fixes: loyalty ignores browser count and uses server counters", async () => {
+    const pre = await fresh(false);
+    await as(pre, "authenticated", ALICE, `SELECT public.award_user_loyalty(999999)`);
+    expect((await pre.query(`SELECT 1 FROM public.loyalty_unlocks WHERE subject_id = '${ALICE}'`)).rows.length).toBe(1);
+    const db = await fresh(true);
+    await as(db, "authenticated", ALICE, `SELECT public.award_user_loyalty(999999)`);
+    expect((await db.query(`SELECT 1 FROM public.loyalty_unlocks WHERE subject_id = '${ALICE}'`)).rows.length).toBe(0);
+    await as(db, "authenticated", BOB, `SELECT public.award_user_loyalty(0)`);
+    expect((await db.query(`SELECT tier_id FROM public.loyalty_unlocks WHERE subject_id = '${BOB}'`)).rows).toEqual([{ tier_id: "gold_entrepreneur" }]);
+    await as(db, "authenticated", BOB, `SELECT public.award_team_loyalty('${TEAM}', 999999)`);
+    expect((await db.query(`SELECT 1 FROM public.loyalty_unlocks WHERE subject_id = '${TEAM}'`)).rows.length).toBe(0);
+    await fails(as(db, "authenticated", ALICE, `SELECT public.award_team_loyalty('${TEAM}', 0)`));
+    await fails(as(db, "anon", null, `SELECT public.award_user_loyalty(5000)`));
+  });
+
+  it("S12 reproduces: owner forges counterparty signature despite root's ownership policies", async () => {
+    const pre = await fresh(false);
+    const r = await as(pre, "authenticated", ALICE,
+      `UPDATE public.shared_links SET signed_at = now(), signer_name = 'Боб', signed_pdf_path = '${BOB}/x.pdf' RETURNING id`);
+    expect(r.rows.length).toBe(1);
+  });
+
+  it("S12 fixed without ACL revocation: create/owner-sign/revoke keep working, server-only columns guarded", async () => {
+    const db = await fresh(true);
+    // Grants unchanged (rejected blanket revocation is not reintroduced).
+    const g = await db.query<{ i: boolean; u: boolean }>(
+      `SELECT has_table_privilege('authenticated','public.shared_links','INSERT') AS i, has_table_privilege('authenticated','public.shared_links','UPDATE') AS u`);
+    expect(g.rows[0]).toEqual({ i: true, u: true });
+    // Legitimate client create of an own-document link.
+    await as(db, "authenticated", ALICE, `INSERT INTO public.shared_links (document_id, owner_id, token, expires_at) VALUES ('99999999-0000-4000-8000-00000000000a', '${ALICE}', 'new', now() + interval '7 days')`);
+    // Foreign target still refused (root's policy).
+    await fails(as(db, "authenticated", ALICE, `INSERT INTO public.shared_links (document_id, owner_id, token) VALUES ('99999999-0000-4000-8000-00000000000b', '${ALICE}', 'evil')`));
+    // Server-only columns cannot be pre-filled or rewritten by a client.
+    await fails(as(db, "authenticated", ALICE, `INSERT INTO public.shared_links (document_id, owner_id, token, signed_at) VALUES ('99999999-0000-4000-8000-00000000000a', '${ALICE}', 'x', now())`));
+    for (const set of ["signed_at = now()", "signer_name = 'Боб'", "signed_signature = 'x'", "signed_pdf_path = '${BOB}/x.pdf'",
+      "qes_file_path = 'q'", "token = 'x'", "password_hash = 'x'", "viewed_at = now()"]) {
+      await fails(as(db, "authenticated", ALICE, `UPDATE public.shared_links SET ${set} WHERE id = '88888888-0000-4000-8000-000000000001'`));
+    }
+    // Owner signs once; expires_at editable; revoke is one-way.
+    await as(db, "authenticated", ALICE, `UPDATE public.shared_links SET owner_signed_at = now(), owner_signature = 'data:image/png;base64,AA', owner_signer_name = 'Алиса' WHERE id = '88888888-0000-4000-8000-000000000001'`);
+    await fails(as(db, "authenticated", ALICE, `UPDATE public.shared_links SET owner_signer_name = 'друг' WHERE id = '88888888-0000-4000-8000-000000000001'`));
+    await as(db, "authenticated", ALICE, `UPDATE public.shared_links SET expires_at = now() + interval '1 day' WHERE id = '88888888-0000-4000-8000-000000000001'`);
+    const bob = await as(db, "authenticated", BOB, `UPDATE public.shared_links SET revoked_at = now() RETURNING id`);
+    expect(bob.rows.length).toBe(0);
+    await as(db, "authenticated", ALICE, `UPDATE public.shared_links SET revoked_at = now() WHERE id = '88888888-0000-4000-8000-000000000001'`);
+    await fails(as(db, "authenticated", ALICE, `UPDATE public.shared_links SET revoked_at = NULL WHERE id = '88888888-0000-4000-8000-000000000001'`));
+    // Service role capability proof: counterparty signing path still writes all server-only columns.
+    await as(db, "service_role", null, `UPDATE public.shared_links SET signed_at = now(), signed_signature = 's', signer_name = 'Боб',
+      signer_ip_hash = 'h', signed_pdf_path = '${ALICE}/signed/l.pdf', signature_method = 'drawn', viewed_at = now() WHERE id = '88888888-0000-4000-8000-000000000001'`);
+    await as(db, "service_role", null, `INSERT INTO public.shared_links (document_id, owner_id, token, password_hash, password_salt) VALUES ('99999999-0000-4000-8000-00000000000a', '${ALICE}', 'srv', 'h', 's')`);
+  });
+
+  it("S13 fixed: uploaded_contracts storage_path must stay in the owner's folder", async () => {
+    const db = await fresh(true);
+    await db.query(`INSERT INTO public.uploaded_contracts VALUES (gen_random_uuid(), '${ALICE}', NULL, '${ALICE}/a.pdf'), (gen_random_uuid(), '${ALICE}', NULL, NULL)`);
+    await fails(db.query(`INSERT INTO public.uploaded_contracts VALUES (gen_random_uuid(), '${ALICE}', NULL, '${BOB}/b.pdf')`));
+    await fails(db.query(`INSERT INTO public.uploaded_contracts VALUES (gen_random_uuid(), '${ALICE}', NULL, '${ALICE}/../${BOB}/b.pdf')`));
+  });
+
+  it("S14 reproduces and fixes: team record cannot expose another user's file", async () => {
+    const pre = await fresh(false);
+    const leak = await as(pre, "authenticated", "cccccccc-0000-4000-8000-000000000009", `SELECT name FROM storage.objects`);
+    expect(leak.rows.length).toBe(1);
+    const db = await fresh(true);
+    const none = await as(db, "authenticated", "cccccccc-0000-4000-8000-000000000009", `SELECT name FROM storage.objects`);
+    expect(none.rows.length).toBe(0);
+    await db.query(`INSERT INTO storage.objects VALUES ('user-contracts', '${BOB}/team.pdf')`);
+    await db.query(`INSERT INTO public.uploaded_contracts VALUES (gen_random_uuid(), '${BOB}', '${TEAM}', '${BOB}/team.pdf')`);
+    const ok = await as(db, "authenticated", "cccccccc-0000-4000-8000-000000000009", `SELECT name FROM storage.objects`);
+    expect(ok.rows.map((r) => (r as { name: string }).name)).toEqual(["${BOB}/team.pdf"]);
   });
 
   it("patch is idempotent", async () => {
