@@ -15,6 +15,38 @@ export interface BlogPostMeta {
 
 export const BLOG_POST_META: readonly BlogPostMeta[] = [
   {
+    "slug": "dlazhnostna-harakteristika-podgotovka",
+    "title": "Длъжностна характеристика: подготовка с пример",
+    "summary": "Как да съберете задължения, отчетност, правомощия и изисквания за длъжностна характеристика. Пример за офис координатор.",
+    "category": "Трудово право",
+    "image": "/blog/trudov-dogovor-osnovni-elementi.webp",
+    "publishedAt": "2026-09-28"
+  },
+  {
+    "slug": "opis-na-obzavezhdane-pri-naem",
+    "title": "Опис на обзавеждане при наем: пример и списък",
+    "summary": "Как да опишете мебели, уреди, състояние и снимки при предаване на жилище. Практически пример и списък за огледа.",
+    "category": "Наем и имоти",
+    "image": "/blog/kak-da-napravim-dogovor-za-naem.webp",
+    "publishedAt": "2026-09-28"
+  },
+  {
+    "slug": "priemane-na-rabota-po-etapi",
+    "title": "Приемане на работа по етапи: практичен пример",
+    "summary": "Как да свържете заданието, предадените файлове, проверката и забележките. Пример за приемане на дизайн проект по етапи.",
+    "category": "Бизнес и услуги",
+    "image": "/blog/dogovor-za-uslugi-mezhdu-firmi.webp",
+    "publishedAt": "2026-09-28"
+  },
+  {
+    "slug": "zadanie-za-uebsayt-kakvo-da-utochnim",
+    "title": "Задание за уебсайт: обхват, критерии и пример",
+    "summary": "Практическа структура за задание към агенция или разработчик: страници, функционалности, съдържание, тестове и предаване.",
+    "category": "Бизнес и услуги",
+    "image": "/blog/dogovor-za-izrabotka-zzd.webp",
+    "publishedAt": "2026-09-28"
+  },
+  {
     "slug": "kak-se-vadi-pik-ot-nap",
     "title": "Как се вади ПИК от НАП: стъпки, документи и електронни услуги 2026",
     "summary": "Персонален идентификационен код (ПИК) от НАП — кой може да го получи, какви документи са нужни, как се подава заявление в офис или онлайн и какви услуги отключва.",
@@ -23,19 +55,11 @@ export const BLOG_POST_META: readonly BlogPostMeta[] = [
     "publishedAt": "2026-06-10"
   },
   {
-    "slug": "pulnomoshtno-vidove-obrazci",
-    "title": "Пълномощно 2026: видове, нотариална заверка и образци",
-    "summary": "Видове пълномощни в България — общо, специално, нотариално, банково, за МПС. Кога е нужна нотариална заверка, как се оттегля и кои са валидните образци.",
-    "category": "Граждански сделки",
-    "image": "/blog/pulnomoshtno-vidove-obrazci.webp",
-    "publishedAt": "2026-06-05"
-  },
-  {
-    "slug": "platen-godishen-otpusk-rakovodstvo",
-    "title": "Платен годишен отпуск 2026: дни, заявление и обезщетение",
-    "summary": "Колко дни платен отпуск Ви се полагат, как се подава молба, какво се случва с неизползваните дни и как се изчислява обезщетението при напускане.",
-    "category": "Трудово право",
-    "image": "/blog/platen-godishen-otpusk-rakovodstvo.webp",
+    "slug": "deklaracia-patuvane-dete-chuzhbina",
+    "title": "Декларация за пътуване на дете в чужбина 2026: образец и стъпки",
+    "summary": "Кога е задължителна нотариална декларация за пътуване на дете в чужбина, какво съдържа, колко струва и как да изтеглите готов образец.",
+    "category": "Семейно право",
+    "image": "/blog/deklaracia-patuvane-dete-chuzhbina.webp",
     "publishedAt": "2026-06-05"
   },
   {
@@ -47,11 +71,19 @@ export const BLOG_POST_META: readonly BlogPostMeta[] = [
     "publishedAt": "2026-06-05"
   },
   {
-    "slug": "deklaracia-patuvane-dete-chuzhbina",
-    "title": "Декларация за пътуване на дете в чужбина 2026: образец и стъпки",
-    "summary": "Кога е задължителна нотариална декларация за пътуване на дете в чужбина, какво съдържа, колко струва и как да изтеглите готов образец.",
-    "category": "Семейно право",
-    "image": "/blog/deklaracia-patuvane-dete-chuzhbina.webp",
+    "slug": "platen-godishen-otpusk-rakovodstvo",
+    "title": "Платен годишен отпуск 2026: дни, заявление и обезщетение",
+    "summary": "Колко дни платен отпуск Ви се полагат, как се подава молба, какво се случва с неизползваните дни и как се изчислява обезщетението при напускане.",
+    "category": "Трудово право",
+    "image": "/blog/platen-godishen-otpusk-rakovodstvo.webp",
+    "publishedAt": "2026-06-05"
+  },
+  {
+    "slug": "pulnomoshtno-vidove-obrazci",
+    "title": "Пълномощно 2026: видове, нотариална заверка и образци",
+    "summary": "Видове пълномощни в България — общо, специално, нотариално, банково, за МПС. Кога е нужна нотариална заверка, как се оттегля и кои са валидните образци.",
+    "category": "Граждански сделки",
+    "image": "/blog/pulnomoshtno-vidove-obrazci.webp",
     "publishedAt": "2026-06-05"
   },
   {

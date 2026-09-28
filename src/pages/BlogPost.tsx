@@ -186,6 +186,19 @@ export default function BlogPost() {
             })()}
           </div>
 
+          {post.relatedDocuments && post.relatedDocuments.length > 0 && (
+            <section className="mt-10 rounded-xl border border-border/50 p-6">
+              <h2 className="mb-4 font-serif text-xl font-bold">Документи по темата</h2>
+              <ul className="space-y-3 text-sm">
+                {post.relatedDocuments.map((document) => (
+                  <li key={document.slug}>
+                    <Link to={`/shablon/${document.slug}`} className="text-gold underline underline-offset-4">{document.label}</Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           {post.sources && post.sources.length > 0 && (
             <OfficialSources
               sources={post.sources}
@@ -246,4 +259,3 @@ export default function BlogPost() {
     </div>
   );
 }
-

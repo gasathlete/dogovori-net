@@ -20,6 +20,10 @@ import { ONE_TIME_PRODUCTS } from "../src/lib/products";
 import { fmtEur } from "../src/lib/pricing";
 import { allTemplates } from "../src/lib/templateIndex";
 import { buildCollectionPages } from "./lib/collectionPages";
+import { loadPublishedBlogPosts } from "./lib/blogContent";
+import { resolveDateModified } from "../src/lib/blogEditorial";
+import { TEMPLATE_DISCOVERY_PROFILES } from "../src/lib/templateDiscovery";
+import { renderTemplatePreparation } from "./lib/templateDiscovery";
 
 const SITE = "https://dogovori.net";
 const DIST = resolve(process.cwd(), "dist");
@@ -268,7 +272,42 @@ function checkCollectionPages(sitemapUrls: string[]) {
   }
 }
 
-function main() {
+async function checkEditorialPages(sitemapUrls: string[]) {
+  const published = await loadPublishedBlogPosts(resolve(process.cwd(), "src/content/blog"));
+  const expected = new Set(published.map((post) => `${SITE}/blog/${post.slug}`));
+  const actual = new Set(sitemapUrls.filter((url) => url.startsWith(`${SITE}/blog/`)));
+  for (const url of new Set([...expected, ...actual])) {
+    if (expected.has(url) !== actual.has(url)) add("error", url, "blog-publication", "Blog sitemap must contain exactly the published article routes");
+  }
+  const escape = (value: string) => value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+  const catalog = new Set(allTemplates().map((entry) => entry.slug));
+  for (const post of published) {
+    const url = `${SITE}/blog/${post.slug}`;
+    const file = distPathForUrl(url);
+    if (!file) {
+      add("error", url, "blog-static", "Published article must have its own static HTML");
+      continue;
+    }
+    const html = readFileSync(file, "utf8");
+    if (!html.includes(`"dateModified":"${resolveDateModified(post)}"`)) add("error", url, "blog-date", "Article modification date differs from editorial metadata");
+    for (const source of post.sources ?? []) {
+      if (!html.includes(`href="${escape(source.url)}"`)) add("error", url, "blog-source", "Missing visible source link");
+    }
+    for (const document of post.relatedDocuments ?? []) {
+      if (!catalog.has(document.slug) || !html.includes(`href="/shablon/${document.slug}"`)) add("error", url, "blog-document", `Missing canonical document: ${document.slug}`);
+    }
+    if (post.cta && !html.includes(`href="${escape(post.cta.href)}"`)) add("error", url, "blog-cta", "Missing article-specific next step");
+  }
+  for (const profile of TEMPLATE_DISCOVERY_PROFILES) {
+    const url = `${SITE}/shablon/${profile.slug}`;
+    const file = distPathForUrl(url);
+    if (!catalog.has(profile.slug) || !file || !readFileSync(file, "utf8").includes(renderTemplatePreparation(profile.slug))) {
+      add("error", url, "template-preparation", "Missing canonical page or shared preparation content");
+    }
+  }
+}
+
+async function main() {
   if (!existsSync(DIST)) {
     console.error("✗ dist/ not found — run vite build first");
     process.exit(1);
@@ -278,6 +317,7 @@ function main() {
   for (const u of urls) checkUrl(u);
   checkProductPages();
   checkCollectionPages(urls);
+  await checkEditorialPages(urls);
 
 
   const errors = issues.filter((i) => i.level === "error");
@@ -306,4 +346,4 @@ function main() {
   console.log(`\n✓ SEO verification passed (${urls.length} URLs, ${warnings.length} warnings)`);
 }
 
-main();
+await main();

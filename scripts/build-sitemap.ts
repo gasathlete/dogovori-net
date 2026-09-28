@@ -11,7 +11,7 @@
 //
 // Usage: bun run scripts/build-sitemap.ts
 
-import { writeFileSync, readdirSync, statSync, existsSync } from "node:fs";
+import { writeFileSync, statSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { CATALOG, TOP_DOCUMENTS } from "../src/data/catalog";
 import { SECTORS } from "../src/data/sectors";
@@ -23,6 +23,9 @@ import { CALCULATORS } from "../src/data/calculators";
 import { SECTOR_PACKAGES } from "../src/data/sectorPackages";
 import { DOCUMENT_KITS } from "../src/data/documentKits";
 
+
+import { loadPublishedBlogPosts } from "./lib/blogContent";
+import { resolveDateModified } from "../src/lib/blogEditorial";
 
 const SITE = "https://dogovori.net";
 const today = new Date().toISOString().split("T")[0];
@@ -91,20 +94,12 @@ const staticEntries: Entry[] = [
 
 
 const blogDir = resolve(process.cwd(), "src/content/blog");
-const blogEntries: Entry[] = readdirSync(blogDir)
-  .filter((f) => f.endsWith(".ts"))
-  .map((f) => {
-    let lastmod = today;
-    try {
-      lastmod = statSync(resolve(blogDir, f)).mtime.toISOString().split("T")[0];
-    } catch {}
-    return {
-      loc: `/blog/${f.replace(/\.ts$/, "")}`,
-      changefreq: "monthly",
-      priority: "0.75",
-      lastmod,
-    };
-  });
+const blogEntries: Entry[] = (await loadPublishedBlogPosts(blogDir)).map((post) => ({
+  loc: `/blog/${post.slug}`,
+  changefreq: "monthly",
+  priority: "0.75",
+  lastmod: resolveDateModified(post),
+}));
 
 const categoryEntries: Entry[] = [
   ...CATALOG.map<Entry>((cat) => ({
@@ -222,4 +217,3 @@ const total =
   templateEntriesRest.length +
   blogEntries.length;
 console.log(`✓ Total URLs across all sitemaps: ${total}`);
-
