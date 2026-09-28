@@ -6,10 +6,24 @@ const ALLOWED_ORIGINS = new Set([
   "https://www.dogovori.net",
   "https://contract-architect-ai.lovable.app",
   "https://id-preview--6b2da12e-e1d6-4f97-8549-b632fb66ddd1.lovable.app",
+  "https://dogovori-net.lovable.app",
   "http://localhost:8080",
 ]);
 
-const ALLOWED_HOST_SUFFIXES = [".lovable.app", ".lovableproject.com", ".lovable.dev"];
+/**
+ * Само хостове на ТОЗИ проект (preview/sandbox варианти), не всеки
+ * *.lovable.app / *.lovable.dev — иначе чужд проект би получил CORS достъп.
+ */
+const PROJECT_ID = "6b2da12e-e1d6-4f97-8549-b632fb66ddd1";
+export function isProjectPreviewHost(host: string): boolean {
+  const h = host.toLowerCase();
+  if (h === `${PROJECT_ID}.lovableproject.com`) return true;
+  if (h.endsWith(".lovable.app")) {
+    const label = h.slice(0, -".lovable.app".length);
+    return !label.includes(".") && (label === PROJECT_ID || label.endsWith(`--${PROJECT_ID}`));
+  }
+  return false;
+}
 
 // ВАЖНО: `x-correlation-id` се изпраща от всяка клиентска заявка
 // (src/lib/invokeEdgeFunction.ts). Ако липсва тук, preflight-ът се отхвърля и
@@ -25,7 +39,7 @@ export function buildCors(req: Request, methods = "POST, OPTIONS") {
   } else {
     try {
       const host = new URL(origin).host;
-      if (ALLOWED_HOST_SUFFIXES.some((s) => host.endsWith(s))) allow = origin;
+      if (new URL(origin).protocol === "https:" && isProjectPreviewHost(host)) allow = origin;
     } catch {
       // ignore invalid origins
     }
