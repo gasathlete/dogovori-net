@@ -254,8 +254,8 @@ describe("мобилен хедър и меню", () => {
   const header = read("src/components/Header.tsx");
 
   it("връща предишните пропорции на хедъра, без промяна на десктоп", () => {
-    expect(header).toContain("h-[68px] lg:h-16");
-    expect(header).toContain("h-16 lg:h-14");
+    expect(header).toContain("h-[68px] xl:h-16");
+    expect(header).toContain("h-16 xl:h-14");
     expect(header).not.toContain("h-[58px]");
     expect(header).toContain("max-h-[calc(100dvh-68px)]");
   });
