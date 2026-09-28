@@ -47,3 +47,27 @@ The broader implementation must still address authenticated-callable quota/corre
 Public legal_sources currently contains 21 active BG law/code sources (13 laws, 8 codes). legal_versions is version/changelog metadata. Public legislation is not itself a user-document leak; review its consumer scope accurately.
 
 Broader report: docs/operations/security-hardening-2026-09-28.md (in progress at the time this note was recorded).
+
+## Live checkpoint — 2026-09-28 18:13 UTC
+
+Root has now applied the independently reviewed S1–S8 portion (only) of `docs/migrations/security_hardening_2026_09_28.sql`. All referenced columns and existing column ACLs were checked against production; client call sites were reviewed. Production metadata verifies: client charge-ledger INSERT false; signer-status UPDATE false; team seat_count UPDATE false; profile assistant counter UPDATE false; consent UPDATE false. Allowed profile name/team name edits and envelope cancellation column remain granted; service_role signer and membership INSERT/UPDATE remain granted. Cancellation is further constrained by the new trigger. No customer rows were modified.
+
+**Correction to the generated report:** production `otp_code_hash` SELECT for authenticated was already FALSE before S1–S8. The confirmed signing vulnerability was writable signer/status/evidence fields, not a newly demonstrated OTP hash read. Preserve the existing OTP read protection; do not report a before/after read leak without evidence.
+
+Eight internal RPCs were also made service-only and independently verified (PUBLIC/anon/authenticated cannot execute; service_role and owner postgres can):
+- `_roll_feature_counters(uuid)`
+- `charge_corrections_wave(uuid,uuid,integer)`
+- `consume_assistant_message(uuid,integer)`
+- `rate_limit_check(text,integer,integer)`
+- `cleanup_anonymous_drafts()`
+- `purge_old_funnel_events()`
+- `assemble_prompt_content(uuid)`
+- `check_compliance_reminders()`
+
+Their exact ACL operation is `REVOKE EXECUTE ... FROM PUBLIC, anon, authenticated; GRANT EXECUTE ... TO service_role;`. Repo-wide call-site searches established that browser callers do not need these raw internal APIs. Definer wrappers still execute as their owner. No function bodies or user rows changed in this step.
+
+S9 growth is already live as recorded below. S10's two additional RPCs, S11 loyalty, S12 share guards and S13 storage paths have NOT yet been applied by root. In particular, the old staged S12 that removes all client INSERT is NOT approved by root: the automatic review rejection described below remains binding. Use a targeted insert/update guard preserving legitimate creation, with behavioral proof.
+
+A read-only negative test using SET LOCAL ROLE in a SQL DO block returned API499/request_cancelled. It is NOT a passed live test. Permission/definition metadata reads did succeed; isolated PGlite tests are separate evidence.
+
+No security frontend/Edge deployment has yet been performed by root. Shared main also contains a separate SEO change; preserve it during release coordination.
