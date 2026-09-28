@@ -11,14 +11,18 @@
 - Ново стартиране и покупка са заменени с предварителна заявка; прегледът на съдържанието остава достъпен.
 - Добавени са sitemap, prerender, навигационни и footer връзки.
 - Локалният responsive преглед е проверен на 390 px и 1280 px за начална страница, пакет, комплект и продуктов detail: няма хоризонтално преливане.
-- CTA за известяване отваря съществуващия диалог, а съгласието е изключено по подразбиране.
+- CTA за известяване е видим и в реалните продуктови карти на началната страница, отваря съществуващия диалог, а съгласието е изключено по подразбиране.
+- Шестте водещи комплекта показват собствени сценарийни етапи; всеки наличен документ е включен точно веднъж, а липсващото приключване е означено като планирано без връзка.
+- Пакетите показват отделно проверените налични и планирани позиции; етапите им имат уникални DOM идентификатори.
 
 ## Проверки
 
 - `bunx vitest run src/test/sectorPackagesExperience.test.tsx src/test/kits.test.ts src/test/prelaunchWaitlist.test.tsx src/test/prelaunchWaitlistRace.test.tsx src/test/publicConversionRoutes.test.tsx src/test/positioningOffer.test.ts` — 60/60 успешни.
-- `bun run test` — 1953/1953 успешни.
-- `bunx tsgo --noEmit` — успешно.
+- Review регресии: `bunx vitest run src/test/handoverProtocolSpelling.test.ts src/test/productCatalogGrid.test.tsx src/test/products.test.tsx src/test/sectorPackagesExperience.test.tsx src/test/kits.test.ts src/test/mobileConversion.test.tsx` — 82/82 успешни, 0 пропуснати.
+- Окончателен пълен run: `bun run test` — 1956/1956 успешни, 0 пропуснати.
+- `bunx tsgo --noEmit -p tsconfig.app.json` — успешно.
 - `bun run build` — успешно, само локален build.
+- Локалната browser проверка на 390 px потвърди три карти с ширина 326 px, три заключени състояния, отваряне на диалога с неизбрано съгласие, видими етапи на наемния комплект и липса на хоризонтално преливане.
 
 ## Не е активирано
 

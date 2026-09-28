@@ -5,7 +5,10 @@ import { Seo } from "@/components/Seo";
 import { SeoFooter } from "@/components/SeoFooter";
 import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
-import { SECTOR_PACKAGES } from "@/data/sectorPackages";
+import { getSectorPackageAvailability, SECTOR_PACKAGES } from "@/data/sectorPackages";
+import { allTemplates } from "@/lib/templateIndex";
+
+const CANONICAL_TEMPLATE_NAMES = new Set(allTemplates().map((entry) => entry.doc.name));
 
 export default function SectorPackagesPage() {
   return (
@@ -25,10 +28,12 @@ export default function SectorPackagesPage() {
           <div className="grid gap-4 md:grid-cols-2">
             {SECTOR_PACKAGES.map((item) => {
               const Icon = Icons[item.icon];
+              const availability = getSectorPackageAvailability(item, CANONICAL_TEMPLATE_NAMES);
               return (
                 <article key={item.id} className="flex h-full flex-col rounded-xl border border-border/70 bg-card/55 p-5 shadow-soft sm:p-6">
                   <span className="inline-flex size-11 items-center justify-center rounded-lg border border-gold/30 bg-gold/[0.08] text-gold"><Icon className="size-5" /></span>
                   <h2 className="mt-4 font-serif text-2xl font-bold">{item.title}</h2>
+                  <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-gold">{availability.available} налични · {availability.planned} планирани</p>
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.audience}</p>
                   <ol className="mt-5 space-y-2 border-l border-gold/25 pl-4">
                     {[...new Set(item.documents.map((document) => document.stage))].map((stage) => <li key={stage} className="text-xs font-medium text-foreground/80">{stage}</li>)}

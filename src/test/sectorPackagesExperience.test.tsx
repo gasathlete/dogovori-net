@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { SECTOR_PACKAGES } from "@/data/sectorPackages";
+import { getSectorPackageAvailability, SECTOR_PACKAGES } from "@/data/sectorPackages";
+import { FEATURED_KIT_STAGES, isFeaturedKitId } from "@/data/featuredKitStages";
+import { DOCUMENT_KITS } from "@/data/documentKits";
+import { allTemplates } from "@/lib/templateIndex";
 import SectorPackagesPage from "@/pages/SectorPackages";
 import SectorPackageDetailPage from "@/pages/SectorPackageDetail";
 import KitDetailPage from "@/pages/KitDetail";
@@ -39,7 +42,31 @@ describe("пакети и комплекти в предварителен ре�
     route("/paketi/naemi", "/paketi/:slug", <SectorPackageDetailPage />);
     expect(screen.getByRole("heading", { level: 1, name: "Наеми" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Оформяте наема и плащането/ })).toHaveAttribute("href", "/shablon/dogovor-za-naem-na-zhilishte");
+    expect(screen.getByRole("link", { name: /Документирате наема или депозита/ })).toHaveAttribute("href", "/shablon/razpiska-za-poluchena-suma-naem-depozit");
     expect(screen.getByText("Финален протокол за връщане и разчети").closest("a")).toBeNull();
+    const stageIds = [...document.querySelectorAll("section[aria-labelledby]")].map((section) => section.getAttribute("aria-labelledby"));
+    expect(new Set(stageIds).size).toBe(stageIds.length);
+  });
+
+  it("брои като налични само канонично разрешимите документи", () => {
+    const names = new Set(allTemplates().map((entry) => entry.doc.name));
+    for (const item of SECTOR_PACKAGES) {
+      const counts = getSectorPackageAvailability(item, names);
+      expect(counts.available + counts.planned).toBe(item.documents.length);
+      for (const document of item.documents.filter((entry) => entry.status === "browseable")) {
+        expect(names.has(document.docName ?? ""), `${item.id}: ${document.docName}`).toBe(true);
+      }
+    }
+  });
+
+  it("шестте водещи комплекта имат реални етапи и запазват всеки документ точно веднъж", () => {
+    for (const kit of DOCUMENT_KITS.filter((entry) => isFeaturedKitId(entry.id))) {
+      const stages = FEATURED_KIT_STAGES[kit.id];
+      const mappedNames = stages.flatMap((stage) => stage.documentNames);
+      expect(mappedNames).toHaveLength(kit.items.length);
+      expect(new Set(mappedNames).size).toBe(mappedNames.length);
+      expect(new Set(mappedNames)).toEqual(new Set(kit.items.map((item) => item.docName)));
+    }
   });
 
   it("непознат пакет и комплект се връщат към безопасния индекс", () => {
@@ -63,6 +90,8 @@ describe("пакети и комплекти в предварителен ре�
   it("комплектът запазва preview връзките, но няма старт на нов запис", () => {
     route("/komplekti/naem-zhilishte", "/komplekti/:slug", <KitDetailPage />);
     expect(screen.getByRole("link", { name: /Договор за наем на жилище/ })).toHaveAttribute("href", "/shablon/dogovor-za-naem-na-zhilishte");
+    expect(screen.getByRole("heading", { name: /Депозит и плащане/ })).toBeInTheDocument();
+    expect(screen.getByText("Протокол за окончателно връщане на имота и ключовете").closest("a")).toBeNull();
     expect(screen.queryByRole("button", { name: /Стартирай комплекта/ })).toBeNull();
     expect(screen.getByRole("button", { name: "Извести ме при пускане" })).toBeInTheDocument();
   });

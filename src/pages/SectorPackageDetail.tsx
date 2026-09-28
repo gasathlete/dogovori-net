@@ -35,9 +35,11 @@ export default function SectorPackageDetailPage() {
         <section className="container py-10 sm:py-14">
           <h2 className="font-serif text-2xl font-bold">Цикълът стъпка по стъпка</h2>
           <div className="mt-6 space-y-8">
-            {stages.map((stage) => (
-              <section key={stage} aria-labelledby={`stage-${stage.slice(0, 2)}`} className="grid gap-4 lg:grid-cols-[180px_1fr]">
-                <div><h3 id={`stage-${stage.slice(0, 2)}`} className="text-xs font-semibold uppercase tracking-[0.16em] text-gold">{stage}</h3></div>
+            {stages.map((stage, stageIndex) => {
+              const stageId = `package-${item.slug}-stage-${stageIndex + 1}`;
+              return (
+              <section key={stage} aria-labelledby={stageId} className="grid gap-4 lg:grid-cols-[180px_1fr]">
+                <div><h3 id={stageId} className="text-xs font-semibold uppercase tracking-[0.16em] text-gold">{stage}</h3></div>
                 <ul className="grid gap-3 sm:grid-cols-2">
                   {item.documents.filter((document) => document.stage === stage).map((document) => {
                     const template = document.docName ? templateByName.get(document.docName) : undefined;
@@ -46,7 +48,8 @@ export default function SectorPackageDetailPage() {
                   })}
                 </ul>
               </section>
-            ))}
+              );
+            })}
           </div>
           <div className="mt-10 grid gap-4 rounded-xl border border-gold/20 bg-gold/[0.04] p-5 sm:grid-cols-2 sm:p-6">
             <div><h2 className="flex items-center gap-2 font-serif text-xl font-bold"><CheckCircle2 className="size-5 text-gold" />Какво можете да разгледате</h2><p className="mt-2 text-sm leading-relaxed text-muted-foreground">Всеки публикуван документ води към съществуващата му страница с описание и пример. Това не е покупка и не създава нов документ.</p></div>
