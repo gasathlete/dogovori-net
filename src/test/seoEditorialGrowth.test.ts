@@ -1,6 +1,6 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { loadPublishedBlogPosts } from "../../scripts/lib/blogContent";
 import { ALL_POSTS, hasVerifiedSources } from "../lib/blog";
@@ -23,7 +23,7 @@ describe("published content boundaries", () => {
   });
 
   it("excludes dated drafts and undated articles from the actual build loader", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "seo-publication-"));
+    const dir = mkdtempSync(join(resolve("src/test"), "seo-publication-"));
     try {
       for (const [slug, fields] of Object.entries({
         draft: { status: "draft", publishedAt: "2026-01-01" },
@@ -36,7 +36,7 @@ describe("published content boundaries", () => {
   });
 
   it("rejects a published filename/slug mismatch instead of advertising a wrong URL", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "seo-slug-"));
+    const dir = mkdtempSync(join(resolve("src/test"), "seo-slug-"));
     try {
       writeFileSync(join(dir, "wrong.ts"), 'export const POST = { slug: "another", publishedAt: "2026-01-01" };');
       await expect(loadPublishedBlogPosts(dir)).rejects.toThrow("must match its filename");

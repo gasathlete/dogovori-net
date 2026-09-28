@@ -25,7 +25,7 @@ The 20 exact document routes are declared in `src/lib/templateDiscovery.ts`. Eac
 
 ## Evidence and release boundary
 
-Local focused suite: 40 tests passed across four files. TS/TSX syntax transpilation passed for the changed pages and build scripts. Local sitemap execution is unavailable in the partial source checkout because generated catalog dependencies are absent; the complete production build and SEO verification are required in GitHub CI before merge.
+Local focused suite: 41 tests passed across five files (including the isolated SQL regression test after the syntax correction below). TS/TSX syntax transpilation passed for the changed pages and build scripts. Local sitemap execution is unavailable in the partial source checkout because generated catalog dependencies are absent; the complete production build and SEO verification are required in GitHub CI before merge.
 
 Expected inventory after a successful full build: 769 sitemap URLs, of which 39 are articles (previous baseline: 765 / 35). These are build inventories, not observed Google-indexed pages. Search Console indexing, traffic and conversion data have not been accessed.
 
@@ -43,3 +43,9 @@ The examples and preparation workflows are editorial practical suggestions; they
 ## Build prerequisite repaired
 
 The initial CI run stopped before tests/build because main's package.json security overrides were newer than bun.lockb. Migrated the current npm lock to Bun 1.4.2's text bun.lock, retained package.json and all nested overrides, and removed the obsolete binary lock. The new lock uses public npm tarball locations with the existing integrity hashes instead of environment-specific Lovable cache URLs. No dependency manifest or security rule was relaxed. Local `bun install --frozen-lockfile --ignore-scripts` succeeds; CI will perform the complete install and build.
+
+## Full-suite compatibility fixes
+
+The full suite additionally exposed a missing `@testing-library/dom` peer, the older pillar test's fixed 35-article assertion, and an extra dollar-quote delimiter before END in `security_privacy_kpis_authz_2026_09_28.sql`. Added the DOM peer explicitly as a dev dependency (10.4.2) and synchronized npm/Bun locks; ten test-only dependency versions were added, with no previous package versions removed. All security overrides remain identical. Kept the existing npm-lock URLs for unchanged versions; Bun's public-registry lock retains the integrity hashes.
+
+The pillar guard now asserts that every one of the 35 original article slugs is retained and all routes remain unique. Build-loader fixtures now live under the test root and use the node environment so Vite can import them in CI. The SQL change removes only the premature function delimiter; the existing PGlite test passes, including replay, denial for anonymous/nonstaff callers and retained staff metrics. No SQL was applied to production by this SEO task.
