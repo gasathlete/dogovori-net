@@ -1,10 +1,7 @@
 import { LegalLayout } from "./LegalLayout";
 import { Mail, Shield, AlertTriangle, Building2, MessageSquare, Scale } from "@/icons";
 
-const EMAIL = "imdevelopmentoffice@gmail.com";
-const COMPANY = "„Иванов и Милев Пропърти Девелъпмент“ ЕООД";
-const EIK = "206957326";
-const ADDRESS = "гр. София, ж.к. Стрелбище, бул. България №13, ет. 1, магазин 4";
+import { CONTACT_EMAIL as EMAIL, CONTACT_COMPANY as COMPANY, CONTACT_EIK as EIK, CONTACT_ADDRESS as ADDRESS } from "../../data/contactPublicInfo";
 
 type Channel = {
   icon: typeof Mail;

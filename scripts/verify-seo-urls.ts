@@ -24,6 +24,7 @@ import { loadPublishedBlogPosts } from "./lib/blogContent";
 import { resolveDateModified } from "../src/lib/blogEditorial";
 import { TEMPLATE_DISCOVERY_PROFILES } from "../src/lib/templateDiscovery";
 import { renderTemplatePreparation } from "./lib/templateDiscovery";
+import { CONTACT_EMAIL, CONTACT_EIK } from "../src/data/contactPublicInfo";
 
 const SITE = "https://dogovori.net";
 const DIST = resolve(process.cwd(), "dist");
@@ -315,6 +316,10 @@ async function main() {
   const urls = loadSitemapUrls();
   console.log(`▶ verifying ${urls.length} URLs from sitemaps…`);
   for (const u of urls) checkUrl(u);
+  const contactsFile = distPathForUrl(`${SITE}/contacts`);
+  if (!contactsFile || !readFileSync(contactsFile, "utf8").includes(CONTACT_EMAIL) || !readFileSync(contactsFile, "utf8").includes(CONTACT_EIK)) {
+    add("error", `${SITE}/contacts`, "contacts-static", "Missing dedicated contact HTML with shared public trader facts");
+  }
   checkProductPages();
   checkCollectionPages(urls);
   await checkEditorialPages(urls);

@@ -23,6 +23,22 @@ export const BLOG_POST_META: readonly BlogPostMeta[] = [
     "publishedAt": "2026-09-28"
   },
   {
+    "slug": "dopalnitelna-rabota-izvan-zadanieto",
+    "title": "Допълнителна работа извън заданието",
+    "summary": "Как да превърнете новото клиентско искане в ясна уговорка за резултат, цена и срок.",
+    "category": "Бизнес и услуги",
+    "image": "/blog/dogovor-za-uslugi-mezhdu-firmi.webp",
+    "publishedAt": "2026-09-28"
+  },
+  {
+    "slug": "obhvat-na-usluga-predi-oferta",
+    "title": "Обхват на услуга: подготовка преди оферта",
+    "summary": "Практическа подготовка на оферта: резултати, изключения, входни данни, ревизии и приемане.",
+    "category": "Бизнес и услуги",
+    "image": "/blog/dogovor-za-uslugi-mezhdu-firmi.webp",
+    "publishedAt": "2026-09-28"
+  },
+  {
     "slug": "opis-na-obzavezhdane-pri-naem",
     "title": "Опис на обзавеждане при наем: пример и списък",
     "summary": "Как да опишете мебели, уреди, състояние и снимки при предаване на жилище. Практически пример и списък за огледа.",
@@ -31,11 +47,59 @@ export const BLOG_POST_META: readonly BlogPostMeta[] = [
     "publishedAt": "2026-09-28"
   },
   {
+    "slug": "podnovyavane-na-naem-promeni-aneks",
+    "title": "Подновяване на наем: подготовка за анекс",
+    "summary": "Как да подредите старите и новите условия, датите и приложенията преди подновяване на наема.",
+    "category": "Недвижими имоти",
+    "image": "/blog/kak-da-napravim-dogovor-za-naem.webp",
+    "publishedAt": "2026-09-28"
+  },
+  {
+    "slug": "predavane-na-firmeno-oborudvane",
+    "title": "Предаване на фирмено оборудване: опис",
+    "summary": "Как да опишете лаптоп, телефон и принадлежности: идентификатори, състояние, проверка и връщане.",
+    "category": "Труд и екипи",
+    "image": "/blog/trudov-dogovor-osnovni-elementi.webp",
+    "publishedAt": "2026-09-28"
+  },
+  {
+    "slug": "predavane-na-ueb-proekt-dostapi",
+    "title": "Предаване на уеб проект: файлове и достъпи",
+    "summary": "Контролен списък за агенции и клиенти: версии, хостинг, домейн, достъпи, архиви и начало на поддръжката.",
+    "category": "Дигитален бизнес",
+    "image": "/blog/dogovor-za-izrabotka-zzd.webp",
+    "publishedAt": "2026-09-28"
+  },
+  {
     "slug": "priemane-na-rabota-po-etapi",
     "title": "Приемане на работа по етапи: практичен пример",
     "summary": "Как да свържете заданието, предадените файлове, проверката и забележките. Пример за приемане на дизайн проект по етапи.",
     "category": "Бизнес и услуги",
     "image": "/blog/dogovor-za-uslugi-mezhdu-firmi.webp",
+    "publishedAt": "2026-09-28"
+  },
+  {
+    "slug": "promyana-na-dlazhnost-danni-sporazumenie",
+    "title": "Промяна на длъжност: данни за споразумението",
+    "summary": "Как да подготвите текущите и новите условия, датата на промяната и свързаните кадрови действия.",
+    "category": "Труд и екипи",
+    "image": "/blog/trudov-dogovor-osnovni-elementi.webp",
+    "publishedAt": "2026-09-28"
+  },
+  {
+    "slug": "reviziya-ili-novo-zadanie-promeni",
+    "title": "Ревизия или ново задание: как да ги различим",
+    "summary": "Пример за промяна в уеб проект: как да сравните искането със SOW и да попълните Change Request.",
+    "category": "Дигитален бизнес",
+    "image": "/blog/dogovor-za-izrabotka-zzd.webp",
+    "publishedAt": "2026-09-28"
+  },
+  {
+    "slug": "vrashtane-na-naeto-zhilishte-podgotovka",
+    "title": "Връщане на наето жилище: какво да подготвим",
+    "summary": "Практичен списък за последния оглед: опис, ключове, показания, снимки и неизяснени сметки.",
+    "category": "Недвижими имоти",
+    "image": "/blog/kak-da-napravim-dogovor-za-naem.webp",
     "publishedAt": "2026-09-28"
   },
   {

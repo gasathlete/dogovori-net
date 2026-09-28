@@ -11,7 +11,7 @@ import { SEO_TEMPLATE_META_SLUGS, getSeoTemplateMeta } from "../lib/seoTemplateM
 import { getSectorPackagesForArticle } from "../lib/seoCollections";
 import { renderTemplatePreparation } from "../../scripts/lib/templateDiscovery";
 
-const NEW_GUIDES = ["opis-na-obzavezhdane-pri-naem", "priemane-na-rabota-po-etapi", "zadanie-za-uebsayt-kakvo-da-utochnim", "dlazhnostna-harakteristika-podgotovka"];
+const NEW_GUIDES = ["opis-na-obzavezhdane-pri-naem", "priemane-na-rabota-po-etapi", "zadanie-za-uebsayt-kakvo-da-utochnim", "dlazhnostna-harakteristika-podgotovka", "vrashtane-na-naeto-zhilishte-podgotovka", "podnovyavane-na-naem-promeni-aneks", "obhvat-na-usluga-predi-oferta", "dopalnitelna-rabota-izvan-zadanieto", "reviziya-ili-novo-zadanie-promeni", "predavane-na-ueb-proekt-dostapi", "predavane-na-firmeno-oborudvane", "promyana-na-dlazhnost-danni-sporazumenie"];
 
 describe("published content boundaries", () => {
   it("uses the same published routes in runtime, lightweight metadata and build consumers", async () => {

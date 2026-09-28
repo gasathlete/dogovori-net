@@ -3,10 +3,10 @@ import { BLOG_POST_META } from "./blogMeta.generated";
 
 // Explicit editorial relationships: never infer a legal use case from a keyword.
 const PACKAGE_GUIDES: Record<SectorPackageId, readonly string[]> = {
-  package_rentals: ["opis-na-obzavezhdane-pri-naem", "kak-da-napravim-dogovor-za-naem", "kak-da-prekratim-dogovor-za-naem"],
-  package_services: ["priemane-na-rabota-po-etapi", "dogovor-za-uslugi-mezhdu-firmi", "dogovor-za-izrabotka-zzd", "grazhdanski-dogovor-vs-trudov-dogovor"],
-  package_digital_agencies: ["zadanie-za-uebsayt-kakvo-da-utochnim", "nda-spogodba-za-poveritelnost", "dogovor-za-izrabotka-zzd", "dogovor-za-uslugi-mezhdu-firmi"],
-  package_employment: ["dlazhnostna-harakteristika-podgotovka", "trudov-dogovor-osnovni-elementi", "platen-godishen-otpusk-rakovodstvo", "predizvestie-uvolnenie"],
+  package_rentals: ["vrashtane-na-naeto-zhilishte-podgotovka", "podnovyavane-na-naem-promeni-aneks", "opis-na-obzavezhdane-pri-naem", "kak-da-napravim-dogovor-za-naem", "kak-da-prekratim-dogovor-za-naem"],
+  package_services: ["obhvat-na-usluga-predi-oferta", "dopalnitelna-rabota-izvan-zadanieto", "priemane-na-rabota-po-etapi", "dogovor-za-uslugi-mezhdu-firmi", "dogovor-za-izrabotka-zzd", "grazhdanski-dogovor-vs-trudov-dogovor"],
+  package_digital_agencies: ["reviziya-ili-novo-zadanie-promeni", "predavane-na-ueb-proekt-dostapi", "zadanie-za-uebsayt-kakvo-da-utochnim", "nda-spogodba-za-poveritelnost", "dogovor-za-izrabotka-zzd", "dogovor-za-uslugi-mezhdu-firmi"],
+  package_employment: ["predavane-na-firmeno-oborudvane", "promyana-na-dlazhnost-danni-sporazumenie", "dlazhnostna-harakteristika-podgotovka", "trudov-dogovor-osnovni-elementi", "platen-godishen-otpusk-rakovodstvo", "predizvestie-uvolnenie"],
 };
 
 export function getPackageGuides(id: SectorPackageId) {
