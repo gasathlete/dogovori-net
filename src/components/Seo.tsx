@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet-async";
+import { formatSeoTitle, formatSeoDescription, hasBulgarianPrimaryContent } from "@/lib/seoText";
 
 interface SeoProps {
   title: string;
@@ -32,10 +33,9 @@ export function Seo({
   const bare = path.replace(/^\/(bg|en)(?=\/|$)/i, "") || "/";
   const bgUrl = `${SITE}${bare}`;
   const enUrl = `${SITE}/en${bare === "/" ? "" : bare}`;
-  // Google truncates titles around ~60 chars. Keep the brand-suffixed title if it fits,
-  // otherwise trim to 57 + ellipsis so we control the cut-off rather than the SERP.
-  const fullTitle = title.length > 60 ? `${title.slice(0, 57).trimEnd()}…` : title;
-  const desc = description.length > 160 ? description.slice(0, 157) + "…" : description;
+  const fullTitle = formatSeoTitle(title);
+  const desc = formatSeoDescription(description);
+  const isBulgarianContent = hasBulgarianPrimaryContent(bare);
   const lds = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
   const isEn = /^\/en(\/|$)/i.test(path);
   const ogLocale = isEn ? "en_US" : "bg_BG";
@@ -77,7 +77,7 @@ export function Seo({
       <meta name="geo.region" content="BG" />
       <meta name="geo.placename" content="Bulgaria" />
       <link rel="alternate" hrefLang="bg-BG" href={bgUrl} />
-      <link rel="alternate" hrefLang="en" href={enUrl} />
+      {!isBulgarianContent && <link rel="alternate" hrefLang="en" href={enUrl} />}
       <link rel="alternate" hrefLang="x-default" href={bgUrl} />
 
 

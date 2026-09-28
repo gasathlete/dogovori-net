@@ -25,6 +25,8 @@ import { resolveDateModified } from "../src/lib/blogEditorial";
 import { TEMPLATE_DISCOVERY_PROFILES } from "../src/lib/templateDiscovery";
 import { renderTemplatePreparation } from "./lib/templateDiscovery";
 import { CONTACT_EMAIL, CONTACT_EIK } from "../src/data/contactPublicInfo";
+import { buildLegalPages } from "./lib/legalPages";
+import { hasBulgarianPrimaryContent } from "../src/lib/seoText";
 
 const SITE = "https://dogovori.net";
 const DIST = resolve(process.cwd(), "dist");
@@ -316,6 +318,22 @@ async function main() {
   const urls = loadSitemapUrls();
   console.log(`▶ verifying ${urls.length} URLs from sitemaps…`);
   for (const u of urls) checkUrl(u);
+  for (const policy of await buildLegalPages()) {
+    const file = distPathForUrl(`${SITE}${policy.path}`);
+    if (!file || !readFileSync(file, "utf8").includes(policy.bodyHtml)) {
+      add("error", `${SITE}${policy.path}`, "legal-static", "Policy HTML must render the complete current approved source, not a copied summary");
+    }
+  }
+  for (const url of urls) {
+    const path = new URL(url).pathname;
+    if (!hasBulgarianPrimaryContent(path)) continue;
+    const canonicalFile = distPathForUrl(url);
+    const aliasFile = join(DIST, `en${path}`, "index.html");
+    if (!canonicalFile || !existsSync(aliasFile) || readFileSync(aliasFile, "utf8") !== readFileSync(canonicalFile, "utf8")) {
+      add("error", `${SITE}/en${path}`, "locale-alias", "Bulgarian-content alias must serve identical initial HTML and the Bulgarian canonical");
+    }
+    if (urls.includes(`${SITE}/en${path}`)) add("error", url, "locale-sitemap", "Do not submit duplicate UI-language aliases in sitemaps");
+  }
   const contactsFile = distPathForUrl(`${SITE}/contacts`);
   if (!contactsFile || !readFileSync(contactsFile, "utf8").includes(CONTACT_EMAIL) || !readFileSync(contactsFile, "utf8").includes(CONTACT_EIK)) {
     add("error", `${SITE}/contacts`, "contacts-static", "Missing dedicated contact HTML with shared public trader facts");

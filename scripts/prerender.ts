@@ -31,9 +31,11 @@ import {
   resolveTemplatePresentation,
 } from "../src/lib/resolveTemplatePresentation";
 import { getSeoTemplateMeta } from "../src/lib/seoTemplateMeta";
+import { formatSeoTitle, formatSeoDescription, hasBulgarianPrimaryContent } from "../src/lib/seoText";
+import { buildLegalPages } from "./lib/legalPages";
 
 import { FREE_OFFER_RULE, fmtEur } from "../src/lib/pricing";
-import { ONE_TIME_PRODUCTS, ONE_TIME_TERMS } from "../src/lib/products";
+import { ONE_TIME_PRODUCTS, ONE_TIME_TERMS, PRODUCTS_SEO } from "../src/lib/products";
 import { buildCollectionPages, renderRelatedPackages } from "./lib/collectionPages";
 import { allTemplates } from "../src/lib/templateIndex";
 import { getSectorPackagesForDocument, getSectorPackagesForArticle } from "../src/lib/seoCollections";
@@ -112,6 +114,7 @@ function escapeHtml(s: string): string {
 }
 
 function renderPage(meta: PageMeta): string {
+  meta = { ...meta, title: formatSeoTitle(meta.title), description: formatSeoDescription(meta.description) };
   const url = `${SITE}${meta.path}`;
   // Replace <title>
   let html = baseHtml.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(meta.title)}</title>`);
@@ -204,6 +207,7 @@ function bodyForTemplate(
 
 
 const pages: PageMeta[] = [];
+pages.push(...await buildLegalPages());
 
 pages.push({
   path: "/contacts",
@@ -495,7 +499,7 @@ for (const cat of CATALOG) {
       // Точните override заглавия трябва да са байт-идентични с runtime — без брандов суфикс.
       title: metaOverride
         ? metaOverride.title
-        : `${doc.name} — образец на български | Dogovori.net`,
+        : `${doc.name} — образец на български`,
 
 
       description,
@@ -840,9 +844,8 @@ if (blogPosts.length) {
   // /produkti — витрината
   pages.push({
     path: "/produkti",
-    title: "Продукти за един документ — проверка, поправка, преговори",
-    description:
-      "Три еднократни продукта за един документ: подробна проверка преди подпис, поправка на текста с три варианта и пълен пакет за преговори. Плащате веднъж, без абонамент.",
+    title: PRODUCTS_SEO.title,
+    description: PRODUCTS_SEO.description,
     bodyHtml: `<main style="font-family:Georgia,serif;max-width:900px;margin:2rem auto;padding:1rem;color:#0f1a30">
         <nav><a href="/">Начало</a> › Продукти</nav>
         <h1>Продукти за един документ</h1>
@@ -966,5 +969,12 @@ let n = 0;
 for (const p of pages) {
   writeRoute(p);
   n++;
+  // Legacy EN aliases retain the same Bulgarian document body and canonical.
+  // Do not list them in sitemaps or advertise them as English translations.
+  if (hasBulgarianPrimaryContent(p.path)) {
+    const alias = resolve(DIST, `en${p.path}`, "index.html");
+    mkdirSync(dirname(alias), { recursive: true });
+    writeFileSync(alias, renderPage(p), "utf8");
+  }
 }
 console.log(`✓ Prerendered ${n} pages with SEO meta + JSON-LD into dist/`);

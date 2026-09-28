@@ -56,7 +56,7 @@ export function buildCollectionPages(templates: readonly TemplateRef[]): Collect
       return template ? [{ name: template.doc.name, path: `/shablon/${template.slug}` }] : [];
     });
     pages.push({
-      path: `/paketi/${item.slug}`, title: `${item.title} — пакет документи по сектор | Dogovori.net`, description: `${item.audience} ${item.outcome}`,
+      path: `/paketi/${item.slug}`, title: `${item.title} — пакет документи по сектор | Dogovori.net`, description: item.seoDescription ?? `${item.audience} ${item.outcome}`,
       bodyHtml: `<main><nav><a href="/paketi">Пакети</a></nav><h1>${escapeHtml(item.title)}</h1><p>${escapeHtml(item.audience)}</p><p>${escapeHtml(item.outcome)}</p><p>${availability}</p><h2>Цикълът стъпка по стъпка</h2>${stages.map((stage) => `<section><h3>${escapeHtml(stage)}</h3><ul>${item.documents.filter((document) => document.stage === stage).map((document) => `<li>${escapeHtml(document.title)}${document.docName ? `: ${document.status === "browseable" ? documentLink(document.docName) : escapeHtml(document.docName)}` : ""}${document.status === "planned" ? " — Планирано" : ""}${document.note ? `<p>${escapeHtml(document.note)}</p>` : ""}</li>`).join("")}</ul></section>`).join("")}<h2>Свързан комплект</h2><p><a href="/komplekti/${escapeHtml(item.relatedKitId)}">Разгледайте комплекта</a></p>${guides.length ? `<h2>Практически ръководства</h2><ul>${guides.map((post) => `<li><a href="/blog/${escapeHtml(post.slug)}">${escapeHtml(post.title)}</a></li>`).join("")}</ul>` : ""}</main>`,
       jsonLd: schemas(`/paketi/${item.slug}`, item.title, { name: "Пакети", path: "/paketi" }, links),
     });

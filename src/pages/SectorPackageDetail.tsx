@@ -21,7 +21,7 @@ export default function SectorPackageDetailPage() {
 
   return (
     <>
-      <Seo title={`${item.title} — пакет документи по сектор | Dogovori.net`} description={`${item.audience} ${item.outcome}`} canonical={`/paketi/${item.slug}`} />
+      <Seo title={`${item.title} — пакет документи по сектор | Dogovori.net`} description={item.seoDescription ?? `${item.audience} ${item.outcome}`} canonical={`/paketi/${item.slug}`} />
       <Header />
       <main className="route-fade min-h-dvh">
         <section className="border-b border-border/50 bg-card/20">

@@ -18,6 +18,7 @@ export interface SectorPackage {
   title: string;
   audience: string;
   outcome: string;
+  seoDescription?: string;
   icon: "Home" | "Briefcase" | "Laptop" | "Users";
   image: "rentals" | "services" | "digital" | "employment";
   relatedKitId: string;
@@ -50,6 +51,7 @@ export const SECTOR_PACKAGES: readonly SectorPackage[] = [
     slug: "uslugi-svobodni-profesii",
     title: "Услуги и свободни професии",
     audience: "За консултанти, специалисти на свободна практика и възложители.",
+    seoDescription: "Документи за консултанти, свободни професии и възложители — обхват, поверителност, етапи, приемане, плащане и приключване на работата.",
     outcome: "Следва работата от обхвата и поверителността през етапите и приемането до плащането и приключването.",
     icon: "Briefcase",
     image: "services",
@@ -88,6 +90,7 @@ export const SECTOR_PACKAGES: readonly SectorPackage[] = [
     slug: "sluzhiteli-rabotodateli",
     title: "Служители и работодатели",
     audience: "За работодатели и екипи, които поддържат трудови документи през целия период на заетост.",
+    seoDescription: "Документи за работодатели — назначаване, кадрови промени и предаване на работата при подходящо основание за прекратяване.",
     outcome: "Подрежда назначаването, кадровите документи, промените и предаването при подходящо основание за прекратяване.",
     icon: "Users",
     image: "employment",
