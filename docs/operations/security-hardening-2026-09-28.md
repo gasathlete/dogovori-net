@@ -51,7 +51,7 @@ Root verified live privileges, trigger presence, policy expressions and the vali
 | user-contracts | 10485760 | PDF, DOCX |
 | qes-signatures | 16777216 | Existing setting retained (server-controlled writes) |
 
-Existing object sizes/types were checked in aggregate before MIME restrictions. Approved public URLs were not changed. Private partner-logos-pending and user-articles-pending buckets exist, but their end-to-end submission/moderation integration and existing unapproved-object migration are NOT verified complete. Public pending images therefore remain an open item.
+Existing object sizes/types were checked in aggregate before MIME restrictions. Approved public URLs were not changed. Private partner-logos-pending and user-articles-pending buckets exist, but their end-to-end submission/moderation integration and existing unapproved-object migration are NOT verified complete. Update 20:15 UTC: submission and staff approval now use these private buckets (see Follow-through).
 
 ## Source fixes awaiting verified deployment
 
@@ -59,7 +59,7 @@ Existing object sizes/types were checked in aggregate before MIME restrictions. 
 - Share Edge functions require target user_id = link.owner_id and owner-folder paths; atomic counterparty signing prevents replay races.
 - Legal fetching checks every redirect, caps redirects/time/body size and refuses unsafe destinations.
 - CORS permits exact project/production origins, not arbitrary Lovable subdomains or forged suffixes.
-- signer-action moves OTP verification before QES storage, adds resend checks and atomic state predicates. Further HMAC, body-size and concurrency work is queued and NOT reported as complete.
+- signer-action: versioned HMAC OTP, atomic attempts/resend/signing, no debug code, bounded body — DEPLOYED (see Follow-through).
 
 The configured Lovable project still reports code `d101677b23152509249fc3a8ee89492ea5bbc913`; its default file read cannot find the new document-identity migration even though GitHub main contains it. The earlier execution remains running and subsequent completion requests are accepted/queued without a verified final commit. Publishing that workspace could publish a different revision from the tested one. Root therefore did not deploy it.
 
@@ -75,3 +75,39 @@ Last independently verified public release remains `2cf897f7354c2f7ba0cc1468a3d4
 6. Unrelated pending 0044–0047 migrations and product/AI activation were not blindly applied. This pass is not an exhaustive line-by-line audit of all database functions.
 
 Do not mark this release fully complete or claim 100% security while these items remain.
+
+
+---
+
+## Follow-through on root head 5a84c464 — 28.09.2026, 20:15 UTC
+
+The workspace now contains root's integrated head (5a84c464: text bun.lock, Bun 1.4.2 in 6 workflows, admin_privacy_kpis guard + `privacyKpisAuthz.pglite.test.ts`, document-identity S15 applied live, exact-origin CORS). The earlier Lovable-only work (commits c375ac10…79054f8d) was not on this head; it was re-applied file by file only where root had not changed the file. `signer-action` took the hardened version (superset of root's resend/CAS change); `Sign.tsx` kept root's Bulgarian errors, removed the debug code display and added messages for the new error codes.
+
+**What is live / deployed now**
+| Item | State |
+|---|---|
+| OTP v2 HMAC (`SIGNING_OTP_HMAC_SECRET`), legacy v1 until expiry, constant-time compare, CAS attempts (5/code), resend 60 s / 5 per h, 15 failures per 24 h lock, no debug code, 22 MiB streaming body cap | DEPLOYED (`signer-action`) |
+| Private pending media + staff `approve-media` promotion (copy to public bucket, stable URL, staging object kept) | DEPLOYED (`approve-media`, `submit-user-article`); storage policies LIVE (`docs/migrations/private_media_staging_2026_09_28.sql`, recorded in the live drizzle journal as 0022). Frontend (submit dialogs, admin previews) waits for root publish. |
+| CSP without `'unsafe-eval'` (+ `https://www.google.com` in connect-src for GA4) | SOURCE — goes live with the frontend publish |
+| Approved assets | 4 logos + 1 article image: HTTP 200 with the expected sizes; anonymous pending public URL 400, list `[]` |
+
+Deployed this step: `sign-shared-document`, `signer-action`, `approve-media`, `submit-user-article` — all "Successfully deployed". The 59-function redeploy earlier this evening was done from the pre-sync workspace; the only root-head difference in function source was one line in `sign-shared-document`, now redeployed. Smoke checks (no real signer/email): unknown token 404, empty approve-media 400, empty sign-shared-document 400.
+
+**Dependencies (exact advisories from the GitHub Advisory API; the npm audit endpoint is not available in this sandbox)**
+- minimatch GHSA-3ppc-4f35-3m26, GHSA-7r86-cg39-jmmj, GHSA-23c5-xmqv-rm74: bun.lock had 3.1.2 (eslint chain) and 9.0.5 (typescript-estree). Fixed by the compatible dev upgrades `eslint ^9.39.5` and `typescript-eslint ^8.71.0` (no new overrides): bun.lock now 3.1.5 / 9.0.9 / 10.2.6, all at or above the patched versions. Build-time only (lint), not shipped to browsers.
+- react-router / react-router-dom 6.30.6, @remix-run/router 1.23.4 — fixed release for GHSA-jjmj-jmhj-qwj2 (the earlier "needs 7.x" note was wrong).
+- bun.lock generated with Bun 1.4.2 (lockfileVersion 3, nested overrides kept). `bun@1.4.2 install --frozen-lockfile` on a clean copy of package.json + bun.lock: 811 packages, OK. **Note:** the sandbox runs Bun 1.3.3 and can rewrite bun.lock to lockfileVersion 1 with flattened overrides on dev-server restart. Root should check that the committed bun.lock starts with `"lockfileVersion": 3` before merging.
+- package-lock.json regenerated with `npm install --package-lock-only --legacy-peer-deps` (the `@lovable.dev/email-js` / `@react-email/render` peer conflict also exists on the unchanged head): minimatch 3.1.5 / 9.0.9 / 10.2.6, react-router 6.30.6.
+
+**Tests (this workspace)**
+- vitest: 154 files, 1992 passed, 4 skipped, 0 failed.
+- Deno: 1330 passed, 0 failed. `security-addendum.test.ts` now requires signing to be conditional on the verified hash (`hashAtCheck`, re-read at verification time), placed after the QES upload, and no debug-OTP strings. This is a stricter check, not a weaker one.
+- `vite build` OK; `deno check` of the changed functions OK.
+- `tsc -p tsconfig.app.json`: 1 error at `src/lib/templateDraftResolver.ts:97`, a file this work did not touch (root CI typecheck reported green). Pre-existing `no-explicit-any` lint errors in `Sign.tsx` lines 20/30/234 are not from this change.
+
+**Remaining limits (precise)**
+- Bucket MIME lists: root set PNG/JPEG/WebP and PDF/DOCX on the public/contract buckets. The two pending buckets have size limits only; the insert policy allows only png/jpg/jpeg/webp extensions.
+- 1 unreferenced object in public `partner-logos` stays reachable by its exact URL. Not deleted, as instructed.
+- `'unsafe-inline'` scripts remain. Stripe.js was not exercised because purchases are locked.
+- Branch protection, code scanning, leaked-password and MFA settings need GitHub/Auth admin access, which is not available here.
+- Frontend not published. No real email, signature or payment.
