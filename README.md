@@ -13,6 +13,7 @@
 - [Gate 9/10 runbook](docs/operations/prelaunch-gate9-10-runbook.md)
 - [Тестов месец — release отчет](docs/operations/test-month-release-2026-09-28.md)
 - [Статус: Пакети и комплекти](docs/operations/sector-packages-2026-09-28.md)
+- [Фронтенд производителност 28.09.2026](docs/operations/frontend-performance-2026-09-28.md)
 - [Исторически първоначален AI brief](docs/product/original-ai-engine-brief.md)
 
 ## Локална работа
