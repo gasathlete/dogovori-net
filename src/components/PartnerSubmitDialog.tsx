@@ -39,7 +39,7 @@ export function PartnerSubmitDialog({ open, onOpenChange, onSubmitted }: Props) 
     if (!name.trim()) return toast.error("Въведете име на фирмата");
     if (!file) return toast.error("Качете лого");
     if (file.size > 2 * 1024 * 1024) return toast.error("Логото трябва да е до 2MB");
-    if (!file.type.startsWith("image/")) return toast.error("Файлът трябва да е изображение");
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) return toast.error("Файлът трябва да е изображение (PNG, JPEG или WebP)");
 
     setBusy(true);
     try {
@@ -98,7 +98,7 @@ export function PartnerSubmitDialog({ open, onOpenChange, onSubmitted }: Props) 
             <Input
               id="p-logo"
               type="file"
-              accept="image/*"
+              accept="image/png,image/jpeg,image/webp"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />
           </div>
