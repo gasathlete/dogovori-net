@@ -127,17 +127,7 @@
     "lodash": "^4.18.1",
     "dompurify": "^3.4.16",
     "fflate": "^0.8.3",
-    "docx": {
-      "nanoid": "^5.1.16"
-    },
-    "postcss": {
-      "nanoid": "^3.3.19"
-    },
     "prismjs": "^1.30.0",
-    "glob": {
-      ".": "^10.5.0",
-      "minimatch": "^9.0.9",
-      "brace-expansion": "^2.1.7"
-    }
+    "glob": "^10.5.0"
   }
 }

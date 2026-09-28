@@ -71,3 +71,21 @@ Deno.test("cors: only this project's origins", () => {
   assertEquals(allow("https://dogovori.net"), "https://dogovori.net");
   assertEquals(allow(`https://id-preview--${P}.lovable.app`), `https://id-preview--${P}.lovable.app`);
 });
+
+Deno.test("signer-action source: OTP gate precedes QES upload and signing is atomic", () => {
+  const src = Deno.readTextFileSync("supabase/functions/signer-action/index.ts");
+  const signAt = src.indexOf('if (action === "sign")');
+  const otpAt = src.indexOf('error: "otp_locked"', signAt);
+  const uploadAt = src.indexOf('from("qes-signatures").upload', signAt);
+  assert(signAt > 0 && otpAt > signAt && uploadAt > otpAt, "OTP check must come before QES upload");
+  assert(src.includes('.eq("otp_code_hash", signer.otp_code_hash)'));
+  assert(src.includes('"otp_resend_too_soon"') && src.includes('"otp_resend_limit"'));
+});
+
+Deno.test("share functions source: targets bound to link owner", () => {
+  for (const f of ["get-shared-document", "sign-shared-document"]) {
+    const src = Deno.readTextFileSync(`supabase/functions/${f}/index.ts`);
+    assert(src.includes('.eq("user_id", link.owner_id)'), f);
+    assert(src.includes("isOwnerStoragePath("), f);
+  }
+});
