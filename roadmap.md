@@ -21,3 +21,5 @@
 - [x] Review: фокусирани тестове, app typecheck, build/CI gate и мобилен преглед.
 - [x] Финален performance проход: variable шрифтове, надежден Lighthouse audit и shell asset проверки.
 - [x] Скрий „Тестов период“ в header под 640 px, обнови stored shell и провери 390 px с отворено „Затвори“.
+- [x] Security audit 28.09: dependency patches, PDF.js hardening, SigningPane columns, DB hardening patch + PGlite tests, report.
+- [ ] Owner: review/apply docs/migrations/security_hardening_2026_09_28.sql, then publish (blocked on owner review).
