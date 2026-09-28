@@ -50,6 +50,9 @@ import { trackEvent } from "@/lib/analytics";
 import { trackPlansView } from "@/lib/metrics";
 import { CATALOG_DOCUMENT_COUNT } from "@/lib/catalogStats";
 import { CheckoutResumeCard } from "@/components/plans/CheckoutResumeCard";
+import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
+import { Button } from "@/components/ui/button";
+import { openPrelaunchWaitlist } from "@/lib/prelaunchWaitlist";
 
 
 const PLAN_ICON: Record<PlanId, React.ComponentType<{ className?: string }>> = {
@@ -95,10 +98,10 @@ function buildCta(planId: PlanId, billing: Billing, isAuthed: boolean): {
  * неговият handler, без собствена рамка, за да не дублира картата около него.
  */
 function EntryPackCta({ isAuthed, audience }: { isAuthed: boolean; audience: string }) {
-  const href = entryPackCtaHref(isAuthed);
   return (
-    <Link
-      to={href}
+    <Button
+      type="button"
+      variant="outline"
       onClick={() => {
         trackEvent("plans_cta_clicked", {
           plan: ENTRY_PACK_CONFIG.priceId,
@@ -108,12 +111,12 @@ function EntryPackCta({ isAuthed, audience }: { isAuthed: boolean; audience: str
           audience,
         });
         trackEvent("plans_purchase_mode_selected", { mode: "one_time", audience });
+        openPrelaunchWaitlist("subscription", { source: "plans", productId: "entry_pack" });
       }}
-      className="inline-flex w-fit shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-white shadow-brand transition-all hover:shadow-[0_20px_50px_-15px_hsl(var(--brand)/0.6)]"
+      className="min-h-11 w-fit shrink-0 border-gold/40 text-foreground hover:bg-gold/10"
     >
-      Купи за {fmtEur(ENTRY_PACK_CONFIG.eur)}
-      <ArrowRight className="h-4 w-4" />
-    </Link>
+      Извести ме при пускане
+    </Button>
   );
 }
 
@@ -458,8 +461,9 @@ export default function Plans() {
                   </div>
 
                   <div className="relative z-10 mt-auto flex flex-col gap-2 pt-7">
-                    <Link
-                      to={cta.href}
+                    <Button
+                      type="button"
+                      variant="outline"
                       onClick={() =>
                         {
                           trackEvent("plans_cta_clicked", {
@@ -468,23 +472,13 @@ export default function Plans() {
                             authed: isAuthed,
                             audience,
                           });
+                          openPrelaunchWaitlist("subscription", { source: "plans", productId: `subscription_${plan.id}` });
                         }
                       }
-                      className={cn(
-                        "group/btn inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-all duration-300",
-                        plan.highlight
-                          ? "bg-gradient-brand text-white shadow-brand hover:shadow-[0_20px_50px_-15px_hsl(var(--brand)/0.6)]"
-                          : "border border-brand/40 bg-brand/5 text-brand hover:border-brand hover:bg-brand/10",
-                      )}
+                      className="min-h-11 rounded-full border-gold/40 text-foreground hover:bg-gold/10"
                     >
-                      {cta.label}
-                      <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-0.5" />
-                    </Link>
-                    {!isAuthed && plan.id !== "free" && (
-                      <p className="text-center text-[11px] text-muted-foreground">
-                        Безплатна регистрация · плащане само ако продължиш
-                      </p>
-                    )}
+                      Извести ме при пускане
+                    </Button>
                   </div>
                 </article>
               );
@@ -527,6 +521,7 @@ export default function Plans() {
           })()}
 
           <div className="mt-6 sm:mt-8">
+            <LaunchPurchaseBanner className="mb-6" feature="subscription" source="plans" productId="subscription_plans" />
             <TrustGuaranteeBar />
           </div>
         </PlanStoryStage>
@@ -743,25 +738,13 @@ export default function Plans() {
             />
             <div className="relative z-10">
               <h2 className="font-serif text-2xl text-white sm:text-3xl">
-                {isAuthed ? "Активирай Предприемач сега" : "Регистрирай се за 30 секунди"}
+                Разгледайте плановете спокойно
               </h2>
               <p className="mt-2 text-sm text-white/80 sm:text-base">
-                {isAuthed
-                  ? "Получи 100 действия по документи месечно, разширен преглед на клаузи и приоритетна поддръжка."
-                  : `Безплатен старт: ${FREE_OFFER_RULE}. Без карта.`}
+                Покупките още не са отворени. Безплатният старт остава достъпен без карта.
               </p>
               <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <Link
-                  to={
-                    isAuthed
-                      ? "/account?tab=subscription&plan=entrepreneur&billing=monthly"
-                      : "/auth?tab=signup&redirect=%2Fplans"
-                  }
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-3 text-sm font-semibold text-brand-dark shadow-brand transition-all hover:shadow-[0_20px_50px_-15px_hsl(var(--brand)/0.7)]"
-                >
-                  {isAuthed ? "Активирай Предприемач" : "Регистрирай се безплатно"}
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
+                <Button type="button" variant="outline" className="min-h-11 border-gold/50 bg-background/20 text-white hover:bg-gold/10" onClick={() => openPrelaunchWaitlist("subscription", { source: "plans", productId: "subscription_entrepreneur" })}>Извести ме при пускане</Button>
                 <Link
                   to="/catalog"
                   className="inline-flex items-center justify-center gap-2 rounded-full border border-white/30 px-6 py-3 text-sm font-medium text-white/90 transition-all hover:border-white/60 hover:bg-white/5"
