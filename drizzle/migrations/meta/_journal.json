@@ -148,6 +148,13 @@
       "when": 1789628303761,
       "tag": "0020_home_ad_slots",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1790606806402,
+      "tag": "0021_testmonth_prelaunch_waitlist_activation",
+      "breakpoints": true
     }
   ]
 }
