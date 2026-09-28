@@ -175,7 +175,7 @@ export function AdminPartnersPanel() {
             </div>
             <div>
               <Label>Лого</Label>
-              <Input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+              <Input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
             </div>
           </div>
           <DialogFooter>

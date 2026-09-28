@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, clientIp, hashIp } from "../_shared/cors.ts";
+import { isOwnerStoragePath, targetBelongsToOwner } from "../_shared/share-target.ts";
 
 serve(async (req) => {
   const corsHeaders = buildCors(req, "POST, GET, OPTIONS");
@@ -76,10 +77,11 @@ serve(async (req) => {
     if (link.uploaded_contract_id) {
       const { data: uc } = await admin
         .from("uploaded_contracts")
-        .select("id, title, source, storage_path, mime_type, extracted_text")
+        .select("id, user_id, title, source, storage_path, mime_type, extracted_text")
         .eq("id", link.uploaded_contract_id)
+        .eq("user_id", link.owner_id)
         .maybeSingle();
-      if (!uc) {
+      if (!uc || !targetBelongsToOwner(uc, link.owner_id)) {
         return new Response(JSON.stringify({ error: "document_missing" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -90,14 +92,14 @@ serve(async (req) => {
       targetType = "uploaded_contract";
 
       let original_url: string | null = null;
-      if (uc.storage_path) {
+      if (isOwnerStoragePath(uc.storage_path, link.owner_id)) {
         const { data: signed } = await admin.storage
           .from("user-contracts")
           .createSignedUrl(uc.storage_path, 60 * 60);
         original_url = signed?.signedUrl ?? null;
       }
       let signed_pdf_url: string | null = null;
-      if (link.signed_pdf_path) {
+      if (isOwnerStoragePath(link.signed_pdf_path, link.owner_id)) {
         const { data: s } = await admin.storage
           .from("user-contracts")
           .createSignedUrl(link.signed_pdf_path, 60 * 60);
@@ -113,10 +115,11 @@ serve(async (req) => {
     } else {
       const { data: doc } = await admin
         .from("saved_documents")
-        .select("id, title, kind, payload")
+        .select("id, user_id, title, kind, payload")
         .eq("id", link.document_id)
+        .eq("user_id", link.owner_id)
         .maybeSingle();
-      if (!doc) {
+      if (!doc || !targetBelongsToOwner(doc, link.owner_id)) {
         return new Response(JSON.stringify({ error: "document_missing" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });

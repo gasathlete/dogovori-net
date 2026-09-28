@@ -3,6 +3,7 @@
 // before ingestion. Does NOT write to DB.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
+import { SafeFetchError, safeFetchText } from "../_shared/safe-fetch.ts";
 
 const ALLOWED_HOSTS = new Set([
   "lex.bg",
@@ -90,19 +91,31 @@ Deno.serve(async (req) => {
       }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const resp = await fetch(parsed.toString(), {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; dogovori.net legal indexer)",
-        "Accept": "text/html,application/xhtml+xml",
-        "Accept-Language": "bg,en;q=0.8",
-      },
-    });
+    let resp: { ok: boolean; status: number; text: string };
+    try {
+      resp = await safeFetchText(parsed.toString(), {
+        allowedHosts: ALLOWED_HOSTS,
+        maxRedirects: 3,
+        timeoutMs: 20_000,
+        maxBytes: 8_000_000,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; dogovori.net legal indexer)",
+          "Accept": "text/html,application/xhtml+xml",
+          "Accept-Language": "bg,en;q=0.8",
+        },
+      });
+    } catch (e) {
+      const code = e instanceof SafeFetchError ? e.code : "fetch_failed";
+      return new Response(JSON.stringify({ error: `Източникът е отказан: ${code}` }), {
+        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     if (!resp.ok) {
       return new Response(JSON.stringify({ error: `HTTP ${resp.status} от източника`, status: resp.status }), {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const html = await resp.text();
+    const html = resp.text;
     const title = extractTitle(html);
     const text = htmlToText(html);
 

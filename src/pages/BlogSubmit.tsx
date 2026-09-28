@@ -60,7 +60,7 @@ export default function BlogSubmit() {
   const onImage = (file: File | null) => {
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) { toast.error("Изображението е над 5 MB."); return; }
-    if (!file.type.startsWith("image/")) { toast.error("Файлът не е изображение."); return; }
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) { toast.error("Файлът не е изображение PNG, JPEG или WebP."); return; }
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
   };
@@ -181,7 +181,7 @@ export default function BlogSubmit() {
                 ) : (
                   <div className="flex flex-col items-center gap-1 text-xs"><Upload className="h-5 w-5" /> Качи</div>
                 )}
-                <input type="file" accept="image/*" className="hidden" onChange={(e) => onImage(e.target.files?.[0] ?? null)} />
+                <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => onImage(e.target.files?.[0] ?? null)} />
               </label>
               {imagePreview && <Button variant="ghost" size="sm" onClick={() => { setImageFile(null); setImagePreview(""); }}>Премахни</Button>}
             </div>
