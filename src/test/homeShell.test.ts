@@ -25,6 +25,8 @@ describe("prerendered home shell", () => {
     expect(hero).toMatch(/href="\/start"[^>]*data-testid="hero-primary-cta"|data-testid="hero-primary-cta"[^>]*href="\/start"/);
     expect(text(hero)).toContain("Започнете безплатно");
     expect(text(header)).toContain(TEST_PERIOD_LABEL);
+    expect(header).toMatch(/data-testid="test-period-badge"[^>]*class="[^"]*\bhidden\b[^"]*\bsm:inline-flex\b/);
+    expect(header).not.toContain("min-[360px]:inline-flex");
   });
 
   it("uses the same preloaded poster and never bakes in video or session state", () => {
