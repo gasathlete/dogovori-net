@@ -3,6 +3,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
+import { BodyTooLargeError, readBoundedJson } from "../_shared/signing-otp.ts";
 import { parsePendingMedia, publicBucketFor } from "../_shared/pending-media.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -14,10 +15,13 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   try {
-    const raw = await req.text();
-    if (raw.length > 2_000) return json({ error: "payload_too_large" }, 413);
     let body: { kind?: string; id?: string };
-    try { body = JSON.parse(raw); } catch { return json({ error: "invalid_input" }, 400); }
+    try {
+      body = (await readBoundedJson(req, 2_000)) as { kind?: string; id?: string };
+    } catch (e) {
+      if (e instanceof BodyTooLargeError) return json({ error: "payload_too_large" }, 413);
+      throw e;
+    }
     const kind = body.kind === "partner" || body.kind === "article" ? body.kind : null;
     if (!kind || typeof body.id !== "string" || !UUID_RE.test(body.id)) return json({ error: "invalid_input" }, 400);
 
