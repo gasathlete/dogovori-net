@@ -168,7 +168,7 @@ async function extractPdfSource(
   }
   interface PdfJsModule {
     GlobalWorkerOptions: { workerSrc: string };
-    getDocument: (args: { data: ArrayBuffer }) => { promise: Promise<PdfDocument> };
+    getDocument: (args: { data: ArrayBuffer; isEvalSupported?: boolean; enableXfa?: boolean }) => { promise: Promise<PdfDocument> };
   }
 
   let pdf: PdfDocument | null = null;
@@ -179,7 +179,7 @@ async function extractPdfSource(
     const workerSrc = (await import("pdfjs-dist/legacy/build/pdf.worker.mjs?url")).default as string;
     pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
     const arrayBuffer = await file.arrayBuffer();
-    pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+    pdf = await pdfjs.getDocument({ data: arrayBuffer, isEvalSupported: false, enableXfa: false }).promise;
     pageCount = pdf.numPages;
   } catch {
     return blocked("pdf", "unreadable", pageCount);

@@ -79,7 +79,7 @@ async function extractPdf(file: File, onProgress?: ExtractProgress): Promise<str
   try {
     onProgress?.("Отваряне на PDF...");
     const arrayBuffer = await file.arrayBuffer();
-    const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+    const loadingTask = pdfjs.getDocument({ data: arrayBuffer, isEvalSupported: false, enableXfa: false });
     pdf = await loadingTask.promise;
   } catch (e) {
     console.error("PDF load failed:", e);
