@@ -1,25 +1,3 @@
--- stage_prelaunch_waitlist
---
--- Предварителна заявка с имейл за затворените функции. СЪЗДАДЕНА В КОДА, НЕ Е ПРИЛОЖЕНА.
--- Това НЕ е миграция 0044 (0044 е забраната за клиентски запис на суров текст).
--- Не изпраща имейли и не се свързва с външни услуги.
---
--- ИЗКЛЮЧЕНО ПО ПОДРАЗБИРАНЕ. Приемането започва само когато service_role
--- запише ред в prelaunch_waitlist_config с enabled = true, одобрен срок на
--- съхранение (retention_days) и непрозрачна препратка към прегледа
--- (approval_ref). Тук НЕ е зададен и НЕ е измислен юридически одобрен срок.
---
--- Зависимости извън този файл (не са изпълнени):
---   * юридически одобрен срок и текст в Политика за поверителност / ROPA;
---   * периодично извикване на purge_expired_prelaunch_waitlist() (pg_cron или
---     сървърна задача) — без него изтеклите записи остават до ръчно изтриване;
---   * защита на периметъра (WAF/лимит по IP на ниво платформа). Тук има само
---     глобален, сървърно изчислен таван за прозорец от време; той не различава
---     клиенти и не се доверява на IP низове от клиента.
---
--- Данни: само имейл, функция, версия и момент на съгласието и краен срок.
--- Без IP, UA, име. Имейлът не се записва в логове (няма RAISE с имейл).
-
 CREATE TABLE IF NOT EXISTS public.prelaunch_waitlist_config (
   id boolean PRIMARY KEY DEFAULT true CHECK (id),
   enabled boolean NOT NULL DEFAULT false,
@@ -32,7 +10,6 @@ CREATE TABLE IF NOT EXISTS public.prelaunch_waitlist_config (
 REVOKE ALL ON TABLE public.prelaunch_waitlist_config FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.prelaunch_waitlist_config TO service_role;
 ALTER TABLE public.prelaunch_waitlist_config ENABLE ROW LEVEL SECURITY;
--- Без политики и без начален ред: неконфигурирано = затворено.
 
 CREATE TABLE IF NOT EXISTS public.prelaunch_waitlist (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -47,13 +24,10 @@ CREATE TABLE IF NOT EXISTS public.prelaunch_waitlist (
   retention_until timestamptz NOT NULL CHECK (retention_until > consent_at),
   UNIQUE (email, feature)
 );
-
 REVOKE ALL ON TABLE public.prelaunch_waitlist FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.prelaunch_waitlist TO service_role;
 ALTER TABLE public.prelaunch_waitlist ENABLE ROW LEVEL SECURITY;
--- Без политики: четене/изтриване само от service_role (персонал чрез сървъра).
 
--- Глобален брояч за ограничен прием. Само брой, без идентификатори.
 CREATE TABLE IF NOT EXISTS public.prelaunch_waitlist_admission (
   bucket_start timestamptz PRIMARY KEY,
   admitted integer NOT NULL CHECK (admitted >= 0)
@@ -78,22 +52,14 @@ BEGIN
      OR v_email !~ '^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,24}$' THEN RETURN false; END IF;
   IF _feature IS NULL OR _feature NOT IN ('blank_download','document_generation','document_review',
                       'assistant','one_time_product','subscription') THEN RETURN false; END IF;
-
-  -- Конфигурацията се заключва за четене в транзакцията: промяна от персонала
-  -- не може да се смеси с половин прием.
   SELECT * INTO v_cfg FROM public.prelaunch_waitlist_config WHERE id FOR SHARE;
   IF NOT FOUND OR v_cfg.enabled IS NOT TRUE OR v_cfg.retention_days IS NULL
      OR v_cfg.approval_ref IS NULL THEN
     RETURN false;
   END IF;
-
-  -- Идемпотентен повторен опит: действащ запис остава непроменен
-  -- (не опреснява consent_at, retention_until или версията) и не харчи прием.
   PERFORM 1 FROM public.prelaunch_waitlist
     WHERE email = v_email AND feature = _feature AND retention_until > now();
   IF FOUND THEN RETURN true; END IF;
-
-  -- Ограничен прием: атомарно увеличение на глобалния брояч за прозореца.
   v_bucket := to_timestamp(floor(extract(epoch FROM now()) / v_cfg.window_seconds) * v_cfg.window_seconds);
   INSERT INTO public.prelaunch_waitlist_admission AS a (bucket_start, admitted)
     VALUES (v_bucket, 1)
@@ -101,8 +67,6 @@ BEGIN
     WHERE a.admitted < v_cfg.max_per_window
   RETURNING 1 INTO v_ok;
   IF v_ok IS NULL THEN RETURN false; END IF;
-
-  -- Изтекъл стар запис не се удължава тихо: изтрива се и се записва ново съгласие.
   DELETE FROM public.prelaunch_waitlist
     WHERE email = v_email AND feature = _feature AND retention_until <= now();
   INSERT INTO public.prelaunch_waitlist (email, feature, consent_version, consent_at, retention_until)
@@ -111,11 +75,9 @@ BEGIN
   ON CONFLICT (email, feature) DO NOTHING;
   RETURN true;
 END $$;
-
 REVOKE ALL ON FUNCTION public.request_prelaunch_waitlist(text, text, boolean, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.request_prelaunch_waitlist(text, text, boolean, text) TO anon, authenticated;
 
--- Оттегляне от персонала (по заявка чрез „Контакти“): само service_role.
 CREATE OR REPLACE FUNCTION public.withdraw_prelaunch_waitlist(_email text)
 RETURNS integer
 LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
@@ -125,9 +87,6 @@ $$;
 REVOKE ALL ON FUNCTION public.withdraw_prelaunch_waitlist(text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.withdraw_prelaunch_waitlist(text) TO service_role;
 
--- Оттегляне от собственика: само влязъл потребител и само за имейла от
--- неговата сесия (JWT claim, потвърден при вход). Не приема имейл аргумент,
--- затова не може да изтрие чужд имейл.
 CREATE OR REPLACE FUNCTION public.withdraw_my_prelaunch_waitlist()
 RETURNS integer
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
@@ -143,8 +102,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.withdraw_my_prelaunch_waitlist() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.withdraw_my_prelaunch_waitlist() TO authenticated, service_role;
 
--- Изчистване на изтекли записи и стари броячи. Само service_role; планирането
--- НЕ е конфигурирано тук.
 CREATE OR REPLACE FUNCTION public.purge_expired_prelaunch_waitlist()
 RETURNS integer
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
@@ -158,8 +115,6 @@ END $$;
 REVOKE ALL ON FUNCTION public.purge_expired_prelaunch_waitlist() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.purge_expired_prelaunch_waitlist() TO service_role;
 
--- test-month activation (owner-testmonth-20260928): daily purge at 03:17 UTC.
--- Configuration row is inserted separately with enabled = false and enabled only after checks.
 DO $cron$
 BEGIN
   IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'purge-prelaunch-waitlist-daily') THEN
