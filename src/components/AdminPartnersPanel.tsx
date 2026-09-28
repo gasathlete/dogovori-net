@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { MediaImg } from "@/components/MediaImg";
 import { useAuth } from "@/hooks/useAuth";
 import { Check, Loader2, Plus, Trash2, X, ExternalLink } from "@/icons";
 
@@ -44,11 +45,17 @@ export function AdminPartnersPanel() {
   useEffect(() => { load(); }, []);
 
   const setStatus = async (p: Partner, status: Partner["status"]) => {
-    const { error } = await supabase
-      .from("partners")
-      .update({ status, approved_by: user?.id, approved_at: status === "approved" ? new Date().toISOString() : null })
-      .eq("id", p.id);
-    if (error) return toast.error(error.message);
+    if (status === "approved") {
+      // Одобрението публикува логото от частната staging кофа (сървърно).
+      const { data, error } = await supabase.functions.invoke("approve-media", { body: { kind: "partner", id: p.id } });
+      if (error || (data as { error?: string } | null)?.error) return toast.error("Одобрението не беше записано.");
+    } else {
+      const { error } = await supabase
+        .from("partners")
+        .update({ status, approved_by: user?.id, approved_at: null })
+        .eq("id", p.id);
+      if (error) return toast.error(error.message);
+    }
     toast.success(status === "approved" ? "Одобрено" : status === "rejected" ? "Отхвърлено" : "Обновено");
     load();
   };
@@ -65,7 +72,7 @@ export function AdminPartnersPanel() {
     if (!user) return;
     if (!name.trim()) return toast.error("Въведете име");
     if (!file) return toast.error("Качете лого");
-    if (file.size > 2 * 1024 * 1024) return toast.error("Логото трябва да е до 2MB");
+    if (file.size > 2.5 * 1024 * 1024) return toast.error("Логото трябва да е до 2,5 MB");
     setBusy(true);
     try {
       const ext = file.name.split(".").pop() || "png";
@@ -120,7 +127,7 @@ export function AdminPartnersPanel() {
             {rows.map((p) => (
               <TableRow key={p.id}>
                 <TableCell>
-                  <img loading="lazy" decoding="async" src={p.logo_url} alt={p.name} className="h-10 w-auto max-w-[120px] object-contain" />
+                  <MediaImg loading="lazy" decoding="async" src={p.logo_url} alt={p.name} className="h-10 w-auto max-w-[120px] object-contain" />
                 </TableCell>
                 <TableCell className="font-medium">{p.name}</TableCell>
                 <TableCell>
