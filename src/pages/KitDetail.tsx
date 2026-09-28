@@ -1,35 +1,22 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import { useEffect, useMemo } from "react";
+import { Link, Navigate, useParams } from "react-router-dom";
 import * as Icons from "@/icons";
-import { ArrowRight, CheckCircle2, FileText, Loader2, Package, Play, Sparkles } from "@/icons";
+import { ArrowRight, FileText, Package, Sparkles } from "@/icons";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { breadcrumbSchema } from "@/lib/jsonLd";
-import { Button } from "@/components/ui/button";
+import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
 import { getKit, type KitItem } from "@/data/documentKits";
 import { allTemplates } from "@/lib/templateIndex";
-import { useAuth } from "@/hooks/useAuth";
-import { useIsPro } from "@/hooks/useIsPro";
-import { createKitFromTemplate } from "@/lib/kits";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export default function KitDetailPage() {
   const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [starting, setStarting] = useState(false);
-
   const kit = slug ? getKit(slug) : undefined;
-  if (!kit) return <Navigate to="/komplekti" replace />;
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [slug]);
-
-  const Icon = (Icons as any)[kit.icon] ?? Icons.Package;
 
   const templatesIndex = useMemo(() => {
     const m = new Map<string, { slug: string }>();
@@ -38,48 +25,14 @@ export default function KitDetailPage() {
   }, []);
 
   const grouped = useMemo(() => {
+    if (!kit) return { primary: [], appendix: [], companion: [] };
     const primary = kit.items.filter((i) => i.role === "primary");
     const appendix = kit.items.filter((i) => i.role === "appendix");
     const companion = kit.items.filter((i) => i.role === "companion");
     return { primary, appendix, companion };
   }, [kit]);
-
-  const { isPro, isTeam } = useIsPro();
-  const requireAuth = useRequireAuth();
-  const handleStart = async () => {
-    if (!requireAuth({ action: `Стартирай комплект „${kit.title}"`, redirect: `/komplekti/${kit.id}` })) {
-      return;
-    }
-    if (!user) return;
-    // Kits са само за платени планове — free потребителите виждат paywall.
-    if (!isPro && !isTeam) {
-      toast.error("Комплекти са само за платени планове", {
-        description: "Активирай Предприемач за неограничени комплекти документи.",
-        action: { label: "Виж Предприемач", onClick: () => navigate("/plans") },
-      });
-      return;
-    }
-
-    setStarting(true);
-    try {
-      const created = await createKitFromTemplate(user.id, kit.id);
-      if (!created) {
-        toast.error("Не успяхме да създадем комплекта");
-        return;
-      }
-      toast.success("Комплектът е създаден");
-      // Open the first primary doc's template
-      const first = kit.items[0];
-      const slug = first && templatesIndex.get(first.docName)?.slug;
-      if (slug) {
-        navigate(`/shablon/${slug}?kit=${created.id}`);
-      } else {
-        navigate(`/account?tab=kits&kit=${created.id}`);
-      }
-    } finally {
-      setStarting(false);
-    }
-  };
+  if (!kit) return <Navigate to="/komplekti" replace />;
+  const Icon = (Icons as Record<string, typeof Icons.Package>)[kit.icon] ?? Icons.Package;
 
   return (
     <>
@@ -140,48 +93,25 @@ export default function KitDetailPage() {
                   </p>
                 </div>
               </div>
-              <div className="flex shrink-0 flex-col gap-2">
-                <Button
-                  onClick={handleStart}
-                  disabled={starting}
-                  className="bg-gradient-gold text-navy hover:shadow-gold"
-                >
-                  {starting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
-                  Стартирай комплекта
-                </Button>
-                <p className="text-center text-[10px] text-muted-foreground">
-                  {kit.items.length} документа • запазват се в профила
-                </p>
-              </div>
             </div>
+            <LaunchPurchaseBanner className="mt-7" source="kit_detail" productId={`kit_${kit.id.replaceAll("-", "_")}`} />
           </div>
         </section>
 
         <section className="container py-10">
-          <div className="grid gap-8 lg:grid-cols-3">
-            <KitSection label="Основен документ" items={grouped.primary} templatesIndex={templatesIndex} />
-            <KitSection label="Приложения" items={grouped.appendix} templatesIndex={templatesIndex} />
-            <KitSection label="Придружаващи" items={grouped.companion} templatesIndex={templatesIndex} />
+          <h2 className="font-serif text-2xl font-bold">Документите в реда на ситуацията</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">Разгледайте всеки наличен документ. Конкретният случай може да изисква различен обхват или допълнителен правен преглед.</p>
+          <div className="mt-7 grid gap-8 lg:grid-cols-3">
+            <KitSection label="01 · Основна договорка" items={grouped.primary} templatesIndex={templatesIndex} />
+            <KitSection label="02 · Приложения и изпълнение" items={grouped.appendix} templatesIndex={templatesIndex} />
+            <KitSection label="03 · Следващи действия" items={grouped.companion} templatesIndex={templatesIndex} />
           </div>
 
           <div className="mt-12 rounded-xl border border-gold/20 bg-gold/5 p-6">
             <h2 className="flex items-center gap-2 font-serif text-lg font-bold text-foreground">
-              <Package className="h-5 w-5 text-gold" /> Как работи?
+              <Package className="h-5 w-5 text-gold" /> Какво е налично сега
             </h2>
-            <ol className="mt-4 space-y-2 text-sm text-muted-foreground">
-              <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                <span>Натискате „Стартирай комплекта" — създаваме празна папка в профила ви.</span>
-              </li>
-              <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                <span>Преминавате през wizard на всеки документ — данните се запазват автоматично.</span>
-              </li>
-              <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                <span>Когато комплектът е готов, изтегляте всичко като един обединен PDF.</span>
-              </li>
-            </ol>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">Страниците на документите и примерите са достъпни за преглед. Стартирането на нов комплект и покупката остават затворени до пускането. Създадените по-рано комплекти остават в профила Ви.</p>
           </div>
         </section>
       </main>

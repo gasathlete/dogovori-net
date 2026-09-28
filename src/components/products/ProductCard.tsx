@@ -16,6 +16,7 @@ import {
   type OneTimeProduct,
 } from "@/lib/products";
 import { trackFunnelEvent } from "@/lib/funnel";
+import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
 
 export type ProductCardVariant = "full" | "compact";
 
@@ -104,6 +105,10 @@ export function ProductCard({
           {ONE_TIME_TERMS}
         </p>
 
+        {!ONE_TIME_PURCHASES_AVAILABLE && (
+          <LaunchPurchaseBanner compact source="product_card" productId={product.id} />
+        )}
+
         <Link
           to={productPath(product)}
           onClick={() =>
@@ -113,7 +118,7 @@ export function ProductCard({
               variant,
             })
           }
-          className="btn-gold btn-press inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-5 py-3 text-[14px] font-bold tracking-tight transition-transform duration-200"
+          className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-gold/40 px-5 py-3 text-[14px] font-bold text-gold transition-colors hover:bg-gold/10"
         >
           {ONE_TIME_PURCHASES_AVAILABLE ? product.ctaLabel : "Вижте продукта"}
           <ArrowRight className="h-4 w-4" />

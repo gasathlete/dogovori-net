@@ -29,6 +29,7 @@ import { getSeoTemplateMeta } from "../src/lib/seoTemplateMeta";
 
 import { FREE_OFFER_RULE, fmtEur } from "../src/lib/pricing";
 import { ONE_TIME_PRODUCTS, ONE_TIME_TERMS } from "../src/lib/products";
+import { SECTOR_PACKAGES } from "../src/data/sectorPackages";
 import {
   CHECK_CONCLUSION,
   CHECK_FINDINGS,
@@ -179,6 +180,23 @@ function bodyForTemplate(
 
 
 const pages: PageMeta[] = [];
+
+pages.push({
+  path: "/paketi",
+  title: "Пакети документи по бизнес сектор | Dogovori.net",
+  description: "Пакети документи за наеми, услуги, дигитални агенции и работодатели — подредени от началната договорка до приключването.",
+  bodyHtml: `<main><h1>Пакети документи по бизнес сектор</h1><ul>${SECTOR_PACKAGES.map((item) => `<li><a href="/paketi/${item.slug}">${escapeHtml(item.title)}</a> — ${escapeHtml(item.outcome)}</li>`).join("")}</ul></main>`,
+  jsonLd: [],
+});
+for (const item of SECTOR_PACKAGES) {
+  pages.push({
+    path: `/paketi/${item.slug}`,
+    title: `${item.title} — пакет документи по сектор | Dogovori.net`,
+    description: `${item.audience} ${item.outcome}`,
+    bodyHtml: `<main><a href="/paketi">Пакети</a><h1>${escapeHtml(item.title)}</h1><p>${escapeHtml(item.audience)}</p><ol>${item.documents.map((document) => `<li><strong>${escapeHtml(document.stage)}</strong> — ${escapeHtml(document.title)}${document.docName ? `: ${escapeHtml(document.docName)}` : " (планирано)"}</li>`).join("")}</ol></main>`,
+    jsonLd: [],
+  });
+}
 
 // Броят идва от каталога, не от твърдение в текст — така не остарява.
 const totalDocs = CATALOG.reduce((s, c) => s + c.documents.length, 0);

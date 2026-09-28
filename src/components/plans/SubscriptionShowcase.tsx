@@ -19,6 +19,7 @@ import {
 } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 import subscriptionStillLife from "@/assets/subscription-still-life.jpg";
+import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
 
 const PLAN_ICON: Record<"professional" | "entrepreneur" | "team", LucideIcon> = {
   professional: Sparkles,
@@ -161,6 +162,8 @@ export function SubscriptionShowcase() {
           featured={id === "entrepreneur"}
         />
       ))}
+
+      <LaunchPurchaseBanner className="col-span-2 lg:col-span-12" feature="subscription" source="plans" productId="subscription_plans" />
 
       <p className="col-span-2 text-center text-sm text-muted-foreground lg:col-span-12">
         Всички цени са в евро с ДДС. Безплатният профил остава наличен с{" "}

@@ -20,6 +20,7 @@ import { FEATURED_BLANKS } from "../src/data/featuredBlanks";
 import { slugify } from "../src/lib/slugify";
 import { ONE_TIME_PRODUCT_PATHS } from "../src/lib/products";
 import { CALCULATORS } from "../src/data/calculators";
+import { SECTOR_PACKAGES } from "../src/data/sectorPackages";
 
 
 const SITE = "https://dogovori.net";
@@ -53,6 +54,9 @@ const staticEntries: Entry[] = [
     lastmod: fileMtime("src/lib/products.ts"),
   })),
   { loc: "/catalog", changefreq: "weekly", priority: "0.95", lastmod: catalogDate },
+  { loc: "/paketi", changefreq: "weekly", priority: "0.9", lastmod: fileMtime("src/data/sectorPackages.ts") },
+  ...SECTOR_PACKAGES.map<Entry>((item) => ({ loc: `/paketi/${item.slug}`, changefreq: "monthly", priority: "0.85", lastmod: fileMtime("src/data/sectorPackages.ts") })),
+  { loc: "/komplekti", changefreq: "weekly", priority: "0.9", lastmod: fileMtime("src/data/documentKits.ts") },
   { loc: "/karta", changefreq: "weekly", priority: "0.9", lastmod: catalogDate },
   // /build е Disallow: в robots.txt (private conversational entry point) — не в sitemap.
   { loc: "/blog", changefreq: "weekly", priority: "0.85", lastmod: fileMtime("src/pages/Blog.tsx") },
