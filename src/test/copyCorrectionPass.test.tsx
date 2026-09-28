@@ -6,7 +6,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { CHECK_CONCLUSION, CHECK_FINDINGS, PREVIEW_TITLE, PREVIEW_NOTE } from "@/components/products/previewData";
-import { ONE_TIME_PRODUCTS, productPriceLabel, productPreviousPriceLabel, productDiscountLabel } from "@/lib/products";
+import { ONE_TIME_PRODUCTS, PRODUCTS_SEO, productPriceLabel, productPreviousPriceLabel, productDiscountLabel } from "@/lib/products";
 
 const read = (p: string) => readFileSync(p, "utf8");
 
@@ -111,8 +111,11 @@ describe("цени и продуктов режим", () => {
 
   it("Products SEO покрива трите намерения", () => {
     const src = read("src/pages/Products.tsx");
-    expect(src).toMatch(/проверка на договор/i);
-    expect(src).toMatch(/поправка/i);
-    expect(src).toMatch(/преговори/i);
+    expect(src).toContain("title={PRODUCTS_SEO.title}");
+    expect(src).toContain("description={PRODUCTS_SEO.description}");
+    const metadata = `${PRODUCTS_SEO.title} ${PRODUCTS_SEO.description}`;
+    expect(metadata).toMatch(/проверка на договор/i);
+    expect(metadata).toMatch(/поправка/i);
+    expect(metadata).toMatch(/преговори/i);
   });
 });
