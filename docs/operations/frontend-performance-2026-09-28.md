@@ -1,5 +1,21 @@
 # Фронтенд: устройства и производителност — 28.09.2026
 
+## Публикуван frontend release — 28.09.2026
+
+- Проверен код: `2cf897f7354c2f7ba0cc1468a3d4d6cb25282b4e`; deployment `3e6eb592-86a7-4bf7-91ff-3523914b1c7f`.
+- GitHub CI за същия SHA: Tests [36457658089](https://github.com/gasathlete/dogovori-net/actions/runs/36457658089), Build & SEO [36457658011](https://github.com/gasathlete/dogovori-net/actions/runs/36457658011), Security [36457657950](https://github.com/gasathlete/dogovori-net/actions/runs/36457657950) — success.
+- CI app: 1967 passed, 4 skipped, 150 files; Edge CI: 995 passed, 0 failed. Локалните 1971 passed са отделен резултат. Известните 10 non-CI server failures не са поправяни в този frontend scope.
+- Локален Lighthouse 12.8.2, median от 3: начална mobile 60→79, LCP 6054→3603 ms; desktop 97→99, LCP 1292→733 ms. /paketi mobile 64→84, LCP 5631→3429 ms. Това не са production/реални потребителски Core Web Vitals. Mobile целта ≥90 / LCP<2,5 s остава недостигната; единият финален home run е score 60 / LCP 5777 ms и е запазен.
+- Шрифтове 10→3 начални заявки; hero WebP и responsive размери; по-ранен hero render и prerender shell; изправено lazy hash навигиране; video lifecycle; меню и touch targets; резервирани секционни височини. Независим преглед на `auth-header-390-final.png` потвърждава четимо лого без застъпване с „Затвори“.
+- Редът Пакети → Комплекти след фирмите, разглеждането и формата за известяване са запазени. Няма backend, DB, payment, AI-gate, consent или юридически промени. eSpravki остава отделен проект.
+
+### Независима проверка след публикуване
+
+На публичния https://dogovori.net/ е наблюдаван `/assets/index-DY4Rau34.js`, съвпадащ с финалната CI сборка. При 1363 px няма хоризонтално преливане. `/#paketi` зарежда целевата секция и превърта към нея (scrollY 1719); DOM редът е partners → paketi → scenarios → produkti. Меню „Пакети“ отваря /paketi; inline заключването оставя съдържанието достъпно. „Извести ме при пускане“ отваря формата с неизбрано съгласие, видим срок 90 дни и изключен бутон за изпращане. Не е изпращана нова заявка или имейл. „Започнете безплатно“ е натиснат и отваря /start с „Откъде да започнем?“. Публикуваната версия е проверена след разпространението на deployment-а, не само по preview.
+
+Снимка от публичния сайт: DOGOVORI_FRONTEND_2026-09-28.jpg. Мобилните проверки са с браузърни viewport-и, не с всички физически устройства. По-старите раздели по-долу описват предходните source/preview етапи и не отменят този статус.
+
+
 Основа: main `3f728c82`. Само фронтенд; без промени по backend/БД, плащания, AI, правни текстове или съхранение. Не е публикувано.
 
 ## Метод (възпроизводим)
