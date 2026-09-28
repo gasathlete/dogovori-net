@@ -25,7 +25,8 @@ export function SigningPane({ requestId }: { requestId: string }) {
         supabase.from("signing_requests").select("*").eq("id", requestId).maybeSingle(),
         supabase
           .from("signing_request_signers")
-          .select("*")
+          // Само несекретни колони: OTP хешът и IP хешът са достъпни единствено за сървъра.
+          .select("id, request_id, name, email, role, order_idx, status, signed_at, declined_at, viewed_at")
           .eq("request_id", requestId)
           .order("order_idx", { ascending: true }),
       ]);
