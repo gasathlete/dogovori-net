@@ -413,7 +413,7 @@ describe("security hardening 2026-09-28", { timeout: 120_000 }, () => {
     await db.query(`INSERT INTO storage.objects VALUES ('user-contracts', '${BOB}/team.pdf')`);
     await db.query(`INSERT INTO public.uploaded_contracts VALUES (gen_random_uuid(), '${BOB}', '${TEAM}', '${BOB}/team.pdf')`);
     const ok = await as(db, "authenticated", "cccccccc-0000-4000-8000-000000000009", `SELECT name FROM storage.objects`);
-    expect(ok.rows.map((r) => (r as { name: string }).name)).toEqual(["${BOB}/team.pdf"]);
+    expect(ok.rows.map((r) => (r as { name: string }).name)).toEqual([`${BOB}/team.pdf`]);
   });
 
   it("patch is idempotent", async () => {
