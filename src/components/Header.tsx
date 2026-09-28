@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Menu, X, User as UserIcon, LogIn, ChevronDown } from "@/icons";
 import { Logo } from "./Logo";
+import { TEST_PERIOD_LABEL } from "@/lib/prelaunch";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { scrollToHash } from "@/lib/scrollToHash";
@@ -105,6 +106,12 @@ export function Header() {
           >
             <Logo compact />
           </Link>
+          <span
+            data-testid="test-period-badge"
+            className="ml-2 hidden shrink-0 rounded-full border border-gold/40 px-2 py-0.5 text-[11px] font-medium leading-4 text-gold min-[360px]:inline-flex"
+          >
+            {TEST_PERIOD_LABEL}
+          </span>
         </div>
 
         {/* Zone 2 — Primary product navigation (centered) */}

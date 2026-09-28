@@ -18,7 +18,9 @@ describe("prelaunch флагове", () => {
     expect(isFeatureAvailable("x")).toBe(false);
   });
   it("текстът е дословен и не обещава отстъпка или дата", () => {
-    expect(PRELAUNCH_COPY.body).toContain("Ще Ви информираме, когато изпълним необходимите законови изисквания");
+    expect(PRELAUNCH_COPY.body).toContain("Ви известим, когато стане достъпна");
+    expect(PRELAUNCH_COPY.consentLabel).toContain("до 90 дни");
+    expect(PRELAUNCH_COPY.body).not.toMatch(/законови изисквания|юридическ/);
     const all = Object.values(PRELAUNCH_COPY).join(" ");
     expect(all).not.toMatch(/%|\d{1,2}\.\d{1,2}\.\d{4}|отстъпк/);
   });
@@ -34,6 +36,13 @@ describe("заявка", () => {
     rpc.mockResolvedValue({ data: null, error: { code: "PGRST202" } });
     expect(await submitPrelaunchWaitlist({ email: "A@B.bg ", feature: "blank_download", consent: true })).toBe("unavailable");
     expect(rpc).toHaveBeenCalledWith("request_prelaunch_waitlist", expect.objectContaining({ _email: "a@b.bg", _consent: true }));
+  });
+  it("извиква rpc през клиента (запазен this), а не през отделена референция", async () => {
+    const mod = await import("@/integrations/supabase/client");
+    let self: unknown = null;
+    rpc.mockImplementation(function (this: unknown) { self = this; return Promise.resolve({ data: true, error: null }); });
+    expect(await submitPrelaunchWaitlist({ email: "a@b.bg", feature: "assistant", consent: true })).toBe("accepted");
+    expect(self).toBe(mod.supabase);
   });
   it("само data===true е приета", async () => {
     rpc.mockResolvedValue({ data: true, error: null });
@@ -74,5 +83,12 @@ describe("свързване", () => {
     expect(sql).toMatch(/withdraw_prelaunch_waitlist\(text\) FROM PUBLIC, anon, authenticated/);
     expect(sql).toContain("retention_until timestamptz NOT NULL");
     expect(sql).not.toMatch(/retention_until timestamptz NULL/);
+  });
+  it("приложената активация има ежедневно изчистване и същите ACL", () => {
+    const sql = readFileSync("docs/migrations/testmonth_prelaunch_waitlist_activation.sql", "utf8");
+    expect(sql).toBe(readFileSync("drizzle/migrations/0021_testmonth_prelaunch_waitlist_activation.sql", "utf8"));
+    expect(sql).toContain("cron.schedule('purge-prelaunch-waitlist-daily', '17 3 * * *'");
+    expect(sql).toContain("REVOKE ALL ON TABLE public.prelaunch_waitlist FROM PUBLIC, anon, authenticated");
+    expect(sql).not.toMatch(/INSERT INTO public\.prelaunch_waitlist_config/);
   });
 });

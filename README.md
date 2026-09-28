@@ -11,6 +11,7 @@
 - [Карта на проектите](docs/PROJECTS.md)
 - [План за beta — 1 ноември 2026](docs/operations/beta-2026-11-01.md)
 - [Gate 9/10 runbook](docs/operations/prelaunch-gate9-10-runbook.md)
+- [Тестов месец — release отчет](docs/operations/test-month-release-2026-09-28.md)
 - [Статус: Пакети и комплекти](docs/operations/sector-packages-2026-09-28.md)
 - [Исторически първоначален AI brief](docs/product/original-ai-engine-brief.md)
 
@@ -40,6 +41,7 @@ bun run build
 - **Source:** активната работа е в това хранилище; успешният локален build не доказва публикуване.
 - **Preview:** показва текущите промени за проверка, но не е production.
 - **Production:** `dogovori.net`; не приемайте, че последният source е публикуван без отделна publish стъпка и проверка.
+- **Тестов период:** известието при пускане работи в свързаната база (90 дни, ежедневно изтриване); frontend-ът се публикува отделно.
 - **Плащания и нова обработка:** остават затворени до преминаване на release проверките.
 
 ## Практично превключване и синхронизация

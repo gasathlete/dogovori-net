@@ -74,6 +74,11 @@ export default function RetentionPolicyPage() {
             <td className="py-2 pr-3 align-top">12 месеца</td>
             <td className="py-2 align-top">Сигурност, превенция на злоупотреби</td>
           </tr>
+          <tr className="border-b border-border/30">
+            <td className="py-2 pr-3 align-top">Заявки за известие при пускане (имейл)</td>
+            <td className="py-2 pr-3 align-top">90 дни от съгласието; автоматично ежедневно изтриване</td>
+            <td className="py-2 align-top">Уведомяване при старт на услугата по изрично съгласие</td>
+          </tr>
           <tr>
             <td className="py-2 pr-3 align-top">Подписани договори чрез споделена връзка</td>
             <td className="py-2 pr-3 align-top">До изтриване от собственика; одит записи 5 г.</td>

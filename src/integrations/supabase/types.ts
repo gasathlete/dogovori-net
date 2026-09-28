@@ -3249,6 +3249,78 @@ export type Database = {
         }
         Relationships: []
       }
+      prelaunch_waitlist: {
+        Row: {
+          consent_at: string
+          consent_version: string
+          email: string
+          feature: string
+          id: string
+          retention_until: string
+        }
+        Insert: {
+          consent_at?: string
+          consent_version: string
+          email: string
+          feature: string
+          id?: string
+          retention_until: string
+        }
+        Update: {
+          consent_at?: string
+          consent_version?: string
+          email?: string
+          feature?: string
+          id?: string
+          retention_until?: string
+        }
+        Relationships: []
+      }
+      prelaunch_waitlist_admission: {
+        Row: {
+          admitted: number
+          bucket_start: string
+        }
+        Insert: {
+          admitted: number
+          bucket_start: string
+        }
+        Update: {
+          admitted?: number
+          bucket_start?: string
+        }
+        Relationships: []
+      }
+      prelaunch_waitlist_config: {
+        Row: {
+          approval_ref: string | null
+          enabled: boolean
+          id: boolean
+          max_per_window: number
+          retention_days: number | null
+          updated_at: string
+          window_seconds: number
+        }
+        Insert: {
+          approval_ref?: string | null
+          enabled?: boolean
+          id?: boolean
+          max_per_window?: number
+          retention_days?: number | null
+          updated_at?: string
+          window_seconds?: number
+        }
+        Update: {
+          approval_ref?: string | null
+          enabled?: boolean
+          id?: boolean
+          max_per_window?: number
+          retention_days?: number | null
+          updated_at?: string
+          window_seconds?: number
+        }
+        Relationships: []
+      }
       product_checkout_intakes: {
         Row: {
           ai_ack_accepted: boolean
@@ -6564,6 +6636,7 @@ export type Database = {
       }
       product_job_status: { Args: { p_entitlement_id: string }; Returns: Json }
       product_rollout_capability: { Args: never; Returns: Json }
+      purge_expired_prelaunch_waitlist: { Args: never; Returns: number }
       purge_old_funnel_events: { Args: never; Returns: undefined }
       rate_limit_check: {
         Args: { _key: string; _max: number; _window_s: number }
@@ -6637,6 +6710,15 @@ export type Database = {
         Returns: Json
       }
       render_plans_section_content: { Args: never; Returns: string }
+      request_prelaunch_waitlist: {
+        Args: {
+          _consent: boolean
+          _consent_version: string
+          _email: string
+          _feature: string
+        }
+        Returns: boolean
+      }
       reserve_product_generation_call: {
         Args: {
           p_call_id: string
@@ -6734,6 +6816,8 @@ export type Database = {
         Args: { _candidate: string }
         Returns: boolean
       }
+      withdraw_my_prelaunch_waitlist: { Args: never; Returns: number }
+      withdraw_prelaunch_waitlist: { Args: { _email: string }; Returns: number }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
