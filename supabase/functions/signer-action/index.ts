@@ -270,7 +270,7 @@ serve(async (req) => {
       }
 
       const cleanName = signer_name.trim().slice(0, 120);
-      await admin.from("signing_request_signers").update({
+      const { data: signedRows } = await admin.from("signing_request_signers").update({
         status: "signed",
         signed_at: now,
         signature_data_url,
@@ -289,7 +289,18 @@ serve(async (req) => {
         representative_declaration: signs_as_legal_entity
           ? !!representative_declaration_accepted : false,
         otp_code_hash: null, otp_expires_at: null,
-      }).eq("id", signer.id);
+      })
+        .eq("id", signer.id)
+        // Атомарно: същият OTP не може да подпише два пъти при паралелни заявки.
+        .eq("otp_code_hash", signer.otp_code_hash)
+        .neq("status", "signed")
+        .select("id");
+      if (!signedRows || signedRows.length === 0) {
+        if (qesPath) await admin.storage.from("qes-signatures").remove([qesPath]);
+        return new Response(JSON.stringify({ error: "already_signed" }), {
+          status: 409, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
 
       await admin.from("signing_audit_events").insert({
         request_id: env.id, signer_id: signer.id, event_type: "signed",
