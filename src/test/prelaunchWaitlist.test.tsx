@@ -18,7 +18,7 @@ describe("prelaunch флагове", () => {
     expect(isFeatureAvailable("x")).toBe(false);
   });
   it("текстът е дословен и не обещава отстъпка или дата", () => {
-    expect(PRELAUNCH_COPY.body).toContain("Ще Ви информираме, когато изпълним необходимите законови изисквания");
+    expect(PRELAUNCH_COPY.body).toContain("Ще Ви известим, когато стане достъпна");
     const all = Object.values(PRELAUNCH_COPY).join(" ");
     expect(all).not.toMatch(/%|\d{1,2}\.\d{1,2}\.\d{4}|отстъпк/);
   });
