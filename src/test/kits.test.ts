@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { DOCUMENT_KITS } from "@/data/documentKits";
 import { CATALOG } from "@/data/catalog";
 import { LIFE_SCENARIOS } from "@/data/lifeScenarios";
+import { SECTOR_PACKAGES } from "@/data/sectorPackages";
 
 describe("Document kits integrity", () => {
   const docNames = new Set<string>();
@@ -31,6 +32,15 @@ describe("Document kits integrity", () => {
     for (const k of DOCUMENT_KITS) {
       const hasPrimary = k.items.some((i) => i.role === "primary");
       expect(hasPrimary, `kit ${k.id} missing primary`).toBe(true);
+    }
+  });
+
+  it("every browseable sector-package document resolves to the canonical catalog", () => {
+    for (const pack of SECTOR_PACKAGES) {
+      for (const item of pack.documents) {
+        if (item.status === "browseable") expect(docNames.has(item.docName ?? ""), `${pack.slug}: ${item.docName}`).toBe(true);
+        if (item.status === "planned") expect(item.docName).toBeUndefined();
+      }
     }
   });
 });

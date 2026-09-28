@@ -1,0 +1,34 @@
+name: Доклад за проблем
+description: Сигнал за възпроизводим проблем в Dogovori.net
+title: "[Bug] "
+body:
+  - type: dropdown
+    id: project
+    attributes:
+      label: Проект
+      options:
+        - Dogovori.net
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Какъв е проблемът?
+      description: Опишете какво очаквахте и какво се случи.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Стъпки за възпроизвеждане
+      placeholder: "1. Отворете…\n2. Изберете…\n3. Вижте…"
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: Адрес на страницата
+  - type: textarea
+    id: environment
+    attributes:
+      label: Устройство и браузър
