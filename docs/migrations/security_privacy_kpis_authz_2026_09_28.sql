@@ -27,7 +27,6 @@ SELECT
        WHERE ic.created_at >= _from AND ic.created_at < _to)::bigint
   FROM public.ai_audit_log a
   WHERE public.is_staff(auth.uid());
-$function$
 END;
 $function$;
 REVOKE EXECUTE ON FUNCTION public.admin_privacy_kpis(timestamptz,timestamptz) FROM PUBLIC, anon;

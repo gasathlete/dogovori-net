@@ -189,13 +189,13 @@ CREATE POLICY legal_versions_public_read ON public.legal_versions
   USING (published_at IS NOT NULL AND published_at <= now());
 
 -- =========================================================================
--- ADDENDUM (owner-verified findings, 28.09.2026 evening). Same transaction.
+-- ADDENDUM S9–S14 (owner-verified findings + root live hotfixes, 28.09.2026)
+-- See docs/operations/security-live-hotfixes-2026-09-28.md. Idempotent: the
+-- parts root already applied live re-apply to the identical state.
 -- =========================================================================
 
--- S9 (high) growth_snapshot current_user guard bypass. Body below is
--- byte-identical to docs/migrations/0048_growth_snapshot_authz.sql (live
--- prosrc md5 already matches at audit time; re-applying is idempotent). Only
--- this fix is folded in — none of the 0044–0047 rollout.
+-- S9 (LIVE via root, recorded here for durability) growth_snapshot:
+-- byte-identical body of docs/migrations/0048_growth_snapshot_authz.sql.
 CREATE OR REPLACE FUNCTION public.growth_snapshot(_from timestamptz, _to timestamptz)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -421,30 +421,29 @@ REVOKE ALL ON FUNCTION public.growth_snapshot(timestamptz, timestamptz) FROM PUB
 REVOKE ALL ON FUNCTION public.growth_snapshot(timestamptz, timestamptz) FROM anon;
 GRANT EXECUTE ON FUNCTION public.growth_snapshot(timestamptz, timestamptz) TO authenticated, service_role;
 
--- S10 (high) Definer RPCs that accept an arbitrary user id / return another
--- user's quota row / expose prompt text. No browser or edge caller uses them
--- directly (source grep); they are reached only from other definer functions
--- (owner role) or service-role code. Service role only.
+-- S10 (LIVE via root, recorded here) exactly the eight internal RPCs that
+-- root made service-only after call-site review. postgres keeps EXECUTE as
+-- owner. Client grants are NOT restored.
 DO $$
 DECLARE f text;
 BEGIN
   FOREACH f IN ARRAY ARRAY[
+    'public._roll_feature_counters(uuid)',
     'public.charge_corrections_wave(uuid, uuid, integer)',
     'public.consume_assistant_message(uuid, integer)',
-    'public._roll_feature_counters(uuid)',
-    'public.assemble_prompt_content(uuid)',
-    'public.consume_team_quota(uuid)',
-    'public.credit_topup_ops(uuid, text, integer, numeric, text, text)',
+    'public.rate_limit_check(text, integer, integer)',
     'public.cleanup_anonymous_drafts()',
-    'public.purge_old_funnel_events()'] LOOP
+    'public.purge_old_funnel_events()',
+    'public.assemble_prompt_content(uuid)',
+    'public.check_compliance_reminders()'] LOOP
     IF to_regprocedure(f) IS NULL THEN RAISE NOTICE 'skip missing %', f; CONTINUE; END IF;
     EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated', f);
     EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', f);
   END LOOP;
 END $$;
 
--- S11 (medium) Loyalty tiers trusted browser-supplied counts. Derive from the
--- canonical server counters; signatures unchanged so existing callers work.
+-- S11 (NEW) Loyalty tiers from canonical server counters; browser count
+-- ignored; membership still required. Signatures unchanged.
 CREATE OR REPLACE FUNCTION public.award_user_loyalty(_total_ops integer)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $function$
 DECLARE
@@ -531,20 +530,45 @@ REVOKE EXECUTE ON FUNCTION public.award_team_loyalty(uuid, integer) FROM PUBLIC,
 GRANT EXECUTE ON FUNCTION public.award_user_loyalty(integer) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.award_team_loyalty(uuid, integer) TO authenticated, service_role;
 
--- S12 (high) shared_links: owner could rewrite counterparty-signature, signed
--- PDF path, QES and token columns. Links are created only by the
--- create-share-link function (service role). Clients keep SELECT on their own
--- rows and may only (a) owner-sign once, (b) revoke. Target ownership is also
--- enforced server-side in get-/sign-shared-document.
-DROP POLICY IF EXISTS shared_links_insert_own ON public.shared_links;
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.shared_links FROM PUBLIC, anon, authenticated;
-GRANT UPDATE (owner_signed_at, owner_signature, owner_signer_name, revoked_at)
-  ON public.shared_links TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.shared_links_client_update_guard()
+-- S12 (NEW, targeted) shared_links server-only columns. NO table ACL change:
+-- existing authenticated INSERT/UPDATE grants and root's ownership policies
+-- stay exactly as they are (the blanket revocation was rejected and is NOT
+-- reintroduced here). A BEFORE trigger restricts only what a client role may
+-- write:
+--   INSERT: counterparty-signature, signed PDF, QES, viewed and IP columns
+--           must be empty; owner-sign fields may be set.
+--   UPDATE: identity/target/token/password/counterparty/QES/signed-PDF
+--           columns immutable; owner signature set once; revocation one-way;
+--           expires_at may change.
+-- service_role / postgres (create-share-link, sign-/get-shared-document)
+-- bypass the guard: current_user is not a client role there.
+CREATE OR REPLACE FUNCTION public.shared_links_client_write_guard()
 RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
 BEGIN
   IF current_user NOT IN ('authenticated', 'anon') THEN RETURN NEW; END IF;
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.signed_at IS NOT NULL OR NEW.signed_signature IS NOT NULL OR NEW.signer_name IS NOT NULL
+       OR NEW.signer_ip_hash IS NOT NULL OR NEW.signed_pdf_path IS NOT NULL OR NEW.viewed_at IS NOT NULL
+       OR NEW.signature_method IS NOT NULL OR NEW.qes_file_path IS NOT NULL OR NEW.qes_file_name IS NOT NULL
+       OR NEW.qes_file_mime IS NOT NULL OR NEW.qes_file_size IS NOT NULL OR NEW.revoked_at IS NOT NULL THEN
+      RAISE EXCEPTION 'shared_link_server_only_column' USING ERRCODE = '42501';
+    END IF;
+    RETURN NEW;
+  END IF;
+  IF NEW.id IS DISTINCT FROM OLD.id OR NEW.owner_id IS DISTINCT FROM OLD.owner_id
+     OR NEW.document_id IS DISTINCT FROM OLD.document_id
+     OR NEW.uploaded_contract_id IS DISTINCT FROM OLD.uploaded_contract_id
+     OR NEW.token IS DISTINCT FROM OLD.token OR NEW.created_at IS DISTINCT FROM OLD.created_at
+     OR NEW.password_hash IS DISTINCT FROM OLD.password_hash OR NEW.password_salt IS DISTINCT FROM OLD.password_salt
+     OR NEW.viewed_at IS DISTINCT FROM OLD.viewed_at
+     OR NEW.signed_at IS DISTINCT FROM OLD.signed_at OR NEW.signed_signature IS DISTINCT FROM OLD.signed_signature
+     OR NEW.signer_name IS DISTINCT FROM OLD.signer_name OR NEW.signer_ip_hash IS DISTINCT FROM OLD.signer_ip_hash
+     OR NEW.signed_pdf_path IS DISTINCT FROM OLD.signed_pdf_path
+     OR NEW.signature_method IS DISTINCT FROM OLD.signature_method
+     OR NEW.qes_file_path IS DISTINCT FROM OLD.qes_file_path OR NEW.qes_file_name IS DISTINCT FROM OLD.qes_file_name
+     OR NEW.qes_file_mime IS DISTINCT FROM OLD.qes_file_mime OR NEW.qes_file_size IS DISTINCT FROM OLD.qes_file_size THEN
+    RAISE EXCEPTION 'shared_link_server_only_column' USING ERRCODE = '42501';
+  END IF;
   IF OLD.owner_signed_at IS NOT NULL AND (
        NEW.owner_signed_at IS DISTINCT FROM OLD.owner_signed_at
     OR NEW.owner_signature IS DISTINCT FROM OLD.owner_signature
@@ -556,24 +580,39 @@ BEGIN
   END IF;
   RETURN NEW;
 END $$;
-REVOKE EXECUTE ON FUNCTION public.shared_links_client_update_guard() FROM PUBLIC, anon, authenticated;
-DROP TRIGGER IF EXISTS trg_shared_links_client_update_guard ON public.shared_links;
-CREATE TRIGGER trg_shared_links_client_update_guard
-  BEFORE UPDATE ON public.shared_links
-  FOR EACH ROW EXECUTE FUNCTION public.shared_links_client_update_guard();
+REVOKE EXECUTE ON FUNCTION public.shared_links_client_write_guard() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS trg_shared_links_client_write_guard ON public.shared_links;
+CREATE TRIGGER trg_shared_links_client_write_guard
+  BEFORE INSERT OR UPDATE ON public.shared_links
+  FOR EACH ROW EXECUTE FUNCTION public.shared_links_client_write_guard();
 
--- S13 (medium) uploaded_contracts.storage_path: a browser-written path could
--- point into another user's folder. Require the owner's own folder prefix
--- (NULL stays allowed for text-only uploads). NOT VALID: existing rows are not
--- rewritten; validate after the preflight below returns 0.
+-- S13 (NEW) uploaded_contracts.storage_path must be inside the owner's own
+-- folder. Live preflight returned 0 violating rows; NOT VALID keeps the
+-- apply cheap — run the VALIDATE below after re-checking the preflight.
 --   SELECT count(*) FROM public.uploaded_contracts
 --    WHERE storage_path IS NOT NULL AND split_part(storage_path,'/',1) <> user_id::text;
+--   ALTER TABLE public.uploaded_contracts VALIDATE CONSTRAINT uploaded_contracts_storage_path_owner;
 ALTER TABLE public.uploaded_contracts DROP CONSTRAINT IF EXISTS uploaded_contracts_storage_path_owner;
 ALTER TABLE public.uploaded_contracts ADD CONSTRAINT uploaded_contracts_storage_path_owner
   CHECK (storage_path IS NULL OR (split_part(storage_path, '/', 1) = user_id::text
          AND position('..' in storage_path) = 0)) NOT VALID;
 
--- S14 = S4 above (profiles counters): already covered by the column-level
--- profiles grants in this file; no separate statement.
+-- S14 (NEW) storage team read trusted browser-written paths: a team member
+-- could point a team record at another user's file. Bind the object folder to
+-- the record owner (who must be the one who uploaded it).
+DROP POLICY IF EXISTS user_contracts_team_select ON storage.objects;
+CREATE POLICY user_contracts_team_select ON storage.objects
+  FOR SELECT TO authenticated
+  USING (bucket_id = 'user-contracts' AND (
+    EXISTS (SELECT 1 FROM public.uploaded_contracts uc
+             WHERE uc.storage_path = objects.name
+               AND split_part(objects.name, '/', 1) = uc.user_id::text
+               AND uc.team_id IS NOT NULL
+               AND public.is_team_member(auth.uid(), uc.team_id))
+    OR EXISTS (SELECT 1 FROM public.saved_documents sd
+             WHERE sd.team_id IS NOT NULL
+               AND (sd.payload ->> 'storage_path') = objects.name
+               AND split_part(objects.name, '/', 1) = sd.user_id::text
+               AND public.is_team_member(auth.uid(), sd.team_id))));
 
 COMMIT;

@@ -258,6 +258,7 @@ serve(async (req) => {
       });
     }
     if (!updatedRows || updatedRows.length === 0) {
+      if (qesPath) await admin.storage.from("qes-signatures").remove([qesPath]);
       return new Response(JSON.stringify({ error: "already_signed" }), {
         status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

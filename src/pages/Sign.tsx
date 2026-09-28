@@ -69,12 +69,22 @@ export default function Sign() {
   }
   useEffect(() => { load(); }, [token]);
 
+  const SIGN_ERRORS: Record<string, string> = {
+    otp_invalid: "Кодът е грешен или е изтекъл.",
+    otp_locked: "Твърде много грешни опити. Поискайте нов код.",
+    otp_required: "Първо поискайте код за потвърждение.",
+    otp_resend_too_soon: "Изчакайте минута преди нов код.",
+    otp_resend_limit: "Достигнахте лимита за кодове. Опитайте по-късно.",
+    already_signed: "Документът вече е подписан.",
+  };
+  const signError = (code: unknown) => (typeof code === "string" && SIGN_ERRORS[code]) || "Грешка";
+
   async function sendOtp() {
     setBusy(true);
     const { data } = await supabase.functions.invoke("signer-action", { body: { token, action: "send_otp" } });
     setBusy(false);
     if (data?.ok) { setOtpSent(true); setDebugCode(data.debug_code); toast.success("Код за потвърждение е изпратен на имейла"); }
-    else toast.error(data?.error ?? "Грешка");
+    else toast.error(signError(data?.error));
   }
   async function onQesFileChange(f: File | null) {
     setQesFile(f);
@@ -138,7 +148,7 @@ export default function Sign() {
       load();
     } else {
       trackSign("fail", { source: "sign_link", method: sigMethod, reason: String(data?.error ?? "unknown").slice(0, 120) });
-      toast.error(data?.error ?? "Грешка");
+      toast.error(signError(data?.error));
     }
   }
 
@@ -153,7 +163,7 @@ export default function Sign() {
       toast.success("Отказано");
       load();
     } else {
-      toast.error(data?.error ?? "Грешка");
+      toast.error(signError(data?.error));
     }
   }
 
