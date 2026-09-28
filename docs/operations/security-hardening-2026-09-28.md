@@ -1,8 +1,36 @@
 # Security hardening — 28 September 2026
 
-**Status: database protections are LIVE; reviewed code is in GitHub main; frontend and Edge deployment are blocked by Lovable synchronization/execution. This is not a claim that all vulnerabilities are eliminated.**
+**Status: production database and reviewed frontend/Edge security fixes are live; additional hardening and verification remain open.**
 
 Owner authorization: “Оправете всички възможни секюрити проблеми.” No additional approval is required for the already requested security fixes. Purchases/new AI activation remain gated. No real signing, email, payment or customer-document test was performed; eSpravki is separate.
+
+## Current checkpoint — 28 September 2026, 21:42 UTC
+
+This checkpoint supersedes the historical deployment-blocker and unfinished-OTP/pending-media statements below. The earlier evidence is retained for traceability.
+
+- The synchronization blocker was resolved. PR #8 merged as `ae8e0a54d29e32cd5c624cec5f068e918f405cce`; deployment `a26860c8-3f03-498c-8b33-60ed631b1fcc` was publicly verified with `index-DJHVHHGu.js` and no CSP `unsafe-eval`.
+- Later PR #10 was merged as `9aebd1498dc37e30842f90530a5d147f7a4d3153`. Its recorded public release is `d7858f79-1d30-4e5f-9ac9-fcc8dee59fe3`, verified by the SEO release task at 21:20–21:23 UTC. See `seo-indexability-2026-09-28.md`. Do not confuse the older security deployment with the latest published release.
+- Latest recorded complete CI: 2007 app tests passed, 4 skipped; 1010 shared Edge tests passed. Runs 36484238220 (build) and 36484238264 (tests). These are previous exact-head release results, not new tests of subsequent work.
+- HMAC OTP / atomic attempts / resend and body limits / no debug OTP, owner-bound shared signing, exact-origin CORS and private pending-media approval flow have been implemented and deployed. See the 20:15 follow-through below for Edge function evidence.
+- Live pending buckets now enforce PNG/JPEG/WebP MIME types and destination-compatible sizes: partner-logos-pending 2621440 bytes, user-articles-pending 5242880 bytes. Aggregate preflight found both empty. Applied SQL is recorded in commit `6a1eb5e9ab8af685050bbfd81a14f8541cd075e8`.
+- Live team-assets now enforces 2097152 bytes; home-testimonials enforces 5242880 bytes, matching existing frontend limits. Preflight: one team PNG at 650681 bytes and no testimonial objects. No file or customer row was rewritten/deleted. SQL: `docs/migrations/security_media_size_caps_2026_09_28.sql`, commit `a9b23df39a28be379bbfc5f8d19cd84e5ec4907b`.
+- Auth UI observed: HIBP on, auto-confirm email off, secure email change on, anonymous users off, email/Google on; OTP length 8 and expiry 3600 seconds. Saving minimum password length 8 returned “Auth config updated”, but reopening the numeric field still displayed blank; persistence of that particular value is NOT independently verified.
+- Re-authentication and current-password requirements remain off. ResetPassword.tsx currently calls updateUser({password}) without re-authentication/current-password UI; do not turn these requirements on blindly and break the flow.
+- Redirect UI displayed production domains and project-specific preview hosts, plus the fixed lovable.app host. It reported 10 entries while exposing five text entries; the entire effective list is not verified.
+- Deep scan started through the Security UI and is still running. Do not call it passed before results exist.
+- The @lovable.dev/mcp-js Medium flag was identified by the scanner as GHSA-67mh-4wv8-2f99. Its nested locked esbuild is 0.27.7, outside that advisory's <=0.24.2 range; do not label this specific occurrence exploitable on that basis. A different real low advisory, GHSA-g7r4-m6w7-qqqr, affects 0.27.7 on Windows dev servers and is fixed in 0.28.1. The separate Drizzle old-esbuild advisory remains distinct. Compatible dependency remediation and validation are now in progress.
+
+### Remaining release/security limitations
+
+1. Actual HTTP CSP, anti-framing protection and Permissions-Policy remain absent in the hosting checks. HTML meta CSP does not supply frame-ancestors, and public/_headers is ignored. HSTS, nosniff and Referrer-Policy are present. No supported response-header control was found in the accessible hosting UI/tools; hosting/CDN administration or provider support is required. No DNS migration was attempted.
+2. Review completed deep-scan findings and actual dependency remediation results. No “all vulnerabilities fixed” claim.
+3. GitHub branch protection/code scanning and owner MFA enrollment/recovery remain unverified. The connected GitHub app lacks administration access.
+4. Content decoding/malware quarantine, complete fail-closed coverage, restore drills and alert ownership are not verified. MIME/size caps are defense in depth, not content scanning.
+5. Purchases/new AI gates remain closed. Existing approved legal text remains unchanged. No real emails, signatures or payments were used as tests.
+
+---
+
+## Historical evidence (superseded where the current checkpoint differs)
 
 ## Verified code and CI
 
