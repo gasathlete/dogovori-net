@@ -67,11 +67,26 @@ describe("LazyOnVisible", () => {
     expect(document.getElementById("produkti")).not.toBeNull();
   });
 
-  it("reserves the phone height below 1024px until visible", () => {
+  it("reserves phone/tablet/desktop heights via CSS until the real section replaces its skeleton", async () => {
     vi.stubGlobal("IntersectionObserver", FakeIO);
-    setMatchMedia(() => false);
-    const { container } = render(<LazyOnVisible minHeight={[900, 500]}><p>x</p></LazyOnVisible>);
-    expect((container.firstChild as HTMLElement).style.minHeight).toBe("900px");
+    const { container, rerender } = render(<LazyOnVisible minHeight={[900, 700, 500]}><p>x</p></LazyOnVisible>);
+    const wrap = container.firstChild as HTMLElement;
+    expect(wrap.className).toBe("lov-reserve");
+    expect(wrap.style.getPropertyValue("--lov-tablet")).toBe("700px");
     expect(screen.queryByText("x")).toBeNull();
+    // Same-page hash navigation mounts pending sections.
+    act(() => { window.dispatchEvent(new HashChangeEvent("hashchange")); });
+    expect(screen.getByText("x")).toBeInTheDocument();
+    await act(async () => { await Promise.resolve(); });
+    expect(wrap.className).toBe("");
+    rerender(<LazyOnVisible minHeight={[900, 700, 500]}><p>x</p></LazyOnVisible>);
   });
+
+  it("keeps the reservation while a Suspense skeleton is showing", () => {
+    vi.stubGlobal("IntersectionObserver", FakeIO);
+    window.history.replaceState(null, "", "/#x");
+    const { container } = render(<LazyOnVisible minHeight={[900, 700, 500]}><section data-section-skeleton="" /></LazyOnVisible>);
+    expect((container.firstChild as HTMLElement).className).toBe("lov-reserve");
+  });
+});
 });
