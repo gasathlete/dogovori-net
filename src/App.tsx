@@ -457,7 +457,7 @@ const App = () => (
         <Sonner />
       </Suspense>
 
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <BrowserRouter>
         <ScrollToTop />
         <AuthProvider>
           <OnboardingProvider>

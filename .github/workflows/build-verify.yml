@@ -39,6 +39,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Typecheck application
+        run: bunx tsc --noEmit -p tsconfig.app.json
+
       # 1) Build sitemap + production Vite build + prerender SSG routes.
       - name: Vite build + prerender
         env:

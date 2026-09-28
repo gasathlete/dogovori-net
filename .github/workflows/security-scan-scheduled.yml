@@ -18,13 +18,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history is required by Gitleaks below.
 
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: "1.4.2"
 
-      - name: Install deps
-        run: bun install --frozen-lockfile
+      # Built-in modules only: no application install required.
 
       - name: Run full-repo security-scan
         run: |

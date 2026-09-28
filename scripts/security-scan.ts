@@ -55,7 +55,11 @@ function add(f: Finding) {
 }
 
 // --- 1. Scan SQL migrations for SECURITY DEFINER + exposed-data patterns
-const allMigrations = walk(join(ROOT, "supabase/migrations")).filter((f) => f.endsWith(".sql"));
+// Production patches also live under docs/migrations and drizzle/migrations.
+// Scanning only the Supabase directory silently missed those changes.
+const allMigrations = ["supabase/migrations", "drizzle/migrations", "docs/migrations"]
+  .flatMap((dir) => walk(join(ROOT, dir)))
+  .filter((f) => f.endsWith(".sql"));
 const migrations = SCAN_ALL
   ? allMigrations
   : allMigrations.filter((f) => argFiles.some((a) => f.endsWith(a) || a.endsWith(relative(ROOT, f))));

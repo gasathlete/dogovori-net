@@ -24,8 +24,7 @@ jobs:
         with:
           bun-version: "1.4.2"
 
-      - name: Install deps
-        run: bun install --frozen-lockfile
+      # Built-in modules only: scan independently of application installation.
 
       # Custom static scan — only on files changed in this PR/push.
       # Existing findings are grandfathered; CI blocks NEW SECURITY DEFINER
@@ -42,7 +41,8 @@ jobs:
             head="${{ github.sha }}"
           fi
           git diff --name-only -z --diff-filter=AM "$base" "$head" -- \
-            'supabase/migrations/*.sql' 'src/**/*' 'supabase/functions/**/*' 'scripts/**/*' \
+            'supabase/migrations/*.sql' 'drizzle/migrations/*.sql' 'docs/migrations/*.sql' \
+            'src/**/*' 'supabase/functions/**/*' 'scripts/**/*' \
             > reports/security-changed-files.bin
           if [ -s reports/security-changed-files.bin ]; then
             echo "has_files=true" >> "$GITHUB_OUTPUT"
