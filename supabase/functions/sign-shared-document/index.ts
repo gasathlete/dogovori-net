@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { buildCors, clientIp, hashIp } from "../_shared/cors.ts";
+import { isOwnerStoragePath, targetBelongsToOwner } from "../_shared/share-target.ts";
 
 async function buildSignedPdf(opts: {
   originalPdf: Uint8Array | null;
@@ -172,12 +173,13 @@ serve(async (req) => {
       try {
         const { data: uc } = await admin
           .from("uploaded_contracts")
-          .select("id, title, source, storage_path, mime_type")
+          .select("id, user_id, title, source, storage_path, mime_type")
           .eq("id", link.uploaded_contract_id)
+          .eq("user_id", link.owner_id)
           .maybeSingle();
-        if (uc) {
+        if (uc && targetBelongsToOwner(uc, link.owner_id)) {
           let originalPdf: Uint8Array | null = null;
-          if (uc.storage_path && (uc.mime_type === "application/pdf" || uc.source === "pdf")) {
+          if (isOwnerStoragePath(uc.storage_path, link.owner_id) && (uc.mime_type === "application/pdf" || uc.source === "pdf")) {
             const { data: dl } = await admin.storage
               .from("user-contracts")
               .download(uc.storage_path);
@@ -228,7 +230,7 @@ serve(async (req) => {
       }
     }
 
-    const { error: upErr } = await admin
+    const { data: updatedRows, error: upErr } = await admin
       .from("shared_links")
       .update({
         signed_at: now,
@@ -242,12 +244,22 @@ serve(async (req) => {
         qes_file_mime: qesPath ? (qes_file_mime ?? null) : null,
         qes_file_size: qesSize,
       })
-      .eq("id", link.id);
+      .eq("id", link.id)
+      // Атомарно: само първият подпис на неотменена връзка се записва.
+      .is("signed_at", null)
+      .is("revoked_at", null)
+      .select("id");
 
 
     if (upErr) {
-      return new Response(JSON.stringify({ error: upErr.message }), {
+      console.error("share sign update failed", upErr.message);
+      return new Response(JSON.stringify({ error: "sign_failed" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!updatedRows || updatedRows.length === 0) {
+      return new Response(JSON.stringify({ error: "already_signed" }), {
+        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
