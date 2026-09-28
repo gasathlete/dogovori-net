@@ -218,11 +218,12 @@ describe("мобилни наслоявания и профил", () => {
     }
   });
 
-  it("десктоп наслояванията остават непокътнати", () => {
+  it("десктоп наслояванията остават, без остарелия no-op beta popup", () => {
     const desktopOverlays = app.slice(app.indexOf("  return (\n    <Suspense fallback={null}>"));
-    for (const c of ["BetaDisclaimerModal", "GlobalProUpgradeListener", "ActionCelebrationHost", "CommandPalette", "DogovAIBubble"]) {
+    for (const c of ["GlobalProUpgradeListener", "ActionCelebrationHost", "CommandPalette", "DogovAIBubble"]) {
       expect(desktopOverlays).toContain(c);
     }
+    expect(app).not.toContain("BetaDisclaimerModal");
   });
 
   it("явният таб печели, а action=upload води към съществуващ раздел", () => {
