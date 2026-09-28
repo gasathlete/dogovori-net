@@ -140,6 +140,9 @@
       "minimatch": "^9.0.9",
       "brace-expansion": "^2.1.7"
     },
-    "vite": "$vite"
+    "vite": "$vite",
+    "@lovable.dev/mcp-js": {
+      "esbuild": "^0.28.2"
+    }
   }
 }
