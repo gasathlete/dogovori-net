@@ -8,7 +8,9 @@ import { Seo } from "@/components/Seo";
 import { breadcrumbSchema } from "@/lib/jsonLd";
 import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
 import { getKit, type KitItem } from "@/data/documentKits";
-import { FEATURED_KIT_STAGES, isFeaturedKitId, itemsForStage, type KitLifecycleStage } from "@/data/featuredKitStages";
+import { getKitSections, type KitLifecycleStage } from "@/data/featuredKitStages";
+import { RelatedSectorPackages } from "@/components/RelatedSectorPackages";
+import { getSectorPackagesForKit } from "@/lib/seoCollections";
 import { allTemplates } from "@/lib/templateIndex";
 
 export default function KitDetailPage() {
@@ -25,17 +27,7 @@ export default function KitDetailPage() {
     return m;
   }, []);
 
-  const sections = useMemo(() => {
-    if (!kit) return [];
-    if (isFeaturedKitId(kit.id)) {
-      return FEATURED_KIT_STAGES[kit.id].map((stage) => ({ stage, items: itemsForStage(kit.items, stage) }));
-    }
-    return [
-      { stage: { id: "osnovni", label: "Основни документи", documentNames: [] }, items: kit.items.filter((item) => item.role === "primary") },
-      { stage: { id: "prilozheniya", label: "Приложения", documentNames: [] }, items: kit.items.filter((item) => item.role === "appendix") },
-      { stage: { id: "svurzani", label: "Свързани документи", documentNames: [] }, items: kit.items.filter((item) => item.role === "companion") },
-    ];
-  }, [kit]);
+  const sections = useMemo(() => kit ? getKitSections(kit) : [], [kit]);
   if (!kit) return <Navigate to="/komplekti" replace />;
   const Icon = (Icons as unknown as Record<string, typeof Icons.Package>)[kit.icon] ?? Icons.Package;
 
@@ -111,6 +103,8 @@ export default function KitDetailPage() {
               <KitSection key={stage.id} label={`${String(index + 1).padStart(2, "0")} · ${stage.label}`} items={items} plannedItem={stage.plannedItem} templatesIndex={templatesIndex} />
             ))}
           </div>
+
+          <RelatedSectorPackages packages={getSectorPackagesForKit(kit.id)} />
 
           <div className="mt-12 rounded-xl border border-gold/20 bg-gold/5 p-6">
             <h2 className="flex items-center gap-2 font-serif text-lg font-bold text-foreground">
@@ -193,3 +187,4 @@ function KitSection({
     </div>
   );
 }
+

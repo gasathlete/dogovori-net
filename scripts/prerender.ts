@@ -29,7 +29,9 @@ import { getSeoTemplateMeta } from "../src/lib/seoTemplateMeta";
 
 import { FREE_OFFER_RULE, fmtEur } from "../src/lib/pricing";
 import { ONE_TIME_PRODUCTS, ONE_TIME_TERMS } from "../src/lib/products";
-import { SECTOR_PACKAGES } from "../src/data/sectorPackages";
+import { buildCollectionPages, renderRelatedPackages } from "./lib/collectionPages";
+import { allTemplates } from "../src/lib/templateIndex";
+import { getSectorPackagesForDocument, getSectorPackagesForArticle } from "../src/lib/seoCollections";
 import {
   CHECK_CONCLUSION,
   CHECK_FINDINGS,
@@ -187,6 +189,7 @@ function bodyForTemplate(
       ${mistakes.length ? `<h2>Чести грешки</h2><ul>${mistakes.map((m) => `<li>${escapeHtml(m)}</li>`).join("")}</ul>` : ""}
       <h2>Често задавани въпроси</h2>
       ${faq.map((f) => `<section><h3>${escapeHtml(f.q)}</h3><p>${escapeHtml(f.a)}</p></section>`).join("")}
+      ${renderRelatedPackages(getSectorPackagesForDocument(name))}
       ${related.length ? `<h2>Свързани шаблони</h2><ul>${related.map((r) => `<li><a href="/shablon/${r.slug}">${escapeHtml(r.name)}</a></li>`).join("")}</ul>` : ""}
       <p><a href="/catalog">Виж всички шаблони</a>${categoryId ? ` · <a href="/kategoria/${categoryId}">Още от категория „${escapeHtml(categoryTitle)}"</a>` : ""} · <a href="/karta">Карта на сайта</a></p>
     </main>`;
@@ -195,22 +198,7 @@ function bodyForTemplate(
 
 const pages: PageMeta[] = [];
 
-pages.push({
-  path: "/paketi",
-  title: "Пакети документи по бизнес сектор | Dogovori.net",
-  description: "Пакети документи за наеми, услуги, дигитални агенции и работодатели — подредени от началната договорка до приключването.",
-  bodyHtml: `<main><h1>Пакети документи по бизнес сектор</h1><ul>${SECTOR_PACKAGES.map((item) => `<li><a href="/paketi/${item.slug}">${escapeHtml(item.title)}</a> — ${escapeHtml(item.outcome)}</li>`).join("")}</ul></main>`,
-  jsonLd: [],
-});
-for (const item of SECTOR_PACKAGES) {
-  pages.push({
-    path: `/paketi/${item.slug}`,
-    title: `${item.title} — пакет документи по сектор | Dogovori.net`,
-    description: `${item.audience} ${item.outcome}`,
-    bodyHtml: `<main><a href="/paketi">Пакети</a><h1>${escapeHtml(item.title)}</h1><p>${escapeHtml(item.audience)}</p><ol>${item.documents.map((document) => `<li><strong>${escapeHtml(document.stage)}</strong> — ${escapeHtml(document.title)}${document.docName ? `: ${escapeHtml(document.docName)}` : " (планирано)"}</li>`).join("")}</ol></main>`,
-    jsonLd: [],
-  });
-}
+pages.push(...buildCollectionPages(allTemplates()));
 
 // Броят идва от каталога, не от твърдение в текст — така не остарява.
 const totalDocs = CATALOG.reduce((s, c) => s + c.documents.length, 0);
@@ -662,6 +650,7 @@ if (blogPosts.length) {
           ${post.takeaways?.length ? `<h2>Основни изводи</h2><ul>${post.takeaways.map((t) => `<li>${escapeHtml(t)}</li>`).join("")}</ul>` : ""}
           ${post.faq?.length ? `<h2>Често задавани въпроси</h2>${post.faq.map((f) => `<section><h3>${escapeHtml(f.q)}</h3><p>${escapeHtml(f.a)}</p></section>`).join("")}` : ""}
         </article>
+        ${renderRelatedPackages(getSectorPackagesForArticle(post.slug))}
         ${related.length ? `<h2>Свързани статии</h2><ul>${related.map((r) => `<li><a href="/blog/${r.slug}">${escapeHtml(r.title)}</a></li>`).join("")}</ul>` : ""}
         <p><a href="/blog">← Всички статии</a> · <a href="/catalog">Каталог на шаблоните</a></p>
       </main>`,
@@ -990,4 +979,5 @@ for (const p of pages) {
   n++;
 }
 console.log(`✓ Prerendered ${n} pages with SEO meta + JSON-LD into dist/`);
+
 

@@ -1,3 +1,5 @@
+import { RelatedSectorPackages } from "@/components/RelatedSectorPackages";
+import { getSectorPackagesForArticle } from "@/lib/seoCollections";
 import { Link, useParams, Navigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
@@ -192,6 +194,8 @@ export default function BlogPost() {
             />
           )}
 
+          <RelatedSectorPackages packages={getSectorPackagesForArticle(post.slug)} />
+
           <BlogRatingAndComments postType="core" postSlug={post.slug} />
 
           <div className="relative mt-14 overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-8 text-center shadow-elegant md:p-10">
@@ -242,3 +246,4 @@ export default function BlogPost() {
     </div>
   );
 }
+

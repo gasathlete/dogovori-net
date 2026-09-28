@@ -25,14 +25,39 @@ Disallow: /wizard/
 Disallow: /wizard-bilingual/
 Disallow: /wizard-graph/
 
+# Search visibility is separate from model training. Keep the same private paths
+# in this specific group: robots rules do not inherit from User-agent: *.
+User-agent: OAI-SearchBot
+Allow: /
+# Authenticated workspace + tokenized/private routes — never index.
+Disallow: /account
+Disallow: /admin
+Disallow: /admin/
+Disallow: /build
+Disallow: /checkout/
+Disallow: /contact/
+Disallow: /document/
+Disallow: /downloads/
+Disallow: /komplekti/moi/
+Disallow: /produkti/rezultat
+Disallow: /produkti/*/start
+Disallow: /reset-password
+Disallow: /share/
+Disallow: /sign/
+Disallow: /signing/
+Disallow: /team
+Disallow: /team/
+Disallow: /unsubscribe
+Disallow: /uploaded/
+Disallow: /wizard/
+Disallow: /wizard-bilingual/
+Disallow: /wizard-graph/
+
 # Block AI training / dataset scrapers — content is original Bulgarian legal material.
 User-agent: GPTBot
 Disallow: /
 
 User-agent: ChatGPT-User
-Disallow: /
-
-User-agent: OAI-SearchBot
 Disallow: /
 
 User-agent: ClaudeBot
@@ -82,3 +107,4 @@ Disallow: /
 
 # Sitemap index — points to per-content-type sitemaps for better crawling.
 Sitemap: https://dogovori.net/sitemap.xml
+

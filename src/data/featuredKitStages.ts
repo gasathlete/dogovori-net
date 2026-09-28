@@ -1,4 +1,4 @@
-import type { KitItem } from "@/data/documentKits";
+import type { DocumentKit, KitItem } from "@/data/documentKits";
 
 export type FeaturedKitId =
   | "naem-zhilishte"
@@ -67,4 +67,16 @@ export function itemsForStage(items: readonly KitItem[], stage: KitLifecycleStag
     const item = byName.get(name);
     return item ? [item] : [];
   });
+}
+
+// Shared by the interactive page and static HTML so planned items and order agree.
+export function getKitSections(kit: DocumentKit): { stage: KitLifecycleStage; items: KitItem[] }[] {
+  if (isFeaturedKitId(kit.id)) {
+    return FEATURED_KIT_STAGES[kit.id].map((stage) => ({ stage, items: itemsForStage(kit.items, stage) }));
+  }
+  return [
+    { stage: { id: "osnovni", label: "Основни документи", documentNames: [] }, items: kit.items.filter((item) => item.role === "primary") },
+    { stage: { id: "prilozheniya", label: "Приложения", documentNames: [] }, items: kit.items.filter((item) => item.role === "appendix") },
+    { stage: { id: "svurzani", label: "Свързани документи", documentNames: [] }, items: kit.items.filter((item) => item.role === "companion") },
+  ];
 }
