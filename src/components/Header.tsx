@@ -85,7 +85,7 @@ export function Header() {
       className={cn(
         "sticky top-0 z-40 transition-all duration-300",
         scrolled
-          ? "bg-background lg:bg-background/97 lg:supports-[backdrop-filter]:bg-background/88 lg:backdrop-blur-xl border-b border-gold/15 shadow-soft"
+          ? "bg-background xl:bg-background/97 xl:supports-[backdrop-filter]:bg-background/88 xl:backdrop-blur-xl border-b border-gold/15 shadow-soft"
           : "border-b border-border/40 bg-background",
       )}
     >
@@ -93,8 +93,8 @@ export function Header() {
         className={cn(
           // Възстановени пропорции на предишния мобилен хедър (68px, 64px при
           // скрол); десктоп височините остават непроменени.
-          "container flex items-center justify-between gap-3 transition-[height] duration-300 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-6",
-          scrolled ? "h-16 lg:h-14" : "h-[68px] lg:h-16",
+          "container flex items-center justify-between gap-3 transition-[height] duration-300 xl:grid xl:grid-cols-[1fr_auto_1fr] xl:gap-6",
+          scrolled ? "h-16 xl:h-14" : "h-[68px] xl:h-16",
         )}
       >
         {/* Zone 1 — Brand */}
@@ -104,7 +104,7 @@ export function Header() {
             onClick={() => setOpen(false)}
             className="flex min-w-0 items-center"
           >
-            <Logo compact />
+            <Logo compact className="max-[359px]:h-8 max-[359px]:w-[161px]" />
           </Link>
           <span
             data-testid="test-period-badge"
@@ -115,7 +115,7 @@ export function Header() {
         </div>
 
         {/* Zone 2 — Primary product navigation (centered) */}
-        <nav className="hidden items-center gap-5 justify-self-center lg:flex xl:gap-7">
+        <nav className="hidden items-center gap-5 justify-self-center xl:flex 2xl:gap-7">
           {NAV.map((n) => {
             if (n.to === "__tools__") {
               return <ToolsMenu key="tools" variant="desktop" />;
@@ -142,14 +142,14 @@ export function Header() {
         {/* Zone 3 — Utility (helpers + account), separated by a hairline */}
         <div className="flex items-center justify-end gap-2 justify-self-end">
           {/* Helpers subgroup */}
-          <div className="hidden items-center gap-1 lg:flex">
+          <div className="hidden items-center gap-1 xl:flex">
             <ThemeToggle />
           </div>
 
           {/* Divider between helpers and account */}
           <span
             aria-hidden="true"
-            className="mx-1 hidden h-5 w-px bg-border/60 lg:block"
+            className="mx-1 hidden h-5 w-px bg-border/60 xl:block"
           />
 
           {/* Account subgroup */}
@@ -176,7 +176,7 @@ export function Header() {
           ) : (
             <div
               ref={guestRef}
-              className="relative hidden lg:block"
+              className="relative hidden xl:block"
               onMouseEnter={() => setGuestOpen(true)}
               onMouseLeave={() => setGuestOpen(false)}
             >
@@ -248,7 +248,7 @@ export function Header() {
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Затвори менюто" : "Отвори менюто"}
             aria-expanded={open}
-            className="inline-flex h-11 min-w-[64px] items-center justify-center gap-1.5 rounded-lg border border-gold/40 bg-card/50 px-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-foreground transition-colors hover:border-gold hover:bg-gold/10 hover:text-gold lg:hidden"
+            className="inline-flex h-11 min-w-[64px] items-center justify-center gap-1.5 rounded-lg border border-gold/40 bg-card/50 px-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-foreground transition-colors hover:border-gold hover:bg-gold/10 hover:text-gold xl:hidden"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             <span>{open ? "Затвори" : "Меню"}</span>
@@ -259,7 +259,7 @@ export function Header() {
       {open && (
         <nav
           aria-label="Мобилна навигация"
-          className="origin-top animate-accordion-down overflow-hidden border-t border-gold/20 bg-background lg:hidden"
+          className="origin-top animate-accordion-down overflow-hidden border-t border-gold/20 bg-background xl:hidden"
         >
           <div className="container flex max-h-[calc(100dvh-68px)] flex-col gap-4 overflow-y-auto py-4">
             {(() => {

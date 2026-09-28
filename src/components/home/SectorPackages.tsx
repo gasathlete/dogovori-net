@@ -2,15 +2,16 @@ import * as Icons from "@/icons";
 import { ArrowRight, FileText } from "@/icons";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
-import { getSectorPackageAvailability, SECTOR_PACKAGES } from "@/data/sectorPackages";
-import { allTemplates } from "@/lib/templateIndex";
+import { getDeclaredSectorPackageAvailability, SECTOR_PACKAGES } from "@/data/sectorPackages";
 import rentImage from "@/assets/kits/kit-real-estate.jpg";
 import servicesImage from "@/assets/scenarios/sc-freelance.jpg";
 import digitalImage from "@/assets/kits/kit-digital.jpg";
 import employmentImage from "@/assets/kits/kit-employment.jpg";
 
 const IMAGES = { rentals: rentImage, services: servicesImage, digital: digitalImage, employment: employmentImage } as const;
-const CANONICAL_TEMPLATE_NAMES = new Set(allTemplates().map((entry) => entry.doc.name));
+// Началната страница не зарежда целия каталог (~1 MB): броим декларираните
+// позиции, а тестът sectorPackageAvailability гарантира, че всяко име
+// съществува в каноничния каталог, така че броят не може тихо да се размине.
 
 export function SectorPackages() {
   return (
@@ -29,12 +30,12 @@ export function SectorPackages() {
         <div className="mt-8 grid gap-4 md:grid-cols-2">
           {SECTOR_PACKAGES.map((item) => {
             const Icon = Icons[item.icon];
-            const availability = getSectorPackageAvailability(item, CANONICAL_TEMPLATE_NAMES);
+            const availability = getDeclaredSectorPackageAvailability(item);
             return (
               <article key={item.id} className="group overflow-hidden rounded-xl border border-gold/25 bg-card/65 shadow-soft transition-colors hover:border-gold/50">
                 <div className="grid h-full sm:grid-cols-[170px_1fr]">
                   <div className="relative min-h-40 overflow-hidden border-b border-border/50 sm:border-b-0 sm:border-r">
-                    <img src={IMAGES[item.image]} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.03]" />
+                    <img src={IMAGES[item.image]} alt="" loading="lazy" decoding="async" width={340} height={320} className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.03]" />
                     <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent" />
                     <span className="absolute bottom-3 left-3 inline-flex size-10 items-center justify-center rounded-lg border border-gold/35 bg-background/85 text-gold"><Icon className="size-5" /></span>
                   </div>

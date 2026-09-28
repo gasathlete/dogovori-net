@@ -19,7 +19,7 @@ export default function SectorPage() {
     [id],
   );
 
-  if (!sector) return <Navigate to="/#sectors" replace />;
+  if (!sector) return <Navigate to="/catalog" replace />;
 
   const Icon = (Icons as any)[sector.icon] ?? Icons.FileText;
   const bgImage = SECTOR_IMAGES[sector.id];
@@ -34,7 +34,7 @@ export default function SectorPage() {
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Начало", item: "https://dogovori.net/" },
-      { "@type": "ListItem", position: 2, name: "Сектори", item: "https://dogovori.net/#sectors" },
+      { "@type": "ListItem", position: 2, name: "Сектори", item: "https://dogovori.net/catalog" },
       { "@type": "ListItem", position: 3, name: sector.title, item: `https://dogovori.net${canonical}` },
     ],
   };
@@ -109,7 +109,7 @@ export default function SectorPage() {
               Начало
             </Link>
             <ChevronRight className="h-3 w-3" />
-            <Link to="/#sectors" className="hover:text-gold">
+            <Link to="/catalog" className="hover:text-gold">
               Сектори
             </Link>
             <ChevronRight className="h-3 w-3" />

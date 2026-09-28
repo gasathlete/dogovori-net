@@ -22,6 +22,16 @@
     </script>
 
     <meta charset="UTF-8" />
+    <script>
+      // LCP: the home hero poster is preloaded only on "/" so other routes don't pay for it.
+      if (location.pathname === "/") {
+        var l = document.createElement("link");
+        l.rel = "preload"; l.as = "image"; l.setAttribute("fetchpriority", "high");
+        l.setAttribute("imagesrcset", "/hero/hero-poster-960.webp 960w, /hero/hero-poster-1280.webp 1280w");
+        l.setAttribute("imagesizes", "100vw"); l.href = "/hero/hero-poster-1280.webp";
+        document.head.appendChild(l);
+      }
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <!-- Content Security Policy: ограничава източниците за защита от XSS / data exfiltration.
          'unsafe-inline' за style/script е нужно за Vite/Tailwind и third-party (Stripe, Plausible). -->

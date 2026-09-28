@@ -114,3 +114,11 @@ export function getSectorPackageAvailability(item: SectorPackage, canonicalNames
   ).length;
   return { available, planned: item.documents.length - available };
 }
+/**
+ * Лек брояч без каталога — за началната страница. Съвпадението с
+ * getSectorPackageAvailability срещу пълния каталог се проверява в тестовете.
+ */
+export function getDeclaredSectorPackageAvailability(item: SectorPackage) {
+  const available = item.documents.filter((document) => document.status === "browseable" && Boolean(document.docName)).length;
+  return { available, planned: item.documents.length - available };
+}
