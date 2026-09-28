@@ -18,9 +18,11 @@
 ## Проверки
 
 - `bunx vitest run src/test/sectorPackagesExperience.test.tsx src/test/kits.test.ts src/test/prelaunchWaitlist.test.tsx src/test/prelaunchWaitlistRace.test.tsx src/test/publicConversionRoutes.test.tsx src/test/positioningOffer.test.ts` — 60/60 успешни.
-- Предишният пълен run: `bun run test` — 1953 успешни и 4 пропуснати теста.
+- Review регресии: `bunx vitest run src/test/handoverProtocolSpelling.test.ts src/test/productCatalogGrid.test.tsx src/test/products.test.tsx src/test/sectorPackagesExperience.test.tsx src/test/kits.test.ts src/test/mobileConversion.test.tsx` — 82/82 успешни, 0 пропуснати.
+- Окончателен пълен run: `bun run test` — 1956/1956 успешни, 0 пропуснати.
 - `bunx tsgo --noEmit -p tsconfig.app.json` — успешно.
 - `bun run build` — успешно, само локален build.
+- Локалната browser проверка на 390 px потвърди три карти с ширина 326 px, три заключени състояния, отваряне на диалога с неизбрано съгласие, видими етапи на наемния комплект и липса на хоризонтално преливане.
 
 ## Не е активирано
 
