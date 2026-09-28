@@ -19,3 +19,5 @@
 - [x] Review: уникални package stage IDs, депозитна разписка и проверени налични/планирани бройки.
 - [x] Review: практично превключване на проекта и точен sync/publish статус в документацията.
 - [x] Review: фокусирани тестове, app typecheck, build/CI gate и мобилен преглед.
+- [ ] Финален performance проход: variable шрифтове, надежден Lighthouse audit и shell asset проверки.
+- [ ] Скрий „Тестов период“ в header под 640 px, обнови stored shell и провери 390 px с отворено „Затвори“.
