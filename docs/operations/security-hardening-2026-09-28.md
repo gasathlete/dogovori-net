@@ -79,3 +79,47 @@ Legislation texts/chunks/sources (active only after the patch), published legal 
 - The earlier pending privacy gates (0044–0048: storage/saved-document/document_versions/growth_snapshot) are still unapplied. `saved_documents`/`uploaded_contracts` owner ALL policies stay as they were.
 - 72 "signed-in can execute SECURITY DEFINER" linter items remain. Each one checked checks `auth.uid()` inside, but not every one of the ~150 functions was read line by line.
 - Leaked-password protection, MFA and other auth settings were not changed.
+
+---
+
+## Addendum — owner-verified findings (28.09.2026, evening)
+
+Scope: the nine findings submitted by the owner. All DB statements are appended to
+the SAME staged file `docs/migrations/security_hardening_2026_09_28.sql`
+(one transaction, idempotent, NOT applied by the agent). Live state was re-read
+during this pass; note that EXECUTE on several functions changed while the audit
+ran (someone already applied part of it) — the patch is idempotent either way.
+
+| # | Finding | Live state at audit | Fix | Where |
+|---|---|---|---|---|
+| 1 | growth_snapshot current_user guard | prosrc md5 already = reviewed 0048 body; anon revoked, authenticated kept | S9: 0048 body byte-for-byte + grants, only this fix folded in | SQL S9 |
+| 2 | charge_corrections_wave / consume_assistant_message / _roll_feature_counters take arbitrary user ids | authenticated EXECUTE was true at first read, false minutes later | S10: service-role only (+ consume_team_quota, credit_topup_ops, assemble_prompt_content, cleanup/purge). No browser/edge caller (grep); internal definer callers unaffected | SQL S10 |
+| 3 | Loyalty trusted browser `_total_ops` | confirmed | S11: count from `download_quota.total_used` / `team_usage.lifetime_ops`; membership kept; signatures unchanged so DashboardTab/Team callers keep working | SQL S11 |
+| 4 | shared_links forgery | live INSERT/UPDATE WITH CHECK already bind target ownership; table-wide column grants let owner forge `signed_at`, `signed_signature`, `signer_name`, `signed_pdf_path`, QES, token | S12: client INSERT removed (links created by create-share-link, service role); UPDATE only `owner_signed_at/owner_signature/owner_signer_name/revoked_at`; trigger makes owner signature and revocation one-way. Edge: get-/sign-shared-document now require `target.user_id = link.owner_id` and owner-folder storage paths before any signed URL/download; counterparty signing is atomic (`signed_at IS NULL AND revoked_at IS NULL`, 409 otherwise) | SQL S12, `_shared/share-target.ts`, both functions |
+| 4b | uploaded_contracts.storage_path browser-mutable | preflight: 0 rows outside owner folder | S13: CHECK owner-folder prefix, no `..` (NOT VALID; run VALIDATE after preflight) + edge path check above | SQL S13 |
+| 5 | profiles counters client-writable | confirmed (table-wide UPDATE) | S4 column grants (already in file) | SQL S4 |
+| 6 | cleanup/purge anon; assemble_prompt_content; full definer audit | confirmed at first read | S7+S10. Audit: every definer callable by anon/authenticated without auth.uid() was listed; remaining are intentional public (counters, search, waitlist, lead magnet, web vitals, ratings, top articles) or RLS helpers (is_staff/has_role/is_team_*; is_staff self-only per S6); match_legal_chunks reads public legislation only | SQL S7/S10 |
+| 7 | Public buckets without size/type limits | partner-logos, user-articles public, no limits; user-contracts private, no limits | Client now accepts PNG/JPEG/WebP only (no SVG). Staged bucket settings below | frontend + settings |
+| 8 | fetch-legal-source redirect SSRF; CORS *.lovable.* | confirmed | `_shared/safe-fetch.ts`: manual redirects, each hop re-checked against allowlist, no credentials/odd ports, 3 hops, 20 s timeout, 8 MB cap. CORS: only this project's preview/published hosts | code |
+| 9 | signer-action QES upload before OTP; sign path OTP not attempt-limited | confirmed: `sign` compared OTP without counting attempts → unlimited guessing of a 6-digit code | OTP check (expiry, 5-attempt lock, increment on failure) moved BEFORE any storage work; signing update atomic on `otp_code_hash` + `status <> 'signed'`, uploaded QES removed on race loss | code |
+
+### Staged storage settings (apply with the storage settings tool, not SQL)
+- partner-logos: file_size_limit 2MB, allowed_mime_types image/png,image/jpeg,image/webp (live objects: 3 png ≤2.02 MB — one PNG is 2,022,657 B, set 2.5MB if it must stay re-uploadable; 2 jpeg).
+- user-articles: 5MB, image/png,image/jpeg,image/webp (live: 1 jpeg 1.36 MB).
+- user-contracts: 10MB (matches client MAX_FILE_BYTES; live max 9.24 MB), application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document.
+- qes-signatures: server-only writes; set 16MB, keep private.
+- Draft/unapproved media privacy: NOT fixed. Buckets stay public so approved logos/images keep their existing public URLs; an unapproved file is reachable by anyone who knows its exact URL (uid + timestamp path, not listable). Proper fix = private bucket + signed URLs on approval (product change, needs owner decision).
+
+### Tests (added this pass)
+- `src/test/securityHardening20260928.pglite.test.ts`: 15/15 (5 new: S9 reproduce+fix, S10, S11 reproduce+fix incl. anon/non-member, S12 reproduce+fix incl. wrong owner/one-way/service role, S13).
+- `supabase/functions/_shared/security-addendum.test.ts`: 4/4 (owner path/target, redirect-to-metadata IP blocked, loop/oversize/credentials, CORS foreign *.lovable.app refused).
+- No real email, real signing or live-user calls were made.
+
+### Rollback (addendum)
+S9: re-grant as before (body identical to live). S10: `GRANT EXECUTE ... TO authenticated` per function. S11: restore previous bodies from `pg_get_functiondef` snapshot. S12: `DROP TRIGGER trg_shared_links_client_update_guard`, `GRANT INSERT, UPDATE ON public.shared_links TO authenticated`, recreate `shared_links_insert_own` from the pg_policies snapshot. S13: `ALTER TABLE public.uploaded_contracts DROP CONSTRAINT uploaded_contracts_storage_path_owner`. Code: revert the listed files.
+
+### Residual limits (addendum)
+- `send_otp` resets `otp_attempts`; each new code gets 5 tries, rate limited only by email delivery. Recommend a per-signer resend cap and HMAC OTP hashing.
+- Loyalty relies on `total_used`/`lifetime_ops` being maintained only by definer/service code (true for current grants after S4/S10).
+- Pre-existing links signed or edited before the patch are not rewritten or re-verified.
+- Edge function changes take effect only after deployment; the DB patch only after the owner applies it.
