@@ -30,6 +30,19 @@ jobs:
       - name: Security boundary regression tests (no dependencies or credentials)
         run: node --experimental-strip-types --test scripts/tests/security-shield.test.mjs
 
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.2'
+      - name: Reject high and critical dependency advisories
+        run: bun audit --audit-level=high
+
   public-headers:
     # These are live configuration findings, not code-regression failures.
     # Run against production only on dispatch/schedule, never on untrusted PR code.

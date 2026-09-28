@@ -130,9 +130,9 @@ describe("publishability", () => {
     }
   });
 
-  it("keeps the current article count and URLs unchanged", () => {
-    expect(ALL_POSTS.length).toBe(35);
-    expect(new Set(ALL_POSTS.map((p) => p.slug)).size).toBe(35);
+  it("keeps published article routes unique and ordered as content grows", () => {
+    expect(ALL_POSTS.length).toBeGreaterThanOrEqual(35);
+    expect(new Set(ALL_POSTS.map((p) => p.slug)).size).toBe(ALL_POSTS.length);
     expect(ALL_POSTS.every((p, i, a) => i === 0 || a[i - 1].publishedAt >= p.publishedAt)).toBe(true);
   });
 });

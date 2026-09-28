@@ -1,3 +1,7 @@
+import { getTemplateDiscoveryProfile } from "../src/lib/templateDiscovery";
+import { renderTemplatePreparation } from "./lib/templateDiscovery";
+import { loadPublishedBlogPosts } from "./lib/blogContent";
+import { resolveDateModified, hasVerifiedSources } from "../src/lib/blogEditorial";
 // Postbuild: generates per-route static HTML files in dist/ with full SEO meta
 // (title, description, canonical, OG, JSON-LD) plus visible content placeholder
 // inside #root that crawlers see before JS renders. React replaces it on mount
@@ -177,12 +181,14 @@ function bodyForTemplate(
   related: { name: string; slug: string }[] = [],
   categoryTitle: string = "",
   categoryId: string = "",
+  slug: string = "",
 ): string {
   return `
     <main style="font-family:Georgia,serif;max-width:800px;margin:2rem auto;padding:1rem;color:#0f1a30">
       <nav><a href="/">Начало</a> › <a href="/catalog">Каталог</a>${categoryId ? ` › <a href="/kategoria/${categoryId}">${escapeHtml(categoryTitle)}</a>` : ""} › ${escapeHtml(name)}</nav>
       <h1>${escapeHtml(name)}</h1>
       <p>${escapeHtml(intro)}</p>
+      ${renderTemplatePreparation(slug)}
       ${usageCases.length ? `<h2>Кога се използва</h2><ul>${usageCases.map((u) => `<li>${escapeHtml(u)}</li>`).join("")}</ul>` : ""}
       <h2>Задължителни реквизити</h2>
       <ul>${requirements.map((r) => `<li>${escapeHtml(r)}</li>`).join("")}</ul>
@@ -408,7 +414,7 @@ for (const cat of CATALOG) {
       documentType: doc.documentType,
     });
     const resolved = resolveTemplatePresentation(ai, fallback);
-    const metaOverride = getSeoTemplateMeta(slug);
+    const metaOverride = getSeoTemplateMeta(slug) ?? getTemplateDiscoveryProfile(slug);
     const guardedDesc = buildTemplatePageDescription({ docName: doc.name });
 
 
@@ -484,7 +490,7 @@ for (const cat of CATALOG) {
 
 
       description,
-      bodyHtml: bodyForTemplate(doc.name, intro, requirements, faq, usageCases, mistakes, related, cat.title, cat.id),
+      bodyHtml: bodyForTemplate(doc.name, intro, requirements, faq, usageCases, mistakes, related, cat.title, cat.id, slug),
 
       jsonLd: [breadcrumbsLd, articleLd, faqLd],
       type: "article",
@@ -550,37 +556,8 @@ for (const sector of SECTORS) {
 // Google ги отчиташе като „Дубликат – потребителят не е избрал канонична
 // страница". Сега всяка статия получава собствен title/description/canonical.
 // ---------------------------------------------------------------------------
-type PrerenderBlogPost = {
-  slug: string;
-  title: string;
-  category: string;
-  summary: string;
-  metaDescription: string;
-  image: string;
-  publishedAt: string;
-  intro: string;
-  sections: { heading: string; body: string }[];
-  faq: { q: string; a: string }[];
-  takeaways: string[];
-};
-
-const blogPosts: PrerenderBlogPost[] = [];
-{
-  const dir = resolve(process.cwd(), "src/content/blog");
-  if (existsSync(dir)) {
-    const files = readdirSync(dir).filter((f) => f.endsWith(".ts"));
-    for (const f of files) {
-      try {
-        const mod: any = await import(resolve(dir, f));
-        if (mod?.POST?.slug) blogPosts.push(mod.POST as PrerenderBlogPost);
-      } catch (e) {
-        console.warn(`⚠ Skipped blog post ${f}:`, (e as Error).message);
-      }
-    }
-    blogPosts.sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1));
-    console.log(`✓ Loaded ${blogPosts.length} blog posts for prerender`);
-  }
-}
+const blogPosts = await loadPublishedBlogPosts(resolve(process.cwd(), "src/content/blog"));
+console.log(`✓ Loaded ${blogPosts.length} published blog posts for prerender`);
 
 const paragraphs = (body: string): string =>
   body
@@ -649,6 +626,9 @@ if (blogPosts.length) {
           ${post.sections.map((s) => `<section><h2>${escapeHtml(s.heading)}</h2>${paragraphs(s.body)}</section>`).join("")}
           ${post.takeaways?.length ? `<h2>Основни изводи</h2><ul>${post.takeaways.map((t) => `<li>${escapeHtml(t)}</li>`).join("")}</ul>` : ""}
           ${post.faq?.length ? `<h2>Често задавани въпроси</h2>${post.faq.map((f) => `<section><h3>${escapeHtml(f.q)}</h3><p>${escapeHtml(f.a)}</p></section>`).join("")}` : ""}
+          ${post.relatedDocuments?.length ? `<section><h2>Документи по темата</h2><ul>${post.relatedDocuments.map((document) => `<li><a href="/shablon/${escapeHtml(document.slug)}">${escapeHtml(document.label)}</a></li>`).join("")}</ul></section>` : ""}
+          ${post.sources?.length ? `<section><h2>Източници</h2>${hasVerifiedSources(post) ? `<p>Проверено по официални източници: ${escapeHtml(post.reviewedAt!)}</p>` : ""}<ul>${post.sources.map((source) => `<li><a href="${escapeHtml(source.url)}" rel="noopener noreferrer">${escapeHtml(source.title)}</a>${source.note ? ` — ${escapeHtml(source.note)}` : ""}</li>`).join("")}</ul></section>` : ""}
+          ${post.cta ? `<section><h2>${escapeHtml(post.cta.title ?? "Подгответе документа")}</h2>${post.cta.body ? `<p>${escapeHtml(post.cta.body)}</p>` : ""}<a href="${escapeHtml(post.cta.href)}">${escapeHtml(post.cta.label)}</a></section>` : ""}
         </article>
         ${renderRelatedPackages(getSectorPackagesForArticle(post.slug))}
         ${related.length ? `<h2>Свързани статии</h2><ul>${related.map((r) => `<li><a href="/blog/${r.slug}">${escapeHtml(r.title)}</a></li>`).join("")}</ul>` : ""}
@@ -662,7 +642,7 @@ if (blogPosts.length) {
           description: post.summary,
           inLanguage: "bg-BG",
           datePublished: post.publishedAt,
-          dateModified: post.publishedAt,
+          dateModified: resolveDateModified(post),
           image: `${SITE}${post.image}`,
           author: { "@type": "Organization", name: "Dogovori.net" },
           publisher: {
@@ -979,5 +959,3 @@ for (const p of pages) {
   n++;
 }
 console.log(`✓ Prerendered ${n} pages with SEO meta + JSON-LD into dist/`);
-
-

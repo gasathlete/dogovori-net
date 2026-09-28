@@ -1,3 +1,5 @@
+import { getTemplateDiscoveryProfile } from "@/lib/templateDiscovery";
+import { findPostMeta } from "@/lib/blogMeta.generated";
 import { RelatedSectorPackages } from "@/components/RelatedSectorPackages";
 import { getSectorPackagesForDocument } from "@/lib/seoCollections";
 import { useEffect, useMemo, useState } from "react";
@@ -175,7 +177,9 @@ export default function TemplatePage() {
 
 
 
-  const metaOverride = getSeoTemplateMeta(entry.slug);
+  const discovery = getTemplateDiscoveryProfile(entry.slug);
+  const preparationGuide = discovery ? findPostMeta(discovery.guideSlug) : undefined;
+  const metaOverride = getSeoTemplateMeta(entry.slug) ?? discovery;
   const pageTitle = metaOverride?.title ?? `${doc.name} — образец на български`;
   const fallback = buildTemplateFallbackContent({
     docName: doc.name,
@@ -457,6 +461,20 @@ export default function TemplatePage() {
         {/* Готовият образец е скрит от потребителя — използва се само от системата при зареждане на работния документ след „Създай“. */}
 
 
+        {discovery && (
+          <Section title="Подготовка преди попълване">
+            <p className="mb-4 text-sm leading-relaxed text-muted-foreground">{discovery.context}</p>
+            <ul className="list-disc space-y-2 pl-5 text-sm leading-relaxed text-muted-foreground">
+              {discovery.prepare.map((item) => <li key={item}>{item}</li>)}
+            </ul>
+            {preparationGuide && (
+              <Link to={`/blog/${preparationGuide.slug}`} className="mt-4 inline-block text-sm text-gold underline underline-offset-4">
+                {preparationGuide.title}
+              </Link>
+            )}
+          </Section>
+        )}
+
         <Section title={fallback.labels.usageTitle}>
           <ul className="space-y-2">
             {usageCases.map((u, i) => (
@@ -586,4 +604,3 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     </section>
   );
 }
-
