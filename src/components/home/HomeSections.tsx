@@ -16,6 +16,7 @@ const PlatformCapabilities = lazy(() => import("@/components/PlatformCapabilitie
 const BrandedDocumentShowcase = lazy(() => import("@/components/home/BrandedDocumentShowcase").then((m) => ({ default: m.BrandedDocumentShowcase })));
 const DogovaryAIShowcase = lazy(() => import("@/components/home/DogovaryAIShowcase").then((m) => ({ default: m.DogovaryAIShowcase })));
 const SocialProofStrip = lazy(() => import("@/components/SocialProofStrip").then((m) => ({ default: m.SocialProofStrip })));
+const SectorPackages = lazy(() => import("@/components/home/SectorPackages").then((m) => ({ default: m.SectorPackages })));
 const AdSpotlight = lazy(() => import("@/components/home/AdSpotlight").then((m) => ({ default: m.AdSpotlight })));
 const PainSolution = lazy(() => import("@/components/PainSolution").then((m) => ({ default: m.PainSolution })));
 const FeaturedBlanks = lazy(() => import("@/components/FeaturedBlanks").then((m) => ({ default: m.FeaturedBlanks })));
@@ -36,15 +37,21 @@ export function HomeSections() {
         <SocialProofStrip />
       </Suspense>
 
-      {/* „Реклама“ — извадки от блога веднага под лентата с партньори */}
-      <LazyOnVisible minHeight={260}>
+      {/* Пакети и комплекти стоят последователно, непосредствено след доверието. */}
+      <LazyOnVisible minHeight={620}>
         <Suspense fallback={<SectionSkeleton />}>
-          <AdSpotlight />
+          <SectorPackages />
         </Suspense>
       </LazyOnVisible>
 
+      <LazyOnVisible minHeight={540}>
+        <Suspense fallback={<SectionSkeleton />}>
+          <BackdropSection variant="rings">
+            <LifeScenarios />
+          </BackdropSection>
+        </Suspense>
+      </LazyOnVisible>
 
-      {/* Продуктите са първата съдържателна секция след social proof */}
       <LazyOnVisible minHeight={520}>
         <Suspense fallback={<SectionSkeleton />}>
           <BackdropSection variant="grid" align="center">
@@ -53,20 +60,16 @@ export function HomeSections() {
         </Suspense>
       </LazyOnVisible>
 
-      {/* DogovaryAI веднага след продуктите — видим е и на телефон, рано. */}
+      <LazyOnVisible minHeight={260}>
+        <Suspense fallback={<SectionSkeleton />}>
+          <AdSpotlight />
+        </Suspense>
+      </LazyOnVisible>
+
       <LazyOnVisible minHeight={520}>
         <Suspense fallback={<SectionSkeleton />}>
           <BackdropSection variant="rings" align="center">
             <DogovaryAIShowcase />
-          </BackdropSection>
-        </Suspense>
-      </LazyOnVisible>
-
-      {/* Готови комплекти */}
-      <LazyOnVisible minHeight={480}>
-        <Suspense fallback={<SectionSkeleton />}>
-          <BackdropSection variant="rings">
-            <LifeScenarios />
           </BackdropSection>
         </Suspense>
       </LazyOnVisible>
