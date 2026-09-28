@@ -29,7 +29,6 @@ import {
 } from "@/lib/pricing";
 import { useAudience } from "@/hooks/useAudience";
 import { markFunnelStep } from "@/lib/funnel";
-import { entryPackCtaHref } from "@/lib/entryPack";
 import { OneTaskAlternative } from "@/components/products/OneTaskAlternative";
 import { FrequencyCompare } from "@/components/products/FrequencyCompare";
 import { planVolumeSentence } from "@/components/products/PlanAlternativeNote";
@@ -98,6 +97,7 @@ function buildCta(planId: PlanId, billing: Billing, isAuthed: boolean): {
  * неговият handler, без собствена рамка, за да не дублира картата около него.
  */
 function EntryPackCta({ isAuthed, audience }: { isAuthed: boolean; audience: string }) {
+  void isAuthed;
   return (
     <Button
       type="button"
@@ -344,7 +344,6 @@ export default function Plans() {
               const price = billing === "yearly" ? plan.yearly : plan.monthly;
               const effectivePrice = price ?? plan.yearly;
               const teamMonthlyDisabled = plan.id === "team" && billing === "monthly";
-              const cta = buildCta(plan.id, billing, isAuthed);
               const isRecommended = recommended === plan.id;
               return (
                 <article
