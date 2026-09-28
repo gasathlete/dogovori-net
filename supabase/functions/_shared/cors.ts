@@ -17,12 +17,11 @@ const ALLOWED_ORIGINS = new Set([
 const PROJECT_ID = "6b2da12e-e1d6-4f97-8549-b632fb66ddd1";
 export function isProjectPreviewHost(host: string): boolean {
   const h = host.toLowerCase();
-  if (h === `${PROJECT_ID}.lovableproject.com`) return true;
-  if (h.endsWith(".lovable.app")) {
-    const label = h.slice(0, -".lovable.app".length);
-    return !label.includes(".") && (label === PROJECT_ID || label.endsWith(`--${PROJECT_ID}`));
-  }
-  return false;
+  // Exact hosts only: a different project can otherwise choose a slug
+  // ending in "--<our-id>" and match a suffix-based rule.
+  return h === `${PROJECT_ID}.lovableproject.com` ||
+    h === `${PROJECT_ID}.lovable.app` ||
+    h === `id-preview--${PROJECT_ID}.lovable.app`;
 }
 
 // ВАЖНО: `x-correlation-id` се изпраща от всяка клиентска заявка
@@ -38,8 +37,9 @@ export function buildCors(req: Request, methods = "POST, OPTIONS") {
     allow = origin;
   } else {
     try {
-      const host = new URL(origin).host;
-      if (new URL(origin).protocol === "https:" && isProjectPreviewHost(host)) allow = origin;
+      const parsedOrigin = new URL(origin);
+      if (parsedOrigin.origin === origin && parsedOrigin.protocol === "https:" &&
+          isProjectPreviewHost(parsedOrigin.host)) allow = origin;
     } catch {
       // ignore invalid origins
     }
