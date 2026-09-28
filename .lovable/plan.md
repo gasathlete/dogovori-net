@@ -1,17 +1,13 @@
-# Финален проход за производителност преди публикуване
+# Publication status: no action required
 
-## Изпълнение
-- Заменям отделните статични файлове за IBM Plex Sans 400/500/600/700 и Libre Baskerville 400/700 с variable файлове от същите семейства и същите реални диапазони, запазвайки кирилица, латиница и текущото визуално семейство.
-- Проверявам началния network waterfall и отлагам само доказано некритични ресурси, без промяна на първото auth/waitlist/story събитие.
-- Поправям Lighthouse скрипта да изтрива стария резултат, да използва уникални временни файлове и да прекъсва при неуспешен или непълен audit.
-- Разширявам production проверката: всички локални image/font URL-и в съхранения home shell трябва да съществуват в `dist`, а съществуващата проверка за текст, CTA и poster parity остава.
+Checked read-only at 20:52 UTC on 28.09.2026.
 
-## Проверка
-- Същият Lighthouse 12 production-preview режим: mobile median от 3 за `/` и `/paketi`, плюс desktop sanity check; сурови резултати в нова ясно означена папка.
-- Визуална проверка на шрифтове и layout при 320, 390, 768 и 1280 px, включително фиктивен authenticated header.
-- Пълни app тестове, app typecheck, production build/SEO и изискваните локални gates; известните 10 non-CI server failures остават отчетени отделно.
-- Обновявам performance отчета и краткия README статус с точните измерени стойности и ограничения. Не публикувам.
+- dogovori.net returns 200 with header `x-deployment-id: psr2.a26860c8-3f03-498c-8b33-60ed631b1fcc...`, which is the pending deployment.
+- www.dogovori.net and dogovori-net.lovable.app redirect (302) to dogovori.net and serve the same deployment.
+- The page script is `/assets/index-DJHVHHGu.js` (returns 200). The old `index-DY4Rau34.js` is gone.
+- The served HTML contains `unsafe-eval` 0 times.
+- Publish settings: published, public.
 
-## Технически граници
-- Не променям публичното съдържание, реда на секциите, backend/БД, покупки, AI gates, consent, правни текстове или BetaDisclaimerModal.
-- Не променям статуса на двете известни проверки за публичните правни таблици.
+Limitation: the available tools do not show the deployment's internal status or build logs. The evidence comes only from what the public hosts return. The old files seen at 20:51 were most likely just the rollout still in progress.
+
+Next step: none. Do not start another deployment.
