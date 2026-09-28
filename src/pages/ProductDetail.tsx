@@ -32,8 +32,6 @@ import {
   productPriceLabel,
   type OneTimeProduct,
 } from "@/lib/products";
-import { PRELAUNCH_LABELS } from "@/lib/prelaunch";
-import { openPrelaunchWaitlist } from "@/lib/prelaunchWaitlist";
 import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
 
 
@@ -170,7 +168,10 @@ export default function ProductDetail() {
               </div>
 
               {!ONE_TIME_PURCHASES_AVAILABLE && (
-                <LaunchPurchaseBanner className="mt-4 max-w-xl" source="product_detail" productId={product.id} />
+                <>
+                  <LaunchPurchaseBanner className="mt-4 max-w-xl" source="product_detail" productId={product.id} />
+                  <p className="mt-3 max-w-xl text-[13px] leading-relaxed text-muted-foreground">{ONE_TIME_PRELAUNCH_MESSAGE}</p>
+                </>
               )}
 
               <p className="mt-3 text-[11.5px] font-medium text-muted-foreground">

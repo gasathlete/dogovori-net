@@ -27,9 +27,11 @@ describe("пакети и комплекти в предварителен ре�
 
   it("показва четирите пакета и работещи detail връзки", () => {
     render(<HelmetProvider><MemoryRouter><SectorPackagesPage /></MemoryRouter></HelmetProvider>);
-    for (const item of SECTOR_PACKAGES) {
+    const detailLinks = screen.getAllByRole("link", { name: /Разгледайте съдържанието/ });
+    expect(detailLinks).toHaveLength(SECTOR_PACKAGES.length);
+    for (const [index, item] of SECTOR_PACKAGES.entries()) {
       expect(screen.getByRole("heading", { name: item.title })).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: /Разгледайте съдържанието/, hidden: false, exact: false }).closest("a")).toBeTruthy();
+      expect(detailLinks[index]).toHaveAttribute("href", `/paketi/${item.slug}`);
     }
   });
 
