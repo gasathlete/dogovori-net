@@ -4,6 +4,24 @@
 
 Owner authorization: “Оправете всички възможни секюрити проблеми.” No additional approval is required for the already requested security fixes. Purchases/new AI activation remain gated. No real signing, email, payment or customer-document test was performed; eSpravki is separate.
 
+## Final follow-through checkpoint — 29 September 2026 UTC
+
+This section supersedes the earlier in-progress dependency/scan/publication notes.
+
+- The targeted mcp-js esbuild patch is complete: nested esbuild 0.28.2 fixes GHSA-g7r4-m6w7-qqqr. The single remaining advisory is GHSA-67mh-4wv8-2f99 in the Drizzle / @esbuild-kit / esbuild 0.18.20 development-tooling chain. The attempted incompatible override was reverted; no Drizzle downgrade or weakened frozen-install gate.
+- A Lovable restart rewrote the final security commit's Bun lock to v1. The combined SEO/security follow-through restored the exact audited v3 blob `3cb91ebdf27b01d854f1e3f3a4920d247e30bee5`; main currently retains lockfileVersion 3 and the narrow mcp-js override. This was verified from current GitHub source, not only the agent summary.
+- Combined tested head `410a5a7b46e368e4a4924d672e14f01d998e9dba` merged as `4938d618913d19afb4f9b63eef9815199c896a22`. Recorded tests: 2013 app passed, 4 pre-existing skipped; 1010 Edge passed. The later documentation head `ed6327f5115c5c6e96d6bc98b04d71d6ed3f40b1` also has successful Tests (36491066622), Build (36491066874), Security scan (36491066702) and Security shield (36491066806).
+- The combined release was published and externally checked by the SEO task on deployment `c3aa5c03-0a55-418f-863d-d325ba49c2cb` at 22:08–22:12 UTC on 28 September. Full evidence is in `seo-indexability-2026-09-28.md`. No duplicate publication was needed here.
+- Four additional Storage caps were applied live and read back: private pending partner 2.5 MiB and article 5 MiB with PNG/JPEG/WebP MIME restrictions; team-assets 2 MiB and home-testimonials 5 MiB. No existing files/customer rows were modified or deleted.
+- Deep scan ran through the reading/double-checking stages, then returned to “Not scanned yet” without a report, including after one reload. It is **not** a passed deep scan; no findings were blindly ignored.
+- GitHub main is confirmed `protected: false`, and the rulesets endpoint returned an empty list. The browser required sign-in. Secure authentication was requested and then interrupted by the user; no administrator setting was changed and no repeat credential request was issued.
+- The request to save minimum password length 8 received an Auth config updated toast, but the field reopened blank. Do not claim persistence without an authoritative value. HIBP/secure-email/confirmation/anonymous settings observed earlier remain the last verified values.
+
+**Still open:** actual response-level CSP/anti-framing/Permissions-Policy hosting controls, compatible resolution of the one Drizzle tooling advisory, completed deep-scan evidence, branch protection/code-scanning admin setup, MFA enrollment/recovery, re-authentication/current-password UI compatibility and server policy, full content-scanning/quarantine/restore/alert verification. No 100% security claim. The task is partially blocked by administrative/provider capabilities, not marked fully complete.
+
+
+---
+
 ## Current checkpoint — 28 September 2026, 21:42 UTC
 
 This checkpoint supersedes the historical deployment-blocker and unfinished-OTP/pending-media statements below. The earlier evidence is retained for traceability.
