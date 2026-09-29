@@ -63,6 +63,10 @@ export function CompanionChip({ name }: Props) {
       });
       if (!res.ok) {
         if (res.error === "disclaimer_cancelled" || res.error === "unfilled_placeholders") return;
+        if (res.error === "content_save_prelaunch_closed") {
+          openPrelaunchWaitlist("blank_download");
+          return;
+        }
         if (res.error === "quota_exceeded") {
           toast.error("Изчерпан безплатен лимит", {
             description: "Преминете към платен план за повече бланки.",

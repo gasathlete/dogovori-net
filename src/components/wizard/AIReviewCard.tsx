@@ -125,7 +125,10 @@ export function AIReviewCard({
     ],
   );
 
-  const life = useReviewLifecycle({ input, runner: reviewDocument, auto });
+  // Без сървърно разрешение (пропуск или запазен документ) заявката би била
+  // отказана — например след ръчна редакция. Не я пускаме, а обясняваме защо.
+  const authorized = !!reviewGrant || !!savedDocumentId;
+  const life = useReviewLifecycle({ input, runner: reviewDocument, auto: auto && authorized });
   const { loading, review, error, needsConfirm } = {
     loading: life.loading,
     review: life.review,
@@ -206,7 +209,7 @@ export function AIReviewCard({
             Всяка проверка се изпълнява по един и същ начин при всеки документ.
           </p>
         </div>
-        {!loading && (
+        {!loading && authorized && (
           <Button variant="outline" size="sm" onClick={() => void run()} className="shrink-0">
             <RefreshCcw className="mr-1.5 h-3.5 w-3.5" />
             {review ? "Провери отново" : "Стартирай ревизия"}
@@ -226,7 +229,13 @@ export function AIReviewCard({
         </div>
       )}
 
-      {!loading && error && (
+      {!authorized && (
+        <div className="mb-3 rounded-lg border border-border/60 bg-card/50 p-3 text-xs text-muted-foreground">
+          Редактирахте текста. Запазете документа, за да проверим отново точно тази версия.
+        </div>
+      )}
+
+      {!loading && authorized && error && (
         <div className="rounded-lg border border-danger/30 bg-danger/5 p-3 text-xs text-muted-foreground">
           Ревизията не можа да бъде извършена: {error}
           {needsConfirm && (

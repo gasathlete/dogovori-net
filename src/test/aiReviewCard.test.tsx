@@ -71,7 +71,7 @@ describe("AIReviewCard — реален жизнен цикъл", () => {
     reviewDocument.mockImplementation(() => d.promise);
     render(
       <StrictMode>
-        <AIReviewCard contract={contract()} documentType="dogovor-za-uslugi" />
+        <AIReviewCard savedDocumentId="doc-1" contract={contract()} documentType="dogovor-za-uslugi" />
       </StrictMode>,
     );
     await waitFor(() => expect(reviewDocument).toHaveBeenCalledTimes(1));
@@ -88,7 +88,7 @@ describe("AIReviewCard — реален жизнен цикъл", () => {
   it("редакция след резултат скрива присъдата и обяснява защо", async () => {
     const d1 = deferred<ReviewOutcome>();
     reviewDocument.mockImplementationOnce(() => d1.promise);
-    const view = render(<AIReviewCard contract={contract()} documentType="t" />);
+    const view = render(<AIReviewCard savedDocumentId="doc-1" contract={contract()} documentType="t" />);
     await act(async () => {
       d1.resolve(outcome());
     });
@@ -97,7 +97,7 @@ describe("AIReviewCard — реален жизнен цикъл", () => {
     const d2 = deferred<ReviewOutcome>();
     reviewDocument.mockImplementationOnce(() => d2.promise);
     view.rerender(
-      <AIReviewCard contract={contract({ closing: "Различен край на документа." })} documentType="t" />,
+      <AIReviewCard savedDocumentId="doc-1" contract={contract({ closing: "Различен край на документа." })} documentType="t" />,
     );
     expect(screen.queryByText(/Документът преминава автоматичната ревизия/)).toBeNull();
     await waitFor(() => expect(reviewDocument).toHaveBeenCalledTimes(2));
@@ -111,7 +111,7 @@ describe("AIReviewCard — реален жизнен цикъл", () => {
     const d1 = deferred<ReviewOutcome>();
     reviewDocument.mockImplementationOnce(() => d1.promise);
     const view = render(
-      <AIReviewCard
+      <AIReviewCard savedDocumentId="doc-1"
         contract={contract()}
         documentType="t"
         reviewContext={{ decisions: [{ label: "Срок", value: "12 месеца" }] }}
@@ -125,7 +125,7 @@ describe("AIReviewCard — реален жизнен цикъл", () => {
     const d2 = deferred<ReviewOutcome>();
     reviewDocument.mockImplementationOnce(() => d2.promise);
     view.rerender(
-      <AIReviewCard
+      <AIReviewCard savedDocumentId="doc-1"
         contract={contract()}
         documentType="t"
         reviewContext={{ role: "Изпълнител", decisions: [{ label: "Срок", value: "24 месеца" }] }}
@@ -143,9 +143,9 @@ describe("AIReviewCard — реален жизнен цикъл", () => {
     const d1 = deferred<ReviewOutcome>();
     const d2 = deferred<ReviewOutcome>();
     reviewDocument.mockImplementationOnce(() => d1.promise).mockImplementationOnce(() => d2.promise);
-    const view = render(<AIReviewCard contract={contract()} documentType="t" />);
+    const view = render(<AIReviewCard savedDocumentId="doc-1" contract={contract()} documentType="t" />);
     await waitFor(() => expect(reviewDocument).toHaveBeenCalledTimes(1));
-    view.rerender(<AIReviewCard contract={contract({ closing: "Нов край." })} documentType="t" />);
+    view.rerender(<AIReviewCard savedDocumentId="doc-1" contract={contract({ closing: "Нов край." })} documentType="t" />);
     await waitFor(() => expect(reviewDocument).toHaveBeenCalledTimes(2));
 
     // Старата заявка завършва ПОСЛЕДНА — не пипа нищо.
@@ -162,7 +162,7 @@ describe("AIReviewCard — реален жизнен цикъл", () => {
   it("отговор след напускане на екрана не хвърля и не се прилага", async () => {
     const d = deferred<ReviewOutcome>();
     reviewDocument.mockImplementation(() => d.promise);
-    const view = render(<AIReviewCard contract={contract()} documentType="t" />);
+    const view = render(<AIReviewCard savedDocumentId="doc-1" contract={contract()} documentType="t" />);
     await waitFor(() => expect(reviewDocument).toHaveBeenCalledTimes(1));
     view.unmount();
     await act(async () => {
@@ -174,7 +174,7 @@ describe("AIReviewCard — реален жизнен цикъл", () => {
   it("потвърждението е обвързано със същата снимка и редакция го отменя", async () => {
     const d1 = deferred<ReviewOutcome>();
     reviewDocument.mockImplementationOnce(() => d1.promise);
-    const view = render(<AIReviewCard contract={contract()} documentType="t" />);
+    const view = render(<AIReviewCard savedDocumentId="doc-1" contract={contract()} documentType="t" />);
     await act(async () => {
       d1.resolve(
         outcome({ review: null, error: "Документът съдържа чувствителни данни.", confirmationRequired: true }),
@@ -197,7 +197,7 @@ describe("AIReviewCard — реален жизнен цикъл", () => {
     // Нова снимка → потвърждението не се пренася.
     const d3 = deferred<ReviewOutcome>();
     reviewDocument.mockImplementationOnce(() => d3.promise);
-    view.rerender(<AIReviewCard contract={contract({ closing: "Нов край." })} documentType="t" />);
+    view.rerender(<AIReviewCard savedDocumentId="doc-1" contract={contract({ closing: "Нов край." })} documentType="t" />);
     await act(async () => {
       d3.resolve(
         outcome({ review: null, error: "Документът съдържа чувствителни данни.", confirmationRequired: true }),
@@ -206,7 +206,7 @@ describe("AIReviewCard — реален жизнен цикъл", () => {
     const btn2 = screen.getByRole("button", { name: /Потвърждавам и продължавам/ });
     const d4 = deferred<ReviewOutcome>();
     reviewDocument.mockImplementationOnce(() => d4.promise);
-    view.rerender(<AIReviewCard contract={contract({ closing: "Още по-нов край." })} documentType="t" />);
+    view.rerender(<AIReviewCard savedDocumentId="doc-1" contract={contract({ closing: "Още по-нов край." })} documentType="t" />);
     expect(screen.queryByRole("button", { name: /Потвърждавам и продължавам/ })).toBeNull();
     expect(btn2.isConnected).toBe(false);
     await act(async () => {
@@ -217,7 +217,7 @@ describe("AIReviewCard — реален жизнен цикъл", () => {
   it("липсваща или непълна информация за обхвата не се показва като „готово“", async () => {
     const d = deferred<ReviewOutcome>();
     reviewDocument.mockImplementationOnce(() => d.promise);
-    render(<AIReviewCard contract={contract()} documentType="t" />);
+    render(<AIReviewCard savedDocumentId="doc-1" contract={contract()} documentType="t" />);
     await act(async () => {
       d.resolve(outcome({ review: review({ completeness: null }) }));
     });
@@ -229,7 +229,7 @@ describe("AIReviewCard — реален жизнен цикъл", () => {
   it("отговор с чужд отпечатък не се представя като проверен", async () => {
     const d = deferred<ReviewOutcome>();
     reviewDocument.mockImplementationOnce(() => d.promise);
-    render(<AIReviewCard contract={contract()} documentType="t" />);
+    render(<AIReviewCard savedDocumentId="doc-1" contract={contract()} documentType="t" />);
     await act(async () => {
       d.resolve(outcome({ review: review({ source: { v: REVIEW_SOURCE_VERSION, digest: "ДРУГ" } }) }));
     });
@@ -239,7 +239,7 @@ describe("AIReviewCard — реален жизнен цикъл", () => {
 
   it("провал в заявката се урежда — без вечно зареждане", async () => {
     reviewDocument.mockImplementationOnce(() => Promise.reject(new Error("boom")));
-    render(<AIReviewCard contract={contract()} documentType="t" />);
+    render(<AIReviewCard savedDocumentId="doc-1" contract={contract()} documentType="t" />);
     await waitFor(() => expect(screen.getByText(/Ревизията не можа да бъде извършена/)).toBeTruthy());
     expect(screen.queryByText(/Ревизията е в ход/)).toBeNull();
   });
@@ -255,11 +255,11 @@ describe("AIReviewCard — реален жизнен цикъл", () => {
 
     const A = contract();
     const B = contract({ closing: "Различен край на документа." });
-    const view = render(<AIReviewCard contract={A} documentType="t" />);
+    const view = render(<AIReviewCard savedDocumentId="doc-1" contract={A} documentType="t" />);
     await waitFor(() => expect(reviewDocument).toHaveBeenCalledTimes(1));
-    view.rerender(<AIReviewCard contract={B} documentType="t" />);
+    view.rerender(<AIReviewCard savedDocumentId="doc-1" contract={B} documentType="t" />);
     await waitFor(() => expect(reviewDocument).toHaveBeenCalledTimes(2));
-    view.rerender(<AIReviewCard contract={A} documentType="t" />);
+    view.rerender(<AIReviewCard savedDocumentId="doc-1" contract={A} documentType="t" />);
     await waitFor(() => expect(reviewDocument).toHaveBeenCalledTimes(3));
 
     // Най-новата заявка за A завършва първа и се показва.
@@ -336,5 +336,10 @@ describe("useReviewLifecycle — пореден номер на заявката
     });
     expect(view.result.current.review?.verdict).toBe("ready");
     expect(runner).toHaveBeenCalledTimes(1);
+  });
+  it("без пропуск или запазен документ не пуска заявка и обяснява защо", async () => {
+    const view = render(<AIReviewCard contract={contract()} documentType="t" />);
+    expect(view.getByText(/Запазете документа/)).toBeTruthy();
+    expect(view.queryByText(/Стартирай ревизия|Провери отново/)).toBeNull();
   });
 });
