@@ -69,7 +69,7 @@ export async function createStaticCheckout(d: StaticDeps, userId: string, body: 
 
 export async function staticFileBytes(a: Any): Promise<Uint8Array> {
   if (typeof a.content!=="string" || !/^\\x(?:[0-9a-f]{2})+$/.test(a.content) || a.content.length>4194306) return deny("asset_invalid");
-  const hex=a.content.slice(2);
+  const hex: string=a.content.slice(2);
   const bytes=Uint8Array.from(hex.match(/../g)!,v=>parseInt(v,16));
   const digest=new Uint8Array(await crypto.subtle.digest("SHA-256",bytes));
   if (Array.from(digest,v=>v.toString(16).padStart(2,"0")).join("")!==a.content_sha256) return deny("asset_integrity_failed");
@@ -100,7 +100,9 @@ export async function deliverStaticCatalog(d: StaticDeps,userId:string,orderId:u
   const {data:latest,error:le}=await d.db.from("static_catalog_entitlements").select("revoked_at").eq("order_id",orderId).eq("user_id",userId).maybeSingle();
   if (le) return deny("delivery_unavailable",503);
   if (!latest || latest.revoked_at) return deny("not_found",404);
-  return new Response(bytes,{headers:{...cors,"Content-Type":a.mime_type,"Content-Disposition":`attachment; filename="${a.filename}"`,
+  const responseBytes = new Uint8Array(bytes.length);
+  responseBytes.set(bytes);
+  return new Response(responseBytes.buffer,{headers:{...cors,"Content-Type":a.mime_type,"Content-Disposition":`attachment; filename="${a.filename}"`,
     "Cache-Control":"private, no-store, max-age=0","Pragma":"no-cache","X-Content-Type-Options":"nosniff","Content-Security-Policy":"sandbox; default-src 'none'; frame-ancestors 'none'","X-Frame-Options":"DENY"}});
 }
 
