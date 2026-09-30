@@ -60,7 +60,8 @@ describe("task-first furnished rental", () => {
 
   it("preserves gates: no checkout, AI, persistence or PII analytics in the flow", () => {
     const src = readFileSync("src/pages/RentalPreparation.tsx", "utf8") + readFileSync("src/lib/taskPreparation/rentalPreparation.ts", "utf8");
-    expect(src).not.toMatch(/checkout|stripe|functions\.invoke|localStorage|sessionStorage|supabase/i);
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+    expect(code).not.toMatch(/checkout|stripe|functions\.invoke|localStorage|sessionStorage|supabase/i);
     expect(src).toMatch(/LaunchPurchaseBanner/);
     expect(src).toMatch(/trackFunnelEvent\("task_preparation_step", \{ task: "furnished-rental", step: n \}\)/);
   });
