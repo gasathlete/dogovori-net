@@ -184,6 +184,7 @@ const SiteMap = lazy(() => import("./pages/SiteMap.tsx"));
 const AIFeatures = lazy(() => import("./pages/AIFeatures.tsx"));
 const Kits = lazy(() => import("./pages/Kits.tsx"));
 const KitDetail = lazy(() => import("./pages/KitDetail.tsx"));
+const RentalPreparation = lazy(() => import("./pages/RentalPreparation.tsx"));
 const SectorPackages = lazy(() => import("./pages/SectorPackages.tsx"));
 const SectorPackageDetail = lazy(() => import("./pages/SectorPackageDetail.tsx"));
 const MyKitDetail = lazy(() => import("./pages/MyKitDetail.tsx"));
@@ -331,6 +332,7 @@ const AnimatedRoutes = () => {
         <Route path="/paketi/:slug" element={<SectorPackageDetail />} />
         <Route path="/komplekti/nov" element={<ProtectedRoute><CreateKit /></ProtectedRoute>} />
         <Route path="/komplekti/moi/:id" element={<ProtectedRoute><MyKitDetail /></ProtectedRoute>} />
+        <Route path="/komplekti/naem-zhilishte/podgotovka" element={<RentalPreparation />} />
         <Route path="/komplekti/:slug" element={<KitDetail />} />
         <Route path="/karta" element={<SiteMap />} />
         <Route path="/ai" element={<AIFeatures />} />
