@@ -20,4 +20,4 @@ jobs:
         with:
           deno-version: v2.x
       - name: Typecheck new Edge entrypoint and raw webhook proof
-        run: deno check supabase/functions/static-catalog/index.ts supabase/functions/_shared/webhook-proof.ts
+        run: deno check --no-config --node-modules-dir=auto supabase/functions/static-catalog/index.ts supabase/functions/_shared/webhook-proof.ts

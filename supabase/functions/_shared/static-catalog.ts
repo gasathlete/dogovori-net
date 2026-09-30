@@ -42,6 +42,7 @@ export async function createStaticCheckout(d: StaticDeps, userId: string, body: 
   const {data:a,error:ae}=await d.db.from("static_catalog_assets").select("*").eq("id",body.assetId).maybeSingle();
   if (ae) return deny("catalog_unavailable",503);
   assertStaticAsset(a);
+  await staticFileBytes(a); // Prove deliverability before creating an order or calling Stripe.
   const order={id:body.requestId,user_id:userId,asset_id:a.id,asset_sha256:a.content_sha256,amount_cents:a.amount_cents,
     currency:a.currency,stripe_price_id:a.stripe_price_id,terms_version:LEGAL_VERSIONS.terms,refund_version:LEGAL_VERSIONS.refund,
     withdrawal_version:LEGAL_VERSIONS.withdrawal,terms_accepted:true,immediate_performance_consent:true,withdrawal_loss_acknowledged:true,environment:"sandbox"};
