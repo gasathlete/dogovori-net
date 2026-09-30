@@ -51,6 +51,28 @@ export interface WebhookDeps {
   sendEmail: (db: Any, template: string, to: string, opts: Any) => Promise<Any>;
 }
 
+/** Share signed-event provider lookups between the two delivery ledgers. */
+function reversalLookupDeps(d: WebhookDeps, env: StripeEnv): WebhookDeps {
+  let stripe: Any;
+  const client = () => stripe ??= d.createStripe(env);
+  const sessions = new Map<string, Promise<Any>>();
+  const charges = new Map<string, Promise<Any>>();
+  return {
+    ...d,
+    createStripe: () => ({
+      checkout: { sessions: { list: (params: Any) => {
+        const key = JSON.stringify(params);
+        if (!sessions.has(key)) sessions.set(key, Promise.resolve(client().checkout.sessions.list(params)));
+        return sessions.get(key)!;
+      } } },
+      charges: { retrieve: (id: string) => {
+        if (!charges.has(id)) charges.set(id, Promise.resolve(client().charges.retrieve(id)));
+        return charges.get(id)!;
+      } },
+    }),
+  };
+}
+
 export function tierFromPriceId(priceId: string | null | undefined): { plan: "pro" | "free"; opsCap: number | null } {
   if (!priceId) return { plan: "pro", opsCap: null };
   if (priceId.startsWith("entrepreneur")) return { plan: "pro", opsCap: 100 };
@@ -791,16 +813,18 @@ export async function dispatchEvent(
       typeof charge?.amount_refunded === "number" &&
       charge.amount_refunded >= charge.amount
     ) {
-      await reverseStaticPaid(staticDeps(d, env), charge, env, "refund_full", eventProofFrom(event));
-      await handleProductReversal(d, charge, env, "refund_full", eventProofFrom(event));
+      const reversal = reversalLookupDeps(d, env);
+      await reverseStaticPaid(staticDeps(reversal, env), charge, env, "refund_full", eventProofFrom(event));
+      await handleProductReversal(reversal, charge, env, "refund_full", eventProofFrom(event));
     } else {
       console.log("product reversal ignored — refund is not full");
     }
     return;
   }
   if (event.type === "charge.dispute.created") {
-    await reverseStaticPaid(staticDeps(d, env), event.data.object, env, "dispute_created", eventProofFrom(event));
-    await handleProductReversal(d, event.data.object, env, "dispute_created", eventProofFrom(event));
+    const reversal = reversalLookupDeps(d, env);
+    await reverseStaticPaid(staticDeps(reversal, env), event.data.object, env, "dispute_created", eventProofFrom(event));
+    await handleProductReversal(reversal, event.data.object, env, "dispute_created", eventProofFrom(event));
     return;
   }
   if (event.type === "charge.dispute.closed") {
@@ -846,4 +870,3 @@ export async function dispatchEvent(
       console.log("Unhandled event:", event.type);
   }
 }
-
