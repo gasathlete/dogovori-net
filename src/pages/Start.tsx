@@ -14,6 +14,7 @@ import { Seo } from "@/components/Seo";
 import { useAuth } from "@/hooks/useAuth";
 import { openInlineAuth } from "@/lib/inlineAuth";
 import { LIFE_SCENARIOS } from "@/data/lifeScenarios";
+import { EVERYDAY_TASKS } from "@/data/everydayTasks";
 import { ArrowRight, Search, Sparkles, FileUp, Layers } from "@/icons";
 import { trackFunnelEvent } from "@/lib/funnel";
 
@@ -116,6 +117,26 @@ export default function StartPage() {
               </div>
             )}
           </header>
+
+          <section className="mt-10" aria-labelledby="everyday-tasks">
+            <h2 id="everyday-tasks" className="font-serif text-2xl font-bold">Какво искате да направите?</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Изберете задача — показваме нужните документи в реда, в който се използват.</p>
+            <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+              {EVERYDAY_TASKS.map((t) => {
+                const to = t.preparationPath ?? `/komplekti/${t.kitId}`;
+                return (
+                  <li key={t.id}>
+                    <Link to={to}
+                      onClick={() => trackFunnelEvent("start_task_selected", { task: t.id, destination: to, authenticated: Boolean(user) })}
+                      className="group flex min-h-[56px] items-center justify-between gap-3 rounded-xl border border-border/60 bg-card px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:border-gold/50">
+                      <span>{t.label}{t.preparationPath && <span className="ml-2 rounded-full border border-gold/40 px-2 py-0.5 text-[10px] font-semibold text-gold">с подготовка</span>}</span>
+                      <ArrowRight className="h-4 w-4 shrink-0 text-gold" />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
 
           <ul className="mt-10 grid gap-4 md:grid-cols-3">
             {INTENTS.map((intent, i) => (

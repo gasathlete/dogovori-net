@@ -12,6 +12,7 @@ import { getKitSections, type KitLifecycleStage } from "@/data/featuredKitStages
 import { RelatedSectorPackages } from "@/components/RelatedSectorPackages";
 import { getSectorPackagesForKit } from "@/lib/seoCollections";
 import { allTemplates } from "@/lib/templateIndex";
+import { taskForKit } from "@/data/everydayTasks";
 
 export default function KitDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -28,6 +29,7 @@ export default function KitDetailPage() {
   }, []);
 
   const sections = useMemo(() => kit ? getKitSections(kit) : [], [kit]);
+  const task = kit ? taskForKit(kit.id) : undefined;
   if (!kit) return <Navigate to="/komplekti" replace />;
   const Icon = (Icons as unknown as Record<string, typeof Icons.Package>)[kit.icon] ?? Icons.Package;
 
@@ -91,6 +93,18 @@ export default function KitDetailPage() {
                 </div>
               </div>
             </div>
+            {task?.preparationPath && (
+              <div className="mt-7 flex flex-col gap-3 rounded-xl border border-gold/40 bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/80">Какво искате да направите?</p>
+                  <p className="mt-1 font-serif text-lg font-bold">{task.label}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Въведете общите данни веднъж и вижте кои документи са приложими.</p>
+                </div>
+                <Link to={task.preparationPath} className="btn-gold inline-flex min-h-[48px] shrink-0 items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold">
+                  Започнете подготовката <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            )}
             <LaunchPurchaseBanner className="mt-7" source="kit_detail" productId={`kit_${kit.id.replace(/-/g, "_")}`} />
           </div>
         </section>
