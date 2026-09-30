@@ -15,6 +15,9 @@ export default function ResetPasswordPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
+  const [nonce, setNonce] = useState("");
+  const [needsNonce, setNeedsNonce] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,8 +47,13 @@ export default function ResetPasswordPage() {
       if (data.session) setReady(true);
     });
 
-    // Fallback: if after 3s nothing has happened, allow submit anyway
-    const t = setTimeout(() => setReady(true), 3000);
+    // A timeout never creates an authenticated recovery session.
+    const t = setTimeout(() => {
+      supabase.auth.getSession().then(({ data, error }) => {
+        if (error || !data.session) setLinkError("Невалиден или изтекъл линк.");
+        else setReady(true);
+      });
+    }, 3000);
 
     return () => {
       sub.subscription.unsubscribe();
@@ -58,16 +66,43 @@ export default function ResetPasswordPage() {
     if (password.length < 8) {
       return toast.error("Паролата трябва да е поне 8 символа");
     }
+    if (busy || !ready || linkError || (needsNonce && !nonce.trim())) return;
     setBusy(true);
-    const { error } = await supabase.auth.updateUser({ password });
-    setBusy(false);
-    if (error) {
-      return toast.error("Грешка", {
-        description: translateAuthError(error.message),
-      });
+    try {
+      // Verify with Auth immediately before the mutation; local session metadata is not proof.
+      const { data, error: authError } = await supabase.auth.getUser();
+      if (authError || !data.user) {
+        setReady(false);
+        setLinkError("Невалиден или изтекъл линк.");
+        return;
+      }
+      const { error } = await supabase.auth.updateUser({ password, ...(needsNonce ? { nonce: nonce.trim() } : {}) });
+      if (error) {
+        if (error.code === "reauthentication_needed" || error.code === "reauthentication_not_valid") {
+          setNeedsNonce(true);
+          toast.error("Потвърдете промяната с код", { description: "Поискайте код за потвърждение и го въведете по-долу." });
+        } else toast.error("Грешка", { description: translateAuthError(error.message) });
+        return;
+      }
+    } catch {
+      toast.error("Няма връзка със сървъра. Опитайте отново.");
+      return;
+    } finally {
+      setBusy(false);
     }
     toast.success("Паролата е обновена");
     navigate("/account");
+  };
+
+  const requestCode = async () => {
+    if (sendingCode || busy) return;
+    setSendingCode(true);
+    try {
+      const { error } = await supabase.auth.reauthenticate();
+      if (error) toast.error("Кодът не е изпратен", { description: translateAuthError(error.message) });
+      else toast.success("Проверете имейла или телефона си за кода.");
+    } catch { toast.error("Няма връзка със сървъра. Опитайте отново."); }
+    finally { setSendingCode(false); }
   };
 
   return (
@@ -107,12 +142,22 @@ export default function ResetPasswordPage() {
                   minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
                   autoFocus
                 />
               </div>
+              {needsNonce ? (
+                <div className="space-y-2">
+                  <Label htmlFor="password-nonce">Код за потвърждение</Label>
+                  <Input id="password-nonce" autoComplete="one-time-code" inputMode="numeric" required value={nonce} onChange={e => setNonce(e.target.value)} />
+                  <Button type="button" variant="outline" className="w-full" disabled={sendingCode || busy} onClick={requestCode}>
+                    {sendingCode ? "Изпращаме..." : "Изпрати код"}
+                  </Button>
+                </div>
+              ) : null}
               <Button
                 type="submit"
-                disabled={busy || !ready}
+                disabled={busy || !ready || (needsNonce && !nonce.trim())}
                 className="w-full bg-gradient-gold text-navy hover:shadow-gold"
               >
                 {busy || !ready ? (
@@ -127,3 +172,4 @@ export default function ResetPasswordPage() {
     </div>
   );
 }
+

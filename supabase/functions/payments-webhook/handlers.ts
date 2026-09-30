@@ -35,6 +35,9 @@ import {
 } from "../_shared/product-purchase.ts";
 import { PRODUCT_MAX_SOURCE_CHARS } from "../_shared/product-source.ts";
 import { mustAffectRows, mustSucceed } from "../_shared/db-guard.ts";
+import { recordStaticPaid, reverseStaticPaid, type StaticDeps } from "../_shared/static-catalog.ts";
+
+const staticDeps = (d: WebhookDeps, env: StripeEnv): StaticDeps => ({ db: d.db, stripe: () => d.createStripe(env), env: () => undefined });
 
 // deno-lint-ignore no-explicit-any
 type Any = any;
@@ -46,6 +49,28 @@ export interface WebhookDeps {
   createStripe: (env: StripeEnv) => Any;
   /** Транзакционен имейл. */
   sendEmail: (db: Any, template: string, to: string, opts: Any) => Promise<Any>;
+}
+
+/** Share signed-event provider lookups between the two delivery ledgers. */
+function reversalLookupDeps(d: WebhookDeps, env: StripeEnv): WebhookDeps {
+  let stripe: Any;
+  const client = () => stripe ??= d.createStripe(env);
+  const sessions = new Map<string, Promise<Any>>();
+  const charges = new Map<string, Promise<Any>>();
+  return {
+    ...d,
+    createStripe: () => ({
+      checkout: { sessions: { list: (params: Any) => {
+        const key = JSON.stringify(params);
+        if (!sessions.has(key)) sessions.set(key, Promise.resolve(client().checkout.sessions.list(params)));
+        return sessions.get(key)!;
+      } } },
+      charges: { retrieve: (id: string) => {
+        if (!charges.has(id)) charges.set(id, Promise.resolve(client().charges.retrieve(id)));
+        return charges.get(id)!;
+      } },
+    }),
+  };
 }
 
 export function tierFromPriceId(priceId: string | null | undefined): { plan: "pro" | "free"; opsCap: number | null } {
@@ -419,6 +444,11 @@ export async function handleCheckoutCompleted(
     return;
   }
 
+  if (session.metadata?.type === "static_catalog") {
+    await recordStaticPaid(staticDeps(d, env), session, env, proof);
+    return; // Never grant legacy credits, subscriptions or send a duplicate receipt.
+  }
+
   const userId = session.metadata?.userId;
 
 
@@ -783,14 +813,18 @@ export async function dispatchEvent(
       typeof charge?.amount_refunded === "number" &&
       charge.amount_refunded >= charge.amount
     ) {
-      await handleProductReversal(d, charge, env, "refund_full", eventProofFrom(event));
+      const reversal = reversalLookupDeps(d, env);
+      await reverseStaticPaid(staticDeps(reversal, env), charge, env, "refund_full", eventProofFrom(event));
+      await handleProductReversal(reversal, charge, env, "refund_full", eventProofFrom(event));
     } else {
       console.log("product reversal ignored — refund is not full");
     }
     return;
   }
   if (event.type === "charge.dispute.created") {
-    await handleProductReversal(d, event.data.object, env, "dispute_created", eventProofFrom(event));
+    const reversal = reversalLookupDeps(d, env);
+    await reverseStaticPaid(staticDeps(reversal, env), event.data.object, env, "dispute_created", eventProofFrom(event));
+    await handleProductReversal(reversal, event.data.object, env, "dispute_created", eventProofFrom(event));
     return;
   }
   if (event.type === "charge.dispute.closed") {

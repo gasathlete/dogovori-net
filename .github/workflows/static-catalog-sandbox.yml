@@ -1,0 +1,23 @@
+name: Static catalog sandbox
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  boundary-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Exact Stripe proof, static checkout and authenticated delivery
+        run: node --experimental-strip-types --test scripts/tests/webhook-proof.test.mjs scripts/tests/static-catalog.test.mjs
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Typecheck new Edge entrypoint and raw webhook proof
+        run: deno check --no-config --node-modules-dir=auto supabase/functions/static-catalog/index.ts supabase/functions/_shared/webhook-proof.ts

@@ -74,3 +74,7 @@ verify_jwt = false
 
 [functions.list-home-testimonials]
 verify_jwt = false
+
+
+[functions.static-catalog]
+verify_jwt = false
