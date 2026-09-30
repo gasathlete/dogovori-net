@@ -35,6 +35,9 @@ import {
 } from "../_shared/product-purchase.ts";
 import { PRODUCT_MAX_SOURCE_CHARS } from "../_shared/product-source.ts";
 import { mustAffectRows, mustSucceed } from "../_shared/db-guard.ts";
+import { recordStaticPaid, reverseStaticPaid, type StaticDeps } from "../_shared/static-catalog.ts";
+
+const staticDeps = (d: WebhookDeps, env: StripeEnv): StaticDeps => ({ db: d.db, stripe: () => d.createStripe(env), env: () => undefined });
 
 // deno-lint-ignore no-explicit-any
 type Any = any;
@@ -419,6 +422,11 @@ export async function handleCheckoutCompleted(
     return;
   }
 
+  if (session.metadata?.type === "static_catalog") {
+    await recordStaticPaid(staticDeps(d, env), session, env, proof);
+    return; // Never grant legacy credits, subscriptions or send a duplicate receipt.
+  }
+
   const userId = session.metadata?.userId;
 
 
@@ -783,6 +791,7 @@ export async function dispatchEvent(
       typeof charge?.amount_refunded === "number" &&
       charge.amount_refunded >= charge.amount
     ) {
+      await reverseStaticPaid(staticDeps(d, env), charge, env, "refund_full", eventProofFrom(event));
       await handleProductReversal(d, charge, env, "refund_full", eventProofFrom(event));
     } else {
       console.log("product reversal ignored — refund is not full");
@@ -790,6 +799,7 @@ export async function dispatchEvent(
     return;
   }
   if (event.type === "charge.dispute.created") {
+    await reverseStaticPaid(staticDeps(d, env), event.data.object, env, "dispute_created", eventProofFrom(event));
     await handleProductReversal(d, event.data.object, env, "dispute_created", eventProofFrom(event));
     return;
   }
@@ -836,3 +846,4 @@ export async function dispatchEvent(
       console.log("Unhandled event:", event.type);
   }
 }
+
