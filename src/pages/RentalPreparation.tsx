@@ -212,8 +212,6 @@ export default function RentalPreparationPage() {
                           {d.status === "available" && d.slug && hasRentalPrefill(d.slug) && (
                             <p className="mt-0.5 text-xs font-medium text-gold">С предварително попълнени данни във въпросника</p>
                           )}
-                          <p className="hidden">
-                          </p>
                         </div>
                       </div>
                       {d.status === "available" && d.slug && (
