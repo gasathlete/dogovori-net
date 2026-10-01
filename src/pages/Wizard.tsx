@@ -102,6 +102,7 @@ import { MessageSquarePlus } from "@/icons";
 import { useActivationDraft } from "@/hooks/useActivationDraft";
 import { currentDraftRoute } from "@/lib/activationDraft";
 import { safeReturnPath } from "@/lib/safeRoute";
+import { KitPrefillBridge } from "@/components/wizard/KitPrefillBridge";
 
 
 
@@ -1592,6 +1593,14 @@ export default function WizardPage() {
 
 
 
+
+            {!result && docName && (
+              <KitPrefillBridge
+                slug={slugify(docName)}
+                answers={answers}
+                onApply={(patch) => setAnswers((p) => ({ ...p, ...patch }))}
+              />
+            )}
 
             {!result && current && (
               <div
