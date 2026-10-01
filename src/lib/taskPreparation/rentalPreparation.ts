@@ -9,7 +9,8 @@
  * Тук НЯМА правен текст и НЯМА генериране. Модулът само решава кои от вече
  * съществуващите документи са приложими към отговорите и какви общи факти
  * е събрал потребителят. Не твърди, че фактите се попълват автоматично в
- * изтеглените документи — това не е проверено.
+ * изтеглените документи — експортът остава под текущите ограничения.
+ * Предварителното попълване на въпросниците е в `rentalFieldMap.ts`.
  */
 import type { Ctx } from "@/lib/expressionEvaluator";
 import { resolveGraph, pruneAnswers, type QuestionGraph, type QuestionNode } from "@/lib/questionGraph";
@@ -26,31 +27,35 @@ const SHARED_FROM_LEASE_GRAPH = [
   "property_type",
   "property_address",
   "furniture_included",
+  "term_type",
   "start_date",
+  "end_date",
   "monthly_rent",
+  "payment_day",
   "payment_method",
   "has_deposit",
   "deposit_amount",
 ] as const;
 
+/** Същите стойности, които PartyBlock на въпросника пази (само форма, без имена). */
+export const PARTY_TYPE_OPTIONS = ["Юридическо лице", "Физическо лице", "ЕТ / Самоосигуряващо се"] as const;
+
+/** Подготовката е само за жилище — стая и търговски обект имат друг път. */
+export const SUPPORTED_PROPERTY_TYPES = ["apartment", "house"] as const;
+
 function pickLeaseQuestion(id: string): QuestionNode {
   const q = dogovorZaNaemGraph.questions.find((x) => x.id === id);
   if (!q) throw new Error(`Липсващ каноничен въпрос: ${id}`);
-  // party_list се събира като едно текстово име в подготовката.
-  return q.field_type === "party_list" ? { ...q, field_type: "text" } : q;
+  if (q.field_type === "party_list") {
+    return {
+      ...q,
+      field_type: "select",
+      help: "Правно-организационна форма. Имена и ЕГН се въвеждат в самия документ.",
+      options: PARTY_TYPE_OPTIONS.map((o) => ({ value: o, label: o })),
+    };
+  }
+  return q;
 }
-
-/** Въпроси, специфични за подготовката (избор на документи, не правно съдържание). */
-const PREPARATION_QUESTIONS: QuestionNode[] = [
-  {
-    id: "include_nap_declaration",
-    section: "documents",
-    label: "Да включим ли декларацията за регистрация на наем пред НАП в списъка?",
-    help: "По избор. Проверете дали се отнася за Вашия случай.",
-    field_type: "boolean",
-    required_when: "true",
-  },
-];
 
 export const RENTAL_PREPARATION_GRAPH: QuestionGraph = {
   template_slug: "podgotovka-naem-obzavedeno-zhilishte",
@@ -60,18 +65,16 @@ export const RENTAL_PREPARATION_GRAPH: QuestionGraph = {
     { id: "property", title: "Жилище" },
     { id: "terms", title: "Наем и плащане" },
     { id: "deposit", title: "Депозит" },
-    { id: "documents", title: "Документи" },
   ],
   questions: [
     ...SHARED_FROM_LEASE_GRAPH.map(pickLeaseQuestion).filter((q) =>
       ["parties", "property", "terms", "deposit"].includes(q.section),
     ),
-    ...PREPARATION_QUESTIONS,
   ],
 };
 
 /** Начални отговори за сценария „обзаведено“. Потребителят може да ги промени. */
-export const RENTAL_INITIAL_ANSWERS: Readonly<Ctx> = Object.freeze({ furniture_included: "full" });
+export const RENTAL_INITIAL_ANSWERS: Readonly<Ctx> = Object.freeze({ furniture_included: "full", payment_day: 5 });
 
 export type DocStatus = "available" | "planned";
 
@@ -79,6 +82,10 @@ export interface PreparedDocument {
   docName: string;
   stageLabel: string;
   included: boolean;
+  /** Решението зависи от още неотговорен въпрос — не е „не е нужен“. */
+  pending?: boolean;
+  /** Приложимостта към случая не е преценена от подготовката. */
+  notAssessed?: boolean;
   /** Кратко обяснение защо е включен или изключен. */
   reason: string;
   status: DocStatus;
@@ -88,24 +95,28 @@ export interface PreparedDocument {
   later?: boolean;
 }
 
-function decide(docName: string, a: Ctx): { included: boolean; reason: string; later?: boolean } {
+type Decision = { included: boolean; reason: string; later?: boolean; pending?: boolean; notAssessed?: boolean };
+const unanswered = (v: unknown) => v === undefined || v === null || v === "";
+
+function decide(docName: string, a: Ctx): Decision {
   switch (docName) {
     case "Договор за наем на жилище":
       return { included: true, reason: "Основният документ за наема." };
     case "Приемно-предавателен протокол":
       return { included: true, reason: "Удостоверява предаването на жилището и ключовете." };
     case "Опис на инвентар към договор за наем":
+      if (unanswered(a.furniture_included)) return { included: false, pending: true, reason: "Отговорете дали жилището е обзаведено." };
       return a.furniture_included === "none"
         ? { included: false, reason: "Посочили сте, че жилището не е обзаведено." }
         : { included: true, reason: "Жилището е обзаведено — описва мебелите и уредите." };
     case "Разписка за получена сума (наем/депозит)":
       if (a.has_deposit === true) return { included: true, reason: "Удостоверява получения депозит." };
       if (a.payment_method === "cash") return { included: true, reason: "Наемът се плаща в брой." };
+      if (unanswered(a.has_deposit) || unanswered(a.payment_method))
+        return { included: false, pending: true, reason: "Отговорете за депозита и начина на плащане." };
       return { included: false, reason: "Няма депозит и плащането не е в брой." };
     case "Декларация за регистрация на наем пред НАП":
-      return a.include_nap_declaration === true
-        ? { included: true, reason: "Избрахте да я включите." }
-        : { included: false, reason: "По избор — не е избрана." };
+      return { included: false, notAssessed: true, reason: "Не е част от подготовката. Приложимостта към Вашия случай не е преценена; документът остава в каталога." };
     case "Предизвестие за прекратяване на наем":
       return { included: false, later: true, reason: "Използва се по-късно, при прекратяване." };
     default:
@@ -152,6 +163,11 @@ export function planRentalDocuments(
   return out;
 }
 
+/** Стая и търговско помещение не минават по пътя за обзаведено жилище. */
+export function isUnsupportedProperty(a: Ctx): boolean {
+  return !unanswered(a.property_type) && !(SUPPORTED_PROPERTY_TYPES as readonly unknown[]).includes(a.property_type);
+}
+
 export function resolveRentalPreparation(answers: Ctx) {
   return resolveGraph(RENTAL_PREPARATION_GRAPH, answers);
 }
@@ -163,9 +179,8 @@ export function pruneRentalAnswers(answers: Ctx): Ctx {
 
 /** Кои общи факти се отнасят за кой документ — само за показване в обобщението. */
 export const FACTS_BY_DOCUMENT: Readonly<Record<string, readonly string[]>> = {
-  "Договор за наем на жилище": ["landlord", "tenant", "property_address", "start_date", "monthly_rent", "payment_method", "deposit_amount"],
+  "Договор за наем на жилище": ["landlord", "tenant", "property_address", "term_type", "start_date", "end_date", "monthly_rent", "payment_day", "payment_method", "deposit_amount"],
   "Приемно-предавателен протокол": ["landlord", "tenant", "property_address", "start_date"],
   "Опис на инвентар към договор за наем": ["landlord", "tenant", "property_address"],
   "Разписка за получена сума (наем/депозит)": ["landlord", "tenant", "deposit_amount", "monthly_rent"],
-  "Декларация за регистрация на наем пред НАП": ["landlord", "property_address", "monthly_rent"],
 };

@@ -15,11 +15,20 @@ import type { Ctx } from "@/lib/expressionEvaluator";
 import type { ResolvedQuestion } from "@/lib/questionGraph";
 import {
   RENTAL_INITIAL_ANSWERS,
+  RENTAL_KIT_ID,
+  isUnsupportedProperty,
   RENTAL_PREPARATION_GRAPH,
   planRentalDocuments,
   pruneRentalAnswers,
   resolveRentalPreparation,
 } from "@/lib/taskPreparation/rentalPreparation";
+import { clearPreparation, getPreparation, setPreparationAnswers } from "@/lib/taskPreparation/preparationStore";
+import { hasRentalPrefill } from "@/lib/taskPreparation/rentalFieldMap";
+
+function initialAnswers(): Ctx {
+  const p = getPreparation();
+  return p && p.kitId === RENTAL_KIT_ID ? { ...p.answers } : { ...RENTAL_INITIAL_ANSWERS };
+}
 
 const SECTIONS = RENTAL_PREPARATION_GRAPH.sections;
 const REVIEW_STEP = SECTIONS.length;
@@ -74,7 +83,11 @@ function Field({ q, value, onChange }: { q: ResolvedQuestion; value: unknown; on
 }
 
 export default function RentalPreparationPage() {
-  const [answers, setAnswers] = useState<Ctx>({ ...RENTAL_INITIAL_ANSWERS });
+  const [answers, setAnswers] = useState<Ctx>(initialAnswers);
+  // Само в паметта — за да оцелеят при отваряне на документ и връщане тук.
+  useEffect(() => { setPreparationAnswers(RENTAL_KIT_ID, pruneRentalAnswers(answers)); }, [answers]);
+  const unsupported = isUnsupportedProperty(answers);
+  const clearAll = () => { clearPreparation(); setAnswers({ ...RENTAL_INITIAL_ANSWERS }); setStep(0); };
   const [step, setStep] = useState(0);
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" }); }, [step]);
@@ -132,6 +145,14 @@ export default function RentalPreparationPage() {
               {currentSection.questions.map((q) => (
                 <Field key={q.id} q={q} value={answers[q.id]} onChange={(v) => set(q.id, v)} />
               ))}
+              {currentSection.id === "property" && unsupported && (
+                <p role="alert" className="rounded-lg border border-gold/30 bg-gold/5 p-3 text-xs text-foreground">
+                  Тази подготовка е за апартамент или къща. За стая отворете директно{" "}
+                  <Link to="/shablon/dogovor-za-naem-na-zhilishte" className="font-semibold text-gold underline">договора за наем на жилище</Link>
+                  ; за търговско помещение — комплекта{" "}
+                  <Link to="/komplekti/naem-ofis" className="font-semibold text-gold underline">Наем на офис / търговски обект</Link>.
+                </p>
+              )}
               {sectionMissing.length > 0 && (
                 <p className="text-xs text-muted-foreground">Незадължително за продължаване, но ще липсва в обобщението: {sectionMissing.map((q) => q.label).join(", ")}.</p>
               )}
@@ -167,9 +188,16 @@ export default function RentalPreparationPage() {
                 )}
               </section>
 
+              {unsupported ? (
+              <section aria-labelledby="docs-h" className="rounded-xl border border-gold/30 bg-gold/5 p-5">
+                <h2 id="docs-h" className="font-serif text-xl font-bold">Изберете друг път</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Списъкът за обзаведено жилище не се прилага за избрания тип имот. Върнете се към стъпка „Жилище“ или отворете{" "}
+                  <Link to="/komplekti/naem-ofis" className="font-semibold text-gold underline">комплекта за търговски обект</Link>.</p>
+              </section>
+              ) : (
               <section aria-labelledby="docs-h">
                 <h2 id="docs-h" className="font-serif text-xl font-bold">Документи за Вашия случай</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Всеки документ се отваря на страницата си в каталога. Данните от тази подготовка не се попълват автоматично в него — въведете ги в документа.</p>
+                <p className="mt-1 text-sm text-muted-foreground">Всеки документ се отваря на страницата си в каталога. Където е посочено, въпросникът на документа се отваря с предварително попълнени данни от тази подготовка. В останалите въведете данните сами. Изтеглянето следва текущите ограничения на тестовия период.</p>
                 <ul className="mt-4 space-y-2" data-testid="prepared-docs">
                   {docs.map((d) => (
                     <li key={d.docName} data-status={d.status} data-included={d.included}
@@ -179,8 +207,11 @@ export default function RentalPreparationPage() {
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-foreground">{d.docName}</p>
                           <p className="mt-0.5 text-xs text-muted-foreground">
-                            {d.stageLabel} · {d.status === "planned" ? "Планирано — още не е налично" : d.included ? "Включен" : d.later ? "По-късно" : "Не е нужен"} · {d.reason}
+                            {d.stageLabel} · {d.status === "planned" ? "Планирано — още не е в каталога" : d.pending ? "Липсва отговор" : d.included ? "Включен" : d.later ? "По-късно" : d.notAssessed ? "Не е преценен" : "Не е нужен"} · {d.reason}
                           </p>
+                          {d.status === "available" && d.slug && hasRentalPrefill(d.slug) && (
+                            <p className="mt-0.5 text-xs font-medium text-gold">С предварително попълнени данни във въпросника</p>
+                          )}
                         </div>
                       </div>
                       {d.status === "available" && d.slug && (
@@ -192,15 +223,18 @@ export default function RentalPreparationPage() {
                   ))}
                 </ul>
               </section>
+              )}
 
               <section aria-labelledby="next-h" className="rounded-xl border border-gold/20 bg-gold/5 p-5">
                 <h2 id="next-h" className="font-serif text-lg font-bold">Следващи стъпки</h2>
                 <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
-                  <li>Отворете включените документи в реда по-горе и въведете данните от обобщението.</li>
+                  <li>Отворете включените документи в реда по-горе, проверете предварително попълнените полета и допълнете останалите.</li>
                   <li>Прегледайте текста спрямо конкретния случай преди подписване.</li>
                   <li>При предаване на жилището подпишете протокола и описа заедно с наемателя.</li>
                 </ol>
               </section>
+
+              <button type="button" onClick={clearAll} className="min-h-[44px] text-sm font-semibold text-muted-foreground underline hover:text-foreground">Изчисти данните от подготовката</button>
 
               <LaunchPurchaseBanner source="kit_detail" productId="kit_naem_zhilishte" />
             </div>

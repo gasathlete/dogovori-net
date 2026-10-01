@@ -102,6 +102,9 @@ import { MessageSquarePlus } from "@/icons";
 import { useActivationDraft } from "@/hooks/useActivationDraft";
 import { currentDraftRoute } from "@/lib/activationDraft";
 import { safeReturnPath } from "@/lib/safeRoute";
+import { KitPrefillBridge } from "@/components/wizard/KitPrefillBridge";
+import { usePreparation } from "@/lib/taskPreparation/preparationStore";
+import { hasRentalPrefill } from "@/lib/taskPreparation/rentalFieldMap";
 
 
 
@@ -784,6 +787,8 @@ export default function WizardPage() {
    * smart defaults при отваряне на екрана). Само след него може да се създаде
    * първа чернова — иначе всяко отваряне би оставяло ред на сървъра.
    */
+  const kitPrep = usePreparation();
+  const kitPrepActive = !!kitPrep && !!docName && hasRentalPrefill(slugify(docName));
   const interactedRef = useRef(false);
   const markInteracted = useCallback(() => { interactedRef.current = true; }, []);
 
@@ -834,6 +839,12 @@ export default function WizardPage() {
       } catch { /* ignore */ }
       return;
     }
+    // Данни от подготовка за комплект не се записват в браузъра — черновата
+    // остава само в паметта, докато подготовката е активна.
+    if (kitPrepActive) {
+      try { localStorage.removeItem(storageKey); sessionStorage.removeItem(storageKey); } catch { /* ignore */ }
+      return;
+    }
     try {
       localStorage.setItem(storageKey, JSON.stringify(snapshot));
       sessionStorage.removeItem(storageKey);
@@ -841,7 +852,7 @@ export default function WizardPage() {
     // Зависимостите са отделните стабилни функции, не целият обект — иначе
     // ефектът би се изпълнявал (и записвал) при всяко рендиране.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storageKey, activation.active, activation.persist, answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId, arbitration]);
+  }, [storageKey, activation.active, activation.persist, answers, stepIdx, result, signature, savedDocId, appliedNotes, customTitle, contactId, arbitration, kitPrepActive]);
 
   /** Изчиства локалната чернова (лични данни) от браузъра. */
   const clearDraft = useCallback(() => {
@@ -1592,6 +1603,14 @@ export default function WizardPage() {
 
 
 
+
+            {!result && docName && (
+              <KitPrefillBridge
+                slug={slugify(docName)}
+                answers={answers}
+                onApply={(patch) => setAnswers((p) => ({ ...p, ...patch }))}
+              />
+            )}
 
             {!result && current && (
               <div

@@ -97,6 +97,7 @@ function PartyBlock({
                 key={opt}
                 type="button"
                 onClick={() => onAnswerChange(typeId, opt)}
+                aria-pressed={selected}
                 className={`rounded-lg border p-2.5 text-left text-xs transition-all ${
                   selected
                     ? "border-gold bg-gold/10 text-foreground shadow-soft"
