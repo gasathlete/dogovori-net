@@ -51,7 +51,7 @@ Deno.test("binds only server-extracted text from owner storage", async () => {
   if (!r.ok) return;
   assertEquals(r.source.modelText, text);
   assertEquals(downloads, [`${PRODUCT_SOURCE_BUCKET}:${OWNER}/a.docx`]);
-  const receipt = attestationReceiptRow(r.source.attestation, "intake-1");
+  const receipt = attestationReceiptRow(r.source.attestation!, "intake-1");
   assert(!("text" in receipt));
   assertEquals(receipt.environment, "sandbox");
 });
