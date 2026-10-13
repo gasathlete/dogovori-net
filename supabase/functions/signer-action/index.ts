@@ -1,5 +1,6 @@
 // Public endpoint for signer actions: send_otp, verify_otp, sign, decline.
 // Identified by sign_token only.
+import { checkDocumentLock, nextEnvelopeStatus, safeEqualHex } from "../_shared/signing-evidence.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, clientIp, hashIp } from "../_shared/cors.ts";
@@ -61,7 +62,7 @@ serve(async (req) => {
         status: 404, headers: { ...cors, "Content-Type": "application/json" },
       });
     }
-    if (env.status === "cancelled" || env.status === "completed" || env.status === "expired") {
+    if (env.status === "cancelled" || env.status === "completed" || env.status === "expired" || env.status === "declined") {
       return new Response(JSON.stringify({ error: "envelope_" + env.status }), {
         status: 409, headers: { ...cors, "Content-Type": "application/json" },
       });
@@ -89,6 +90,16 @@ serve(async (req) => {
         });
       }
     }
+
+    // DTrust Basic: точната версия е заключена с SHA-256 при създаване. Промяна
+    // на съдържанието след това прави ВСИЧКИ покани невалидни (fail-closed).
+    const lock = await checkDocumentLock(env);
+    if (!lock.ok) {
+      return new Response(JSON.stringify({ error: lock.code }), {
+        status: 409, headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+    const documentSha256 = lock.digest;
 
     const ipHash = await hashIp(clientIp(req));
     const ua = req.headers.get("user-agent") ?? null;
@@ -264,6 +275,14 @@ serve(async (req) => {
         }
       }
 
+      // Подписващият потвърждава ТОЧНО версията, която е видял.
+      const seen = (body as { document_sha256?: unknown }).document_sha256;
+      if (typeof seen !== "string" || !safeEqualHex(seen.toLowerCase(), documentSha256)) {
+        return new Response(JSON.stringify({ error: "document_changed" }), {
+          status: 409, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+
       // OTP се проверява ПРЕДИ всяка работа с хранилището и с общия лимит от
       // 5 опита (иначе стъпката „sign“ позволява неограничено налучкване).
       if (await recentEvents("otp_failed", dayAgo) >= OTP_DAILY_FAILURE_CAP) {
@@ -371,7 +390,7 @@ serve(async (req) => {
       await admin.from("signing_audit_events").insert({
         request_id: env.id, signer_id: signer.id, event_type: "signed",
         ip_hash: ipHash, user_agent: ua,
-        metadata: { signer_name: cleanName, signature_method: method, qes_file_name: qesCleanName },
+        metadata: { signer_name: cleanName, signature_method: method, qes_file_name: qesCleanName, document_sha256: documentSha256 },
       });
 
 
@@ -379,21 +398,21 @@ serve(async (req) => {
       const { data: allSigners } = await admin.from("signing_request_signers")
         .select("id, name, email, role, order_idx, status, sign_token")
         .eq("request_id", env.id).order("order_idx");
-      const remaining = (allSigners ?? []).filter((s) => s.status !== "signed");
-      const declined = (allSigners ?? []).some((s) => s.status === "declined");
-      let newStatus: string = env.status;
-      if (declined) newStatus = "declined";
-      else if (remaining.length === 0) newStatus = "completed";
-      else newStatus = "in_progress";
+      const newStatus = nextEnvelopeStatus(allSigners ?? []);
       const updates: Record<string, unknown> = { status: newStatus };
       if (newStatus === "completed") updates.completed_at = now;
-      await admin.from("signing_requests").update(updates).eq("id", env.id);
+      // Преход само от незавършено състояние: отменена/изтекла заявка не се
+      // „съживява“, а повторните заявки не дублират завършването.
+      const { data: moved } = await admin.from("signing_requests").update(updates)
+        .eq("id", env.id).in("status", ["pending", "in_progress"]).select("id");
+      const transitioned = !!moved && moved.length === 1;
 
       const appBase = (Deno.env.get("APP_BASE_URL") || "https://dogovori.net").replace(/\/+$/, "");
 
-      if (newStatus === "completed") {
+      if (newStatus === "completed" && transitioned) {
         await admin.from("signing_audit_events").insert({
           request_id: env.id, event_type: "envelope_completed",
+          metadata: { document_sha256: documentSha256 },
         });
         // Notify owner
         const { data: ownerAuth } = await admin.auth.admin.getUserById(env.owner_id);
@@ -426,7 +445,7 @@ serve(async (req) => {
             },
           }).catch(() => {});
         }
-      } else if (env.order_mode === "sequential") {
+      } else if (transitioned && env.order_mode === "sequential") {
         // Notify next signer
         const next = (allSigners ?? []).find((s) => s.status !== "signed" && s.status !== "declined");
         if (next) {
@@ -450,16 +469,46 @@ serve(async (req) => {
     }
 
     if (action === "decline") {
-      const { reason } = body as { reason?: string };
+      // Отказът е изявление на подписващия: изисква същото потвърждение с код
+      // като подписа. Иначе собственикът (който вижда линка) би могъл да откаже
+      // от името на друг участник.
+      const { reason, otp_code } = body as { reason?: string; otp_code?: string };
       const cleanReason = (reason ?? "").toString().trim().slice(0, 500);
-      await admin.from("signing_request_signers").update({
+      if (await recentEvents("otp_failed", dayAgo) >= OTP_DAILY_FAILURE_CAP) {
+        return new Response(JSON.stringify({ error: "otp_locked" }), {
+          status: 429, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+      const hashAtCheck = (await attemptStore.read()).otp_code_hash;
+      const otpResult = await consumeAttemptAndVerify(attemptStore, signer.id, otp_code, secret);
+      if (otpResult !== "ok" || !hashAtCheck) {
+        if (otpResult === "otp_invalid") await otpFailure(otpResult);
+        const err = otpResult === "ok" ? "otp_required" : otpResult;
+        return new Response(JSON.stringify({ error: err }), {
+          status: err === "otp_locked" ? 429 : err === "otp_required" ? 400 : 401,
+          headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+      const { data: declinedRows } = await admin.from("signing_request_signers").update({
         status: "declined", declined_at: now, decline_reason: cleanReason || null,
         signer_ip_hash: ipHash, signer_user_agent: ua,
-      }).eq("id", signer.id);
-      await admin.from("signing_requests").update({ status: "declined" }).eq("id", env.id);
+        otp_code_hash: null, otp_expires_at: null,
+      })
+        .eq("id", signer.id)
+        .eq("otp_code_hash", hashAtCheck)
+        .not("status", "in", "(signed,declined)")
+        .select("id");
+      if (!declinedRows || declinedRows.length === 0) {
+        return new Response(JSON.stringify({ error: "already_declined" }), {
+          status: 409, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+      await admin.from("signing_requests").update({ status: "declined" })
+        .eq("id", env.id).in("status", ["pending", "in_progress"]);
       await admin.from("signing_audit_events").insert({
         request_id: env.id, signer_id: signer.id, event_type: "declined",
-        ip_hash: ipHash, user_agent: ua, metadata: { reason: cleanReason },
+        ip_hash: ipHash, user_agent: ua,
+        metadata: { reason: cleanReason, document_sha256: documentSha256 },
       });
       return new Response(JSON.stringify({ ok: true }), {
         headers: { ...cors, "Content-Type": "application/json" },
