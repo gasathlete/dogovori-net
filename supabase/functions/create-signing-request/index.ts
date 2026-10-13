@@ -1,5 +1,6 @@
 // Create a multi-party signing envelope.
 // Auth: requires Bearer JWT from owner. Pro plan required.
+import { DTRUST_EVIDENCE_VERSION, documentDigest } from "../_shared/signing-evidence.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, clientIp, hashIp } from "../_shared/cors.ts";
@@ -95,6 +96,32 @@ serve(async (req) => {
       consumedFreeSigning = true;
     }
 
+    // Свързаните документи трябва да са на заявителя (без чужди id).
+    if (saved_document_id) {
+      const { data: sd } = await admin.from("saved_documents").select("user_id").eq("id", saved_document_id).maybeSingle();
+      if (!sd || sd.user_id !== userId) {
+        return new Response(JSON.stringify({ error: "document_not_found" }), {
+          status: 404, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+    }
+    if (uploaded_contract_id) {
+      const { data: uc } = await admin.from("uploaded_contracts").select("user_id").eq("id", uploaded_contract_id).maybeSingle();
+      if (!uc || uc.user_id !== userId) {
+        return new Response(JSON.stringify({ error: "document_not_found" }), {
+          status: 404, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+    }
+    if (order_mode !== "parallel" && order_mode !== "sequential") {
+      return new Response(JSON.stringify({ error: "invalid_input" }), {
+        status: 400, headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+    const cleanTitle = title.trim().slice(0, 240);
+    // Заключване на точната версия ПРЕДИ първия подпис.
+    const documentSha256 = await documentDigest(cleanTitle, document_snapshot);
+
     const days = Math.min(Math.max(Number(expires_in_days) || 14, 1), 60);
     const expiresAt = new Date(Date.now() + days * 86400_000).toISOString();
 
@@ -103,8 +130,9 @@ serve(async (req) => {
       team_id: team_id || null,
       saved_document_id: saved_document_id || null,
       uploaded_contract_id: uploaded_contract_id || null,
-      title: title.trim().slice(0, 240),
+      title: cleanTitle,
       document_snapshot,
+      metadata: { evidence_version: DTRUST_EVIDENCE_VERSION, document_sha256: documentSha256 },
       order_mode,
       expires_at: expiresAt,
       status: "pending",
@@ -135,7 +163,7 @@ serve(async (req) => {
     await admin.from("signing_audit_events").insert({
       request_id: env.id,
       event_type: "envelope_created",
-      metadata: { signer_count: createdSigners.length, order_mode },
+      metadata: { signer_count: createdSigners.length, order_mode, document_sha256: documentSha256 },
       ip_hash: await hashIp(clientIp(req)),
       user_agent: req.headers.get("user-agent") ?? null,
     });

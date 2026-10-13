@@ -20,6 +20,14 @@ interface Peer { id: string; name: string; role: string | null; order_idx: numbe
 interface Envelope { id: string; title: string; document_snapshot: any; status: string; order_mode: string; expires_at: string }
 interface SignerInfo { id: string; name: string; email: string; role: string | null; status: string; order_idx: number; signed_at: string | null; declined_at: string | null }
 
+function downloadJson(fileName: string, value: unknown) {
+  const blob = new Blob([JSON.stringify(value, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = fileName; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 export default function Sign() {
   const { token = "" } = useParams();
   const [loading, setLoading] = useState(true);
@@ -38,6 +46,10 @@ export default function Sign() {
   const [busy, setBusy] = useState(false);
 
   const [declineMode, setDeclineMode] = useState(false);
+  const [documentSha256, setDocumentSha256] = useState<string | null>(null);
+  const [documentLock, setDocumentLock] = useState<string>("locked");
+  const [certificate, setCertificate] = useState<unknown>(null);
+  const [certificateSha256, setCertificateSha256] = useState<string | null>(null);
   const [reason, setReason] = useState("");
 
   // Signature method: drawn (canvas), uploaded (image), qes (attached signed file — not validated)
@@ -63,6 +75,10 @@ export default function Sign() {
     }
     setEnv(data.envelope); setSigner(data.signer); setPeers(data.peers); setCanSign(!!data.can_sign_now); setExpired(!!data.expired);
     setSignatures(data.signatures ?? []);
+    setDocumentSha256(typeof data.document_sha256 === "string" ? data.document_sha256 : null);
+    setDocumentLock(typeof data.document_lock === "string" ? data.document_lock : "document_unlocked");
+    setCertificate(data.certificate ?? null);
+    setCertificateSha256(typeof data.certificate_sha256 === "string" ? data.certificate_sha256 : null);
     setName(data.signer.name ?? "");
     setLoading(false);
   }
@@ -79,6 +95,13 @@ export default function Sign() {
     payload_too_large: "Файлът или заявката са твърде големи.",
     qes_file_too_large: "Файлът с подпис е твърде голям (до 16 MB).",
     qes_file_type: "Неподдържан формат на файла с подпис.",
+    document_changed: "Документът е променен след изпращането. Тази покана вече не е валидна.",
+    document_unlocked: "Тази заявка е създадена без заключена версия на документа и не може да бъде подписана. Помолете изпращача за нова покана.",
+    already_declined: "Вече сте отказали.",
+    envelope_cancelled: "Заявката е отменена от изпращача.",
+    envelope_declined: "Някой от участниците е отказал. Заявката е приключена.",
+    expired: "Срокът на поканата е изтекъл.",
+    not_your_turn: "Още не е Ваш ред за подпис.",
   };
   const signError = (code: unknown) => (typeof code === "string" && SIGN_ERRORS[code]) || "Грешка";
 
@@ -133,6 +156,7 @@ export default function Sign() {
       body: {
         token, action: "sign",
         signature_data_url: sigDataUrl, signer_name: name, otp_code: otpCode,
+        document_sha256: documentSha256,
         ses_equivalence_accepted: sesAccepted,
         signs_as_legal_entity: signsAsEntity,
         eik: signsAsEntity ? eik.trim() : null,
@@ -158,7 +182,7 @@ export default function Sign() {
   async function doDecline() {
     setBusy(true);
     const { data } = await supabase.functions.invoke("signer-action", {
-      body: { token, action: "decline", reason },
+      body: { token, action: "decline", reason, otp_code: otpCode },
     });
     setBusy(false);
     if (data?.ok) {
@@ -231,10 +255,15 @@ export default function Sign() {
                 <div>Подписали сте на {new Date(signer.signed_at!).toLocaleString("bg-BG")}.</div>
                 {env.status === "completed" && signatures.length > 0 && (
                   <Button size="sm" onClick={() => downloadSignedPdf(
-                    { title: env.title, document_snapshot: env.document_snapshot, completed_at: (env as any).completed_at, envelopeId: env.id, order_mode: env.order_mode },
+                    { title: env.title, document_snapshot: env.document_snapshot, completed_at: (env as any).completed_at, envelopeId: env.id, order_mode: env.order_mode, documentSha256, certificateSha256 },
                     signatures,
                   )}>
                     <Download className="h-4 w-4 mr-2" /> Изтегли подписания PDF
+                  </Button>
+                )}
+                {env.status === "completed" && certificate != null && (
+                  <Button size="sm" variant="outline" onClick={() => downloadJson(`odit-${env.id}.json`, certificate)}>
+                    <Download className="h-4 w-4 mr-2" /> Изтегли одитния запис (JSON)
                   </Button>
                 )}
                 {env.status !== "completed" && (
@@ -253,7 +282,18 @@ export default function Sign() {
           </aside>
         </section>
 
-        {!alreadySigned && !alreadyDeclined && !expired && canSign && !declineMode && (
+        {documentLock !== "locked" && !alreadySigned && !alreadyDeclined && (
+          <section role="alert" className="border border-destructive/40 rounded-lg p-4 bg-card text-sm">
+            {signError(documentLock)}
+          </section>
+        )}
+        {documentSha256 && (
+          <p className="text-[11px] text-muted-foreground break-all">
+            Версия на документа (SHA-256): <span className="font-mono">{documentSha256}</span>
+          </p>
+        )}
+
+        {documentLock === "locked" && !alreadySigned && !alreadyDeclined && !expired && canSign && !declineMode && (
           <section className="border rounded-lg p-6 bg-card space-y-4">
             <h2 className="font-semibold">Електронен подпис</h2>
 
@@ -438,9 +478,20 @@ export default function Sign() {
         {declineMode && (
           <section className="border rounded-lg p-6 bg-card space-y-4">
             <h2 className="font-semibold">Отказ от подписване</h2>
+            <p className="text-sm text-muted-foreground">
+              Отказът се потвърждава със същия код по имейл, както подписът.
+            </p>
+            {!otpSent ? (
+              <Button variant="outline" onClick={sendOtp} disabled={busy}>Изпрати код за потвърждение</Button>
+            ) : (
+              <div>
+                <label className="text-sm font-medium block mb-1" htmlFor="decline-otp">Код от имейла</label>
+                <Input id="decline-otp" inputMode="numeric" value={otpCode} onChange={(e) => setOtpCode(e.target.value)} maxLength={6} />
+              </div>
+            )}
             <Textarea placeholder="Причина (по избор)" value={reason} onChange={(e) => setReason(e.target.value)} />
             <div className="flex gap-2">
-              <Button variant="destructive" onClick={doDecline} disabled={busy}>Потвърди отказа</Button>
+              <Button variant="destructive" onClick={doDecline} disabled={busy || !otpSent || !otpCode.trim()}>Потвърди отказа</Button>
               <Button variant="outline" onClick={() => setDeclineMode(false)}>Назад</Button>
             </div>
           </section>

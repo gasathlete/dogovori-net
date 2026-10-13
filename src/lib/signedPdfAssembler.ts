@@ -21,6 +21,10 @@ export interface SignedEnvelopeInput {
   created_at?: string;
   order_mode?: string;
   envelopeId?: string;
+  /** Заключеният от сървъра SHA-256 на подписаната версия (DTrust Basic). */
+  documentSha256?: string | null;
+  /** SHA-256 на сървърния одитен сертификат (JSON). */
+  certificateSha256?: string | null;
 }
 
 import { snapshotToPlainText as snapshotToText } from "./signingSnapshotToText";
@@ -94,12 +98,28 @@ export async function buildSignedPdfBlob(env: SignedEnvelopeInput, signatures: S
     hr();
   }
 
-  // 4) Footer note on every page
+  // 4) Evidence summary — честно ниво на подписа, без претенции за PAdES/QES.
+  ensureSpace(40);
+  heading("Одитни данни", 12);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(60);
+  const evidence = [
+    "Вид: обикновен електронен подпис (DTrust Basic). Не е квалифициран или усъвършенстван подпис.",
+    "Потвърждение: код по имейл. Доказва достъп до имейл адреса, не самоличност.",
+    "Подписите са визуализирани в това копие; не са криптографски вградени в PDF файла.",
+    env.documentSha256 ? `SHA-256 на подписаната версия: ${env.documentSha256}` : "SHA-256 на версията: няма данни",
+    env.certificateSha256 ? `SHA-256 на одитния сертификат: ${env.certificateSha256}` : "",
+  ].filter(Boolean);
+  for (const line of evidence) {
+    for (const ln of doc.splitTextToSize(line, pageW - margin * 2)) { ensureSpace(5); doc.text(ln, margin, y); y += 4; }
+  }
+  doc.setTextColor(0);
+
+  // 5) Footer note on every page
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
     doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(140);
-    doc.text(`dogovori.net — електронно подписан · стр. ${i}/${pages}`, margin, pageH - 8);
+    doc.text(`dogovori.net — DTrust Basic (обикновен електронен подпис) · стр. ${i}/${pages}`, margin, pageH - 8);
   }
 
   return doc.output("blob");
