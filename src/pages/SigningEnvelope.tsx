@@ -44,9 +44,21 @@ export default function SigningEnvelope() {
   }
 
   async function cancel() {
-    if (!confirm("Откажи цялата заявка?")) return;
-    await supabase.from("signing_requests").update({ status: "cancelled", cancelled_at: new Date().toISOString() }).eq("id", id);
+    if (!confirm("Да отменим ли заявката? Неподписалите участници няма да могат да подпишат.")) return;
+    const { data } = await supabase.functions.invoke("signing-owner-action", { body: { action: "revoke", request_id: id } });
+    if (data?.ok) toast.success("Заявката е отменена");
+    else toast.error("Заявката не може да бъде отменена в текущото състояние.");
     load();
+  }
+
+  async function downloadCertificate() {
+    const { data } = await supabase.functions.invoke("signing-owner-action", { body: { action: "certificate", request_id: id } });
+    if (!data?.ok) { toast.error("Одитният запис не е наличен за тази заявка."); return; }
+    const blob = new Blob([JSON.stringify(data.certificate, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `odit-${id}.json`; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   if (loading) return <div className="min-h-dvh grid place-items-center"><Loader2 className="h-6 w-6 animate-spin text-gold" /></div>;
@@ -112,7 +124,7 @@ export default function SigningEnvelope() {
 
         {env.status !== "completed" && env.status !== "cancelled" && (
           <div>
-            <Button variant="destructive" size="sm" onClick={cancel}>Откажи заявката</Button>
+            <Button variant="destructive" size="sm" onClick={cancel}>Отмени заявката</Button>
           </div>
         )}
 
