@@ -29,7 +29,7 @@
 | 4 | Произход на източника (trusted-source attestation) | `PRODUCT_TRUSTED_SOURCE_BRIDGE.available=false` в код; плащане/обработка/уточнение затворени независимо от флагове | STILL BLOCKED — няма сървърно извличане/атестация; не е изграден в този спринт |
 | 5 | Регистри „вече таксувано“, signers, entitlements, intakes | anon/authenticated: без INSERT/UPDATE (проверено с has_table_privilege) | DONE |
 | 6 | shared_links | `trg_shared_links_client_write_guard` жив | DONE |
-| 7 | Хранилище | Размерни лимити на всички клиентски кофи; MIME списък на partner-logos, user-articles, user-contracts и pending кофите; branding/team-assets/home-testimonials/qes-signatures без MIME списък на ниво кофа | DONE (частично: MIME на 4 кофи се налага само в код) |
+| 7 | Хранилище | Размерни лимити на всички клиентски кофи (document-blanks без лимит, частна); MIME списък на 5 кофи (partner-logos, user-articles, user-contracts, двете pending); branding, team-assets, home-testimonials, qes-signatures, document-blanks без MIME списък | DONE (частично: за тези 5 кофи MIME се проверява само в кода) |
 | 8 | Плащания / AI гейтове | Код: затворени по подразбиране, плюс trusted-source блокер; стойността на тайните не е четена | DONE за затварянето; NEEDS PROVIDER за live Stripe |
 | 9 | HTTP заглавки | Сигурносният скрипт: 6 грешки — без CSP/anti-framing в заглавката; няма Permissions-Policy. Хостингът игнорира `public/_headers` | NEEDS PROVIDER (хостинг/прокси) |
 | 10 | Миграции 0044–0048 | Нямам достъп до `supabase_migrations` (permission denied). Живото състояние се доказва от обекти: S15 жив, 0047 не | NOT VERIFIED по номер на версия |
