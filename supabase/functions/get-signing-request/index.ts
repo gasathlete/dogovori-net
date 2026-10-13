@@ -3,13 +3,15 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, clientIp, hashIp } from "../_shared/cors.ts";
+import { checkDocumentLock } from "../_shared/signing-evidence.ts";
+import { loadAuditCertificate, SIGN_TOKEN_RE } from "../_shared/signing-certificate.ts";
 
 serve(async (req) => {
   const cors = buildCors(req, "POST, OPTIONS");
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   try {
     const { token } = await req.json().catch(() => ({}));
-    if (!token || typeof token !== "string") {
+    if (!token || typeof token !== "string" || !SIGN_TOKEN_RE.test(token)) {
       return new Response(JSON.stringify({ error: "invalid_token" }), {
         status: 400, headers: { ...cors, "Content-Type": "application/json" },
       });
@@ -26,7 +28,7 @@ serve(async (req) => {
       });
     }
     const { data: env } = await admin.from("signing_requests")
-      .select("id, title, document_snapshot, status, order_mode, expires_at, completed_at, owner_id, created_at")
+      .select("id, title, document_snapshot, metadata, status, order_mode, expires_at, completed_at, created_at")
       .eq("id", signer.request_id).maybeSingle();
     if (!env) {
       return new Response(JSON.stringify({ error: "not_found" }), {
@@ -62,14 +64,27 @@ serve(async (req) => {
     let signatures: any[] = [];
     if (env.status === "completed") {
       const { data: full } = await admin.from("signing_request_signers")
-        .select("id, name, email, role, order_idx, signed_at, signature_data_url, signature_name, signer_ip_hash")
+        .select("id, name, role, order_idx, signed_at, signature_data_url, signature_name, signature_method")
         .eq("request_id", env.id).order("order_idx");
       signatures = full ?? [];
     }
 
+    const lock = await checkDocumentLock(env);
+    let certificate: unknown = null;
+    let certificateSha256: string | null = null;
+    if (env.status === "completed" && lock.ok) {
+      const cert = await loadAuditCertificate(admin, env.id);
+      if (cert.ok) { certificate = cert.certificate; certificateSha256 = cert.certificate_sha256; }
+    }
+    const { metadata: _meta, ...publicEnv } = env;
+
     return new Response(JSON.stringify({
       ok: true,
-      envelope: env,
+      envelope: publicEnv,
+      document_sha256: lock.ok ? lock.digest : null,
+      document_lock: lock.ok ? "locked" : lock.code,
+      certificate,
+      certificate_sha256: certificateSha256,
       signer: {
         id: signer.id,
         name: signer.name,
