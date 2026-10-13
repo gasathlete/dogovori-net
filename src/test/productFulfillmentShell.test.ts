@@ -71,7 +71,8 @@ describe("Изпълнението е устойчиво и остава без 
   });
 
   it("преизчислява източника от сървъра и отказва при промяна", () => {
-    expect(FULFILL).toContain("verifyStoredProductSource(doc");
+    expect(FULFILL).toContain("bindTrustedProductSource(");
+    expect(FULFILL).toContain("expected: ent,");
     expect(FULFILL).toContain('return fail("source_changed", 409, headers, cid)');
     expect(FULFILL).toContain("verified.pageCount !== (ent.source_page_count ?? null)");
   });

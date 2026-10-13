@@ -9,6 +9,7 @@
  * В изходния билд доставчикът остава ЗАТВОРЕН: без доказан zero-retention gate
  * и пълна интеграционна готовност функцията не докосва модел.
  */
+import { bindTrustedProductSource, storageDownloader } from "../_shared/product-source-binding.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildCors } from "../_shared/cors.ts";
 import {
@@ -265,10 +266,47 @@ Deno.serve(async (req) => {
       return fail("not_refinable", 409, headers, cid, refinementMessage("not_refinable"));
     }
 
+    // Повторна сървърна атестация: същият собственик, файл, ревизия, хеш и
+    // среда като платеното право. Към модела отива само сървърно извлечен текст.
+    let refineSourceText: string;
+    {
+      const { data: entEnv } = await admin
+        .from("product_entitlements")
+        .select("environment")
+        .eq("id", entitlementId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      const environment = entEnv?.environment;
+      if (environment !== "sandbox" && environment !== "live") {
+        return fail("source_changed", 409, headers, cid);
+      }
+      const bound = await bindTrustedProductSource(
+        { db: admin, download: storageDownloader(admin as never), sha256Hex },
+        {
+          userId,
+          documentId: access.binding.document_id,
+          environment,
+          expected: {
+            user_id: userId,
+            source_document_id: access.binding.document_id,
+            source_hash: access.binding.source_hash,
+            source_updated_at: access.binding.source_updated_at,
+            environment,
+          },
+        },
+      );
+      if (!bound.ok) return fail("source_changed", 409, headers, cid);
+      if (bound.source.modelText !== null && bound.source.modelText !== access.sourceText) {
+        return fail("source_changed", 409, headers, cid);
+      }
+      // При изключен мост кранът спира преди заемане/доставчик.
+      refineSourceText = bound.source.modelText ?? access.sourceText;
+    }
+
     // Преграда за ограничени идентификатори: ПРЕДИ заемането на уточнението и
     // ПРЕДИ доставчика. Включеното уточнение остава неизползвано.
     {
-      const restricted = findRestrictedIdentifierKindsDeep(access.sourceText);
+      const restricted = findRestrictedIdentifierKindsDeep(refineSourceText);
       if (restricted.length > 0) {
         console.warn("refine-product blocked", {
           cid,
@@ -311,7 +349,7 @@ Deno.serve(async (req) => {
     const eligibility = evaluateProductEligibility({
       productId: access.spec.id,
       source: {
-        text: access.sourceText,
+        text: refineSourceText,
         charCount: access.binding.char_count,
         charUnit: access.binding.char_unit,
         sourceKind: access.binding.source_kind,
@@ -444,7 +482,7 @@ Deno.serve(async (req) => {
     try {
       // Изходящият материал е редактиран детерминистично: към доставчика не
       // пътуват лични данни от документа.
-      const redacted = redactProductBundle(access.sourceText, {
+      const redacted = redactProductBundle(refineSourceText, {
         instruction,
         base_result: JSON.parse(canonical(access.resultRaw)),
       });

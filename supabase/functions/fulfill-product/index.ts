@@ -11,6 +11,7 @@
  * контекст, класификация, маршрут, бюджет — се извежда от сървърни редове.
  * Общите операции/квоти НЕ се пипат: платеният продукт не харчи операции.
  */
+import { bindTrustedProductSource, storageDownloader } from "../_shared/product-source-binding.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildCors } from "../_shared/cors.ts";
 import {
@@ -342,18 +343,29 @@ Deno.serve(async (req) => {
     }
 
     // 5) Източникът: същият документ, същата ревизия, ЦЯЛ текст, същият хеш.
-    const { data: doc } = await admin
-      .from("uploaded_contracts")
-      .select(
-        "id, user_id, extracted_text, text_hash, updated_at, product_extraction_status, product_extracted_chars, product_source_pages, product_source_kind",
-      )
-      .eq("id", ent.source_document_id)
-      .maybeSingle();
-    if (!doc || doc.user_id !== userId) return fail("source_changed", 409, headers, cid);
-    const verified = await verifyStoredProductSource(doc, async (value) => {
-      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-      return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
-    });
+    const bound = await bindTrustedProductSource(
+      {
+        db: admin,
+        download: storageDownloader(admin as never),
+        sha256Hex: async (value) => {
+          const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+          return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+        },
+      },
+      {
+        userId,
+        documentId: ent.source_document_id,
+        environment: ent.environment,
+        expected: ent,
+      },
+    );
+    if (!bound.ok) return fail("source_changed", 409, headers, cid);
+    const verified = {
+      ...bound.source.verified,
+      // При включен мост — само сървърно извлечен текст. При изключен мост
+      // кранът спира преди задача/Stripe/доставчик; текстът служи само за проверки.
+      text: bound.source.modelText ?? bound.source.verified.text,
+    };
     if (
       verified.sourceHash !== String(ent.source_hash).toLowerCase() ||
       String(verified.sourceUpdatedAt) !== String(ent.source_updated_at) ||
