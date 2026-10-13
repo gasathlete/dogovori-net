@@ -6,7 +6,8 @@ export type FeaturedKitId =
   | "digitalen-proekt"
   | "trudovo-naznachavane"
   | "pokupko-prodajba-imot"
-  | "prodajba-mps";
+  | "prodajba-mps"
+  | "nasledstvo-paket";
 
 export interface KitLifecycleStage {
   id: string;
@@ -54,6 +55,12 @@ export const FEATURED_KIT_STAGES: Readonly<Record<FeaturedKitId, readonly KitLif
     { id: "dogovor", label: "Договор и декларации", documentNames: ["Договор за покупко-продажба на МПС", "Декларация по чл. 264 ДОПК"] },
     { id: "predavane", label: "Предаване на автомобила", documentNames: ["Приемно-предавателен протокол за МПС"] },
     { id: "sledvashti-deistviya", label: "Следващи действия", documentNames: ["Декларация за продажба на МПС пред КАТ"], plannedItem: "Разписка за получена сума по договор за продажба на МПС" },
+  ],
+  "nasledstvo-paket": [
+    { id: "zaveshtanie", label: "Завещание приживе", documentNames: ["Саморъчно завещание", "Нотариално завещание"] },
+    { id: "otkrivane", label: "Откриване на наследството", documentNames: ["Молба за удостоверение за наследници"] },
+    { id: "reshenie", label: "Решение на наследника", documentNames: ["Декларация за отказ от наследство"] },
+    { id: "deklaratsii", label: "Декларации след наследяване", documentNames: ["Декларация по чл. 264 ДОПК"] },
   ],
 };
 

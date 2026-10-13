@@ -13,6 +13,7 @@ import { RelatedSectorPackages } from "@/components/RelatedSectorPackages";
 import { getSectorPackagesForKit } from "@/lib/seoCollections";
 import { allTemplates } from "@/lib/templateIndex";
 import { taskForKit } from "@/data/everydayTasks";
+import { KIT_GUIDES } from "@/lib/catalogMatrix";
 
 export default function KitDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -98,7 +99,7 @@ export default function KitDetailPage() {
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/80">Какво искате да направите?</p>
                   <p className="mt-1 font-serif text-lg font-bold">{task.label}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Въведете общите данни веднъж и вижте кои документи са приложими.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Отговорете на няколко въпроса и вижте кои документи са приложими.</p>
                 </div>
                 <Link to={task.preparationPath} className="btn-gold inline-flex min-h-[48px] shrink-0 items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold">
                   Започнете подготовката <ArrowRight className="h-4 w-4" />
@@ -117,6 +118,13 @@ export default function KitDetailPage() {
               <KitSection key={stage.id} label={`${String(index + 1).padStart(2, "0")} · ${stage.label}`} items={items} plannedItem={stage.plannedItem} templatesIndex={templatesIndex} />
             ))}
           </div>
+
+          {KIT_GUIDES[kit.id] && (
+            <dl className="mt-10 grid gap-4 rounded-xl border border-border/60 bg-card/60 p-6 sm:grid-cols-2">
+              <div><dt className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/80">Какво ми трябва?</dt><dd className="mt-1 text-sm text-muted-foreground">{KIT_GUIDES[kit.id].whatYouNeed}</dd></div>
+              <div><dt className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/80">Какво следва?</dt><dd className="mt-1 text-sm text-muted-foreground">{KIT_GUIDES[kit.id].nextStep}</dd></div>
+            </dl>
+          )}
 
           <RelatedSectorPackages packages={getSectorPackagesForKit(kit.id)} />
 
