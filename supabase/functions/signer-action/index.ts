@@ -40,7 +40,7 @@ serve(async (req) => {
       throw e;
     }
     const { token, action } = (body ?? {}) as { token?: string; action?: string };
-    if (typeof token !== "string" || token.length < 16 || token.length > 200 || typeof action !== "string") {
+    if (typeof token !== "string" || !SIGN_TOKEN_RE.test(token) || typeof action !== "string") {
       return new Response(JSON.stringify({ error: "invalid_input" }), {
         status: 400, headers: { ...cors, "Content-Type": "application/json" },
       });
