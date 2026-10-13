@@ -176,17 +176,16 @@ Deno.serve(async (req) => {
 
 
 
-    // Документът трябва да е на този потребител, текстът да е ЦЯЛ и хешът да
-    // съвпада с преизчисления тук. Твърденията на браузъра не са доказателство.
-    const { data: doc } = await admin
-      .from("uploaded_contracts")
-      .select(
-        "id, user_id, extracted_text, text_hash, updated_at, product_extraction_status, product_extracted_chars, product_source_pages, product_source_kind",
-      )
-      .eq("id", uploadedContractId)
-      .maybeSingle();
-    if (!doc || doc.user_id !== userId) return fail("document_not_found", 404, corsHeaders);
-    const verifiedSource = await verifyStoredProductSource(doc, sha256HexServer);
+    // Документът трябва да е на този потребител, а текстът — СЪРВЪРНО извлечен
+    // от собственото хранилище и равен на записания. Без резервен текст от браузъра.
+    const bound = await bindTrustedProductSource(
+      { db: admin, download: storageDownloader(admin as never), sha256Hex: sha256HexServer },
+      { userId, documentId: uploadedContractId, environment },
+    );
+    if (!bound.ok) {
+      return fail(bound.code, bound.code === "document_not_found" ? 404 : 409, corsHeaders);
+    }
+    const verifiedSource = { ...bound.source.verified, text: bound.source.modelText };
 
     // Преграда за ограничени идентификатори: ПРЕДИ създаване на платима сесия.
     // Нищо не се плаща и не се създава намерение при задействане.
