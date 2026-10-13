@@ -174,7 +174,7 @@ serve(async (req) => {
       }
       await admin.from("signing_audit_events").insert({
         request_id: env.id, signer_id: signer.id, event_type: "otp_sent",
-        ip_hash: ipHash, user_agent: ua, metadata: { email: signer.email },
+        ip_hash: ipHash, user_agent: ua, metadata: { document_sha256: documentSha256 },
       });
       sendAppEmail(admin, "signing-otp", signer.email, {
         idempotencyKey: `signing-otp-${signer.id}-${exp}`,
