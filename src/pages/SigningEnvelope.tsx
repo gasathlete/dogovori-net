@@ -18,6 +18,7 @@ interface Envelope {
   id: string; title: string; status: string; order_mode: string;
   expires_at: string; completed_at: string | null; created_at: string;
   document_snapshot: any;
+  metadata?: { document_sha256?: string } | null;
 }
 
 export default function SigningEnvelope() {
@@ -114,10 +115,13 @@ export default function SigningEnvelope() {
               Всички страни са подписали{env.completed_at ? ` на ${new Date(env.completed_at).toLocaleString("bg-BG")}` : ""}.
             </div>
             <Button onClick={() => downloadSignedPdf(
-              { title: env.title, document_snapshot: env.document_snapshot, completed_at: env.completed_at, envelopeId: env.id, order_mode: env.order_mode },
+              { title: env.title, document_snapshot: env.document_snapshot, completed_at: env.completed_at, envelopeId: env.id, order_mode: env.order_mode, documentSha256: env.metadata?.document_sha256 ?? null },
               signers as any,
             )}>
               <Download className="h-4 w-4 mr-2" /> Изтегли подписания PDF
+            </Button>
+            <Button variant="outline" onClick={downloadCertificate}>
+              <Download className="h-4 w-4 mr-2" /> История (одитен запис)
             </Button>
           </div>
         )}
