@@ -83,7 +83,7 @@ export interface ProductSourceAttestation {
 }
 
 export async function sha256HexBytes(bytes: Uint8Array): Promise<string> {
-  const buf = await crypto.subtle.digest("SHA-256", bytes);
+  const buf = await crypto.subtle.digest("SHA-256", bytes as BufferSource);
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
@@ -149,7 +149,7 @@ function readCentralDirectory(b: Uint8Array): ZipEntry[] {
 }
 
 async function inflateRaw(data: Uint8Array, limit: number): Promise<Uint8Array> {
-  const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  const stream = new Blob([data as BlobPart]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
   const reader = stream.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;

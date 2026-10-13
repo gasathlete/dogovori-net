@@ -28,7 +28,7 @@ function crc32(b: Uint8Array): number {
   return (c ^ 0xffffffff) >>> 0;
 }
 async function deflateRaw(b: Uint8Array): Promise<Uint8Array> {
-  return new Uint8Array(await new Response(new Blob([b]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer());
+  return new Uint8Array(await new Response(new Blob([b as BlobPart]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer());
 }
 
 /** Минимален синтетичен DOCX (fixture, без клиентски данни). */
