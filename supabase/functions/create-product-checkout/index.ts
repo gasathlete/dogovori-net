@@ -7,6 +7,7 @@
  * Правилото е едно: истината се проверява на сървъра. Браузърът не задава
  * сума, цена, адрес за връщане или пълнота на документа.
  */
+import { bindTrustedProductSource, storageDownloader } from "../_shared/product-source-binding.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createStripeClient } from "../_shared/stripe.ts";
 import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
