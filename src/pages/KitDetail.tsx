@@ -99,7 +99,7 @@ export default function KitDetailPage() {
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/80">Какво искате да направите?</p>
                   <p className="mt-1 font-serif text-lg font-bold">{task.label}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Въведете общите данни веднъж и вижте кои документи са приложими.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Отговорете на няколко въпроса и вижте кои документи са приложими.</p>
                 </div>
                 <Link to={task.preparationPath} className="btn-gold inline-flex min-h-[48px] shrink-0 items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold">
                   Започнете подготовката <ArrowRight className="h-4 w-4" />
