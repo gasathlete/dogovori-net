@@ -163,7 +163,7 @@ serve(async (req) => {
     await admin.from("signing_audit_events").insert({
       request_id: env.id,
       event_type: "envelope_created",
-      metadata: { signer_count: createdSigners.length, order_mode },
+      metadata: { signer_count: createdSigners.length, order_mode, document_sha256: documentSha256 },
       ip_hash: await hashIp(clientIp(req)),
       user_agent: req.headers.get("user-agent") ?? null,
     });
