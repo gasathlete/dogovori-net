@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     const raw = await req.text();
     if (raw.length > 2048) return json({ error: "payload_too_large" }, 413);
     let body: { action?: unknown; request_id?: unknown };
-    try { body = JSON.parse(raw); } catch { return json({ error: "invalid_body" }, 400); }
+    try { body = await new Response(raw).json(); } catch { return json({ error: "invalid_body" }, 400); }
     const { action, request_id } = body;
     if ((action !== "revoke" && action !== "certificate") || typeof request_id !== "string" || !UUID.test(request_id)) {
       return json({ error: "invalid_body" }, 400);
