@@ -186,7 +186,12 @@ Deno.serve(async (req) => {
     if (!bound.ok) {
       return fail(bound.code, bound.code === "document_not_found" ? 404 : 409, corsHeaders);
     }
-    const verifiedSource = { ...bound.source.verified, text: bound.source.modelText };
+    const verifiedSource = {
+      ...bound.source.verified,
+      // При включен мост — само сървърно извлечен текст. При изключен мост
+      // кранът спира преди задача/Stripe/доставчик; текстът служи само за проверки.
+      text: bound.source.modelText ?? bound.source.verified.text,
+    };
 
     // Преграда за ограничени идентификатори: ПРЕДИ създаване на платима сесия.
     // Нищо не се плаща и не се създава намерение при задействане.

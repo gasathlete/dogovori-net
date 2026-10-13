@@ -20,6 +20,7 @@ import {
   attestProductSource,
   type ProductSourceAttestation,
 } from "./product-source-attestation.ts";
+import { PRODUCT_TRUSTED_SOURCE_BRIDGE } from "./product-trusted-source.ts";
 import {
   ProductSourceError,
   verifyStoredProductSource,
@@ -38,9 +39,13 @@ export type SourceBindingFailure =
 
 export interface BoundProductSource {
   readonly verified: VerifiedProductSource;
-  readonly attestation: ProductSourceAttestation;
-  /** Текстът за модела = сървърно извлечения; никога не е текст от браузъра. */
-  readonly modelText: string;
+  /** null само докато мостът е изключен (тогава пътят спира на крана). */
+  readonly attestation: ProductSourceAttestation | null;
+  /**
+   * Текстът за модела = сървърно извлечения; никога текст от браузъра.
+   * null при изключен мост: нищо не може да стигне до модела.
+   */
+  readonly modelText: string | null;
 }
 
 export type BindResult =
@@ -71,6 +76,8 @@ export async function bindTrustedProductSource(
     readonly environment: "sandbox" | "live";
     /** При обработка/уточнение: точното платено обвързване. */
     readonly expected?: ExpectedBinding;
+    /** Само за изолирани тестове/staging репетиция: атестира и при изключен мост. */
+    readonly forceAttestation?: boolean;
   },
 ): Promise<BindResult> {
   const { data: row } = await deps.db
@@ -90,6 +97,18 @@ export async function bindTrustedProductSource(
       return { ok: false, code: "source_changed", reason: error.reason };
     }
     throw error;
+  }
+
+  // Мостът е изключен: не сваляме файла; функцията спира на
+  // `trusted_source_unavailable` преди задача, доставчик или Stripe сесия.
+  if (!PRODUCT_TRUSTED_SOURCE_BRIDGE.available && !input.forceAttestation) {
+    if (input.expected && (
+      verified.sourceHash !== String(input.expected.source_hash).toLowerCase() ||
+      String(verified.sourceUpdatedAt) !== String(input.expected.source_updated_at)
+    )) {
+      return { ok: false, code: "source_changed", reason: "binding_mismatch" };
+    }
+    return { ok: true, source: { verified, attestation: null, modelText: null } };
   }
 
   let bytes: Uint8Array | null = null;

@@ -192,7 +192,7 @@ const order = async (file: string, before: string[], gate: string, after: string
 T("create-product-checkout (изходен код): кранът е преди документ, Stripe и всеки запис", () =>
   order("../create-product-checkout/index.ts", ["asUser.auth.getUser(token)"],
     "productPrepaymentBlockers(integrationConfig",
-    ['.from("uploaded_contracts")', "createStripeClient(environment)", ".insert({", ".update({"]));
+    ["bindTrustedProductSource(", "createStripeClient(environment)", ".insert({", ".update({"]));
 T("fulfill-product (изходен код): собственик → replay на ready → кран → задача/доставчик", () =>
   order("../fulfill-product/index.ts",
     ["ent.user_id !== userId", 'if (ent.status === "ready")'],

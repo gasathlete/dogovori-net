@@ -295,10 +295,12 @@ Deno.serve(async (req) => {
           },
         },
       );
-      if (!bound.ok || bound.source.modelText !== access.sourceText) {
+      if (!bound.ok) return fail("source_changed", 409, headers, cid);
+      if (bound.source.modelText !== null && bound.source.modelText !== access.sourceText) {
         return fail("source_changed", 409, headers, cid);
       }
-      refineSourceText = bound.source.modelText;
+      // При изключен мост кранът спира преди заемане/доставчик.
+      refineSourceText = bound.source.modelText ?? access.sourceText;
     }
 
     // Преграда за ограничени идентификатори: ПРЕДИ заемането на уточнението и

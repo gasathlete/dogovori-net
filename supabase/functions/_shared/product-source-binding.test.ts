@@ -46,7 +46,7 @@ Deno.test("bridge stays OFF: paid path remains closed", () => {
 
 Deno.test("binds only server-extracted text from owner storage", async () => {
   const { d, downloads } = deps(await rowFor(), await docx());
-  const r = await bindTrustedProductSource(d, { userId: OWNER, documentId: "doc-1", environment: ENV });
+  const r = await bindTrustedProductSource(d, { userId: OWNER, documentId: "doc-1", environment: ENV, forceAttestation: true });
   assert(r.ok);
   if (!r.ok) return;
   assertEquals(r.source.modelText, text);
@@ -58,7 +58,7 @@ Deno.test("binds only server-extracted text from owner storage", async () => {
 
 Deno.test("cross-user document is refused without download", async () => {
   const { d, downloads } = deps(await rowFor({ user_id: OTHER }), await docx());
-  const r = await bindTrustedProductSource(d, { userId: OWNER, documentId: "doc-1", environment: ENV });
+  const r = await bindTrustedProductSource(d, { userId: OWNER, documentId: "doc-1", environment: ENV, forceAttestation: true });
   assertEquals(r.ok ? "ok" : r.code, "document_not_found");
   assertEquals(downloads.length, 0);
 });
@@ -67,13 +67,13 @@ Deno.test("forged browser text (consistent hash, different file) is refused", as
   const forged = normalizeProductSourceText([...PARAS, "3. Добавена от браузъра клауза, която я няма във файла."].join("\n"));
   const row = await rowFor({ extracted_text: forged, text_hash: await sha(forged), product_extracted_chars: countProductSourceChars(forged) });
   const { d } = deps(row, await docx());
-  const r = await bindTrustedProductSource(d, { userId: OWNER, documentId: "doc-1", environment: ENV });
+  const r = await bindTrustedProductSource(d, { userId: OWNER, documentId: "doc-1", environment: ENV, forceAttestation: true });
   assertEquals(r.ok ? "ok" : r.reason, "source_mismatch");
 });
 
 Deno.test("partial/truncated stored text is refused", async () => {
   const { d } = deps(await rowFor({ product_extraction_status: "partial" }), await docx());
-  const r = await bindTrustedProductSource(d, { userId: OWNER, documentId: "doc-1", environment: ENV });
+  const r = await bindTrustedProductSource(d, { userId: OWNER, documentId: "doc-1", environment: ENV, forceAttestation: true });
   assertEquals(r.ok ? "ok" : r.code, "source_changed");
 });
 
@@ -84,7 +84,7 @@ Deno.test("missing file / PDF / foreign storage path are not attested", async ()
     [{ storage_path: `${OTHER}/a.docx` }, await docx()],
   ] as const) {
     const { d } = deps(await rowFor(over), file);
-    const r = await bindTrustedProductSource(d, { userId: OWNER, documentId: "doc-1", environment: ENV });
+    const r = await bindTrustedProductSource(d, { userId: OWNER, documentId: "doc-1", environment: ENV, forceAttestation: true });
     assertEquals(r.ok ? "ok" : r.code, "source_not_attested");
   }
 });
@@ -98,9 +98,19 @@ Deno.test("fulfillment re-check: revision race, hash tamper, wrong environment",
     { ...base, user_id: OTHER },
   ]) {
     const { d } = deps(await rowFor(), await docx());
-    const r = await bindTrustedProductSource(d, { userId: OWNER, documentId: "doc-1", environment: ENV, expected });
+    const r = await bindTrustedProductSource(d, { userId: OWNER, documentId: "doc-1", environment: ENV, forceAttestation: true, expected });
     assertEquals(r.ok ? "ok" : r.code, "source_changed");
   }
   const { d } = deps(await rowFor(), await docx());
-  assert((await bindTrustedProductSource(d, { userId: OWNER, documentId: "doc-1", environment: ENV, expected: base })).ok);
+  assert((await bindTrustedProductSource(d, { userId: OWNER, documentId: "doc-1", environment: ENV, forceAttestation: true, expected: base })).ok);
+});
+
+Deno.test("bridge OFF: no download, no model text, consistency still enforced", async () => {
+  const { d, downloads } = deps(await rowFor(), await docx());
+  const r = await bindTrustedProductSource(d, { userId: OWNER, documentId: "doc-1", environment: ENV });
+  assert(r.ok);
+  if (!r.ok) return;
+  assertEquals(r.source.modelText, null);
+  assertEquals(r.source.attestation, null);
+  assertEquals(downloads.length, 0);
 });

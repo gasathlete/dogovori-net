@@ -360,7 +360,12 @@ Deno.serve(async (req) => {
       },
     );
     if (!bound.ok) return fail("source_changed", 409, headers, cid);
-    const verified = { ...bound.source.verified, text: bound.source.modelText };
+    const verified = {
+      ...bound.source.verified,
+      // При включен мост — само сървърно извлечен текст. При изключен мост
+      // кранът спира преди задача/Stripe/доставчик; текстът служи само за проверки.
+      text: bound.source.modelText ?? bound.source.verified.text,
+    };
     if (
       verified.sourceHash !== String(ent.source_hash).toLowerCase() ||
       String(verified.sourceUpdatedAt) !== String(ent.source_updated_at) ||
