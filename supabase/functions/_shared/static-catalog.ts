@@ -57,7 +57,7 @@ export async function latestAcceptedReview(d: StaticDeps, a: Any) {
 export async function staticFileBytes(a: Any): Promise<Uint8Array> {
   if (typeof a.content !== "string" || !/^\\x(?:[0-9a-f]{2})+$/.test(a.content) || a.content.length > 4194306) return deny("asset_invalid");
   const bytes = Uint8Array.from(a.content.slice(2).match(/../g)!, (v: string) => parseInt(v, 16));
-  if (hex(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))) !== a.content_sha256) return deny("asset_integrity_failed");
+  if (hex(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes as Uint8Array<ArrayBuffer>))) !== a.content_sha256) return deny("asset_integrity_failed");
   if (!magicOk(a.mime_type, bytes)) return deny("asset_invalid");
   return bytes;
 }
@@ -267,7 +267,7 @@ export async function registerStaticAsset(d: StaticDeps, userId: string, b: Reco
   const { errors, bytes } = validateStaticAssetInput(b);
   if (errors.length) return { ok: false, errors };
   const env = b.environment as StaticEnv;
-  const sha = hex(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes!)));
+  const sha = hex(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes! as Uint8Array<ArrayBuffer>)));
   const price = await d.stripe(env).prices.retrieve(String(b.stripePriceId).trim()).catch(() => null);
   if (!price || price.livemode !== (env === "live") || price.active !== true || price.type !== "one_time" || price.recurring ||
     price.unit_amount !== b.amountCents || price.currency !== "eur" || price.tax_behavior !== "inclusive") return { ok: false, errors: ["price_mismatch"] };
