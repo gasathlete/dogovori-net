@@ -7,6 +7,8 @@ import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanne
 import { useAuth } from "@/hooks/useAuth";
 import { formatEur, staticCall, staticEnvironment, type StaticCatalogItem, type StaticCatalogResponse } from "@/lib/staticCatalog";
 
+import { getTemplateBySlug } from "@/lib/templateIndex";
+
 type Consents = { terms: boolean; perf: boolean; loss: boolean };
 
 function Item({ item, open }: { item: StaticCatalogItem; open: boolean }) {
@@ -14,11 +16,13 @@ function Item({ item, open }: { item: StaticCatalogItem; open: boolean }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const all = c.terms && c.perf && c.loss;
+  const title = getTemplateBySlug(item.template_slug ?? "")?.doc.name ?? "Документ за изтегляне";
   const buy = async () => {
+    if (!open || !all || busy) return;
     setBusy(true); setErr("");
     try {
       const r = await staticCall<{ url: string }>({ action: "checkout", environment: staticEnvironment(), assetId: item.id, requestId: crypto.randomUUID(),
-        termsAccepted: true, immediatePerformanceConsent: true, withdrawalLossAcknowledged: true });
+        termsAccepted: c.terms, immediatePerformanceConsent: c.perf, withdrawalLossAcknowledged: c.loss });
       window.location.assign(r.url);
     } catch { setErr("Плащането не може да започне в момента. Опитайте отново по-късно."); setBusy(false); }
   };
@@ -31,14 +35,14 @@ function Item({ item, open }: { item: StaticCatalogItem; open: boolean }) {
   return (
     <article className="space-y-4 rounded-xl border border-border bg-card p-5">
       <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-lg font-semibold text-foreground">{item.product_key.replace(/-/g, " ")}</h2>
+        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
         <p className="text-lg font-semibold text-foreground">{formatEur(item.amount_cents)} <span className="text-sm font-normal text-muted-foreground">с ДДС</span></p>
       </header>
       <p className="text-sm text-muted-foreground">
         Сваляте точно файла <strong className="text-foreground">{item.filename}</strong>, версия {item.version}
-        {" "}({item.mime_type === "application/pdf" ? "PDF" : "DOCX"}). Контролна сума: <code className="break-all">{item.sha256.slice(0, 16)}…</code>
+        {" "}({item.mime_type === "application/pdf" ? "PDF" : "DOCX"}).
       </p>
-      <p className="text-sm text-muted-foreground">Документът е готова бланка. Не въвеждате лични данни при покупката.</p>
+      <p className="text-sm text-muted-foreground">Документът е готова бланка. Попълвате данните по документа след изтеглянето.</p>
       {open ? (
         <div className="space-y-3">
           {box("terms", <>Приемам <Link to="/terms" className="underline">Общите условия</Link> и <Link to="/refund" className="underline">правилата за възстановяване</Link>.</>)}
@@ -71,7 +75,7 @@ export default function StaticCatalogStore() {
     <main className="container mx-auto max-w-3xl space-y-8 px-4 py-10">
       <header className="space-y-2">
         <h1 className="text-3xl font-semibold text-foreground">Готови документи</h1>
-        <p className="text-muted-foreground">Проверени бланки, които сваляте веднага след плащане. Покупките Ви остават в <Link to="/pokupki" className="underline">Моите покупки</Link>.</p>
+        <p className="text-muted-foreground">Готови бланки, които сваляте веднага след плащане. Покупките Ви остават в <Link to="/pokupki" className="underline">Моите покупки</Link>.</p>
       </header>
       {state === "loading" && <p role="status" className="text-muted-foreground">Зареждаме…</p>}
       {state === "closed" && (
