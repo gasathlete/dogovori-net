@@ -23,7 +23,11 @@ const kind = (arg("--kind") ?? "draft") as GenerationKind;
 const execute = process.argv.includes("--execute");
 const onlySlug = arg("--slug");
 const LIMIT = Number(process.env.LIMIT ?? Infinity);
-const MODEL = process.env.MODEL ?? "google/gemini-2.5-pro";
+const MODEL = process.env.MODEL ?? "openai/gpt-6-astra";
+const OUTPUT_SCHEMA = {
+  type: "object", additionalProperties: false, required: ["payload", "unverifiedLegalBases", "unresolvedFacts"],
+  properties: { payload: { type: "string" }, unverifiedLegalBases: { type: "array", items: { type: "string" } }, unresolvedFacts: { type: "array", items: { type: "string" } } },
+} as const;
 const sha = (t: string) => createHash("sha256").update(t, "utf8").digest("hex");
 
 const textBySlug = new Map<string, string>();
@@ -63,13 +67,29 @@ for (const [slug, info] of [...targets].sort()) {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) { console.error("LOVABLE_API_KEY липсва — dry-run само."); break; }
   const { system, user } = buildGenerationPrompt(packet);
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: MODEL, messages: [{ role: "system", content: system }, { role: "user", content: user }], response_format: { type: "json_object" } }),
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
+    method: "POST",
+    headers: { "Lovable-API-Key": key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", "X-Lovable-AIG-SDK": "fetch" },
+    body: JSON.stringify({
+      model: MODEL, stream: true, store: false, reasoning: { effort: "medium" },
+      input: [{ role: "system", content: system }, { role: "user", content: user }],
+      text: { format: { type: "json_schema", name: "template_candidate", strict: true, schema: OUTPUT_SCHEMA } },
+    }),
   });
-  if (!res.ok) { console.error(`${slug}: gateway ${res.status}`); continue; }
-  const body = await res.json();
-  const raw = body?.choices?.[0]?.message?.content ?? "";
+  if (!res.ok || !res.body) { console.error(`${slug}: gateway ${res.status}`); continue; }
+  let raw = "", buf = "";
+  const reader = res.body.getReader(); const dec = new TextDecoder();
+  for (;;) {
+    const { value, done: end } = await reader.read();
+    if (end) break;
+    buf += dec.decode(value, { stream: true });
+    let i;
+    while ((i = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+      if (!line.startsWith("data:")) continue;
+      try { const ev = JSON.parse(line.slice(5)); if (ev.type === "response.output_text.delta") raw += ev.delta; } catch { /* keep-alive */ }
+    }
+  }
   mkdirSync(dirname(assertCandidateOutputPath(out)), { recursive: true });
   writeFileSync(out, JSON.stringify({
     slug, kind, baseSourceSha256: packet.sourceSha256, model: MODEL, promptSha256: sha(system + user), generatedAt: new Date().toISOString(),

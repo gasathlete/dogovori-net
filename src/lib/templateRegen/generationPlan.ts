@@ -53,13 +53,13 @@ const RULES = `Правила:
 - Разделяш различните правни основания/сценарии вместо един универсален текст. Ролите на страните са последователни.
 - Не твърдиш универсална валидност на форма или КЕП. Бъдещи редакции на закон не се третират като действащи.
 - Дължината следва нуждата на документа — няма целева дължина.
-- Отговор: строго JSON {"scenarios":[{"id","label","text","decisiveFields":[]}],"unverifiedLegalBases":[],"unresolvedFacts":[],"changes":[{"finding","change"}]}.`;
+- Отговор: JSON; полето "payload" съдържа JSON текст {"scenarios":[{"id","label","text","decisiveFields":[]}],"unverifiedLegalBases":[],"unresolvedFacts":[],"changes":[{"finding","change"}]}.`;
 
 const CONTENT_RULES = `Правила:
 - Поясненията (intro, usageCases, requirements, mistakes, faq) трябва да съответстват на кандидат-документа и на прочетените източници.
 - Не цитираш членове извън „Прочетени източници“; иначе пишеш без номер или маркираш [НЕПРОВЕРЕНО].
 - Без абсолютни обещания за валидност, без измислени срокове/суми.
-- Отговор: строго JSON със същата структура като оригинала плюс "unverifiedClaims":[].`;
+- Отговор: JSON; полето "payload" съдържа JSON текст със същата структура като оригинала.`;
 
 /** Prompt без персона и без измислен „опит“ — доказателствата са входът. */
 export function buildGenerationPrompt(p: EvidencePacket): { system: string; user: string } {
