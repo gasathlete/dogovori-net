@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Final narrow followup 19.10: deployed npm Stripe source 8b4a8d70; fresh 401/400/owner readiness 200/live checkout 503. Stored deposit DOCX hash verified but differs from canonical original and contains null null; no asset registered or accepted. Evidence in main install report; exact reviewed final file remains required.
+
 - [x] Narrow launch check 19.10: npm Stripe checks passed, braces still unpatched, main assets empty, actual indexed DOCX/live prices inventoried; report docs/operations/launch-narrow-check-2026-10-19.md. No checkout activation or publication.
 - [x] Main CI 19.10: strict HTTP/AI-parser false positive and Deno typing fixed; full units 2111 passed/4 existing skips, edge 1046/0, Node 26/0, both workflow typechecks and wizard audit passed. Evidence: docs/operations/main-ci-fix-2026-10-19.md. GitHub rerun and unchanged braces advisory remain external release gates.
 
