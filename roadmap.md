@@ -1,5 +1,10 @@
 # Roadmap
 
+- [x] Catalog regen 19.10: inventory 625/576, register, checks, 5 candidate v2 rewrites, tests.
+- [ ] Catalog regen: legal review of 5 candidates — waits on lawyer.
+- [ ] Catalog regen: 540 scanned-only files, 49 without text, 73 orphan, 54 duplicate drafts — owner decision/next waves.
+- [ ] bun.lock is v1 on HEAD — regenerate with Bun 1.4.2.
+
 - [x] Beta 19.10: sync package.json/bun.lock with Bun 1.4.2, retain v3/scoped overrides, fix SDK advisory, add regression tests and readiness report.
 - [ ] Beta 19.10: braces high advisory — blocked by no published fixed upstream version; compatible dependency replacement/migration requires separate work.
 - [ ] Beta 19.10: independent app typecheck, full production build pipeline and GitHub rerun — no such results exposed by the local automatic build harness.
