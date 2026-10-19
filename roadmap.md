@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Beta 19.10: sync dependency locks with Bun 1.4.2; fix SDK/braces advisories; record local verification and isolated staging status without deployment or database writes.
+
 - [x] Gate 8: reconcile public free-start copy with paid one-off product prices.
 - [x] Make disabled prelaunch checkout/upload/result actions honest and fail-closed.
 - [x] Remove unsupported public compliance assurances, including „GDPR съвместим“ on `/plans`.

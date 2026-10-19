@@ -1,5 +1,7 @@
 # Project architecture rules
 
+- Generate the canonical Bun lock with the exact CI Bun version and verify a frozen install; preserve lock schema and scoped compatibility overrides rather than weakening CI checks.
+
 - Sector packages are curated browse-only compositions over canonical catalog templates; never duplicate legal document text or create a purchase path from browser-provided content.
 - Featured kit lifecycle metadata must reference every existing kit item exactly once; missing closing artifacts stay explicitly planned and unlinked.
 - Home must not import the full catalog (templateIndex/CATALOG); use declared metadata guarded by a test against the canonical catalog — keeps the home bundle small without silent count drift.
