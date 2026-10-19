@@ -142,6 +142,7 @@ export default function AdminPage() {
           <Button asChild variant="outline" size="sm" className="border-emerald-500/40"><Link to="/admin/generation">🩺 Здраве на генерирането</Link></Button>
           <Button asChild variant="outline" size="sm" className="border-brand/40"><Link to="/admin/growth-brief">🧠 Режим разсъждение</Link></Button>
           <Button asChild variant="outline" size="sm"><Link to="/admin/ai-json">🧩 Неуспешни AI отговори</Link></Button>
+          <Button asChild variant="outline" size="sm" className="border-brand/40"><Link to="/admin/static-catalog">Готови документи</Link></Button>
           <Button asChild variant="outline" size="sm" className="border-brand/40"><Link to="/admin/bots">🤖 QA ботове</Link></Button>
           <Button asChild variant="outline" size="sm" className="border-emerald-500/40"><Link to="/admin/financials">💰 Финанси</Link></Button>
           <Button asChild variant="outline" size="sm" className="border-gold/40"><Link to="/admin/perf">⚡ Performance</Link></Button>
