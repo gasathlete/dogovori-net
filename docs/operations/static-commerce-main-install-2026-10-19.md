@@ -2,6 +2,18 @@
 
 Verified at 13:59 UTC. Frontend was not published. No payment, email, synthetic asset, asset acceptance, migration or live-checkout enablement was performed.
 
+## Final narrow redeployment — after 14:12 UTC
+
+- Latest preserved main source HEAD: `255addc7d09246524c9e12fdb14ff25296ffb79d`, including the CI fixes and parent's two customer UI corrections.
+- Redeployed ONLY `static-catalog` and `payments-webhook`; tool confirmed successful deployment.
+- New submitted source/settings SHA-256:
+  - `static-catalog`: `2c86c423f216865e8b39be17b7575c36f98ec3ac718854612cb4fdc3e0ae295b`.
+  - `payments-webhook`: `3329e7582fba6c33a45301d252661b692e5730de115282a3b45c8c838b129853`.
+- Actual fresh deployed HTTP checks: unauthenticated static catalog **401** `unauthorized`; invalid live webhook signature **400**; authenticated readiness **200**, reviewer `owner_operator`, assets `[]`, sandbox/live checkout both `false`; live checkout **503** `static_checkout_closed`.
+- No database, price, reviewer, acceptance, payment, email or flag mutations. No frontend publication. No broad/manual build or test reruns; exact final-SHA GitHub tests/build remain the parent's frontend release gate.
+- Actual staging TEST paid, first/repeat download, refund, duplicate replay and wrong-user denial, plus rollback results, were reported by the parent and recorded separately; not rerun here and not evidence of a MAIN live payment.
+- This report-only update does not change deployed function source. Confirmed budget before this narrow batch: 37.7/100; incremental cost is not supplied by the deployment or HTTP tools.
+
 ## Deployed source
 
 - Checkout branch HEAD: `83988d48308aee5518bf1454eec71b3a042c146a`, direct child of supplied `88ddc074bcdbbeb40bec5fd63d632a2239b8ee2f`.
