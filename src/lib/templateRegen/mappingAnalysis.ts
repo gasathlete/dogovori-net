@@ -17,7 +17,7 @@ export type MappingClass =
   | "ambiguous_needs_subject_review"
   | "no_candidate";
 
-const OFFICIAL = /(обр\.|образец\s*№|\bА4\b|\bА5\b|формуляр|строител|акт\s+обр|заповедна\s+книга|протокол\s+обр|по\s+наредба)/i;
+const OFFICIAL = /(обр\.|образец|(?<!\p{L})А[45](?!\p{L})|(?<!\p{L})УП-\d|формуляр|строител|акт\s+обр|заповедна\s+книга|по\s+наредба)/iu;
 const STOP = new Set(["za", "na", "po", "ot", "pri", "kam", "ili", "dogovor", "i", "s", "v"]);
 
 const tokens = (slug: string) => new Set(slug.split("-").filter((t) => t.length >= 3 && !STOP.has(t)));
