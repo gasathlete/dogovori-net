@@ -1,7 +1,7 @@
 /**
  * Регистър на действително прочетените правни източници.
  *
- * „owner_read“ означава: собственикът (Даниел) е прочел посочените членове
+ * „user_reported_read“ означава: потребителят съобщи, че е прочел посочените членове
  * на посочената дата и е предоставил адреса. Това НЕ е правно одобрение на
  * шаблон и не потвърждава членове извън `articles`.
  */
@@ -65,7 +65,7 @@ export function sourceById(id: string): LegalSource | undefined {
   return LEGAL_SOURCES.find((s) => s.id === id);
 }
 
-/** Членът е покрит само ако поне един owner_read източник го изброява. */
+/** Членът е покрит само ако поне един user_reported_read източник го изброява. */
 export function sourcesCovering(article: string): LegalSource[] {
   return LEGAL_SOURCES.filter((s) => s.status === "user_reported_read" && s.articles.includes(article));
 }
