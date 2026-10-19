@@ -13,7 +13,7 @@ const CUSTOMER = "22222222-2222-4222-8222-222222222222";
 const OTHER = "33333333-3333-4333-8333-333333333333";
 const PDF = new TextEncoder().encode("%PDF-1.7 SYNTHETIC TEST FIXTURE - not legally reviewed");
 const hexOf = (u: Uint8Array) => Array.from(u, (v) => v.toString(16).padStart(2, "0")).join("");
-const sha = async (u: Uint8Array) => hexOf(new Uint8Array(await crypto.subtle.digest("SHA-256", u)));
+const sha = async (u: Uint8Array) => hexOf(new Uint8Array(await crypto.subtle.digest("SHA-256", Uint8Array.from(u))));
 const code = async (p: Promise<unknown>) => { try { await p; return "ok"; } catch (e) { return (e as { code?: string }).code ?? String(e); } };
 
 function makeDb(staff: string[]) {
@@ -34,7 +34,7 @@ function makeDb(staff: string[]) {
       update: (p: Row) => (patch = p, q),
       upsert: async (r: Row) => { if (!t[name].some((x) => x.id === r.id)) t[name].push({ ...r, created_at: new Date().toISOString() }); return { error: null }; },
       insert: (r: Row) => {
-        const row = { id: crypto.randomUUID(), created_at: new Date(Date.now() + t[name].length).toISOString(), ...r };
+        const row: Row = { id: crypto.randomUUID(), created_at: new Date(Date.now() + t[name].length).toISOString(), ...r };
         if (name === "static_catalog_assets") {
           row.content_sha256 = ""; // computed below like the generated column
           const bytes = Uint8Array.from((r.content as string).slice(2).match(/../g)!, (v) => parseInt(v, 16));
