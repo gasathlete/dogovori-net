@@ -1,5 +1,9 @@
 # Roadmap
 
+- [x] Beta 19.10: sync package.json/bun.lock with Bun 1.4.2, retain v3/scoped overrides, fix SDK advisory, add regression tests and readiness report.
+- [ ] Beta 19.10: braces high advisory — blocked by no published fixed upstream version; compatible dependency replacement/migration requires separate work.
+- [ ] Beta 19.10: independent app typecheck, full production build pipeline and GitHub rerun — no such results exposed by the local automatic build harness.
+
 - [x] Gate 8: reconcile public free-start copy with paid one-off product prices.
 - [x] Make disabled prelaunch checkout/upload/result actions honest and fail-closed.
 - [x] Remove unsupported public compliance assurances, including „GDPR съвместим“ on `/plans`.
