@@ -26,8 +26,11 @@ describe("чл. 326 КТ — предизвестие", () => {
   });
   it("материалноотчетническият режим е предпоставка, не тихо допускане", () => {
     expect(scen("molba-za-napuskane", "indefinite").preconditions?.join(" ")).toMatch(/материалноотчетническа/);
-    const r = assembleScenario(cand("molba-za-napuskane"), "indefinite", "personalized_final", {});
+    const s = scen("molba-za-napuskane", "indefinite");
+    const filled = Object.fromEntries([...s.text.matchAll(/\[([^\[\]]+)\]/g)].map((m) => [m[1], { state: "value" as const, value: "x" }]));
+    const r = assembleScenario(cand("molba-za-napuskane"), s, filled, "personalized_final");
     expect(r.status).toBe("blocked");
+    if (r.status === "blocked") expect(r.unconfirmedPreconditions.join(" ")).toMatch(/материалноотчетническа/);
   });
   it("FAQ вече не казва „един месец“ и не приписва оттеглянето на ал. 3", () => {
     const a = faq("molba-za-napuskane");
