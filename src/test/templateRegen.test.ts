@@ -11,6 +11,9 @@ import origProtocol from "@/data/templateDrafts/priemo-predavatelen-protokol";
 import origMutual from "@/data/templateDrafts/sporazumenie-za-prekratyavane-na-naem-po-vzaimno-saglasie";
 import origParking from "@/data/templateDrafts/dogovor-za-naem-na-parkomyasto-garazh";
 import origEood from "@/data/templateDrafts/uchreditelen-akt-na-eood";
+import origResign from "@/data/templateDrafts/molba-za-napuskane";
+import origLeave from "@/data/templateDrafts/molba-zayavlenie-za-otpusk";
+import origKt325 from "@/data/templateDrafts/sporazumenie-za-prekratyavane-po-chl-325-al-1-t-1-kt";
 import { TEMPLATE_CANDIDATES } from "@/data/templateCandidates";
 import { bracketImbalance, scanTemplateText } from "@/lib/templateRegen/catalogChecks";
 import { validateCapital } from "@/lib/templateRegen/capital";
@@ -25,6 +28,9 @@ const ORIGINALS: Record<string, string> = {
   "sporazumenie-za-prekratyavane-na-naem-po-vzaimno-saglasie": origMutual,
   "dogovor-za-naem-na-parkomyasto-garazh": origParking,
   "uchreditelen-akt-na-eood": origEood,
+  "molba-za-napuskane": origResign,
+  "molba-zayavlenie-za-otpusk": origLeave,
+  "sporazumenie-za-prekratyavane-po-chl-325-al-1-t-1-kt": origKt325,
 };
 const cand = (slug: string) => TEMPLATE_CANDIDATES.find((c) => c.slug === slug)!;
 const scen = (slug: string, id: string) => cand(slug).scenarios.find((s) => s.id === id)!.text;
@@ -57,7 +63,7 @@ describe("каталожните проверки откриват дефект�
 
 describe("кандидатите v2", () => {
   it("са вързани към точния непроменен оригинал и не носят правно одобрение", () => {
-    expect(TEMPLATE_CANDIDATES).toHaveLength(5);
+    expect(TEMPLATE_CANDIDATES).toHaveLength(8);
     for (const c of TEMPLATE_CANDIDATES) {
       expect(c.baseSourceSha256, c.slug).toBe(sha(ORIGINALS[c.slug]));
       expect(c.legalApproval).toBeNull();
