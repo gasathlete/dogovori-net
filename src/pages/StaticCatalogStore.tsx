@@ -41,7 +41,7 @@ function Item({ item, open }: { item: StaticCatalogItem; open: boolean }) {
       <p className="text-sm text-muted-foreground">Документът е готова бланка. Не въвеждате лични данни при покупката.</p>
       {open ? (
         <div className="space-y-3">
-          {box("terms", <>Приемам <Link to="/terms" className="underline">Общите условия</Link> и <Link to="/refund-policy" className="underline">правилата за възстановяване</Link>.</>)}
+          {box("terms", <>Приемам <Link to="/terms" className="underline">Общите условия</Link> и <Link to="/refund" className="underline">правилата за възстановяване</Link>.</>)}
           {box("perf", "Искам файлът да ми бъде предоставен веднага след плащането.")}
           {box("loss", "Разбирам, че след предоставяне на файла губя правото си на отказ от покупката.")}
           <Button onClick={buy} disabled={!all || busy} className="min-h-11">{busy ? "Пренасочваме…" : `Купете за ${formatEur(item.amount_cents)}`}</Button>

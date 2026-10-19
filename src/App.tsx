@@ -142,6 +142,8 @@ const AdminGenHealth = lazy(() => import("./pages/AdminGenHealth.tsx"));
 const AdminBots = lazy(() => import("./pages/AdminBots.tsx"));
 const AdminMetrics = lazy(() => import("./pages/AdminMetrics.tsx"));
 const AdminStaticCatalog = lazy(() => import("./pages/AdminStaticCatalog.tsx"));
+const StaticCatalogStore = lazy(() => import("./pages/StaticCatalogStore.tsx"));
+const StaticPurchases = lazy(() => import("./pages/StaticPurchases.tsx"));
 const AdminScorecard = lazy(() => import("./pages/AdminScorecard.tsx"));
 const AdminGrowthBrief = lazy(() => import("./pages/AdminGrowthBrief.tsx"));
 const AdminAiJson = lazy(() => import("./pages/AdminAiJson.tsx"));
@@ -398,6 +400,8 @@ const AnimatedRoutes = () => {
         <Route path="/admin/plans" element={<ProtectedRoute><AdminPlans /></ProtectedRoute>} />
         <Route path="/admin/perf" element={<ProtectedRoute><AdminPerf /></ProtectedRoute>} />
         <Route path="/admin/financials" element={<ProtectedRoute><AdminFinancials /></ProtectedRoute>} />
+        <Route path="/gotovi-dokumenti" element={<StaticCatalogStore />} />
+        <Route path="/pokupki" element={<StaticPurchases />} />
         <Route path="/checkout/return" element={<CheckoutReturn />} />
         <Route path="/legal" element={<LegalIndex />} />
         <Route path="/terms" element={<Terms />} />
