@@ -211,3 +211,12 @@ describe("регистър и изолация", () => {
     expect(hits).toEqual([]);
   });
 });
+
+describe("предпоставки", () => {
+  it("непотвърдена безсрочност блокира окончателното предизвестие по чл. 238", () => {
+    const s = cand("predizvestie-za-prekratyavane-na-naem").scenarios.find((x) => x.id === "indefinite.landlord")!;
+    const vals = Object.fromEntries(s.decisiveFields.map((f) => [f, { state: "value" as const, value: "X" }]));
+    const r = assembleScenario(s, { ...vals, [s.preconditions![0]]: { state: "unknown" } }, "personalized_final");
+    expect(r.status).toBe("blocked");
+  });
+});

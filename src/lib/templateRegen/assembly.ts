@@ -27,7 +27,7 @@ export function assembleScenario(
   if (mode === "personalized_final") {
     const missing: string[] = [];
     const unknown: string[] = [];
-    for (const f of scenario.decisiveFields) {
+    for (const f of [...scenario.decisiveFields, ...(scenario.preconditions ?? [])]) {
       const a = answers[f];
       if (!a) missing.push(f);
       else if (a.state === "unknown") unknown.push(f);

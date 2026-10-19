@@ -57,6 +57,8 @@ export interface CandidateScenario {
   text: string;
   /** Полета, без които персонализиран окончателен документ се блокира. */
   decisiveFields: readonly string[];
+  /** Решаващи факти, които не са поле в текста (напр. „наемът е безсрочен“). Също блокират окончателния документ. */
+  preconditions?: readonly string[];
 }
 
 export interface LegalBasisReference {
