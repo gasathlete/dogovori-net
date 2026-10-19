@@ -141,6 +141,7 @@ const AdminFunnel = lazy(() => import("./pages/AdminFunnel.tsx"));
 const AdminGenHealth = lazy(() => import("./pages/AdminGenHealth.tsx"));
 const AdminBots = lazy(() => import("./pages/AdminBots.tsx"));
 const AdminMetrics = lazy(() => import("./pages/AdminMetrics.tsx"));
+const AdminStaticCatalog = lazy(() => import("./pages/AdminStaticCatalog.tsx"));
 const AdminScorecard = lazy(() => import("./pages/AdminScorecard.tsx"));
 const AdminGrowthBrief = lazy(() => import("./pages/AdminGrowthBrief.tsx"));
 const AdminAiJson = lazy(() => import("./pages/AdminAiJson.tsx"));
@@ -378,6 +379,7 @@ const AnimatedRoutes = () => {
         <Route path="/admin/funnel" element={<ProtectedRoute><AdminFunnel /></ProtectedRoute>} />
         <Route path="/admin/generation" element={<ProtectedRoute><AdminGenHealth /></ProtectedRoute>} />
         <Route path="/admin/bots" element={<ProtectedRoute><AdminBots /></ProtectedRoute>} />
+        <Route path="/admin/static-catalog" element={<ProtectedRoute><AdminStaticCatalog /></ProtectedRoute>} />
         <Route path="/admin/metrics" element={<ProtectedRoute><AdminMetrics /></ProtectedRoute>} />
         <Route path="/admin/scorecard" element={<ProtectedRoute><AdminScorecard /></ProtectedRoute>} />
         <Route path="/admin/growth-brief" element={<ProtectedRoute><AdminGrowthBrief /></ProtectedRoute>} />

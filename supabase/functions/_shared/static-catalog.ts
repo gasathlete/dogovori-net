@@ -140,3 +140,94 @@ export async function reverseStaticPaid(d:StaticDeps,object:Any,env:string,kind:
   const {data,error}=await d.db.rpc("revoke_static_catalog_payment",{p_session_id:s.id,p_event_id:proof.eventId,p_event_at:proof.paidAt,p_kind:kind});
   if (error || data?.ok!==true) return deny("static_reversal_failed",503);
 }
+
+/** Legal report 12.10.2026: these templates need rework/clarification; registration is refused until a new reviewed version exists. */
+export const STATIC_LEGAL_HOLD = /(predizvestie|prekratyavane.*naem|naem.*prekratyavane|garazh|parkomyast|eood|uchredyavane|priemo-predavatelen)/;
+
+export function validateStaticAssetInput(b: Record<string, unknown>): { errors: string[]; bytes?: Uint8Array } {
+  const errors: string[] = [];
+  const s = (k: string) => typeof b[k] === "string" ? (b[k] as string).trim() : "";
+  if (!/^[a-z0-9][a-z0-9-]{1,79}$/.test(s("productKey"))) errors.push("product_key_invalid");
+  else if (STATIC_LEGAL_HOLD.test(s("productKey"))) errors.push("legal_rework_required");
+  if (s("version").length < 1 || s("version").length > 80) errors.push("version_invalid");
+  const fn = s("filename");
+  if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$/.test(fn) || fn.includes("..")) errors.push("filename_invalid");
+  const mime = s("mimeType");
+  const pdf = mime === "application/pdf";
+  if (!pdf && mime !== "application/vnd.openxmlformats-officedocument.wordprocessingml.document") errors.push("mime_invalid");
+  else if (!fn.endsWith(pdf ? ".pdf" : ".docx")) errors.push("extension_mismatch");
+  if (!Number.isSafeInteger(b.amountCents) || (b.amountCents as number) < 1 || (b.amountCents as number) > 100000) errors.push("amount_invalid");
+  if (!/^price_[A-Za-z0-9_]+$/.test(s("stripePriceId"))) errors.push("price_id_invalid");
+  const ref = s("legalAcceptanceRef");
+  if (ref.length < 3 || ref.length > 200) errors.push("legal_acceptance_ref_required");
+  if (b.reviewerAttestation !== true) errors.push("reviewer_attestation_required");
+  let bytes: Uint8Array | undefined;
+  try {
+    const raw = atob(s("contentBase64"));
+    bytes = Uint8Array.from(raw, (c) => c.charCodeAt(0));
+  } catch { errors.push("content_invalid"); }
+  if (bytes) {
+    if (bytes.length < 1 || bytes.length > 2097152) errors.push("content_size_invalid");
+    const magicOk = pdf ? new TextDecoder().decode(bytes.slice(0, 5)) === "%PDF-" : bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 3 && bytes[3] === 4;
+    if (!magicOk) errors.push("content_type_mismatch");
+  }
+  return { errors, bytes };
+}
+
+const hex = (u: Uint8Array) => Array.from(u, (v) => v.toString(16).padStart(2, "0")).join("");
+
+/** Staff-only. The reviewer is the authenticated staff account itself; acceptance time is server time. */
+export async function registerStaticAsset(d: StaticDeps, userId: string, b: Record<string, unknown>) {
+  if (!(await isStaffUser(d.db, userId))) return deny("sandbox_forbidden", 403);
+  const { errors, bytes } = validateStaticAssetInput(b);
+  if (errors.length) return { ok: false, errors };
+  const sha = hex(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes!)));
+  const price = await d.stripe().prices.retrieve(String(b.stripePriceId).trim()).catch(() => null);
+  if (!price || price.livemode !== false || price.active !== true || price.type !== "one_time" || price.recurring ||
+    price.unit_amount !== b.amountCents || price.currency !== "eur" || price.tax_behavior !== "inclusive") return { ok: false, errors: ["price_mismatch"] };
+  const row = { product_key: String(b.productKey).trim(), version: String(b.version).trim(), filename: String(b.filename).trim(),
+    mime_type: String(b.mimeType).trim(), content: "\\x" + hex(bytes!), reviewer_ref: `staff:${userId}`,
+    legal_acceptance_ref: String(b.legalAcceptanceRef).trim(), legal_accepted_at: new Date().toISOString(),
+    environment: "sandbox", amount_cents: b.amountCents, currency: "eur", stripe_price_id: price.id };
+  const { data, error } = await d.db.from("static_catalog_assets").insert(row).select("id,content_sha256").maybeSingle();
+  if (error) return { ok: false, errors: [error.code === "23505" ? "version_exists" : "asset_insert_failed"] };
+  if (data?.content_sha256 !== sha) return { ok: false, errors: ["asset_integrity_failed"] };
+  return { ok: true, asset_id: data.id, sha256: sha };
+}
+
+/** Staff readiness view: metadata only, never file bytes. */
+export async function staticReadiness(d: StaticDeps, userId: string) {
+  if (!(await isStaffUser(d.db, userId))) return deny("sandbox_forbidden", 403);
+  const { data, error } = await d.db.from("static_catalog_assets").select("*").order("created_at", { ascending: false }).limit(100);
+  if (error) return deny("catalog_unavailable", 503);
+  const assets = [];
+  for (const a of data ?? []) {
+    const errors: string[] = [];
+    try { assertStaticAsset(a); await staticFileBytes(a); } catch (e) { errors.push(e instanceof StaticCatalogError ? e.code : "asset_invalid"); }
+    if (STATIC_LEGAL_HOLD.test(a.product_key)) errors.push("legal_rework_required");
+    assets.push({ id: a.id, product_key: a.product_key, version: a.version, filename: a.filename, sha256: a.content_sha256,
+      amount_cents: a.amount_cents, reviewer_ref: a.reviewer_ref, legal_acceptance_ref: a.legal_acceptance_ref,
+      legal_accepted_at: a.legal_accepted_at, revoked_at: a.revoked_at, ready: errors.length === 0, errors });
+  }
+  return { ok: true, checkout_enabled: d.env("STATIC_CATALOG_SANDBOX_CHECKOUT_ENABLED") === "true", assets };
+}
+
+export type StaticOrderState = "pending" | "paid" | "refunded" | "failed";
+export function staticOrderState(o: Any, e: Any): StaticOrderState {
+  if (e?.revoked_at) return "refunded";
+  if (e?.paid_at && e?.stripe_event_id) return "paid";
+  if (!o.stripe_session_id) return "failed";
+  return "pending";
+}
+
+/** Owned purchases for the caller only. */
+export async function listStaticOrders(d: StaticDeps, userId: string) {
+  if (!(await isStaffUser(d.db, userId))) return deny("sandbox_forbidden", 403);
+  const { data: orders, error } = await d.db.from("static_catalog_orders").select("id,asset_id,amount_cents,currency,stripe_session_id,created_at")
+    .eq("user_id", userId).order("created_at", { ascending: false }).limit(50);
+  if (error) return deny("orders_unavailable", 503);
+  const { data: ents } = await d.db.from("static_catalog_entitlements").select("order_id,paid_at,revoked_at,stripe_event_id").eq("user_id", userId);
+  const byOrder = new Map((ents ?? []).map((e: Any) => [e.order_id, e]));
+  return { ok: true, orders: (orders ?? []).map((o: Any) => ({ id: o.id, asset_id: o.asset_id, amount_cents: o.amount_cents,
+    currency: o.currency, created_at: o.created_at, state: staticOrderState(o, byOrder.get(o.id)) })) };
+}
