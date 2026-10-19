@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Main static commerce installation 19.10: deploy static-catalog/payments-webhook, smoke 401/400/live OFF, verified owner_operator onboarding without asset acceptance; report in docs/operations/static-commerce-main-install-2026-10-19.md. Frontend release and actual accepted live file/price remain parent/owner actions.
+
 - [x] Catalog regen 19.10: inventory 625/576, register, checks, 5 candidate v2 rewrites, tests.
 - [x] Catalog regen addendum: FAQ candidates for 4 docs, owner-read sources registry, content scan (445), title-only generators retired, evidence-aware generator for all 545 files.
 - [ ] Catalog regen: run evidence-aware generation in batches (needs owner go-ahead for AI cost) and review 24 content files with findings.
