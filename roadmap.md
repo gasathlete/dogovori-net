@@ -1,6 +1,8 @@
 # Roadmap
 
 - [x] Catalog regen 19.10: inventory 625/576, register, checks, 5 candidate v2 rewrites, tests.
+- [x] Catalog regen addendum: FAQ candidates for 4 docs, owner-read sources registry, content scan (445), title-only generators retired, evidence-aware generator for all 545 files.
+- [ ] Catalog regen: run evidence-aware generation in batches (needs owner go-ahead for AI cost) and review 24 content files with findings.
 - [ ] Catalog regen: legal review of 5 candidates — waits on lawyer.
 - [ ] Catalog regen: 540 scanned-only files, 49 without text, 73 orphan, 54 duplicate drafts — owner decision/next waves.
 - [ ] bun.lock is v1 on HEAD — regenerate with Bun 1.4.2.

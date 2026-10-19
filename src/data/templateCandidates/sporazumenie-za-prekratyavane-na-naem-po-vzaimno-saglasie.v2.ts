@@ -67,9 +67,9 @@ const candidate: TemplateCandidate = {
   addressedReportItems: ["03.1", "03.2", "03.3", "03.4", "03.5"],
   scenarios,
   legalBases: [
-    { cite: "чл. 20а, ал. 2 ЗЗД", status: "report_cited_unverified" },
+    { cite: "чл. 20а, ал. 2 ЗЗД", status: "owner_read_source", sourceId: "zzd-kik-2026-10-19" },
     { cite: "чл. 103–104 ЗЗД", status: "report_cited_unverified", note: "законово прихващане — не е използвано в текста" },
-    { cite: "чл. 236 ЗЗД", status: "report_cited_unverified", note: "ползване след прекратяване" },
+    { cite: "чл. 236 ЗЗД", status: "owner_read_source", sourceId: "zzd-kik-2026-10-19", note: "ползване след прекратяване" },
     { cite: "ЗЗП", status: "report_cited_unverified", note: "в потребителски отношения механизмът се оценява отделно" },
   ],
   unresolvedFacts: [

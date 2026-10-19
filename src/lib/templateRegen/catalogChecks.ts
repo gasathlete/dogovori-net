@@ -20,8 +20,8 @@ interface Rule {
   documentMust?: RegExp;
 }
 
-const LAW = "(?:от\\s+)?(?:Закона\\s+за\\s+задълженията\\s+и\\s+договорите\\s*\\(?ЗЗД\\)?|ЗЗД)";
-const TZ = "(?:от\\s+)?(?:(?:Търговския\\s+закон)\\s*\\(?ТЗ\\)?|ТЗ)";
+const LAW = "(?:от\\s+)?(?:Закона\\s+за\\s+задълженията\\s+и\\s+договорите(?:\\s*\\(ЗЗД\\))?|ЗЗД)";
+const TZ = "(?:от\\s+)?(?:Търговския\\s+закон(?:\\s*\\(ТЗ\\))?|ТЗ)";
 
 export const CATALOG_RULES: readonly Rule[] = [
   {
@@ -149,6 +149,49 @@ export const CATALOG_RULES: readonly Rule[] = [
     category: "absolute_legal_claim",
     message: "Универсално твърдение за правна валидност на КЕП/форма.",
     pattern: /(КЕП|квалифициран\s+електронен\s+подпис)[^.]{0,80}(винаги|във\s+всички\s+случаи|за\s+всички\s+документи)/giu,
+  },
+  {
+    id: "ZZD_228_NOTICE_TERM",
+    severity: "legal_error",
+    category: "wrong_citation",
+    message: "Срокът за предизвестие е приписан на чл. 228 ЗЗД (дефиниция на наема); относим е чл. 238.",
+    pattern: /чл\.\s*228\b[^.]{0,160}предизвестие/giu,
+  },
+  {
+    id: "MOVABLE_THREE_DAYS",
+    severity: "legal_error",
+    category: "absolute_legal_claim",
+    message: "Твърдение за тридневен срок за движими вещи без опора в прочетения чл. 238 ЗЗД.",
+    pattern: /(движими\s+вещи[^.]{0,60}(три|3)\s+дни|(три|3)\s+дни[^.]{0,60}движими\s+вещи)/giu,
+  },
+  {
+    id: "ZZD_229_AS_FORM_RULE",
+    severity: "legal_error",
+    category: "wrong_citation",
+    message: "Чл. 229 ЗЗД (пределен срок) е представен като правило за форма.",
+    pattern: /чл\.\s*229[^.]{0,120}форма|форма[^.]{0,120}чл\.\s*229/giu,
+    sentenceMustNot: /а\s+не\s+формата/iu,
+  },
+  {
+    id: "TZ_115_PARA2",
+    severity: "legal_error",
+    category: "wrong_citation",
+    message: "Позоваване на чл. 115, ал. 2 ТЗ (по прочетения текст няма такова изискване).",
+    pattern: new RegExp(`чл\\.\\s*115,?\\s*ал\\.\\s*2\\s*${TZ}`, "giu"),
+  },
+  {
+    id: "MIN_CAPITAL_NOT_ONE_EUR",
+    severity: "legal_error",
+    category: "absolute_legal_claim",
+    message: "Минимален капитал, различен от 1 евро (чл. 117, ал. 1 ТЗ; БНБ въпрос 189).",
+    pattern: /минимал\w*[^.]{0,40}капитал[^.]{0,40}\b(?!1\s)(\d+)\s*(евро|EUR)/giu,
+  },
+  {
+    id: "COMPANY_ARISES_WITH_ACT",
+    severity: "material_risk",
+    category: "absolute_legal_claim",
+    message: "Внушава, че дружеството възниква със самия акт, а не с вписването.",
+    pattern: /акт[^.]{0,60}(официално\s+)?учредява\s+(еднолично\s+)?дружество/giu,
   },
 ];
 

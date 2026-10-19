@@ -86,11 +86,11 @@ const candidate: TemplateCandidate = {
   addressedReportItems: ["01.1", "01.2", "01.3", "01.4", "01.5"],
   scenarios,
   legalBases: [
-    { cite: "чл. 238 ЗЗД", status: "report_cited_unverified", note: "едномесечен срок; отделно правило за наем, уговорен на ден" },
-    { cite: "чл. 233 ЗЗД", status: "report_cited_unverified" },
-    { cite: "чл. 87, ал. 1 ЗЗД", status: "report_cited_unverified", note: "хипотезите по ал. 2 и ал. 4 се преценяват отделно" },
+    { cite: "чл. 238 ЗЗД", status: "owner_read_source", sourceId: "zzd-kik-2026-10-19", note: "едномесечен срок; отделно правило за наем, уговорен на ден" },
+    { cite: "чл. 233 ЗЗД", status: "owner_read_source", sourceId: "zzd-kik-2026-10-19" },
+    { cite: "чл. 87, ал. 1 ЗЗД", status: "owner_read_source", sourceId: "zzd-kik-2026-10-19", note: "хипотезите по ал. 2 и ал. 4 се преценяват отделно" },
     { cite: "чл. 72 ЗЗД", status: "report_cited_unverified", note: "изчисляване на срок в месеци" },
-    { cite: "чл. 236 ЗЗД", status: "report_cited_unverified", note: "продължаване на ползването след изтичане" },
+    { cite: "чл. 236 ЗЗД", status: "owner_read_source", sourceId: "zzd-kik-2026-10-19", note: "продължаване на ползването след изтичане" },
     { cite: "чл. 10, ал. 2 ЗЕДЕУУ", status: "report_cited_unverified" },
   ],
   unresolvedFacts: [
