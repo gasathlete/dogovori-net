@@ -1,0 +1,2037 @@
+{
+  "generatedFor": "2026-10-19",
+  "note": "Само предложения. Нищо не е пренасочено или изтрито. Официални формуляри не се генерират от свободен текст.",
+  "missing": {
+    "total": 49,
+    "byClass": {
+      "no_candidate": 28,
+      "safe_alias_proposal": 21
+    },
+    "entries": [
+      {
+        "catalogName": "Acceptance Protocol (приемане на разработка)",
+        "wantedSlug": "acceptance-protocol-priemane-na-razrabotka",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "akt-obrazets-14-za-priemane-na-konstruktsiyata-na-stroezh-ot-stroyashtiya-se-obe",
+            "score": 0.1
+          },
+          {
+            "slug": "akt-obrazets-15-za-ustanovyavane-godnostta-za-priemane-na-stroezha-ot-vazlozhite",
+            "score": 0.1
+          },
+          {
+            "slug": "deklaratsiya-za-priemane-na-nasledstvo-po-opis-sled-otkrivane-na-nasledstveno-pr",
+            "score": 0.1
+          }
+        ]
+      },
+      {
+        "catalogName": "Change Request форма",
+        "wantedSlug": "change-request-forma",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "dvuezichna-pro-forma-invoice-bg-en",
+            "score": 0.167
+          },
+          {
+            "slug": "notarialna-pokana-za-vrashtane-na-dadena-stoka-po-stokov-zaem-ili-druga-forma-na",
+            "score": 0.091
+          }
+        ]
+      },
+      {
+        "catalogName": "Регистър на дейностите по обработка (GDPR чл. 30)",
+        "wantedSlug": "registar-na-deynostite-po-obrabotka-gdpr-chl-30",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "trudov-dogovor-chl-67-kt",
+            "score": 0.167
+          },
+          {
+            "slug": "dvuezichna-data-processing-agreement-dpa-gdpr",
+            "score": 0.1
+          },
+          {
+            "slug": "deklaratsiya-po-chl-92-ot-zakona-za-danatsite-varhu-dohodite-na-fizicheskite-lit",
+            "score": 0.083
+          }
+        ]
+      },
+      {
+        "catalogName": "Двуезичен договор за наем (BG/EN) за чужденци",
+        "wantedSlug": "dvuezichen-dogovor-za-naem-bg-en-za-chuzhdentsi",
+        "class": "safe_alias_proposal",
+        "candidates": [
+          {
+            "slug": "dvuezichen-dogovor-za-naem-bg-en-za-chuzhdentsi",
+            "score": 1
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-naem-na-zhilishte-bg-en",
+            "score": 0.5
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-naem-na-ofis-commercial-lease",
+            "score": 0.333
+          }
+        ]
+      },
+      {
+        "catalogName": "Декларация за регистрация на наем пред НАП",
+        "wantedSlug": "deklaratsiya-za-registratsiya-na-naem-pred-nap",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "dvuezichen-dogovor-za-naem-bg-en-za-chuzhdentsi",
+            "score": 0.143
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-naem-na-zhilishte-bg-en",
+            "score": 0.143
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-naem-na-ofis-commercial-lease",
+            "score": 0.111
+          }
+        ]
+      },
+      {
+        "catalogName": "Опис на инвентар към договор за наем",
+        "wantedSlug": "opis-na-inventar-kam-dogovor-za-naem",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "dvuezichen-dogovor-za-naem-bg-en-za-chuzhdentsi",
+            "score": 0.2
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-naem-na-zhilishte-bg-en",
+            "score": 0.2
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-naem-na-ofis-commercial-lease",
+            "score": 0.143
+          }
+        ]
+      },
+      {
+        "catalogName": "Заявление за удостоверение за тежести",
+        "wantedSlug": "zayavlenie-za-udostoverenie-za-tezhesti",
+        "class": "no_candidate",
+        "candidates": []
+      },
+      {
+        "catalogName": "Покана за доброволно плащане",
+        "wantedSlug": "pokana-za-dobrovolno-plashtane",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "notarialna-pokana-za-dobrovolno-izpalnenie-na-parichno-zadalzhenie-po-dogovor-za",
+            "score": 0.286
+          },
+          {
+            "slug": "notarialna-pokana-za-predostavyane-na-obezshtetenie-po-dogovor-za-garantsiya-ili",
+            "score": 0.143
+          },
+          {
+            "slug": "notarialna-pokana-za-izpalnenie-na-zadalzhenie-po-predvaritelen-dogovor-za-pokup",
+            "score": 0.125
+          }
+        ]
+      },
+      {
+        "catalogName": "Уведомление за просрочие",
+        "wantedSlug": "uvedomlenie-za-prosrochie",
+        "class": "no_candidate",
+        "candidates": []
+      },
+      {
+        "catalogName": "Заявление за заповедно производство (чл. 410 ГПК)",
+        "wantedSlug": "zayavlenie-za-zapovedno-proizvodstvo-chl-410-gpk",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "trudov-dogovor-chl-67-kt",
+            "score": 0.143
+          },
+          {
+            "slug": "deklaratsiya-po-chl-92-ot-zakona-za-danatsite-varhu-dohodite-na-fizicheskite-lit",
+            "score": 0.077
+          },
+          {
+            "slug": "konstativen-akt-po-chl-176-ot-zut-za-narusheniya-pri-stroitelstvo-ili-montazhni-",
+            "score": 0.077
+          }
+        ]
+      },
+      {
+        "catalogName": "Споразумение за разсрочване на дълг",
+        "wantedSlug": "sporazumenie-za-razsrochvane-na-dalg",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "sporazumenie-za-razsrochvane-na-parichno-zadalzhenie-i-ustanovyavane-na-pogasite",
+            "score": 0.286
+          },
+          {
+            "slug": "sporazumenie-za-poveritelnost-i-nerazkrivane-na-targovska-tayna-mezhdu-sadruzhni",
+            "score": 0.111
+          }
+        ]
+      },
+      {
+        "catalogName": "УП-2 (образец)",
+        "wantedSlug": "up-2-obrazets",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "akt-obrazets-12-za-ustanovyavane-na-narusheniya-pri-izpalnenie-na-stroitelni-i-m",
+            "score": 0.167
+          },
+          {
+            "slug": "akt-obrazets-14-za-priemane-na-konstruktsiyata-na-stroezh-ot-stroyashtiya-se-obe",
+            "score": 0.143
+          },
+          {
+            "slug": "akt-obrazets-15-za-ustanovyavane-godnostta-za-priemane-na-stroezha-ot-vazlozhite",
+            "score": 0.143
+          }
+        ]
+      },
+      {
+        "catalogName": "УП-3 (образец)",
+        "wantedSlug": "up-3-obrazets",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "akt-obrazets-12-za-ustanovyavane-na-narusheniya-pri-izpalnenie-na-stroitelni-i-m",
+            "score": 0.167
+          },
+          {
+            "slug": "akt-obrazets-14-za-priemane-na-konstruktsiyata-na-stroezh-ot-stroyashtiya-se-obe",
+            "score": 0.143
+          },
+          {
+            "slug": "akt-obrazets-15-za-ustanovyavane-godnostta-za-priemane-na-stroezha-ot-vazlozhite",
+            "score": 0.143
+          }
+        ]
+      },
+      {
+        "catalogName": "Декларация по ЗЗЛД от служител",
+        "wantedSlug": "deklaratsiya-po-zzld-ot-sluzhitel",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "deklaratsiya-za-saglasie-za-obrabotka-na-lichni-danni-na-sluzhitel-po-kzld-i-orz",
+            "score": 0.222
+          },
+          {
+            "slug": "deklaratsiya-za-sablyudavane-na-politika-za-poveritelnost-i-zashtita-na-informat",
+            "score": 0.125
+          },
+          {
+            "slug": "deklaratsiya-za-deystvitelen-sobstvenik-na-yuridichesko-litse-ili-drugo-pravno-o",
+            "score": 0.111
+          }
+        ]
+      },
+      {
+        "catalogName": "Декларация за здравно осигуряване (самоосигуряващо се лице)",
+        "wantedSlug": "deklaratsiya-za-zdravno-osiguryavane-samoosiguryavashto-se-litse",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "deklaratsiya-za-deystvitelen-sobstvenik-na-yuridichesko-litse-ili-drugo-pravno-o",
+            "score": 0.2
+          },
+          {
+            "slug": "deklaratsiya-za-sablyudavane-na-politika-za-poveritelnost-i-zashtita-na-informat",
+            "score": 0.1
+          },
+          {
+            "slug": "deklaratsiya-za-priemane-na-nasledstvo-po-opis-sled-otkrivane-na-nasledstveno-pr",
+            "score": 0.091
+          }
+        ]
+      },
+      {
+        "catalogName": "Пълномощно за пред държавни органи",
+        "wantedSlug": "palnomoshtno-za-pred-darzhavni-organi",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "dvuezichno-palnomoshtno-power-of-attorney",
+            "score": 0.143
+          },
+          {
+            "slug": "palnomoshtno-za-poluchavane-na-dokumenti-ot-natsionalna-agentsiya-za-prihodite-n",
+            "score": 0.111
+          },
+          {
+            "slug": "palnomoshtno-za-registratsiya-na-targovsko-druzhestvo-ili-ednolichen-targovets-v",
+            "score": 0.111
+          }
+        ]
+      },
+      {
+        "catalogName": "Молба за удостоверение за наследници",
+        "wantedSlug": "molba-za-udostoverenie-za-naslednitsi",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "iskova-molba-za-priznavane-nezakonnostta-na-uvolnenie-i-vazstanovyavane-na-rabot",
+            "score": 0.111
+          }
+        ]
+      },
+      {
+        "catalogName": "Молба за развод по взаимно съгласие",
+        "wantedSlug": "molba-za-razvod-po-vzaimno-saglasie",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "deklaratsiya-za-saglasie-za-izdavane-na-evropeyska-zdravna-osiguritelna-karta-ez",
+            "score": 0.1
+          },
+          {
+            "slug": "iskova-molba-za-priznavane-nezakonnostta-na-uvolnenie-i-vazstanovyavane-na-rabot",
+            "score": 0.1
+          },
+          {
+            "slug": "deklaratsiya-za-saglasie-za-obrabotka-na-lichni-danni-na-sluzhitel-po-kzld-i-orz",
+            "score": 0.091
+          }
+        ]
+      },
+      {
+        "catalogName": "Декларация за семейно и материално положение",
+        "wantedSlug": "deklaratsiya-za-semeyno-i-materialno-polozhenie",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "deklaratsiya-za-sablyudavane-na-politika-za-poveritelnost-i-zashtita-na-informat",
+            "score": 0.111
+          },
+          {
+            "slug": "deklaratsiya-za-deystvitelen-sobstvenik-na-yuridichesko-litse-ili-drugo-pravno-o",
+            "score": 0.1
+          },
+          {
+            "slug": "deklaratsiya-za-priemane-na-nasledstvo-po-opis-sled-otkrivane-na-nasledstveno-pr",
+            "score": 0.1
+          }
+        ]
+      },
+      {
+        "catalogName": "Двуезичен трудов договор (BG/EN)",
+        "wantedSlug": "dvuezichen-trudov-dogovor-bg-en",
+        "class": "safe_alias_proposal",
+        "candidates": [
+          {
+            "slug": "dvuezichen-trudov-dogovor-bg-en",
+            "score": 1
+          },
+          {
+            "slug": "trudov-dogovor-chl-67-kt",
+            "score": 0.333
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-naem-bg-en-za-chuzhdentsi",
+            "score": 0.25
+          }
+        ]
+      },
+      {
+        "catalogName": "Двуезичен граждански договор / Service Agreement",
+        "wantedSlug": "dvuezichen-grazhdanski-dogovor-service-agreement",
+        "class": "safe_alias_proposal",
+        "candidates": [
+          {
+            "slug": "dvuezichen-grazhdanski-dogovor-service-agreement",
+            "score": 1
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-izrabotka-works-service-agreement",
+            "score": 0.5
+          },
+          {
+            "slug": "dvuezichen-distributorski-dogovor-distribution-agreement",
+            "score": 0.333
+          }
+        ]
+      },
+      {
+        "catalogName": "Двуезичен NDA — Non-Disclosure Agreement",
+        "wantedSlug": "dvuezichen-nda-non-disclosure-agreement",
+        "class": "safe_alias_proposal",
+        "candidates": [
+          {
+            "slug": "dvuezichen-nda-non-disclosure-agreement",
+            "score": 1
+          },
+          {
+            "slug": "dvuezichen-distributorski-dogovor-distribution-agreement",
+            "score": 0.286
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-zaem-loan-agreement",
+            "score": 0.286
+          }
+        ]
+      },
+      {
+        "catalogName": "Двуезичен договор за наем на жилище (BG/EN)",
+        "wantedSlug": "dvuezichen-dogovor-za-naem-na-zhilishte-bg-en",
+        "class": "safe_alias_proposal",
+        "candidates": [
+          {
+            "slug": "dvuezichen-dogovor-za-naem-na-zhilishte-bg-en",
+            "score": 1
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-naem-bg-en-za-chuzhdentsi",
+            "score": 0.5
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-naem-na-ofis-commercial-lease",
+            "score": 0.333
+          }
+        ]
+      },
+      {
+        "catalogName": "Двуезичен договор за наем на офис (Commercial Lease)",
+        "wantedSlug": "dvuezichen-dogovor-za-naem-na-ofis-commercial-lease",
+        "class": "safe_alias_proposal",
+        "candidates": [
+          {
+            "slug": "dvuezichen-dogovor-za-naem-na-ofis-commercial-lease",
+            "score": 1
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-naem-bg-en-za-chuzhdentsi",
+            "score": 0.333
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-naem-na-zhilishte-bg-en",
+            "score": 0.333
+          }
+        ]
+      },
+      {
+        "catalogName": "Двуезичен договор за изработка (Works / Service Agreement)",
+        "wantedSlug": "dvuezichen-dogovor-za-izrabotka-works-service-agreement",
+        "class": "safe_alias_proposal",
+        "candidates": [
+          {
+            "slug": "dvuezichen-dogovor-za-izrabotka-works-service-agreement",
+            "score": 1
+          },
+          {
+            "slug": "dvuezichen-grazhdanski-dogovor-service-agreement",
+            "score": 0.5
+          },
+          {
+            "slug": "dvuezichen-distributorski-dogovor-distribution-agreement",
+            "score": 0.286
+          }
+        ]
+      },
+      {
+        "catalogName": "Двуезичен консултантски договор (Consulting Agreement)",
+        "wantedSlug": "dvuezichen-konsultantski-dogovor-consulting-agreement",
+        "class": "safe_alias_proposal",
+        "candidates": [
+          {
+            "slug": "dvuezichen-konsultantski-dogovor-consulting-agreement",
+            "score": 1
+          },
+          {
+            "slug": "dvuezichen-distributorski-dogovor-distribution-agreement",
+            "score": 0.333
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-zaem-loan-agreement",
+            "score": 0.333
+          }
+        ]
+      },
+      {
+        "catalogName": "Двуезичен SaaS / Software License Agreement",
+        "wantedSlug": "dvuezichen-saas-software-license-agreement",
+        "class": "safe_alias_proposal",
+        "candidates": [
+          {
+            "slug": "dvuezichen-saas-software-license-agreement",
+            "score": 1
+          },
+          {
+            "slug": "dvuezichen-distributorski-dogovor-distribution-agreement",
+            "score": 0.286
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-zaem-loan-agreement",
+            "score": 0.286
+          }
+        ]
+      },
+      {
+        "catalogName": "Двуезичен Master Services Agreement + SOW",
+        "wantedSlug": "dvuezichen-master-services-agreement-sow",
+        "class": "safe_alias_proposal",
+        "candidates": [
+          {
+            "slug": "dvuezichen-master-services-agreement-sow",
+            "score": 1
+          },
+          {
+            "slug": "dvuezichen-distributorski-dogovor-distribution-agreement",
+            "score": 0.286
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-zaem-loan-agreement",
+            "score": 0.286
+          }
+        ]
+      },
+      {
+        "catalogName": "Двуезичен дистрибуторски договор (Distribution Agreement)",
+        "wantedSlug": "dvuezichen-distributorski-dogovor-distribution-agreement",
+        "class": "safe_alias_proposal",
+        "candidates": [
+          {
+            "slug": "dvuezichen-distributorski-dogovor-distribution-agreement",
+            "score": 1
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-zaem-loan-agreement",
+            "score": 0.333
+          },
+          {
+            "slug": "dvuezichen-grazhdanski-dogovor-service-agreement",
+            "score": 0.333
+          }
+        ]
+      },
+      {
+        "catalogName": "Двуезичен агентски договор (Commercial Agency)",
+        "wantedSlug": "dvuezichen-agentski-dogovor-commercial-agency",
+        "class": "safe_alias_proposal",
+        "candidates": [
+          {
+            "slug": "dvuezichen-agentski-dogovor-commercial-agency",
+            "score": 1
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-naem-na-ofis-commercial-lease",
+            "score": 0.286
+          },
+          {
+            "slug": "dvuezichen-trudov-dogovor-bg-en",
+            "score": 0.2
+          }
+        ]
+      },
+      {
+        "catalogName": "Двуезичен договор за международна продажба на стоки (CISG)",
+        "wantedSlug": "dvuezichen-dogovor-za-mezhdunarodna-prodazhba-na-stoki-cisg",
+        "class": "safe_alias_proposal",
+        "candidates": [
+          {
+            "slug": "dvuezichen-dogovor-za-mezhdunarodna-prodazhba-na-stoki-cisg",
+            "score": 1
+          },
+          {
+            "slug": "dvuezichen-trudov-dogovor-bg-en",
+            "score": 0.167
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-naem-bg-en-za-chuzhdentsi",
+            "score": 0.143
+          }
+        ]
+      },
+      {
+        "catalogName": "Двуезичен договор за заем (Loan Agreement)",
+        "wantedSlug": "dvuezichen-dogovor-za-zaem-loan-agreement",
+        "class": "safe_alias_proposal",
+        "candidates": [
+          {
+            "slug": "dvuezichen-dogovor-za-zaem-loan-agreement",
+            "score": 1
+          },
+          {
+            "slug": "dvuezichen-distributorski-dogovor-distribution-agreement",
+            "score": 0.333
+          },
+          {
+            "slug": "dvuezichen-grazhdanski-dogovor-service-agreement",
+            "score": 0.333
+          }
+        ]
+      },
+      {
+        "catalogName": "Двуезичен Term Sheet за инвестиция",
+        "wantedSlug": "dvuezichen-term-sheet-za-investitsiya",
+        "class": "safe_alias_proposal",
+        "candidates": [
+          {
+            "slug": "dvuezichen-term-sheet-za-investitsiya",
+            "score": 1
+          },
+          {
+            "slug": "dvuezichen-trudov-dogovor-bg-en",
+            "score": 0.2
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-naem-bg-en-za-chuzhdentsi",
+            "score": 0.167
+          }
+        ]
+      },
+      {
+        "catalogName": "Двуезичен SPA — Share Purchase Agreement",
+        "wantedSlug": "dvuezichen-spa-share-purchase-agreement",
+        "class": "safe_alias_proposal",
+        "candidates": [
+          {
+            "slug": "dvuezichen-spa-share-purchase-agreement",
+            "score": 1
+          },
+          {
+            "slug": "dvuezichen-distributorski-dogovor-distribution-agreement",
+            "score": 0.286
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-zaem-loan-agreement",
+            "score": 0.286
+          }
+        ]
+      },
+      {
+        "catalogName": "Двуезичен SHA — Shareholders' Agreement",
+        "wantedSlug": "dvuezichen-sha-shareholders-agreement",
+        "class": "safe_alias_proposal",
+        "candidates": [
+          {
+            "slug": "dvuezichen-sha-shareholders-agreement",
+            "score": 1
+          },
+          {
+            "slug": "dvuezichen-distributorski-dogovor-distribution-agreement",
+            "score": 0.333
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-zaem-loan-agreement",
+            "score": 0.333
+          }
+        ]
+      },
+      {
+        "catalogName": "Двуезичен Employment Offer Letter",
+        "wantedSlug": "dvuezichen-employment-offer-letter",
+        "class": "safe_alias_proposal",
+        "candidates": [
+          {
+            "slug": "dvuezichen-employment-offer-letter",
+            "score": 1
+          },
+          {
+            "slug": "dvuezichen-trudov-dogovor-bg-en",
+            "score": 0.2
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-naem-bg-en-za-chuzhdentsi",
+            "score": 0.167
+          }
+        ]
+      },
+      {
+        "catalogName": "Двуезична Pro Forma Invoice (BG/EN)",
+        "wantedSlug": "dvuezichna-pro-forma-invoice-bg-en",
+        "class": "safe_alias_proposal",
+        "candidates": [
+          {
+            "slug": "dvuezichna-pro-forma-invoice-bg-en",
+            "score": 1
+          },
+          {
+            "slug": "dvuezichna-data-processing-agreement-dpa-gdpr",
+            "score": 0.111
+          },
+          {
+            "slug": "notarialna-pokana-za-vrashtane-na-dadena-stoka-po-stokov-zaem-ili-druga-forma-na",
+            "score": 0.083
+          }
+        ]
+      },
+      {
+        "catalogName": "Двуезично пълномощно (Power of Attorney)",
+        "wantedSlug": "dvuezichno-palnomoshtno-power-of-attorney",
+        "class": "safe_alias_proposal",
+        "candidates": [
+          {
+            "slug": "dvuezichno-palnomoshtno-power-of-attorney",
+            "score": 1
+          },
+          {
+            "slug": "palnomoshtno-za-poluchavane-na-dokumenti-ot-natsionalna-agentsiya-za-prihodite-n",
+            "score": 0.111
+          },
+          {
+            "slug": "palnomoshtno-za-registratsiya-na-targovsko-druzhestvo-ili-ednolichen-targovets-v",
+            "score": 0.111
+          }
+        ]
+      },
+      {
+        "catalogName": "Двуезична Data Processing Agreement (DPA, GDPR)",
+        "wantedSlug": "dvuezichna-data-processing-agreement-dpa-gdpr",
+        "class": "safe_alias_proposal",
+        "candidates": [
+          {
+            "slug": "dvuezichna-data-processing-agreement-dpa-gdpr",
+            "score": 1
+          },
+          {
+            "slug": "dvuezichen-distributorski-dogovor-distribution-agreement",
+            "score": 0.111
+          },
+          {
+            "slug": "dvuezichen-dogovor-za-zaem-loan-agreement",
+            "score": 0.111
+          }
+        ]
+      },
+      {
+        "catalogName": "Молба за напускане (чл. 326, ал. 1 КТ)",
+        "wantedSlug": "molba-za-napuskane-chl-326-al-1-kt",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "trudov-dogovor-chl-67-kt",
+            "score": 0.2
+          },
+          {
+            "slug": "iskova-molba-za-priznavane-nezakonnostta-na-uvolnenie-i-vazstanovyavane-na-rabot",
+            "score": 0.1
+          },
+          {
+            "slug": "deklaratsiya-po-chl-92-ot-zakona-za-danatsite-varhu-dohodite-na-fizicheskite-lit",
+            "score": 0.091
+          }
+        ]
+      },
+      {
+        "catalogName": "Молба за платен годишен отпуск",
+        "wantedSlug": "molba-za-platen-godishen-otpusk",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "iskova-molba-za-priznavane-nezakonnostta-na-uvolnenie-i-vazstanovyavane-na-rabot",
+            "score": 0.1
+          }
+        ]
+      },
+      {
+        "catalogName": "Нотариално заверено пълномощно (универсално)",
+        "wantedSlug": "notarialno-zavereno-palnomoshtno-universalno",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "dvuezichno-palnomoshtno-power-of-attorney",
+            "score": 0.143
+          },
+          {
+            "slug": "palnomoshtno-za-poluchavane-na-dokumenti-ot-natsionalna-agentsiya-za-prihodite-n",
+            "score": 0.111
+          },
+          {
+            "slug": "palnomoshtno-za-registratsiya-na-targovsko-druzhestvo-ili-ednolichen-targovets-v",
+            "score": 0.111
+          }
+        ]
+      },
+      {
+        "catalogName": "Молба за неплатен отпуск (чл. 160 КТ)",
+        "wantedSlug": "molba-za-neplaten-otpusk-chl-160-kt",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "trudov-dogovor-chl-67-kt",
+            "score": 0.167
+          },
+          {
+            "slug": "iskova-molba-za-priznavane-nezakonnostta-na-uvolnenie-i-vazstanovyavane-na-rabot",
+            "score": 0.091
+          },
+          {
+            "slug": "deklaratsiya-po-chl-92-ot-zakona-za-danatsite-varhu-dohodite-na-fizicheskite-lit",
+            "score": 0.083
+          }
+        ]
+      },
+      {
+        "catalogName": "Декларация по чл. 22 ЗДДФЛ",
+        "wantedSlug": "deklaratsiya-po-chl-22-zddfl",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "trudov-dogovor-chl-67-kt",
+            "score": 0.25
+          },
+          {
+            "slug": "deklaratsiya-po-chl-92-ot-zakona-za-danatsite-varhu-dohodite-na-fizicheskite-lit",
+            "score": 0.222
+          },
+          {
+            "slug": "deklaratsiya-za-sablyudavane-na-politika-za-poveritelnost-i-zashtita-na-informat",
+            "score": 0.125
+          }
+        ]
+      },
+      {
+        "catalogName": "Молба за отпуск по бащинство (чл. 164в КТ)",
+        "wantedSlug": "molba-za-otpusk-po-bashtinstvo-chl-164v-kt",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "trudov-dogovor-chl-67-kt",
+            "score": 0.167
+          },
+          {
+            "slug": "iskova-molba-za-priznavane-nezakonnostta-na-uvolnenie-i-vazstanovyavane-na-rabot",
+            "score": 0.091
+          },
+          {
+            "slug": "deklaratsiya-po-chl-92-ot-zakona-za-danatsite-varhu-dohodite-na-fizicheskite-lit",
+            "score": 0.083
+          }
+        ]
+      },
+      {
+        "catalogName": "Молба за прекратяване по взаимно съгласие (чл. 325, ал. 1, т. 1 КТ)",
+        "wantedSlug": "molba-za-prekratyavane-po-vzaimno-saglasie-chl-325-al-1-t-1-kt",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "trudov-dogovor-chl-67-kt",
+            "score": 0.143
+          },
+          {
+            "slug": "notarialna-pokana-za-prekratyavane-na-dogovor-za-naem-i-osvobozhdavane-na-naet-i",
+            "score": 0.091
+          },
+          {
+            "slug": "deklaratsiya-za-saglasie-za-izdavane-na-evropeyska-zdravna-osiguritelna-karta-ez",
+            "score": 0.083
+          }
+        ]
+      },
+      {
+        "catalogName": "Декларация за съгласие за работа на непълнолетен",
+        "wantedSlug": "deklaratsiya-za-saglasie-za-rabota-na-nepalnoleten",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "deklaratsiya-za-saglasie-za-izdavane-na-evropeyska-zdravna-osiguritelna-karta-ez",
+            "score": 0.222
+          },
+          {
+            "slug": "deklaratsiya-za-saglasie-za-obrabotka-na-lichni-danni-na-sluzhitel-po-kzld-i-orz",
+            "score": 0.2
+          },
+          {
+            "slug": "deklaratsiya-za-sablyudavane-na-politika-za-poveritelnost-i-zashtita-na-informat",
+            "score": 0.111
+          }
+        ]
+      },
+      {
+        "catalogName": "Молба за промяна на работно време",
+        "wantedSlug": "molba-za-promyana-na-rabotno-vreme",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "aneks-kam-trudov-dogovor-za-promyana-na-rabotnoto-vreme-petdnevna-rabotna-sedmit",
+            "score": 0.2
+          },
+          {
+            "slug": "iskova-molba-za-priznavane-nezakonnostta-na-uvolnenie-i-vazstanovyavane-na-rabot",
+            "score": 0.1
+          }
+        ]
+      },
+      {
+        "catalogName": "Декларация за съгласие за нощен труд",
+        "wantedSlug": "deklaratsiya-za-saglasie-za-noshten-trud",
+        "class": "no_candidate",
+        "candidates": [
+          {
+            "slug": "deklaratsiya-za-saglasie-za-izdavane-na-evropeyska-zdravna-osiguritelna-karta-ez",
+            "score": 0.222
+          },
+          {
+            "slug": "deklaratsiya-za-saglasie-za-obrabotka-na-lichni-danni-na-sluzhitel-po-kzld-i-orz",
+            "score": 0.2
+          },
+          {
+            "slug": "deklaratsiya-za-sablyudavane-na-politika-za-poveritelnost-i-zashtita-na-informat",
+            "score": 0.111
+          }
+        ]
+      }
+    ]
+  },
+  "orphans": {
+    "total": 73,
+    "identicalToReachable": 0,
+    "entries": [
+      {
+        "slug": "akt-obrazets-12-za-ustanovyavane-na-narusheniya-pri-izpalnenie-na-stroitelni-i-m",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "УП-2 (образец)",
+          "score": 0.167
+        }
+      },
+      {
+        "slug": "akt-obrazets-14-za-priemane-na-konstruktsiyata-na-stroezh-ot-stroyashtiya-se-obe",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "УП-2 (образец)",
+          "score": 0.143
+        }
+      },
+      {
+        "slug": "akt-obrazets-15-za-ustanovyavane-godnostta-za-priemane-na-stroezha-ot-vazlozhite",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "УП-2 (образец)",
+          "score": 0.143
+        }
+      },
+      {
+        "slug": "akt-obrazets-16-za-ustanovyavane-godnostta-za-polzvane-na-stroezh-razreshenie-za",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "УП-2 (образец)",
+          "score": 0.143
+        }
+      },
+      {
+        "slug": "aneks-kam-trudov-dogovor-za-promyana-na-rabotnoto-vreme-petdnevna-rabotna-sedmit",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Молба за промяна на работно време",
+          "score": 0.2
+        }
+      },
+      {
+        "slug": "deklaratsiya-po-chl-92-ot-zakona-za-danatsite-varhu-dohodite-na-fizicheskite-lit",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Декларация по чл. 22 ЗДДФЛ",
+          "score": 0.222
+        }
+      },
+      {
+        "slug": "deklaratsiya-po-zakona-za-merkite-sreshtu-izpiraneto-na-pari-zmip-za-proizhod-na",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Декларация по ЗЗЛД от служител",
+          "score": 0.1
+        }
+      },
+      {
+        "slug": "deklaratsiya-za-deystvitelen-sobstvenik-na-yuridichesko-litse-ili-drugo-pravno-o",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Декларация за здравно осигуряване (самоосигуряващо се лице)",
+          "score": 0.2
+        }
+      },
+      {
+        "slug": "deklaratsiya-za-priemane-na-nasledstvo-po-opis-sled-otkrivane-na-nasledstveno-pr",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Опис на инвентар към договор за наем",
+          "score": 0.111
+        }
+      },
+      {
+        "slug": "deklaratsiya-za-sablyudavane-na-politika-za-poveritelnost-i-zashtita-na-informat",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Декларация по ЗЗЛД от служител",
+          "score": 0.125
+        }
+      },
+      {
+        "slug": "deklaratsiya-za-saglasie-za-izdavane-na-evropeyska-zdravna-osiguritelna-karta-ez",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Декларация за съгласие за работа на непълнолетен",
+          "score": 0.222
+        }
+      },
+      {
+        "slug": "deklaratsiya-za-saglasie-za-obrabotka-na-lichni-danni-na-sluzhitel-po-kzld-i-orz",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Декларация по ЗЗЛД от служител",
+          "score": 0.222
+        }
+      },
+      {
+        "slug": "dvuezichen-agentski-dogovor-commercial-agency",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен агентски договор (Commercial Agency)",
+          "score": 1
+        }
+      },
+      {
+        "slug": "dvuezichen-distributorski-dogovor-distribution-agreement",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен дистрибуторски договор (Distribution Agreement)",
+          "score": 1
+        }
+      },
+      {
+        "slug": "dvuezichen-dogovor-za-izrabotka-works-service-agreement",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен договор за изработка (Works / Service Agreement)",
+          "score": 1
+        }
+      },
+      {
+        "slug": "dvuezichen-dogovor-za-mezhdunarodna-prodazhba-na-stoki-cisg",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен договор за международна продажба на стоки (CISG)",
+          "score": 1
+        }
+      },
+      {
+        "slug": "dvuezichen-dogovor-za-naem-bg-en-za-chuzhdentsi",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен договор за наем (BG/EN) за чужденци",
+          "score": 1
+        }
+      },
+      {
+        "slug": "dvuezichen-dogovor-za-naem-na-ofis-commercial-lease",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен договор за наем на офис (Commercial Lease)",
+          "score": 1
+        }
+      },
+      {
+        "slug": "dvuezichen-dogovor-za-naem-na-zhilishte-bg-en",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен договор за наем на жилище (BG/EN)",
+          "score": 1
+        }
+      },
+      {
+        "slug": "dvuezichen-dogovor-za-zaem-loan-agreement",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен договор за заем (Loan Agreement)",
+          "score": 1
+        }
+      },
+      {
+        "slug": "dvuezichen-employment-offer-letter",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен Employment Offer Letter",
+          "score": 1
+        }
+      },
+      {
+        "slug": "dvuezichen-grazhdanski-dogovor-service-agreement",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен граждански договор / Service Agreement",
+          "score": 1
+        }
+      },
+      {
+        "slug": "dvuezichen-konsultantski-dogovor-consulting-agreement",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен консултантски договор (Consulting Agreement)",
+          "score": 1
+        }
+      },
+      {
+        "slug": "dvuezichen-master-services-agreement-sow",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен Master Services Agreement + SOW",
+          "score": 1
+        }
+      },
+      {
+        "slug": "dvuezichen-nda-non-disclosure-agreement",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен NDA — Non-Disclosure Agreement",
+          "score": 1
+        }
+      },
+      {
+        "slug": "dvuezichen-saas-software-license-agreement",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен SaaS / Software License Agreement",
+          "score": 1
+        }
+      },
+      {
+        "slug": "dvuezichen-sha-shareholders-agreement",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен SHA — Shareholders' Agreement",
+          "score": 1
+        }
+      },
+      {
+        "slug": "dvuezichen-spa-share-purchase-agreement",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен SPA — Share Purchase Agreement",
+          "score": 1
+        }
+      },
+      {
+        "slug": "dvuezichen-term-sheet-za-investitsiya",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен Term Sheet за инвестиция",
+          "score": 1
+        }
+      },
+      {
+        "slug": "dvuezichen-trudov-dogovor-bg-en",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен трудов договор (BG/EN)",
+          "score": 1
+        }
+      },
+      {
+        "slug": "dvuezichna-data-processing-agreement-dpa-gdpr",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезична Data Processing Agreement (DPA, GDPR)",
+          "score": 1
+        }
+      },
+      {
+        "slug": "dvuezichna-pro-forma-invoice-bg-en",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезична Pro Forma Invoice (BG/EN)",
+          "score": 1
+        }
+      },
+      {
+        "slug": "dvuezichno-palnomoshtno-power-of-attorney",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезично пълномощно (Power of Attorney)",
+          "score": 1
+        }
+      },
+      {
+        "slug": "iskova-molba-za-priznavane-nezakonnostta-na-uvolnenie-i-vazstanovyavane-na-rabot",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Молба за удостоверение за наследници",
+          "score": 0.111
+        }
+      },
+      {
+        "slug": "kolichestveno-stoynostna-smetka-kss-za-energiyno-sanirane-na-obshtestvena-admini",
+        "identicalToReachable": null,
+        "bestMissingMatch": null
+      },
+      {
+        "slug": "kolichestveno-stoynostna-smetka-kss-za-fasadna-toploizolatsionna-sistema-na-sash",
+        "identicalToReachable": null,
+        "bestMissingMatch": null
+      },
+      {
+        "slug": "kolichestveno-stoynostna-smetka-kss-za-grub-stroezh-na-ednofamilna-zhilishtna-sg",
+        "identicalToReachable": null,
+        "bestMissingMatch": null
+      },
+      {
+        "slug": "kolichestveno-stoynostna-smetka-kss-za-izgrazhdane-na-nova-vik-instalatsiya-v-sg",
+        "identicalToReachable": null,
+        "bestMissingMatch": null
+      },
+      {
+        "slug": "kolichestveno-stoynostna-smetka-kss-za-izgrazhdane-na-ogradna-konstruktsiya-ot-s",
+        "identicalToReachable": null,
+        "bestMissingMatch": null
+      },
+      {
+        "slug": "kolichestveno-stoynostna-smetka-kss-za-kapitalen-remont-na-patna-otsechka-i-trot",
+        "identicalToReachable": null,
+        "bestMissingMatch": null
+      },
+      {
+        "slug": "kolichestveno-stoynostna-smetka-kss-za-landshaftno-oformlenie-i-ozelenyavane-na-",
+        "identicalToReachable": null,
+        "bestMissingMatch": null
+      },
+      {
+        "slug": "kolichestveno-stoynostna-smetka-kss-za-podmyana-na-tsyalostna-elektroinstalatsiy",
+        "identicalToReachable": null,
+        "bestMissingMatch": null
+      },
+      {
+        "slug": "konstativen-akt-po-chl-176-ot-zut-za-narusheniya-pri-stroitelstvo-ili-montazhni-",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Декларация по чл. 22 ЗДДФЛ",
+          "score": 0.1
+        }
+      },
+      {
+        "slug": "notarialna-pokana-za-dobrovolno-izpalnenie-na-parichno-zadalzhenie-po-dogovor-za",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Покана за доброволно плащане",
+          "score": 0.286
+        }
+      },
+      {
+        "slug": "notarialna-pokana-za-izpalnenie-na-parichno-zadalzhenie-po-izdadena-zapis-na-zap",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Покана за доброволно плащане",
+          "score": 0.1
+        }
+      },
+      {
+        "slug": "notarialna-pokana-za-izpalnenie-na-zadalzhenie-po-predvaritelen-dogovor-za-pokup",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Покана за доброволно плащане",
+          "score": 0.125
+        }
+      },
+      {
+        "slug": "notarialna-pokana-za-predostavyane-na-obezshtetenie-po-dogovor-za-garantsiya-ili",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Покана за доброволно плащане",
+          "score": 0.143
+        }
+      },
+      {
+        "slug": "notarialna-pokana-za-predstavyane-na-dokumenti-otnosno-prava-varhu-nedvizhim-imo",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Покана за доброволно плащане",
+          "score": 0.091
+        }
+      },
+      {
+        "slug": "notarialna-pokana-za-prekratyavane-na-dogovor-za-naem-i-osvobozhdavane-na-naet-i",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен договор за наем (BG/EN) за чужденци",
+          "score": 0.125
+        }
+      },
+      {
+        "slug": "notarialna-pokana-za-uprazhnyavane-na-pravo-na-izkupuvane-po-zakona-za-sobstveno",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Покана за доброволно плащане",
+          "score": 0.111
+        }
+      },
+      {
+        "slug": "notarialna-pokana-za-vazstanovyavane-na-zadatak-pri-neizpalnenie-na-predvaritele",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Покана за доброволно плащане",
+          "score": 0.125
+        }
+      },
+      {
+        "slug": "notarialna-pokana-za-vrashtane-na-dadena-stoka-po-stokov-zaem-ili-druga-forma-na",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Change Request форма",
+          "score": 0.091
+        }
+      },
+      {
+        "slug": "oferta-za-izvarshvane-na-stroitelno-montazhni-raboti-smr-za-obekt-zhilishtna-sgr",
+        "identicalToReachable": null,
+        "bestMissingMatch": null
+      },
+      {
+        "slug": "oferta-za-naem-na-tezhka-stroitelna-mehanizatsiya-i-oborudvane-za-srok-ot-6-mese",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен договор за наем (BG/EN) за чужденци",
+          "score": 0.1
+        }
+      },
+      {
+        "slug": "oferta-za-predostavyane-na-konsultantski-uslugi-v-oblastta-na-upravlenieto-na-ch",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен консултантски договор (Consulting Agreement)",
+          "score": 0.111
+        }
+      },
+      {
+        "slug": "oferta-za-provezhdane-na-spetsializirano-korporativno-obuchenie-po-digitalen-mar",
+        "identicalToReachable": null,
+        "bestMissingMatch": null
+      },
+      {
+        "slug": "oferta-za-razrabotka-i-vnedryavane-na-spetsializiran-softueren-produkt-za-avtoma",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Acceptance Protocol (приемане на разработка)",
+          "score": 0.1
+        }
+      },
+      {
+        "slug": "palnomoshtno-za-poluchavane-na-dokumenti-ot-natsionalna-agentsiya-za-prihodite-n",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Пълномощно за пред държавни органи",
+          "score": 0.111
+        }
+      },
+      {
+        "slug": "palnomoshtno-za-registratsiya-na-targovsko-druzhestvo-ili-ednolichen-targovets-v",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Пълномощно за пред държавни органи",
+          "score": 0.111
+        }
+      },
+      {
+        "slug": "palnomoshtno-za-uchastie-i-glasuvane-v-obshto-sabranie-na-targovsko-druzhestvo-s",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Пълномощно за пред държавни органи",
+          "score": 0.1
+        }
+      },
+      {
+        "slug": "palnomoshtno-za-upravlenie-na-motorno-prevozno-sredstvo-mps-v-stranata-i-chuzhbi",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Пълномощно за пред държавни органи",
+          "score": 0.091
+        }
+      },
+      {
+        "slug": "prilozhenie-kam-dogovor-za-konsultantski-uslugi-shema-na-rabota-i-etapi-na-proek",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен консултантски договор (Consulting Agreement)",
+          "score": 0.1
+        }
+      },
+      {
+        "slug": "prilozhenie-kam-dogovor-za-prodazhba-garantsionni-usloviya-i-servizno-obsluzhvan",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен договор за международна продажба на стоки (CISG)",
+          "score": 0.1
+        }
+      },
+      {
+        "slug": "protokol-za-nivelatsiya-pri-izpalnenie-na-zemni-i-izkopni-stroitelno-montazhni-r",
+        "identicalToReachable": null,
+        "bestMissingMatch": null
+      },
+      {
+        "slug": "razpiska-za-poluchen-zadatak-po-predvaritelen-dogovor-za-pokupko-prodazhba-na-ne",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен договор за международна продажба на стоки (CISG)",
+          "score": 0.1
+        }
+      },
+      {
+        "slug": "razpiska-za-polucheni-originalni-dokumenti-za-administrativni-ili-yuridicheski-t",
+        "identicalToReachable": null,
+        "bestMissingMatch": null
+      },
+      {
+        "slug": "sporazumenie-za-poveritelnost-i-nerazkrivane-na-targovska-tayna-mezhdu-sadruzhni",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Споразумение за разсрочване на дълг",
+          "score": 0.111
+        }
+      },
+      {
+        "slug": "sporazumenie-za-razsrochvane-na-parichno-zadalzhenie-i-ustanovyavane-na-pogasite",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Споразумение за разсрочване на дълг",
+          "score": 0.286
+        }
+      },
+      {
+        "slug": "targovska-oferta-za-dostavka-na-promishleni-stoki-i-materiali-za-proizvodstvena-",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен договор за международна продажба на стоки (CISG)",
+          "score": 0.091
+        }
+      },
+      {
+        "slug": "trudov-dogovor-chl-67-kt",
+        "identicalToReachable": null,
+        "bestMissingMatch": {
+          "name": "Двуезичен трудов договор (BG/EN)",
+          "score": 0.333
+        }
+      },
+      {
+        "slug": "zhalba-do-komisiya-za-zashtita-ot-diskriminatsiya-kzd-po-povod-diskriminatsionno",
+        "identicalToReachable": null,
+        "bestMissingMatch": null
+      },
+      {
+        "slug": "zhalba-do-natsionalna-zdravnoosiguritelna-kasa-nzok-za-otkaz-na-meditsinska-pomo",
+        "identicalToReachable": null,
+        "bestMissingMatch": null
+      },
+      {
+        "slug": "zhalba-do-obshtinska-administratsiya-otnosno-nerednosti-po-zakona-za-ustroystvo-",
+        "identicalToReachable": null,
+        "bestMissingMatch": null
+      }
+    ]
+  },
+  "duplicates": {
+    "total": 54,
+    "byClass": {
+      "ambiguous_needs_subject_review": 54
+    },
+    "entries": [
+      {
+        "slugs": [
+          "akt-obrazets-12-za-ustanovyavane-na-narusheniya-pri-izpalnenie-na-stroitelni-i-m",
+          "akt-obrazets-12-za-ustanovyavane-na-narusheniya-pri-izpalnenie-na-stroitelni-i-montazhni-r"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "akt-obrazets-12-za-ustanovyavane-na-narusheniya-pri-izpalnenie-na-stroitelni-i-m": "4fd4280af125d7dd6e308fc01abe96d5b29294ab195ce0467c0e86101e516be4",
+          "akt-obrazets-12-za-ustanovyavane-na-narusheniya-pri-izpalnenie-na-stroitelni-i-montazhni-r": "b12385da186d4f620b265e6912c34c377db0e60eb9315ea9fb8710affb179beb"
+        }
+      },
+      {
+        "slugs": [
+          "akt-obrazets-14-za-priemane-na-konstruktsiyata-na-stroezh-ot-stroyashtiya-se-obe",
+          "akt-obrazets-14-za-priemane-na-konstruktsiyata-na-stroezh-ot-stroyashtiya-se-obekt"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "akt-obrazets-14-za-priemane-na-konstruktsiyata-na-stroezh-ot-stroyashtiya-se-obe": "10f893e89f875521b7f6b9c7b95ceb682a03b0517c0c37a10831d7b82db5e52c",
+          "akt-obrazets-14-za-priemane-na-konstruktsiyata-na-stroezh-ot-stroyashtiya-se-obekt": "0f716eb0a82dec149a274d933f01eb7357a283de1ea766ea3dcdc9c108a1276a"
+        }
+      },
+      {
+        "slugs": [
+          "akt-obrazets-15-za-ustanovyavane-godnostta-za-priemane-na-stroezha-ot-vazlozhite",
+          "akt-obrazets-15-za-ustanovyavane-godnostta-za-priemane-na-stroezha-ot-vazlozhitelya"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "akt-obrazets-15-za-ustanovyavane-godnostta-za-priemane-na-stroezha-ot-vazlozhite": "da4972490ea450eb7d3ef7849132efe93bfebe4fb9d3ff16e933c74fca980dd5",
+          "akt-obrazets-15-za-ustanovyavane-godnostta-za-priemane-na-stroezha-ot-vazlozhitelya": "32be2c5e98371c087d66a1b968a19ed287eea8a8d7cc0695452d2207c2da7edc"
+        }
+      },
+      {
+        "slugs": [
+          "akt-obrazets-16-za-ustanovyavane-godnostta-za-polzvane-na-stroezh-razreshenie-za",
+          "akt-obrazets-16-za-ustanovyavane-godnostta-za-polzvane-na-stroezh-razreshenie-za-vavezhdan"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "akt-obrazets-16-za-ustanovyavane-godnostta-za-polzvane-na-stroezh-razreshenie-za": "cd5fa0b74cb84cc8b2c7a62cd3111138f6f2101b4dff92460802177a97938a57",
+          "akt-obrazets-16-za-ustanovyavane-godnostta-za-polzvane-na-stroezh-razreshenie-za-vavezhdan": "a39d6da794aa68c068104f21ad4d0363b56290a3f5def625d3f3392ac61b0cdc"
+        }
+      },
+      {
+        "slugs": [
+          "aneks-kam-trudov-dogovor-za-promyana-na-rabotnoto-vreme-petdnevna-rabotna-sedmit",
+          "aneks-kam-trudov-dogovor-za-promyana-na-rabotnoto-vreme-petdnevna-rabotna-sedmitsa"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "aneks-kam-trudov-dogovor-za-promyana-na-rabotnoto-vreme-petdnevna-rabotna-sedmit": "249e009b0e0328c7805a6908b0d45b3a425820ddcf2ae53c2c119b458cec1553",
+          "aneks-kam-trudov-dogovor-za-promyana-na-rabotnoto-vreme-petdnevna-rabotna-sedmitsa": "d394578245138c1217316e6d81cfa800cd232979d83ca513a11e3220a2c1d1ce"
+        }
+      },
+      {
+        "slugs": [
+          "deklaratsiya-po-chl-92-ot-zakona-za-danatsite-varhu-dohodite-na-fizicheskite-lit",
+          "deklaratsiya-po-chl-92-ot-zakona-za-danatsite-varhu-dohodite-na-fizicheskite-litsa-zddfl"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "deklaratsiya-po-chl-92-ot-zakona-za-danatsite-varhu-dohodite-na-fizicheskite-lit": "349a0fb174e54a57c25d6d13d9529e6ac9952c5a00e159f49e671a437e0aa658",
+          "deklaratsiya-po-chl-92-ot-zakona-za-danatsite-varhu-dohodite-na-fizicheskite-litsa-zddfl": "960dad7fea64e0c2565b31029dd2c444e49b0f46ed9f671780f8c2bc3037cfca"
+        }
+      },
+      {
+        "slugs": [
+          "deklaratsiya-po-zakona-za-merkite-sreshtu-izpiraneto-na-pari-zmip-za-proizhod-na",
+          "deklaratsiya-po-zakona-za-merkite-sreshtu-izpiraneto-na-pari-zmip-za-proizhod-na-sredstva"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "deklaratsiya-po-zakona-za-merkite-sreshtu-izpiraneto-na-pari-zmip-za-proizhod-na": "588c63e33764331de1b68f48d9d1a7e99fd703fbc8498ca136c9362c9183e31f",
+          "deklaratsiya-po-zakona-za-merkite-sreshtu-izpiraneto-na-pari-zmip-za-proizhod-na-sredstva": "1fe363677f844bce1e20a9739c6650610b442761f1afe7aba4cc4f26e98fc14a"
+        }
+      },
+      {
+        "slugs": [
+          "deklaratsiya-za-deystvitelen-sobstvenik-na-yuridichesko-litse-ili-drugo-pravno-o",
+          "deklaratsiya-za-deystvitelen-sobstvenik-na-yuridichesko-litse-ili-drugo-pravno-obrazuvanie"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "deklaratsiya-za-deystvitelen-sobstvenik-na-yuridichesko-litse-ili-drugo-pravno-o": "7eded45f38b2c75b056718771c31fbe431fb96c9d1aecef4a2a76a572281d98c",
+          "deklaratsiya-za-deystvitelen-sobstvenik-na-yuridichesko-litse-ili-drugo-pravno-obrazuvanie": "f18ca088377f8886dee94dbfeb8e6856155629f5fbdff430bf9fc6668750eb39"
+        }
+      },
+      {
+        "slugs": [
+          "deklaratsiya-za-priemane-na-nasledstvo-po-opis-sled-otkrivane-na-nasledstveno-pr",
+          "deklaratsiya-za-priemane-na-nasledstvo-po-opis-sled-otkrivane-na-nasledstveno-pravo"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "deklaratsiya-za-priemane-na-nasledstvo-po-opis-sled-otkrivane-na-nasledstveno-pr": "e102ab6b8ea5775623c2a99c8c7d57142ff4e718c82901bff2d884e52c1a1033",
+          "deklaratsiya-za-priemane-na-nasledstvo-po-opis-sled-otkrivane-na-nasledstveno-pravo": "e26e752a10fea62c40083dae7f71cf73c839070cefa0b7dccf55f07ce3ab597d"
+        }
+      },
+      {
+        "slugs": [
+          "deklaratsiya-za-sablyudavane-na-politika-za-poveritelnost-i-zashtita-na-informat",
+          "deklaratsiya-za-sablyudavane-na-politika-za-poveritelnost-i-zashtita-na-informatsiyata"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "deklaratsiya-za-sablyudavane-na-politika-za-poveritelnost-i-zashtita-na-informat": "9aba150c9980a20c3b93c2e933336a5691c15ea699df3ef8eafef4b029ddfc28",
+          "deklaratsiya-za-sablyudavane-na-politika-za-poveritelnost-i-zashtita-na-informatsiyata": "152ebef92cb1052a1f460d87ceb696eebc002b28e8fa72150cd97fbcb62b431f"
+        }
+      },
+      {
+        "slugs": [
+          "deklaratsiya-za-saglasie-za-izdavane-na-evropeyska-zdravna-osiguritelna-karta-ez",
+          "deklaratsiya-za-saglasie-za-izdavane-na-evropeyska-zdravna-osiguritelna-karta-ezok"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "deklaratsiya-za-saglasie-za-izdavane-na-evropeyska-zdravna-osiguritelna-karta-ez": "c7fda3650072e923ad32efb6d985ab6f9fef69fc190d0325f096f4682e44f6ce",
+          "deklaratsiya-za-saglasie-za-izdavane-na-evropeyska-zdravna-osiguritelna-karta-ezok": "f9439a7c143c714306679a766dc4e8c155563962c6fb0b95b56e0d6aaaefb710"
+        }
+      },
+      {
+        "slugs": [
+          "deklaratsiya-za-saglasie-za-obrabotka-na-lichni-danni-na-sluzhitel-po-kzld-i-orz",
+          "deklaratsiya-za-saglasie-za-obrabotka-na-lichni-danni-na-sluzhitel-po-kzld-i-orzd"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "deklaratsiya-za-saglasie-za-obrabotka-na-lichni-danni-na-sluzhitel-po-kzld-i-orz": "459520155f0dcade9c89ae01e24bb04b80f81931b743d29de9ac8f8300f986a6",
+          "deklaratsiya-za-saglasie-za-obrabotka-na-lichni-danni-na-sluzhitel-po-kzld-i-orzd": "dcd210550f4757024e8e10fb25bd80dedf1402a4d9b150d7c25da918ea64f547"
+        }
+      },
+      {
+        "slugs": [
+          "deklaratsiya-za-saglasie-za-patuvane-na-nepalnoletno-dete-v-chuzhbina-bez-rodite",
+          "deklaratsiya-za-saglasie-za-patuvane-na-nepalnoletno-dete-v-chuzhbina-bez-roditel"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "deklaratsiya-za-saglasie-za-patuvane-na-nepalnoletno-dete-v-chuzhbina-bez-rodite": "d4cda5445f78f61c5dfe60f9318b4b6f0ae12d7d0b323a74eceaece2f506a4b0",
+          "deklaratsiya-za-saglasie-za-patuvane-na-nepalnoletno-dete-v-chuzhbina-bez-roditel": "72d3755a3775857432b9babb638e80033068c2e546ef1a1b8e82b93de1576123"
+        }
+      },
+      {
+        "slugs": [
+          "iskova-molba-za-priznavane-nezakonnostta-na-uvolnenie-i-vazstanovyavane-na-rabot",
+          "iskova-molba-za-priznavane-nezakonnostta-na-uvolnenie-i-vazstanovyavane-na-rabota"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "iskova-molba-za-priznavane-nezakonnostta-na-uvolnenie-i-vazstanovyavane-na-rabot": "7efb689da931f1b0dd55cc2c27d0740511cb3d13c3c897145c5bade6b9f52756",
+          "iskova-molba-za-priznavane-nezakonnostta-na-uvolnenie-i-vazstanovyavane-na-rabota": "2a5588b2df752a94ad9fa649e2ecdbc1e8efa4815703b994c556f6c2c4ff57c0"
+        }
+      },
+      {
+        "slugs": [
+          "kolichestveno-stoynostna-smetka-kss-za-energiyno-sanirane-na-obshtestvena-admini",
+          "kolichestveno-stoynostna-smetka-kss-za-energiyno-sanirane-na-obshtestvena-administrativna-"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "kolichestveno-stoynostna-smetka-kss-za-energiyno-sanirane-na-obshtestvena-admini": "7d9201a0ca038b51e6c9da6df24410c96fe0edee5ad894610d9e2b830e88f486",
+          "kolichestveno-stoynostna-smetka-kss-za-energiyno-sanirane-na-obshtestvena-administrativna-": "2cce0c258c5edf6ea1f10d863e598472adb7af08022f45c2a2063ae215a80dfb"
+        }
+      },
+      {
+        "slugs": [
+          "kolichestveno-stoynostna-smetka-kss-za-fasadna-toploizolatsionna-sistema-na-sash",
+          "kolichestveno-stoynostna-smetka-kss-za-fasadna-toploizolatsionna-sistema-na-sashtestvuvash"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "kolichestveno-stoynostna-smetka-kss-za-fasadna-toploizolatsionna-sistema-na-sash": "c143c102388a1eb30f025625fcbc21b0da9197764467bc2b4e1b19bef3b0edb6",
+          "kolichestveno-stoynostna-smetka-kss-za-fasadna-toploizolatsionna-sistema-na-sashtestvuvash": "195e409f2878663935ca6d64eba6156ce28e965371786e2bf0d5f8ebd19ba1d5"
+        }
+      },
+      {
+        "slugs": [
+          "kolichestveno-stoynostna-smetka-kss-za-grub-stroezh-na-ednofamilna-zhilishtna-sg",
+          "kolichestveno-stoynostna-smetka-kss-za-grub-stroezh-na-ednofamilna-zhilishtna-sgrada"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "kolichestveno-stoynostna-smetka-kss-za-grub-stroezh-na-ednofamilna-zhilishtna-sg": "53bee52fd04b35ef90362a163bbd83d0790991541ef681c88c2205bc18629ac2",
+          "kolichestveno-stoynostna-smetka-kss-za-grub-stroezh-na-ednofamilna-zhilishtna-sgrada": "ba59e729aaf3f2a2e01efdc08c350c606bcc05467e6d0783fdcb354823646c80"
+        }
+      },
+      {
+        "slugs": [
+          "kolichestveno-stoynostna-smetka-kss-za-izgrazhdane-na-nova-vik-instalatsiya-v-sg",
+          "kolichestveno-stoynostna-smetka-kss-za-izgrazhdane-na-nova-vik-instalatsiya-v-sgrada"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "kolichestveno-stoynostna-smetka-kss-za-izgrazhdane-na-nova-vik-instalatsiya-v-sg": "8b0b1da805a343bfe928dc054d75ffabc4f4f50e80f4dd1b2c24a01d8e4e9f18",
+          "kolichestveno-stoynostna-smetka-kss-za-izgrazhdane-na-nova-vik-instalatsiya-v-sgrada": "76b24bab8b06b9f35168687e9e2cec0041368788bc14a372fea95858085b5302"
+        }
+      },
+      {
+        "slugs": [
+          "kolichestveno-stoynostna-smetka-kss-za-izgrazhdane-na-ogradna-konstruktsiya-ot-s",
+          "kolichestveno-stoynostna-smetka-kss-za-izgrazhdane-na-ogradna-konstruktsiya-ot-stomanobeto"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "kolichestveno-stoynostna-smetka-kss-za-izgrazhdane-na-ogradna-konstruktsiya-ot-s": "64767e28a88a5dcfb11d6e0b588d0b903c9fbf824b89467ddde02d50dbb0c1d7",
+          "kolichestveno-stoynostna-smetka-kss-za-izgrazhdane-na-ogradna-konstruktsiya-ot-stomanobeto": "173562ff700f1850c6d9615385ac04a464d18db1744edc55819b385f4121efcb"
+        }
+      },
+      {
+        "slugs": [
+          "kolichestveno-stoynostna-smetka-kss-za-kapitalen-remont-na-patna-otsechka-i-trot",
+          "kolichestveno-stoynostna-smetka-kss-za-kapitalen-remont-na-patna-otsechka-i-trotoari"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "kolichestveno-stoynostna-smetka-kss-za-kapitalen-remont-na-patna-otsechka-i-trot": "c1da27c728504f7a0929bce60ffad2d565e67c27569ed166ba19641c7b026fc4",
+          "kolichestveno-stoynostna-smetka-kss-za-kapitalen-remont-na-patna-otsechka-i-trotoari": "4c739c6aa81e8e17543a1c7772d96cc763cc9777c4aab78f5b803672263a0044"
+        }
+      },
+      {
+        "slugs": [
+          "kolichestveno-stoynostna-smetka-kss-za-landshaftno-oformlenie-i-ozelenyavane-na-",
+          "kolichestveno-stoynostna-smetka-kss-za-landshaftno-oformlenie-i-ozelenyavane-na-dvorno-pro"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "kolichestveno-stoynostna-smetka-kss-za-landshaftno-oformlenie-i-ozelenyavane-na-": "b88aeecc5a0b063b9569ccd29b8010bcc520a9bc4ebc3e7197ffd5284c4ff316",
+          "kolichestveno-stoynostna-smetka-kss-za-landshaftno-oformlenie-i-ozelenyavane-na-dvorno-pro": "e17d6e54adc23969520b58dbb61bb7beaf620357a2d4ca0fbfc94bbc2965c425"
+        }
+      },
+      {
+        "slugs": [
+          "kolichestveno-stoynostna-smetka-kss-za-podmyana-na-tsyalostna-elektroinstalatsiy",
+          "kolichestveno-stoynostna-smetka-kss-za-podmyana-na-tsyalostna-elektroinstalatsiya-v-zhilis"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "kolichestveno-stoynostna-smetka-kss-za-podmyana-na-tsyalostna-elektroinstalatsiy": "d90c800fb953704e8065389da97d567789380df5d7d796ef3904e28b3baff0d1",
+          "kolichestveno-stoynostna-smetka-kss-za-podmyana-na-tsyalostna-elektroinstalatsiya-v-zhilis": "208b49e19379ee2b41b9ef7b2bb000bfa12b46a44f67bf2cbb9abf1a10f5b8be"
+        }
+      },
+      {
+        "slugs": [
+          "konstativen-akt-po-chl-176-ot-zut-za-narusheniya-pri-stroitelstvo-ili-montazhni-",
+          "konstativen-akt-po-chl-176-ot-zut-za-narusheniya-pri-stroitelstvo-ili-montazhni-raboti-smr"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "konstativen-akt-po-chl-176-ot-zut-za-narusheniya-pri-stroitelstvo-ili-montazhni-": "a6ee393a85a53e7099a190e1f62adb7871a8a730c59450fa56caac3b5730b3f6",
+          "konstativen-akt-po-chl-176-ot-zut-za-narusheniya-pri-stroitelstvo-ili-montazhni-raboti-smr": "47bc32db3c9f2e5570daa309714aae08bfd7e32348fb3c1af93afaf48325663e"
+        }
+      },
+      {
+        "slugs": [
+          "notarialna-pokana-za-dobrovolno-izpalnenie-na-parichno-zadalzhenie-po-dogovor-za",
+          "notarialna-pokana-za-dobrovolno-izpalnenie-na-parichno-zadalzhenie-po-dogovor-za-zaem"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "notarialna-pokana-za-dobrovolno-izpalnenie-na-parichno-zadalzhenie-po-dogovor-za": "dbcf2ef014e3e4324535b3cfe9e8d91ee0b764740fbb4fcfbc823343d958de6f",
+          "notarialna-pokana-za-dobrovolno-izpalnenie-na-parichno-zadalzhenie-po-dogovor-za-zaem": "f4cb7860a686ad5685e685d96f705bcebcf5ee1f985bfc22e1cf5e9e7d236c52"
+        }
+      },
+      {
+        "slugs": [
+          "notarialna-pokana-za-izpalnenie-na-parichno-zadalzhenie-po-izdadena-zapis-na-zap",
+          "notarialna-pokana-za-izpalnenie-na-parichno-zadalzhenie-po-izdadena-zapis-na-zapoved"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "notarialna-pokana-za-izpalnenie-na-parichno-zadalzhenie-po-izdadena-zapis-na-zap": "c4d4ac664f07ac0396e03ac33e3b425ad850e6a5f3af0e7c30a2c38045f698a9",
+          "notarialna-pokana-za-izpalnenie-na-parichno-zadalzhenie-po-izdadena-zapis-na-zapoved": "c3096dbf349372a4277b287d8aa660c56cdd1d957848bd22da2a6e8de537be1d"
+        }
+      },
+      {
+        "slugs": [
+          "notarialna-pokana-za-izpalnenie-na-zadalzhenie-po-predvaritelen-dogovor-za-pokup",
+          "notarialna-pokana-za-izpalnenie-na-zadalzhenie-po-predvaritelen-dogovor-za-pokupko-prodazh"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "notarialna-pokana-za-izpalnenie-na-zadalzhenie-po-predvaritelen-dogovor-za-pokup": "3efcc4491e347d5fda9cb253b5fb5cc307b9b03560807ba6d182acc7be2d554b",
+          "notarialna-pokana-za-izpalnenie-na-zadalzhenie-po-predvaritelen-dogovor-za-pokupko-prodazh": "1a22d9e3f67e5469deb1cadfcffcae7cd08f561a0e01f6ddde7f2461350a6d84"
+        }
+      },
+      {
+        "slugs": [
+          "notarialna-pokana-za-predostavyane-na-obezshtetenie-po-dogovor-za-garantsiya-ili",
+          "notarialna-pokana-za-predostavyane-na-obezshtetenie-po-dogovor-za-garantsiya-ili-zastrahov"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "notarialna-pokana-za-predostavyane-na-obezshtetenie-po-dogovor-za-garantsiya-ili": "ac0737b259d66e4086fc3530f7217bc2f80da3c0cebcf55d430093afeffbb0a4",
+          "notarialna-pokana-za-predostavyane-na-obezshtetenie-po-dogovor-za-garantsiya-ili-zastrahov": "1e105c7f13e7f40f005e1e9965ccb5db65922a0847219a971fb12658f9d894e5"
+        }
+      },
+      {
+        "slugs": [
+          "notarialna-pokana-za-predstavyane-na-dokumenti-otnosno-prava-varhu-nedvizhim-imo",
+          "notarialna-pokana-za-predstavyane-na-dokumenti-otnosno-prava-varhu-nedvizhim-imot"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "notarialna-pokana-za-predstavyane-na-dokumenti-otnosno-prava-varhu-nedvizhim-imo": "a93ad0e99d7d316e8ea861a79bdf81d3963f61ea2d4a42b35b5486c0cc2f5572",
+          "notarialna-pokana-za-predstavyane-na-dokumenti-otnosno-prava-varhu-nedvizhim-imot": "9b109b2516bb02dfceb9be536fde5c34cf9cac36df52d533e438a50e54d80d4d"
+        }
+      },
+      {
+        "slugs": [
+          "notarialna-pokana-za-prekratyavane-na-dogovor-za-naem-i-osvobozhdavane-na-naet-i",
+          "notarialna-pokana-za-prekratyavane-na-dogovor-za-naem-i-osvobozhdavane-na-naet-imot"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "notarialna-pokana-za-prekratyavane-na-dogovor-za-naem-i-osvobozhdavane-na-naet-i": "494f97ce0d5145a5b37ad3ed6de0d80365886ab293b74c36434e7e6fded11827",
+          "notarialna-pokana-za-prekratyavane-na-dogovor-za-naem-i-osvobozhdavane-na-naet-imot": "edab11b1be06dd370a09fe836075ec853c400fa02a4ee13837c954b1d2a2162c"
+        }
+      },
+      {
+        "slugs": [
+          "notarialna-pokana-za-uprazhnyavane-na-pravo-na-izkupuvane-po-zakona-za-sobstveno",
+          "notarialna-pokana-za-uprazhnyavane-na-pravo-na-izkupuvane-po-zakona-za-sobstvenostta-sasob"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "notarialna-pokana-za-uprazhnyavane-na-pravo-na-izkupuvane-po-zakona-za-sobstveno": "2ceae85aa1577835f7092c4f37a3b7acfe3853a8bb8d173550a02380be293bf1",
+          "notarialna-pokana-za-uprazhnyavane-na-pravo-na-izkupuvane-po-zakona-za-sobstvenostta-sasob": "d49d50a40d3250ec3a2a4c0d7305bea1c6c01c7813e6f3e31cb904e7e85c649b"
+        }
+      },
+      {
+        "slugs": [
+          "notarialna-pokana-za-vazstanovyavane-na-zadatak-pri-neizpalnenie-na-predvaritele",
+          "notarialna-pokana-za-vazstanovyavane-na-zadatak-pri-neizpalnenie-na-predvaritelen-dogovor"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "notarialna-pokana-za-vazstanovyavane-na-zadatak-pri-neizpalnenie-na-predvaritele": "fbfd88946e4185a7b78ca1f74150930f8abff5a56dc94eb4e0921bb66fb6c44c",
+          "notarialna-pokana-za-vazstanovyavane-na-zadatak-pri-neizpalnenie-na-predvaritelen-dogovor": "ceaba7a254c3e24f9d0f715394f8699b8d7812791161a3afa7e380a3c0a51a48"
+        }
+      },
+      {
+        "slugs": [
+          "notarialna-pokana-za-vrashtane-na-dadena-stoka-po-stokov-zaem-ili-druga-forma-na",
+          "notarialna-pokana-za-vrashtane-na-dadena-stoka-po-stokov-zaem-ili-druga-forma-na-vremenno-"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "notarialna-pokana-za-vrashtane-na-dadena-stoka-po-stokov-zaem-ili-druga-forma-na": "87fe9a17667371fbd5f48401ac387c27aec222f16ee7b5de15b52b250d4d126e",
+          "notarialna-pokana-za-vrashtane-na-dadena-stoka-po-stokov-zaem-ili-druga-forma-na-vremenno-": "c3f7c40cdb0acf6f08b5dec1245fc5143ea69fac83168859549e88008feb1908"
+        }
+      },
+      {
+        "slugs": [
+          "oferta-za-izvarshvane-na-stroitelno-montazhni-raboti-smr-za-obekt-zhilishtna-sgr",
+          "oferta-za-izvarshvane-na-stroitelno-montazhni-raboti-smr-za-obekt-zhilishtna-sgrada-h"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "oferta-za-izvarshvane-na-stroitelno-montazhni-raboti-smr-za-obekt-zhilishtna-sgr": "8f1cd74f503e8790ac0396609e0a9fc10cb8d57f75d9c41801862f3df74f8173",
+          "oferta-za-izvarshvane-na-stroitelno-montazhni-raboti-smr-za-obekt-zhilishtna-sgrada-h": "e7b04b3b0e0158c45ade165297911615c6905432bf690643fcdbe1558d4ec823"
+        }
+      },
+      {
+        "slugs": [
+          "oferta-za-naem-na-tezhka-stroitelna-mehanizatsiya-i-oborudvane-za-srok-ot-6-mese",
+          "oferta-za-naem-na-tezhka-stroitelna-mehanizatsiya-i-oborudvane-za-srok-ot-6-mesetsa"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "oferta-za-naem-na-tezhka-stroitelna-mehanizatsiya-i-oborudvane-za-srok-ot-6-mese": "6b2c409c905f340e5f8c035f24c5cf16fa7e74f3507315529cf0c01f21c5074a",
+          "oferta-za-naem-na-tezhka-stroitelna-mehanizatsiya-i-oborudvane-za-srok-ot-6-mesetsa": "27896f8458a4879da2611ea7315a38aa13da8fb407b58d9a8ea8f902a0c95182"
+        }
+      },
+      {
+        "slugs": [
+          "oferta-za-predostavyane-na-konsultantski-uslugi-v-oblastta-na-upravlenieto-na-ch",
+          "oferta-za-predostavyane-na-konsultantski-uslugi-v-oblastta-na-upravlenieto-na-choveshki-re"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "oferta-za-predostavyane-na-konsultantski-uslugi-v-oblastta-na-upravlenieto-na-ch": "e7eef133c8a5ace15d18633165a14b66afe10e20f6e763f95418cb3c04bd39ba",
+          "oferta-za-predostavyane-na-konsultantski-uslugi-v-oblastta-na-upravlenieto-na-choveshki-re": "399d88ff408d00e1290c57884753f3ab572e72d96de401b201cca2e617b40f2b"
+        }
+      },
+      {
+        "slugs": [
+          "oferta-za-provezhdane-na-spetsializirano-korporativno-obuchenie-po-digitalen-mar",
+          "oferta-za-provezhdane-na-spetsializirano-korporativno-obuchenie-po-digitalen-marketing"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "oferta-za-provezhdane-na-spetsializirano-korporativno-obuchenie-po-digitalen-mar": "708af68462718f991e5f383ed9e243d18d81bdeecfe1f0d9012f25814979bf99",
+          "oferta-za-provezhdane-na-spetsializirano-korporativno-obuchenie-po-digitalen-marketing": "c3850c805b572dea9cdbd44e5fc94b9dda3b667f39d9cf80a3d93709637e18b0"
+        }
+      },
+      {
+        "slugs": [
+          "oferta-za-razrabotka-i-vnedryavane-na-spetsializiran-softueren-produkt-za-avtoma",
+          "oferta-za-razrabotka-i-vnedryavane-na-spetsializiran-softueren-produkt-za-avtomatizatsiya-"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "oferta-za-razrabotka-i-vnedryavane-na-spetsializiran-softueren-produkt-za-avtoma": "714fadaf6f4e38f93e9995fa5c0a94596ef8205d66257b678c8a3829289383f8",
+          "oferta-za-razrabotka-i-vnedryavane-na-spetsializiran-softueren-produkt-za-avtomatizatsiya-": "5b87f3aded6b153d7984d8002e59f51d19d5def8f339876cc1391affb94693ed"
+        }
+      },
+      {
+        "slugs": [
+          "palnomoshtno-za-poluchavane-na-dokumenti-ot-natsionalna-agentsiya-za-prihodite-n",
+          "palnomoshtno-za-poluchavane-na-dokumenti-ot-natsionalna-agentsiya-za-prihodite-nap"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "palnomoshtno-za-poluchavane-na-dokumenti-ot-natsionalna-agentsiya-za-prihodite-n": "acf7732b307ad6000c03937eca276a48e0dae0b6eb135f3098222bbb52e553cd",
+          "palnomoshtno-za-poluchavane-na-dokumenti-ot-natsionalna-agentsiya-za-prihodite-nap": "e1f13c5e2aaaabe47df74edcef989fdb7804f1822d2c5d26922d357794d672a5"
+        }
+      },
+      {
+        "slugs": [
+          "palnomoshtno-za-registratsiya-na-targovsko-druzhestvo-ili-ednolichen-targovets-v",
+          "palnomoshtno-za-registratsiya-na-targovsko-druzhestvo-ili-ednolichen-targovets-v-av"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "palnomoshtno-za-registratsiya-na-targovsko-druzhestvo-ili-ednolichen-targovets-v": "a6a128fe69d23836230d9be1ff5b567520d4877cffd15f5f567eea53c9634d43",
+          "palnomoshtno-za-registratsiya-na-targovsko-druzhestvo-ili-ednolichen-targovets-v-av": "2e028a6968389b653e8b83e3c2e502df7a4619301be206b6ff7908c09501f4f2"
+        }
+      },
+      {
+        "slugs": [
+          "palnomoshtno-za-uchastie-i-glasuvane-v-obshto-sabranie-na-targovsko-druzhestvo-s",
+          "palnomoshtno-za-uchastie-i-glasuvane-v-obshto-sabranie-na-targovsko-druzhestvo-sdruzhenie"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "palnomoshtno-za-uchastie-i-glasuvane-v-obshto-sabranie-na-targovsko-druzhestvo-s": "5a87807f46325fc396290fa43cf8059d6f6424b26960dfa1b0ee87d0fd86ca02",
+          "palnomoshtno-za-uchastie-i-glasuvane-v-obshto-sabranie-na-targovsko-druzhestvo-sdruzhenie": "8c7ba4f2f5f1108434c3b28c0473fd120c19300160a42a8f3c962b1e6ac39667"
+        }
+      },
+      {
+        "slugs": [
+          "palnomoshtno-za-upravlenie-na-motorno-prevozno-sredstvo-mps-v-stranata-i-chuzhbi",
+          "palnomoshtno-za-upravlenie-na-motorno-prevozno-sredstvo-mps-v-stranata-i-chuzhbina"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "palnomoshtno-za-upravlenie-na-motorno-prevozno-sredstvo-mps-v-stranata-i-chuzhbi": "6ecc6e935088cbe5d17cd92f7d1fb5949854c7570a2030e56e69a0af460364d6",
+          "palnomoshtno-za-upravlenie-na-motorno-prevozno-sredstvo-mps-v-stranata-i-chuzhbina": "ff1bdd51fbbd177acf400736320a52c4e0e898fa5b5efa0f05c925df91ddea2c"
+        }
+      },
+      {
+        "slugs": [
+          "prilozhenie-kam-dogovor-za-konsultantski-uslugi-shema-na-rabota-i-etapi-na-proek",
+          "prilozhenie-kam-dogovor-za-konsultantski-uslugi-shema-na-rabota-i-etapi-na-proekta"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "prilozhenie-kam-dogovor-za-konsultantski-uslugi-shema-na-rabota-i-etapi-na-proek": "beb6cbfd1d156c4a86f5a5c15e2711a91e68443dc039605913ae0ba7f385e7a8",
+          "prilozhenie-kam-dogovor-za-konsultantski-uslugi-shema-na-rabota-i-etapi-na-proekta": "e19f1e09c3ee095073562ee734809228fa4db4a044762ee80d43c8cf7c306b12"
+        }
+      },
+      {
+        "slugs": [
+          "prilozhenie-kam-dogovor-za-prodazhba-garantsionni-usloviya-i-servizno-obsluzhvan",
+          "prilozhenie-kam-dogovor-za-prodazhba-garantsionni-usloviya-i-servizno-obsluzhvane"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "prilozhenie-kam-dogovor-za-prodazhba-garantsionni-usloviya-i-servizno-obsluzhvan": "cced36a19c585568190b4872b1e8fa7a5a882d8304c64f03af95fae68b8be0fe",
+          "prilozhenie-kam-dogovor-za-prodazhba-garantsionni-usloviya-i-servizno-obsluzhvane": "1e2b53b12469284b731cdc97ea35f3b899bde6f46f092c0d846a0aa8aa5387c7"
+        }
+      },
+      {
+        "slugs": [
+          "protokol-za-nivelatsiya-pri-izpalnenie-na-zemni-i-izkopni-stroitelno-montazhni-r",
+          "protokol-za-nivelatsiya-pri-izpalnenie-na-zemni-i-izkopni-stroitelno-montazhni-raboti-smr"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "protokol-za-nivelatsiya-pri-izpalnenie-na-zemni-i-izkopni-stroitelno-montazhni-r": "09ab716d55030c08273a97c791ae9afaefc00b0a0ce3a012036cea75d489817f",
+          "protokol-za-nivelatsiya-pri-izpalnenie-na-zemni-i-izkopni-stroitelno-montazhni-raboti-smr": "f3d083970c45f29364a5ee0be0cbf23e46c39d067b5242475c486337c75a3186"
+        }
+      },
+      {
+        "slugs": [
+          "razpiska-za-poluchen-zadatak-po-predvaritelen-dogovor-za-pokupko-prodazhba-na-ne",
+          "razpiska-za-poluchen-zadatak-po-predvaritelen-dogovor-za-pokupko-prodazhba-na-nedvizhim-im"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "razpiska-za-poluchen-zadatak-po-predvaritelen-dogovor-za-pokupko-prodazhba-na-ne": "ae6996e8c27f8df6c277653bf5130db375fc5b4b5462ac406a2cfef1718f1d01",
+          "razpiska-za-poluchen-zadatak-po-predvaritelen-dogovor-za-pokupko-prodazhba-na-nedvizhim-im": "0a2e9996edada60b2816eefcc7650146e3814cc73ce4655c14c23a6148ebdc23"
+        }
+      },
+      {
+        "slugs": [
+          "razpiska-za-polucheni-originalni-dokumenti-za-administrativni-ili-yuridicheski-t",
+          "razpiska-za-polucheni-originalni-dokumenti-za-administrativni-ili-yuridicheski-tseli"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "razpiska-za-polucheni-originalni-dokumenti-za-administrativni-ili-yuridicheski-t": "f2f7236accf74cc49b237efeff43019021a8dda9aa92026b22a1dd5e02faa250",
+          "razpiska-za-polucheni-originalni-dokumenti-za-administrativni-ili-yuridicheski-tseli": "9b147ffc365ea1912e79cebd7f3b0d036487eb12b74a16e5767460183afaaef3"
+        }
+      },
+      {
+        "slugs": [
+          "sporazumenie-za-poveritelnost-i-nerazkrivane-na-targovska-tayna-mezhdu-sadruzhni",
+          "sporazumenie-za-poveritelnost-i-nerazkrivane-na-targovska-tayna-mezhdu-sadruzhnitsi"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "sporazumenie-za-poveritelnost-i-nerazkrivane-na-targovska-tayna-mezhdu-sadruzhni": "d2939cd26fd143209d08deac471c903036b365fbd7033f5ffabef0873d3eb644",
+          "sporazumenie-za-poveritelnost-i-nerazkrivane-na-targovska-tayna-mezhdu-sadruzhnitsi": "2f9293525d808b9026bc03d374418ad6223ae38c67d9564977a9313faad88ed7"
+        }
+      },
+      {
+        "slugs": [
+          "sporazumenie-za-razsrochvane-na-parichno-zadalzhenie-i-ustanovyavane-na-pogasite",
+          "sporazumenie-za-razsrochvane-na-parichno-zadalzhenie-i-ustanovyavane-na-pogasitelen-plan"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "sporazumenie-za-razsrochvane-na-parichno-zadalzhenie-i-ustanovyavane-na-pogasite": "a717483f93f7cc6fb5da07430d205349aa14188a21739fea5d6987c125cc57bb",
+          "sporazumenie-za-razsrochvane-na-parichno-zadalzhenie-i-ustanovyavane-na-pogasitelen-plan": "f8ef5a1357b1e9f480f2e1a40d6057d1b1e25123f063c5d0293c695e725dde26"
+        }
+      },
+      {
+        "slugs": [
+          "targovska-oferta-za-dostavka-na-promishleni-stoki-i-materiali-za-proizvodstvena-",
+          "targovska-oferta-za-dostavka-na-promishleni-stoki-i-materiali-za-proizvodstvena-deynost"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "targovska-oferta-za-dostavka-na-promishleni-stoki-i-materiali-za-proizvodstvena-": "1389dab57dfe52742957f30426e356c128422504cabeef440a63b2adb8f71c30",
+          "targovska-oferta-za-dostavka-na-promishleni-stoki-i-materiali-za-proizvodstvena-deynost": "64c21949317f33ac2f1b26dc79bc06c1f08f78003122da3e2c7d6f01a83eb2a7"
+        }
+      },
+      {
+        "slugs": [
+          "zhalba-do-izpalnitelna-agentsiya-glavna-inspektsiya-po-truda-otnosno-neizplateni",
+          "zhalba-do-izpalnitelna-agentsiya-glavna-inspektsiya-po-truda-otnosno-neizplateni-trudovi-v"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "zhalba-do-izpalnitelna-agentsiya-glavna-inspektsiya-po-truda-otnosno-neizplateni": "1be41b79633c2761d0cb76f66c0680d02a564e23e6f649911ec304ef9e682fe0",
+          "zhalba-do-izpalnitelna-agentsiya-glavna-inspektsiya-po-truda-otnosno-neizplateni-trudovi-v": "d9a6c288575be9b62b0e41887b84fb29549753371933f796d35f8c13ad4207a9"
+        }
+      },
+      {
+        "slugs": [
+          "zhalba-do-komisiya-za-zashtita-na-potrebitelite-kzp-otnosno-nekachestvena-stoka-",
+          "zhalba-do-komisiya-za-zashtita-na-potrebitelite-kzp-otnosno-nekachestvena-stoka-usluga"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "zhalba-do-komisiya-za-zashtita-na-potrebitelite-kzp-otnosno-nekachestvena-stoka-": "91a17b3f2afecfa342522939d2e1b997dd3beba4578456650e97cfd6c75f1041",
+          "zhalba-do-komisiya-za-zashtita-na-potrebitelite-kzp-otnosno-nekachestvena-stoka-usluga": "591b6c3117d059580b88ccbe0ba0d13f4448befe920ee4ed7e233180a6fdcd83"
+        }
+      },
+      {
+        "slugs": [
+          "zhalba-do-komisiya-za-zashtita-ot-diskriminatsiya-kzd-po-povod-diskriminatsionno",
+          "zhalba-do-komisiya-za-zashtita-ot-diskriminatsiya-kzd-po-povod-diskriminatsionno-otnosheni"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "zhalba-do-komisiya-za-zashtita-ot-diskriminatsiya-kzd-po-povod-diskriminatsionno": "0f7c21f66275e2a637b76b1a24b122c5892b6151542e960c31810d12b667b0da",
+          "zhalba-do-komisiya-za-zashtita-ot-diskriminatsiya-kzd-po-povod-diskriminatsionno-otnosheni": "4885a59754b97704a6756628e52fd09d4c2132635f1f652cacf605ace77592e7"
+        }
+      },
+      {
+        "slugs": [
+          "zhalba-do-natsionalna-zdravnoosiguritelna-kasa-nzok-za-otkaz-na-meditsinska-pomo",
+          "zhalba-do-natsionalna-zdravnoosiguritelna-kasa-nzok-za-otkaz-na-meditsinska-pomosht-usluga"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "zhalba-do-natsionalna-zdravnoosiguritelna-kasa-nzok-za-otkaz-na-meditsinska-pomo": "7a913f557d5748a759331770efc677fd0ca12dd23f147d11a74515e23c896944",
+          "zhalba-do-natsionalna-zdravnoosiguritelna-kasa-nzok-za-otkaz-na-meditsinska-pomosht-usluga": "1cbb21b5ba6fdc624778d318c9b7e5e95bb88b761332c4d152a87af2b916f3cc"
+        }
+      },
+      {
+        "slugs": [
+          "zhalba-do-obshtinska-administratsiya-otnosno-nerednosti-po-zakona-za-ustroystvo-",
+          "zhalba-do-obshtinska-administratsiya-otnosno-nerednosti-po-zakona-za-ustroystvo-na-teritor"
+        ],
+        "class": "ambiguous_needs_subject_review",
+        "hashes": {
+          "zhalba-do-obshtinska-administratsiya-otnosno-nerednosti-po-zakona-za-ustroystvo-": "a6289896f2cc118d61680bc9d035e99fb4009d493d6b53c837978069dea88ec3",
+          "zhalba-do-obshtinska-administratsiya-otnosno-nerednosti-po-zakona-za-ustroystvo-na-teritor": "9a9412d23224b0f4b4b289bbe87cb393c93f5227cc50ae78bf5fedfd3ca0d7b8"
+        }
+      }
+    ]
+  }
+}
