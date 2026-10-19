@@ -58,7 +58,7 @@ export const ORDER_STATE_LABEL: Record<StaticOrderState, string> = {
 /** Return-page state: only the server-confirmed order state counts; the URL is never proof of payment. */
 export function returnBanner(params: URLSearchParams, order: StaticOrder | undefined): { tone: "info" | "success" | "error"; text: string } | null {
   if (!params.get("order")) return null;
-  if (params.get("cancelled") === "1" && order?.state !== "paid") return { tone: "error", text: "Плащането беше прекратено. Не е взета сума." };
+  if (params.get("cancelled") === "1" && order?.state !== "paid") return { tone: "error", text: "Плащането беше прекъснато. Проверете състоянието на поръчката по-долу." };
   if (!order) return { tone: "info", text: "Проверяваме поръчката…" };
   if (order.state === "paid") return { tone: "success", text: "Плащането е потвърдено. Файлът е във Вашите покупки." };
   if (order.state === "refunded") return { tone: "error", text: ORDER_STATE_LABEL.refunded };
