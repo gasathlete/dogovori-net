@@ -251,7 +251,7 @@ describe("регистър и изолация", () => {
     expect(reg.entries.every((e: { candidateLegalApproval: unknown; status: string }) => e.candidateLegalApproval === null && !/approved/.test(e.status))).toBe(true);
     const rewritten = reg.entries.filter((e: { scope: string }) => e.scope === "rewritten");
     for (const e of rewritten) expect(e.status).toBe("rewritten_candidate_pending_legal_review");
-    expect(new Set(rewritten.map((e: { draftSlug: string }) => e.draftSlug)).size).toBe(5);
+    expect(new Set(rewritten.map((e: { draftSlug: string }) => e.draftSlug)).size).toBe(8);
     for (const e of rewritten) expect(e.resolution).toBe("exact");
   });
   it("протокол за МПС с резервно съвпадение към общия протокол не се брои за преработен", () => {
