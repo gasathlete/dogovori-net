@@ -5109,6 +5109,306 @@ export type Database = {
         }
         Relationships: []
       }
+      static_catalog_asset_reviews: {
+        Row: {
+          asset_id: string
+          asset_sha256: string
+          created_at: string
+          decision: string
+          evidence_note: string | null
+          id: string
+          review_ref: string
+          reviewer_capacity: string
+          reviewer_user_id: string
+        }
+        Insert: {
+          asset_id: string
+          asset_sha256: string
+          created_at?: string
+          decision: string
+          evidence_note?: string | null
+          id?: string
+          review_ref: string
+          reviewer_capacity: string
+          reviewer_user_id: string
+        }
+        Update: {
+          asset_id?: string
+          asset_sha256?: string
+          created_at?: string
+          decision?: string
+          evidence_note?: string | null
+          id?: string
+          review_ref?: string
+          reviewer_capacity?: string
+          reviewer_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "static_catalog_asset_reviews_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "static_catalog_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "static_catalog_asset_reviews_reviewer_user_id_fkey"
+            columns: ["reviewer_user_id"]
+            isOneToOne: false
+            referencedRelation: "static_catalog_reviewers"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      static_catalog_assets: {
+        Row: {
+          amount_cents: number
+          content: string
+          content_sha256: string | null
+          created_at: string
+          currency: string
+          environment: string
+          filename: string
+          id: string
+          legal_acceptance_ref: string
+          legal_accepted_at: string
+          mime_type: string
+          product_key: string
+          reviewer_ref: string
+          revoked_at: string | null
+          source_ref: string | null
+          stripe_price_id: string
+          template_slug: string | null
+          uploaded_by: string | null
+          version: string
+        }
+        Insert: {
+          amount_cents: number
+          content: string
+          content_sha256?: string | null
+          created_at?: string
+          currency?: string
+          environment?: string
+          filename: string
+          id?: string
+          legal_acceptance_ref: string
+          legal_accepted_at: string
+          mime_type: string
+          product_key: string
+          reviewer_ref: string
+          revoked_at?: string | null
+          source_ref?: string | null
+          stripe_price_id: string
+          template_slug?: string | null
+          uploaded_by?: string | null
+          version: string
+        }
+        Update: {
+          amount_cents?: number
+          content?: string
+          content_sha256?: string | null
+          created_at?: string
+          currency?: string
+          environment?: string
+          filename?: string
+          id?: string
+          legal_acceptance_ref?: string
+          legal_accepted_at?: string
+          mime_type?: string
+          product_key?: string
+          reviewer_ref?: string
+          revoked_at?: string | null
+          source_ref?: string | null
+          stripe_price_id?: string
+          template_slug?: string | null
+          uploaded_by?: string | null
+          version?: string
+        }
+        Relationships: []
+      }
+      static_catalog_entitlements: {
+        Row: {
+          asset_id: string
+          asset_sha256: string
+          environment: string
+          order_id: string
+          paid_at: string
+          revoked_at: string | null
+          revoked_reason: string | null
+          stripe_event_id: string
+          stripe_session_id: string
+          user_id: string
+        }
+        Insert: {
+          asset_id: string
+          asset_sha256: string
+          environment?: string
+          order_id: string
+          paid_at: string
+          revoked_at?: string | null
+          revoked_reason?: string | null
+          stripe_event_id: string
+          stripe_session_id: string
+          user_id: string
+        }
+        Update: {
+          asset_id?: string
+          asset_sha256?: string
+          environment?: string
+          order_id?: string
+          paid_at?: string
+          revoked_at?: string | null
+          revoked_reason?: string | null
+          stripe_event_id?: string
+          stripe_session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "static_catalog_entitlements_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "static_catalog_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "static_catalog_entitlements_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "static_catalog_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "static_catalog_entitlements_stripe_event_id_fkey"
+            columns: ["stripe_event_id"]
+            isOneToOne: true
+            referencedRelation: "static_catalog_payment_events"
+            referencedColumns: ["stripe_event_id"]
+          },
+        ]
+      }
+      static_catalog_orders: {
+        Row: {
+          amount_cents: number
+          asset_id: string
+          asset_sha256: string
+          consent_recorded_at: string
+          created_at: string
+          currency: string
+          environment: string
+          id: string
+          immediate_performance_consent: boolean
+          refund_version: string
+          stripe_price_id: string
+          stripe_session_id: string | null
+          terms_accepted: boolean
+          terms_version: string
+          user_id: string
+          withdrawal_loss_acknowledged: boolean
+          withdrawal_version: string
+        }
+        Insert: {
+          amount_cents: number
+          asset_id: string
+          asset_sha256: string
+          consent_recorded_at?: string
+          created_at?: string
+          currency: string
+          environment?: string
+          id: string
+          immediate_performance_consent: boolean
+          refund_version: string
+          stripe_price_id: string
+          stripe_session_id?: string | null
+          terms_accepted: boolean
+          terms_version: string
+          user_id: string
+          withdrawal_loss_acknowledged: boolean
+          withdrawal_version: string
+        }
+        Update: {
+          amount_cents?: number
+          asset_id?: string
+          asset_sha256?: string
+          consent_recorded_at?: string
+          created_at?: string
+          currency?: string
+          environment?: string
+          id?: string
+          immediate_performance_consent?: boolean
+          refund_version?: string
+          stripe_price_id?: string
+          stripe_session_id?: string | null
+          terms_accepted?: boolean
+          terms_version?: string
+          user_id?: string
+          withdrawal_loss_acknowledged?: boolean
+          withdrawal_version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "static_catalog_orders_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "static_catalog_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      static_catalog_payment_events: {
+        Row: {
+          created_at: string
+          environment: string
+          event_at: string
+          kind: string
+          stripe_event_id: string
+          stripe_session_id: string
+        }
+        Insert: {
+          created_at?: string
+          environment?: string
+          event_at: string
+          kind: string
+          stripe_event_id: string
+          stripe_session_id: string
+        }
+        Update: {
+          created_at?: string
+          environment?: string
+          event_at?: string
+          kind?: string
+          stripe_event_id?: string
+          stripe_session_id?: string
+        }
+        Relationships: []
+      }
+      static_catalog_reviewers: {
+        Row: {
+          active: boolean
+          capacity: string
+          created_at: string
+          credential_ref: string | null
+          display_name: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          capacity: string
+          created_at?: string
+          credential_ref?: string | null
+          display_name: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          capacity?: string
+          created_at?: string
+          credential_ref?: string | null
+          display_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       strict_doc_unlocks: {
         Row: {
           created_at: string
@@ -6690,6 +6990,37 @@ export type Database = {
         }
         Returns: Json
       }
+      record_static_catalog_payment: {
+        Args: {
+          p_amount_cents: number
+          p_asset_id: string
+          p_asset_sha256: string
+          p_currency: string
+          p_event_id: string
+          p_order_id: string
+          p_paid_at: string
+          p_price_id: string
+          p_session_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      record_static_catalog_payment_env: {
+        Args: {
+          p_amount_cents: number
+          p_asset_id: string
+          p_asset_sha256: string
+          p_currency: string
+          p_environment: string
+          p_event_id: string
+          p_order_id: string
+          p_paid_at: string
+          p_price_id: string
+          p_session_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       record_web_vital_aggregate: {
         Args: {
           _device_class: string
@@ -6738,6 +7069,25 @@ export type Database = {
           p_model: string
           p_refinement_id: string
           p_request_digest: string
+        }
+        Returns: Json
+      }
+      revoke_static_catalog_payment: {
+        Args: {
+          p_event_at: string
+          p_event_id: string
+          p_kind: string
+          p_session_id: string
+        }
+        Returns: Json
+      }
+      revoke_static_catalog_payment_env: {
+        Args: {
+          p_environment: string
+          p_event_at: string
+          p_event_id: string
+          p_kind: string
+          p_session_id: string
         }
         Returns: Json
       }
