@@ -39,15 +39,19 @@ export type RegistryStatus =
   | "scanned_findings_open"
   | "scanned_no_rule_findings"
   | "candidate_stale_source_changed"
+  /** Записът ползва чужд (generic) файл чрез резервно съвпадение — не е преработен. */
+  | "scope_mismatch_fallback_template"
   | "no_full_text";
 
-export type RegenScope = "rewritten" | "scanned_only" | "not_available";
+export type RegenScope = "rewritten" | "scanned_only" | "fallback_other_template" | "not_available";
 
 /** Тристепенен отговор: „Не знам“ НЕ е „не“. */
 export type TriStateAnswer =
   | { state: "value"; value: string }
   | { state: "no" }
-  | { state: "unknown" };
+  | { state: "unknown" }
+  /** Изрично потвърждение на положителна предпоставка или включване на условен блок. */
+  | { state: "confirmed" };
 
 export type AssemblyMode = "blank" | "personalized_final";
 
@@ -59,6 +63,8 @@ export interface CandidateScenario {
   decisiveFields: readonly string[];
   /** Решаващи факти, които не са поле в текста (напр. „наемът е безсрочен“). Също блокират окончателния документ. */
   preconditions?: readonly string[];
+  /** Само тези полета допускат отговор „не“ (→ „НЕ СЕ ПРИЛАГА“). */
+  nullableFields?: readonly string[];
 }
 
 export interface LegalBasisReference {

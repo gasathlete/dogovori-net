@@ -12,7 +12,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { allTemplates } from "../src/lib/templateIndex";
-import { loadTemplateDraft as resolveByName } from "../src/lib/templateDraftResolver";
+import { resolveTemplateDraftSelection } from "../src/lib/templateDraftResolver";
 import { TEMPLATE_DRAFT_SLUGS, loadTemplateDraft as loadBySlug } from "../src/data/templateDrafts/index";
 import { DOCUMENT_KITS } from "../src/data/documentKits";
 import { scanTemplateText } from "../src/lib/templateRegen/catalogChecks";
@@ -32,8 +32,6 @@ const sha = (t: string) => createHash("sha256").update(t, "utf8").digest("hex");
 
 const textBySlug = new Map<string, string>();
 for (const s of TEMPLATE_DRAFT_SLUGS) textBySlug.set(s, await loadBySlug(s));
-const slugByText = new Map<string, string>();
-for (const [s, t] of textBySlug) if (!slugByText.has(t)) slugByText.set(t, s);
 
 const kitsByName = new Map<string, string[]>();
 for (const k of DOCUMENT_KITS) for (const i of k.items) kitsByName.set(i.docName, [...(kitsByName.get(i.docName) ?? []), k.id]);
@@ -41,8 +39,7 @@ for (const k of DOCUMENT_KITS) for (const i of k.items) kitsByName.set(i.docName
 // Един запис на реален файл (дедупликация на споделените текстове).
 const targets = new Map<string, { name: string; kits: Set<string> }>();
 for (const e of allTemplates()) {
-  const t = await resolveByName(e.doc.name);
-  const slug = t ? slugByText.get(t) : undefined;
+  const slug = resolveTemplateDraftSelection(e.doc.name)?.slug;
   if (!slug) continue;
   const cur = targets.get(slug) ?? { name: e.doc.name, kits: new Set<string>() };
   for (const k of kitsByName.get(e.doc.name) ?? []) cur.kits.add(k);
