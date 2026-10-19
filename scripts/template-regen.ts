@@ -70,6 +70,18 @@ for (const c of TEMPLATE_CANDIDATES) {
   }
 }
 
+// Пояснителни текстове (templateContent) — същите правила за всички документи.
+const contentScan: { slug: string; rules: string[] }[] = [];
+let contentFiles = 0;
+for (const s of [...new Set(registry.entries.map((e) => e.draftSlug).filter(Boolean) as string[])].sort()) {
+  let c: unknown;
+  try { c = (await import(`../src/data/templateContent/${s}.ts`)).default; } catch { continue; }
+  contentFiles++;
+  const text = JSON.stringify(c).replace(/\\n/g, " ");
+  const rules = [...new Set(scanTemplateText(text).map((f) => f.ruleId))];
+  if (rules.length) contentScan.push({ slug: s, rules });
+}
+writeFileSync(join(OUT, "content-scan.json"), JSON.stringify({ contentFiles, withFindings: contentScan.length, entries: contentScan }, null, 2) + "\n");
 const t = registry.totals;
 const byRule = new Map<string, number>();
 for (const e of registry.entries) if (e.scope === "scanned_only") for (const f of e.findings) byRule.set(f.ruleId, (byRule.get(f.ruleId) ?? 0) + 1);
@@ -96,7 +108,7 @@ const md = `# Регистър за регенериране — ${DATE}
 | Възможни дублиращи файлове (съкратени slug) | ${registry.duplicateDraftSlugs.length} |
 | Файлове, недостижими от каталога | ${registry.orphanDraftSlugs.length} |
 
-## Находки по правило (само сканирани документи)
+## Пояснителни текстове\n- Сканирани файлове: ${contentFiles}; с находки: ${contentScan.length} (виж content-scan.json)\n\n## Находки по правило (само сканирани документи)
 ${[...byRule].sort((a, b) => b[1] - a[1]).map(([r, n]) => `- ${r}: ${n}`).join("\n") || "- няма"}
 
 ## Остатъчни находки в кандидатите

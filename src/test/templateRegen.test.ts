@@ -220,3 +220,85 @@ describe("предпоставки", () => {
     expect(r.status).toBe("blocked");
   });
 });
+
+import { CONTENT_CANDIDATES } from "@/data/templateCandidates/content.v2";
+import { LEGAL_SOURCES, sourceById, sourcesCovering } from "@/lib/templateRegen/sources";
+import { assertCandidateOutputPath, buildEvidencePacket, buildGenerationPrompt, candidateOutputPath } from "@/lib/templateRegen/generationPlan";
+import cNotice from "@/data/templateContent/predizvestie-za-prekratyavane-na-naem";
+import cMutual from "@/data/templateContent/sporazumenie-za-prekratyavane-na-naem-po-vzaimno-saglasie";
+import cParking from "@/data/templateContent/dogovor-za-naem-na-parkomyasto-garazh";
+import cEood from "@/data/templateContent/uchreditelen-akt-na-eood";
+
+const flat = (c: object) => JSON.stringify(c);
+
+describe("пояснения (FAQ) — оригинали срещу кандидати", () => {
+  it("правилата откриват дефектите в текущите пояснения", () => {
+    expect(rules(flat(cNotice)).has("ZZD_228_NOTICE_TERM")).toBe(true);
+    expect(rules(flat(cNotice)).has("MOVABLE_THREE_DAYS")).toBe(true);
+    expect(rules(flat(cMutual)).has("ZZD_229_AS_FORM_RULE")).toBe(true);
+    expect(rules(flat(cParking)).has("ZZD_229_AS_FORM_RULE")).toBe(true);
+    for (const id of ["TZ_115_PARA2", "MIN_CAPITAL_NOT_ONE_EUR", "COMPANY_ARISES_WITH_ACT"]) expect(rules(flat(cEood)).has(id), id).toBe(true);
+  });
+  it("кандидатите нямат находки, не са одобрени и цитират само реални източници", () => {
+    expect(CONTENT_CANDIDATES).toHaveLength(4);
+    for (const c of CONTENT_CANDIDATES) {
+      expect([...rules(flat(c.content))], c.slug).toEqual([]);
+      expect(c.legalApproval).toBeNull();
+      for (const ids of Object.values(c.sourceIds)) for (const id of ids) expect(sourceById(id)?.status, id).toBe("owner_read");
+    }
+    const e = CONTENT_CANDIDATES.find((c) => c.slug === "uchreditelen-akt-na-eood")!.content;
+    expect(flat(e)).toMatch(/1 евро, а минималната стойност на дял — 1 евроцент/);
+    expect(e.intro).toMatch(/възниква с вписването/);
+    const n = flat(CONTENT_CANDIDATES[0].content);
+    expect(n).toMatch(/чл\. 238 ЗЗД/);
+    expect(n).not.toMatch(/три дни/);
+  });
+  it("останалите въпроси и оригиналите остават непроменени", () => {
+    const c = CONTENT_CANDIDATES.find((x) => x.slug === "uchreditelen-akt-na-eood")!.content;
+    expect(c.faq).toHaveLength(cEood.faq.length);
+    expect(cEood.faq.some((f) => /2 евро/.test(f.a))).toBe(true);
+  });
+});
+
+describe("източници", () => {
+  it("недостъпният източник не покрива нищо и бъдещите текстове са отбелязани", () => {
+    expect(sourceById("justice-gov-2026-10-19")!.status).toBe("access_failed");
+    expect(sourcesCovering("ЗЗД 238").length).toBeGreaterThan(0);
+    expect(sourcesCovering("ТЗ 67")).toHaveLength(0);
+    expect(sourceById("tz-mi-apis-2026-07-31")!.caveats.join(" ")).toMatch(/02\.04\.2027.*НЕ се приемат/);
+  });
+});
+
+describe("evidence-aware генериране", () => {
+  const packet = buildEvidencePacket({ kind: "draft", catalogName: "Учредителен акт на ЕООД", slug: "uchreditelen-akt-na-eood", sourceSha256: sha(origEood), originalText: origEood, findings: scanTemplateText(origEood), kits: ["registratsiya-na-eood"] });
+  it("отказва запис в производствения каталог и извън кандидатите", () => {
+    for (const bad of ["src/data/templateDrafts/x.ts", "src/data/templateDrafts/index.ts", "src/data/templateContent/x.ts", "reports/template-regen/generated/../../src/x.ts", "tmp/x.json"]) {
+      expect(() => assertCandidateOutputPath(bad), bad).toThrow();
+    }
+    expect(candidateOutputPath("draft", "uchreditelen-akt-na-eood", sha(origEood))).toMatch(/^reports\/template-regen\/generated\/draft\/uchreditelen-akt-na-eood\.[0-9a-f]{12}\.json$/);
+    expect(() => candidateOutputPath("draft", "../x", sha(origEood))).toThrow();
+  });
+  it("prompt-ът носи доказателствата, без персона, опит или целева дължина", () => {
+    const { system, user } = buildGenerationPrompt(packet);
+    expect(user).toContain(sha(origEood));
+    expect(user).toContain("TZ_154_FOUNDING");
+    expect(user).toContain(origEood.slice(0, 200));
+    expect(user).toContain("kik-info.com/normativna-baza/kodeksi/tz");
+    expect(user).not.toContain("justice.government.bg");
+    expect(system + user).not.toMatch(/години опит|\d{3,5}\s*символа|юрист с/);
+    expect(system).toMatch(/Дължината следва нуждата/);
+    expect(system).toMatch(/не се публикува автоматично/);
+  });
+  it("без оригинален текст или hash не се генерира", () => {
+    expect(() => buildEvidencePacket({ ...packet, originalText: " " })).toThrow("missing_original_text");
+    expect(() => buildEvidencePacket({ ...packet, sourceSha256: "x" })).toThrow("missing_source_hash");
+  });
+  it("старите генератори по заглавие са изведени от употреба", async () => {
+    for (const f of ["gen-drafts-for-catalog.ts", "generate-template-content.ts"]) {
+      const src = fs.readFileSync(path.resolve("scripts", f), "utf8");
+      expect(src).not.toMatch(/writeFileSync|templateDrafts\/index/);
+      expect(src).toMatch(/process\.exit\(1\)/);
+    }
+    expect(LEGAL_SOURCES.length).toBeGreaterThan(0);
+  });
+});

@@ -32,7 +32,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 37
       },
@@ -60,7 +60,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 36
       },
@@ -84,7 +84,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -112,7 +112,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 23
       },
@@ -139,7 +139,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -165,7 +165,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -191,7 +191,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 24
       },
@@ -225,7 +225,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 24
       },
@@ -262,7 +262,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 23
       },
@@ -292,7 +292,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -316,7 +316,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 35
       },
@@ -340,7 +340,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 44
       },
@@ -367,7 +367,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -392,7 +392,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -416,7 +416,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 31
       },
@@ -443,7 +443,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 31
       },
@@ -471,7 +471,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -495,7 +495,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -520,7 +520,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 31
       },
@@ -545,7 +545,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 23
       },
@@ -574,7 +574,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -603,7 +603,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -627,7 +627,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 19
       },
@@ -652,7 +652,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -677,7 +677,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 25
       },
@@ -756,7 +756,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 17
       },
@@ -790,7 +790,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -819,7 +819,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 40
       },
@@ -841,7 +841,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 31
       },
@@ -863,7 +863,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -893,7 +893,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -918,7 +918,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -943,7 +943,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 41
       },
@@ -971,7 +971,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -1004,7 +1004,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -1032,7 +1032,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -1063,7 +1063,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 38
       },
@@ -1091,7 +1091,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -1117,7 +1117,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -1141,7 +1141,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -1166,7 +1166,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -1190,7 +1190,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 36
       },
@@ -1216,7 +1216,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -1272,7 +1272,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -1296,7 +1296,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 35
       },
@@ -1323,7 +1323,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 25
       },
@@ -1349,7 +1349,7 @@
         "При строителство: кои нормативни актове/протоколи са изискуеми."
       ],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 41
       },
@@ -1414,7 +1414,7 @@
         "Дали договорът изисква специална форма или потвърждение на електронни съобщения."
       ],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 52
       },
@@ -1442,7 +1442,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 39
       },
@@ -1469,7 +1469,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -1499,7 +1499,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -1523,7 +1523,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 37
       },
@@ -1550,7 +1550,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 51
       },
@@ -1580,7 +1580,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 37
       },
@@ -1619,7 +1619,7 @@
         "Срок, подновяване, депозит, неустойки — изричен избор, не се попълват автоматично."
       ],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 52
       },
@@ -1644,7 +1644,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 37
       },
@@ -1669,7 +1669,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 19
       },
@@ -1758,7 +1758,7 @@
         "Дали страните искат изрично окончателно уреждане и на кои конкретни вземания."
       ],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 22
       },
@@ -1783,7 +1783,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 36
       },
@@ -1807,7 +1807,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 37
       },
@@ -1834,7 +1834,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -1859,7 +1859,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 18
       },
@@ -1885,7 +1885,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 24
       },
@@ -1907,7 +1907,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 40
       },
@@ -1931,7 +1931,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -1957,7 +1957,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -2010,7 +2010,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 47
       },
@@ -2032,7 +2032,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 40
       },
@@ -2112,7 +2112,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 21
       },
@@ -2137,7 +2137,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -2161,7 +2161,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -2185,7 +2185,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 21
       },
@@ -2212,7 +2212,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -2239,7 +2239,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 25
       },
@@ -2265,7 +2265,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -2290,7 +2290,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -2316,7 +2316,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -2342,7 +2342,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 46
       },
@@ -2366,7 +2366,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 53
       },
@@ -2395,7 +2395,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -2419,7 +2419,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -2475,7 +2475,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 36
       },
@@ -2502,7 +2502,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -2532,7 +2532,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 38
       },
@@ -2560,7 +2560,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 16
       },
@@ -2584,7 +2584,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -2612,7 +2612,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -2637,7 +2637,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -2664,7 +2664,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 36
       },
@@ -2693,7 +2693,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 21
       },
@@ -2718,7 +2718,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -2748,7 +2748,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -2773,7 +2773,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 35
       },
@@ -2809,7 +2809,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 39
       },
@@ -2835,7 +2835,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -2859,7 +2859,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 40
       },
@@ -2884,7 +2884,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 44
       },
@@ -2906,7 +2906,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -2930,7 +2930,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 37
       },
@@ -2955,7 +2955,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 31
       },
@@ -2980,7 +2980,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 38
       },
@@ -3006,7 +3006,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 38
       },
@@ -3031,7 +3031,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 31
       },
@@ -3057,7 +3057,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -3082,7 +3082,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -3219,7 +3219,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -3246,7 +3246,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 36
       },
@@ -3275,7 +3275,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 21
       },
@@ -3300,7 +3300,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -3330,7 +3330,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -3355,7 +3355,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 35
       },
@@ -3391,7 +3391,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 39
       },
@@ -3417,7 +3417,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -3441,7 +3441,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 40
       },
@@ -3466,7 +3466,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 44
       },
@@ -3488,7 +3488,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -3512,7 +3512,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 37
       },
@@ -3539,7 +3539,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -3565,7 +3565,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 25
       },
@@ -3625,7 +3625,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -3649,7 +3649,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 25
       },
@@ -3676,7 +3676,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -3700,7 +3700,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 41
       },
@@ -3725,7 +3725,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -3750,7 +3750,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 53
       },
@@ -3777,7 +3777,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 36
       },
@@ -3805,7 +3805,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -3834,7 +3834,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 53
       },
@@ -3862,7 +3862,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -3890,7 +3890,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -3917,7 +3917,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -3941,7 +3941,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 56
       },
@@ -3963,7 +3963,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 50
       },
@@ -3987,7 +3987,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 56
       },
@@ -4009,7 +4009,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -4033,7 +4033,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 54
       },
@@ -4055,7 +4055,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -4081,7 +4081,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 49
       },
@@ -4103,7 +4103,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 47
       },
@@ -4127,7 +4127,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 46
       },
@@ -4151,7 +4151,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 51
       },
@@ -4177,7 +4177,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -4201,7 +4201,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 43
       },
@@ -4225,7 +4225,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -4247,7 +4247,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -4275,7 +4275,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -4299,7 +4299,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 19
       },
@@ -4321,7 +4321,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 31
       },
@@ -4347,7 +4347,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 39
       },
@@ -4373,7 +4373,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 24
       },
@@ -4397,7 +4397,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -4424,7 +4424,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -4449,7 +4449,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -4471,7 +4471,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -4500,7 +4500,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 25
       },
@@ -4525,7 +4525,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -4554,7 +4554,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 35
       },
@@ -4581,7 +4581,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 1,
         "placeholders": 35
       },
@@ -4610,7 +4610,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 19
       },
@@ -4636,7 +4636,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 2,
         "placeholders": 43
       },
@@ -4661,7 +4661,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 31
       },
@@ -4685,7 +4685,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 48
       },
@@ -4709,7 +4709,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 24
       },
@@ -4731,7 +4731,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 15
       },
@@ -4758,7 +4758,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 51
       },
@@ -4782,7 +4782,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -4806,7 +4806,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 46
       },
@@ -4838,7 +4838,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -4872,7 +4872,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 17
       },
@@ -4901,7 +4901,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -4927,7 +4927,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -5059,7 +5059,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 39
       },
@@ -5081,7 +5081,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 36
       },
@@ -5105,7 +5105,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 20
       },
@@ -5136,7 +5136,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 39
       },
@@ -5161,7 +5161,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 36
       },
@@ -5186,7 +5186,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 46
       },
@@ -5225,7 +5225,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 23
       },
@@ -5247,7 +5247,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -5269,7 +5269,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 37
       },
@@ -5294,7 +5294,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 40
       },
@@ -5323,7 +5323,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 57
       },
@@ -5356,7 +5356,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -5383,7 +5383,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -5412,7 +5412,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -5436,7 +5436,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -5508,7 +5508,7 @@
         "Кои лични данни законът изисква във версията за обявяване."
       ],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -5543,7 +5543,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 49
       },
@@ -5569,7 +5569,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -5598,7 +5598,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 18
       },
@@ -5623,7 +5623,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 17
       },
@@ -5649,7 +5649,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -5676,7 +5676,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -5700,7 +5700,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -5728,7 +5728,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 31
       },
@@ -5754,7 +5754,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -5781,7 +5781,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 36
       },
@@ -5813,7 +5813,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 25
       },
@@ -5839,7 +5839,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 35
       },
@@ -5867,7 +5867,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -5891,7 +5891,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -5919,7 +5919,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 24
       },
@@ -5941,7 +5941,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -5972,7 +5972,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -5999,7 +5999,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 61
       },
@@ -6024,7 +6024,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 56
       },
@@ -6050,7 +6050,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 37
       },
@@ -6074,7 +6074,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 55
       },
@@ -6101,7 +6101,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -6125,7 +6125,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -6152,7 +6152,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -6177,7 +6177,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 31
       },
@@ -6210,7 +6210,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 31
       },
@@ -6239,7 +6239,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -6263,7 +6263,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -6290,7 +6290,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -6319,7 +6319,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -6367,7 +6367,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -6393,7 +6393,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 22
       },
@@ -6419,7 +6419,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -6446,7 +6446,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -6470,7 +6470,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 40
       },
@@ -6497,7 +6497,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 39
       },
@@ -6521,7 +6521,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 23
       },
@@ -6543,7 +6543,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 39
       },
@@ -6567,7 +6567,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 38
       },
@@ -6592,7 +6592,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 31
       },
@@ -6616,7 +6616,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -6638,7 +6638,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 38
       },
@@ -6662,7 +6662,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 45
       },
@@ -6689,7 +6689,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -6723,7 +6723,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -6747,7 +6747,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 49
       },
@@ -6774,7 +6774,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -6813,7 +6813,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 48
       },
@@ -6840,7 +6840,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 45
       },
@@ -6866,7 +6866,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -6892,7 +6892,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 37
       },
@@ -6918,7 +6918,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 57
       },
@@ -6943,7 +6943,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 40
       },
@@ -6979,7 +6979,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 22
       },
@@ -7015,7 +7015,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 40
       },
@@ -7039,7 +7039,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -7068,7 +7068,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 48
       },
@@ -7096,7 +7096,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 35
       },
@@ -7120,7 +7120,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 55
       },
@@ -7145,7 +7145,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 38
       },
@@ -7167,7 +7167,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -7193,7 +7193,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 37
       },
@@ -7215,7 +7215,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 22
       },
@@ -7237,7 +7237,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 50
       },
@@ -7259,7 +7259,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 68
       },
@@ -7281,7 +7281,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 56
       },
@@ -7303,7 +7303,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 68
       },
@@ -7325,7 +7325,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 58
       },
@@ -7347,7 +7347,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -7369,7 +7369,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 18
       },
@@ -7391,7 +7391,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 51
       },
@@ -7413,7 +7413,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 54
       },
@@ -7437,7 +7437,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 69
       },
@@ -7464,7 +7464,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 39
       },
@@ -7490,7 +7490,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 44
       },
@@ -7518,7 +7518,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 47
       },
@@ -7544,7 +7544,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 89
       },
@@ -7568,7 +7568,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 51
       },
@@ -7593,7 +7593,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 42
       },
@@ -7615,7 +7615,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 20
       },
@@ -7637,7 +7637,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 57
       },
@@ -7661,7 +7661,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 39
       },
@@ -7688,7 +7688,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 93
       },
@@ -7710,7 +7710,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 106
       },
@@ -7736,7 +7736,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 75
       },
@@ -7763,7 +7763,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 66
       },
@@ -7788,7 +7788,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 76
       },
@@ -7812,7 +7812,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 80
       },
@@ -7834,7 +7834,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 51
       },
@@ -7858,7 +7858,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 1,
         "placeholders": 94
       },
@@ -7884,7 +7884,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 103
       },
@@ -7906,7 +7906,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 59
       },
@@ -7930,7 +7930,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -7958,7 +7958,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 45
       },
@@ -7982,7 +7982,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 37
       },
@@ -8010,7 +8010,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 40
       },
@@ -8035,7 +8035,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -8062,7 +8062,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 36
       },
@@ -8091,7 +8091,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 21
       },
@@ -8116,7 +8116,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -8146,7 +8146,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -8171,7 +8171,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 35
       },
@@ -8207,7 +8207,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 39
       },
@@ -8233,7 +8233,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -8257,7 +8257,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 40
       },
@@ -8282,7 +8282,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 44
       },
@@ -8304,7 +8304,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -8328,7 +8328,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 37
       },
@@ -8353,7 +8353,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 45
       },
@@ -8380,7 +8380,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -8407,7 +8407,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 38
       },
@@ -8432,7 +8432,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -8458,7 +8458,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 49
       },
@@ -8483,7 +8483,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -8507,7 +8507,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -8533,7 +8533,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -8561,7 +8561,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 18
       },
@@ -8588,7 +8588,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 37
       },
@@ -8616,7 +8616,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -8644,7 +8644,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 25
       },
@@ -8670,7 +8670,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 21
       },
@@ -8694,7 +8694,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -8718,7 +8718,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -8744,7 +8744,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -8770,7 +8770,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 42
       },
@@ -8798,7 +8798,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -8822,7 +8822,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 36
       },
@@ -8846,7 +8846,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -8868,7 +8868,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -8921,7 +8921,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 20
       },
@@ -8947,7 +8947,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -8971,7 +8971,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 37
       },
@@ -9000,7 +9000,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -9022,7 +9022,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 45
       },
@@ -9047,7 +9047,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -9080,7 +9080,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -9104,7 +9104,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 38
       },
@@ -9126,7 +9126,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 41
       },
@@ -9150,7 +9150,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -9174,7 +9174,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 21
       },
@@ -9211,7 +9211,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -9238,7 +9238,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -9266,7 +9266,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 31
       },
@@ -9293,7 +9293,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 15
       },
@@ -9319,7 +9319,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -9347,7 +9347,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 17
       },
@@ -9379,7 +9379,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 21
       },
@@ -9404,7 +9404,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 52
       },
@@ -9430,7 +9430,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 31
       },
@@ -9455,7 +9455,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -9477,7 +9477,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 22
       },
@@ -9499,7 +9499,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 63
       },
@@ -9521,7 +9521,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -9545,7 +9545,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 39
       },
@@ -9569,7 +9569,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 39
       },
@@ -9599,7 +9599,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 41
       },
@@ -9626,7 +9626,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 35
       },
@@ -9653,7 +9653,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 49
       },
@@ -9675,7 +9675,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 37
       },
@@ -9700,7 +9700,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -9807,7 +9807,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 25
       },
@@ -9833,7 +9833,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 35
       },
@@ -9855,7 +9855,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 19
       },
@@ -9880,7 +9880,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -9902,7 +9902,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 46
       },
@@ -9927,7 +9927,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 24
       },
@@ -9949,7 +9949,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 23
       },
@@ -9971,7 +9971,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 1,
         "placeholders": 22
       },
@@ -9993,7 +9993,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -10015,7 +10015,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 18
       },
@@ -10037,7 +10037,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 21
       },
@@ -10068,7 +10068,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 14
       },
@@ -10092,7 +10092,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 42
       },
@@ -10122,7 +10122,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -10149,7 +10149,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 11
       },
@@ -10173,7 +10173,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 19
       },
@@ -10198,7 +10198,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -10222,7 +10222,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 15
       },
@@ -10244,7 +10244,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 21
       },
@@ -10266,7 +10266,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 18
       },
@@ -10293,7 +10293,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -10319,7 +10319,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 36
       },
@@ -10344,7 +10344,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 24
       },
@@ -10374,7 +10374,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -10402,7 +10402,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 31
       },
@@ -10428,7 +10428,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 21
       },
@@ -10457,7 +10457,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -10486,7 +10486,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 56
       },
@@ -10512,7 +10512,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 38
       },
@@ -10534,7 +10534,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 1,
         "placeholders": 29
       },
@@ -10561,7 +10561,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 55
       },
@@ -10585,7 +10585,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 41
       },
@@ -10610,7 +10610,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -10634,7 +10634,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 59
       },
@@ -10658,7 +10658,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 59
       },
@@ -10683,7 +10683,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 64
       },
@@ -10710,7 +10710,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 39
       },
@@ -10736,7 +10736,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 55
       },
@@ -10764,7 +10764,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 67
       },
@@ -10790,7 +10790,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 79
       },
@@ -10832,7 +10832,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 41
       },
@@ -10860,7 +10860,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 54
       },
@@ -10885,7 +10885,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -10928,7 +10928,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -10952,7 +10952,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 45
       },
@@ -10980,7 +10980,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 45
       },
@@ -11002,7 +11002,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 57
       },
@@ -11026,7 +11026,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 54
       },
@@ -11051,7 +11051,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 18
       },
@@ -11077,7 +11077,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 38
       },
@@ -11105,7 +11105,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -11129,7 +11129,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -11154,7 +11154,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 63
       },
@@ -11181,7 +11181,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 36
       },
@@ -11203,7 +11203,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -11227,7 +11227,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 41
       },
@@ -11253,7 +11253,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 43
       },
@@ -11278,7 +11278,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -11302,7 +11302,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 23
       },
@@ -11324,7 +11324,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -11349,7 +11349,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 38
       },
@@ -11373,7 +11373,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 25
       },
@@ -11399,7 +11399,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -11423,7 +11423,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -11449,7 +11449,7 @@
         "При строителство: кои нормативни актове/протоколи са изискуеми."
       ],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 41
       },
@@ -11479,7 +11479,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 38
       },
@@ -11503,7 +11503,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 37
       },
@@ -11527,7 +11527,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 55
       },
@@ -11549,7 +11549,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 23
       },
@@ -11577,7 +11577,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 23
       },
@@ -11602,7 +11602,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 40
       },
@@ -11627,7 +11627,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 24
       },
@@ -11653,7 +11653,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 25
       },
@@ -11678,7 +11678,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 39
       },
@@ -11703,7 +11703,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -11730,7 +11730,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 25
       },
@@ -11757,7 +11757,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 38
       },
@@ -11785,7 +11785,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -11809,7 +11809,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 19
       },
@@ -11833,7 +11833,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -11859,7 +11859,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 23
       },
@@ -11884,7 +11884,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 25
       },
@@ -11912,7 +11912,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -11934,7 +11934,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -11958,7 +11958,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 43
       },
@@ -11980,7 +11980,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 50
       },
@@ -12004,7 +12004,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 39
       },
@@ -12030,7 +12030,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 35
       },
@@ -12054,7 +12054,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 39
       },
@@ -12078,7 +12078,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 55
       },
@@ -12103,7 +12103,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -12125,7 +12125,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -12149,7 +12149,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 52
       },
@@ -12176,7 +12176,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 18
       },
@@ -12201,7 +12201,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -12223,7 +12223,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 23
       },
@@ -12248,7 +12248,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -12273,7 +12273,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 20
       },
@@ -12298,7 +12298,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -12324,7 +12324,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -12348,7 +12348,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -12372,7 +12372,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -12396,7 +12396,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 40
       },
@@ -12418,7 +12418,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 22
       },
@@ -12443,7 +12443,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 23
       },
@@ -12469,7 +12469,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 22
       },
@@ -12491,7 +12491,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -12516,7 +12516,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -12543,7 +12543,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 22
       },
@@ -12567,7 +12567,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 36
       },
@@ -12592,7 +12592,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -12618,7 +12618,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 35
       },
@@ -12644,7 +12644,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -12671,7 +12671,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -12695,7 +12695,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 38
       },
@@ -12719,7 +12719,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -12741,7 +12741,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -12766,7 +12766,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 44
       },
@@ -12791,7 +12791,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 31
       },
@@ -12816,7 +12816,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -12841,7 +12841,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -12866,7 +12866,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 40
       },
@@ -12892,7 +12892,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -12914,7 +12914,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -12940,7 +12940,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -12965,7 +12965,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -12993,7 +12993,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 23
       },
@@ -13020,7 +13020,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 12
       },
@@ -13049,7 +13049,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -13074,7 +13074,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 50
       },
@@ -13098,7 +13098,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 24
       },
@@ -13123,7 +13123,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -13147,7 +13147,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 37
       },
@@ -13171,7 +13171,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -13205,7 +13205,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 23
       },
@@ -13230,7 +13230,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 13
       },
@@ -13258,7 +13258,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -13280,7 +13280,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -13302,7 +13302,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 14
       },
@@ -13324,7 +13324,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 19
       },
@@ -13349,7 +13349,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -13374,7 +13374,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -13396,7 +13396,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 13
       },
@@ -13423,7 +13423,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 38
       },
@@ -13451,7 +13451,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -13477,7 +13477,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 36
       },
@@ -13501,7 +13501,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -13527,7 +13527,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -13552,7 +13552,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 45
       },
@@ -13576,7 +13576,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 24
       },
@@ -13601,7 +13601,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 50
       },
@@ -13625,7 +13625,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 38
       },
@@ -13650,7 +13650,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 36
       },
@@ -13675,7 +13675,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -13701,7 +13701,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 39
       },
@@ -13727,7 +13727,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -13751,7 +13751,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -13777,7 +13777,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -13799,7 +13799,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 25
       },
@@ -13826,7 +13826,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -13851,7 +13851,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -13873,7 +13873,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 36
       },
@@ -13899,7 +13899,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -13921,7 +13921,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -13947,7 +13947,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 31
       },
@@ -13974,7 +13974,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 22
       },
@@ -14000,7 +14000,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -14027,7 +14027,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 43
       },
@@ -14052,7 +14052,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -14078,7 +14078,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 41
       },
@@ -14103,7 +14103,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 44
       },
@@ -14128,7 +14128,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -14155,7 +14155,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -14177,7 +14177,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 39
       },
@@ -14204,7 +14204,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 52
       },
@@ -14233,7 +14233,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 39
       },
@@ -14262,7 +14262,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 51
       },
@@ -14288,7 +14288,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 45
       },
@@ -14312,7 +14312,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 35
       },
@@ -14340,7 +14340,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 25
       },
@@ -14362,7 +14362,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 25
       },
@@ -14386,7 +14386,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 48
       },
@@ -14411,7 +14411,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -14437,7 +14437,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -14463,7 +14463,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 24
       },
@@ -14488,7 +14488,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -14514,7 +14514,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -14541,7 +14541,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 25
       },
@@ -14565,7 +14565,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 12
       },
@@ -14589,7 +14589,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 44
       },
@@ -14614,7 +14614,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -14640,7 +14640,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -14665,7 +14665,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -14689,7 +14689,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 19
       },
@@ -14716,7 +14716,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 36
       },
@@ -14742,7 +14742,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -14766,7 +14766,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -14792,7 +14792,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -14816,7 +14816,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -14841,7 +14841,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 1,
         "placeholders": 27
       },
@@ -14867,7 +14867,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 19
       },
@@ -14894,7 +14894,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -14918,7 +14918,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -14940,7 +14940,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 11
       },
@@ -14965,7 +14965,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 31
       },
@@ -14991,7 +14991,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 27
       },
@@ -15016,7 +15016,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 36
       },
@@ -15042,7 +15042,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 32
       },
@@ -15068,7 +15068,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 36
       },
@@ -15117,7 +15117,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -15143,7 +15143,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 22
       },
@@ -15168,7 +15168,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 40
       },
@@ -15210,7 +15210,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 42
       },
@@ -15235,7 +15235,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 33
       },
@@ -15270,7 +15270,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 28
       },
@@ -15294,7 +15294,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 24
       },
@@ -15321,7 +15321,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 20
       },
@@ -15345,7 +15345,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 31
       },
@@ -15370,7 +15370,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 31
       },
@@ -15394,7 +15394,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 41
       },
@@ -15416,7 +15416,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 23
       },
@@ -15445,7 +15445,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 29
       },
@@ -15471,7 +15471,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 34
       },
@@ -15496,7 +15496,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 30
       },
@@ -16070,7 +16070,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 19
       },
@@ -16119,7 +16119,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 26
       },
@@ -16193,7 +16193,7 @@
       "unverifiedCitations": [],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 48
       },
@@ -16217,7 +16217,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 42
       },
@@ -16293,7 +16293,7 @@
       ],
       "unresolvedFacts": [],
       "checks": {
-        "rules": 17,
+        "rules": 23,
         "bracketImbalance": 0,
         "placeholders": 35
       },
