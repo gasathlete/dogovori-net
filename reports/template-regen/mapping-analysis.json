@@ -5,7 +5,7 @@
     "total": 49,
     "byClass": {
       "no_candidate": 28,
-      "safe_alias_proposal": 21
+      "bilingual_separate_flow": 21
     },
     "entries": [
       {
@@ -64,7 +64,7 @@
       {
         "catalogName": "Двуезичен договор за наем (BG/EN) за чужденци",
         "wantedSlug": "dvuezichen-dogovor-za-naem-bg-en-za-chuzhdentsi",
-        "class": "safe_alias_proposal",
+        "class": "bilingual_separate_flow",
         "candidates": [
           {
             "slug": "dvuezichen-dogovor-za-naem-bg-en-za-chuzhdentsi",
@@ -330,7 +330,7 @@
       {
         "catalogName": "Двуезичен трудов договор (BG/EN)",
         "wantedSlug": "dvuezichen-trudov-dogovor-bg-en",
-        "class": "safe_alias_proposal",
+        "class": "bilingual_separate_flow",
         "candidates": [
           {
             "slug": "dvuezichen-trudov-dogovor-bg-en",
@@ -349,7 +349,7 @@
       {
         "catalogName": "Двуезичен граждански договор / Service Agreement",
         "wantedSlug": "dvuezichen-grazhdanski-dogovor-service-agreement",
-        "class": "safe_alias_proposal",
+        "class": "bilingual_separate_flow",
         "candidates": [
           {
             "slug": "dvuezichen-grazhdanski-dogovor-service-agreement",
@@ -368,7 +368,7 @@
       {
         "catalogName": "Двуезичен NDA — Non-Disclosure Agreement",
         "wantedSlug": "dvuezichen-nda-non-disclosure-agreement",
-        "class": "safe_alias_proposal",
+        "class": "bilingual_separate_flow",
         "candidates": [
           {
             "slug": "dvuezichen-nda-non-disclosure-agreement",
@@ -387,7 +387,7 @@
       {
         "catalogName": "Двуезичен договор за наем на жилище (BG/EN)",
         "wantedSlug": "dvuezichen-dogovor-za-naem-na-zhilishte-bg-en",
-        "class": "safe_alias_proposal",
+        "class": "bilingual_separate_flow",
         "candidates": [
           {
             "slug": "dvuezichen-dogovor-za-naem-na-zhilishte-bg-en",
@@ -406,7 +406,7 @@
       {
         "catalogName": "Двуезичен договор за наем на офис (Commercial Lease)",
         "wantedSlug": "dvuezichen-dogovor-za-naem-na-ofis-commercial-lease",
-        "class": "safe_alias_proposal",
+        "class": "bilingual_separate_flow",
         "candidates": [
           {
             "slug": "dvuezichen-dogovor-za-naem-na-ofis-commercial-lease",
@@ -425,7 +425,7 @@
       {
         "catalogName": "Двуезичен договор за изработка (Works / Service Agreement)",
         "wantedSlug": "dvuezichen-dogovor-za-izrabotka-works-service-agreement",
-        "class": "safe_alias_proposal",
+        "class": "bilingual_separate_flow",
         "candidates": [
           {
             "slug": "dvuezichen-dogovor-za-izrabotka-works-service-agreement",
@@ -444,7 +444,7 @@
       {
         "catalogName": "Двуезичен консултантски договор (Consulting Agreement)",
         "wantedSlug": "dvuezichen-konsultantski-dogovor-consulting-agreement",
-        "class": "safe_alias_proposal",
+        "class": "bilingual_separate_flow",
         "candidates": [
           {
             "slug": "dvuezichen-konsultantski-dogovor-consulting-agreement",
@@ -463,7 +463,7 @@
       {
         "catalogName": "Двуезичен SaaS / Software License Agreement",
         "wantedSlug": "dvuezichen-saas-software-license-agreement",
-        "class": "safe_alias_proposal",
+        "class": "bilingual_separate_flow",
         "candidates": [
           {
             "slug": "dvuezichen-saas-software-license-agreement",
@@ -482,7 +482,7 @@
       {
         "catalogName": "Двуезичен Master Services Agreement + SOW",
         "wantedSlug": "dvuezichen-master-services-agreement-sow",
-        "class": "safe_alias_proposal",
+        "class": "bilingual_separate_flow",
         "candidates": [
           {
             "slug": "dvuezichen-master-services-agreement-sow",
@@ -501,7 +501,7 @@
       {
         "catalogName": "Двуезичен дистрибуторски договор (Distribution Agreement)",
         "wantedSlug": "dvuezichen-distributorski-dogovor-distribution-agreement",
-        "class": "safe_alias_proposal",
+        "class": "bilingual_separate_flow",
         "candidates": [
           {
             "slug": "dvuezichen-distributorski-dogovor-distribution-agreement",
@@ -520,7 +520,7 @@
       {
         "catalogName": "Двуезичен агентски договор (Commercial Agency)",
         "wantedSlug": "dvuezichen-agentski-dogovor-commercial-agency",
-        "class": "safe_alias_proposal",
+        "class": "bilingual_separate_flow",
         "candidates": [
           {
             "slug": "dvuezichen-agentski-dogovor-commercial-agency",
@@ -539,7 +539,7 @@
       {
         "catalogName": "Двуезичен договор за международна продажба на стоки (CISG)",
         "wantedSlug": "dvuezichen-dogovor-za-mezhdunarodna-prodazhba-na-stoki-cisg",
-        "class": "safe_alias_proposal",
+        "class": "bilingual_separate_flow",
         "candidates": [
           {
             "slug": "dvuezichen-dogovor-za-mezhdunarodna-prodazhba-na-stoki-cisg",
@@ -558,7 +558,7 @@
       {
         "catalogName": "Двуезичен договор за заем (Loan Agreement)",
         "wantedSlug": "dvuezichen-dogovor-za-zaem-loan-agreement",
-        "class": "safe_alias_proposal",
+        "class": "bilingual_separate_flow",
         "candidates": [
           {
             "slug": "dvuezichen-dogovor-za-zaem-loan-agreement",
@@ -577,7 +577,7 @@
       {
         "catalogName": "Двуезичен Term Sheet за инвестиция",
         "wantedSlug": "dvuezichen-term-sheet-za-investitsiya",
-        "class": "safe_alias_proposal",
+        "class": "bilingual_separate_flow",
         "candidates": [
           {
             "slug": "dvuezichen-term-sheet-za-investitsiya",
@@ -596,7 +596,7 @@
       {
         "catalogName": "Двуезичен SPA — Share Purchase Agreement",
         "wantedSlug": "dvuezichen-spa-share-purchase-agreement",
-        "class": "safe_alias_proposal",
+        "class": "bilingual_separate_flow",
         "candidates": [
           {
             "slug": "dvuezichen-spa-share-purchase-agreement",
@@ -615,7 +615,7 @@
       {
         "catalogName": "Двуезичен SHA — Shareholders' Agreement",
         "wantedSlug": "dvuezichen-sha-shareholders-agreement",
-        "class": "safe_alias_proposal",
+        "class": "bilingual_separate_flow",
         "candidates": [
           {
             "slug": "dvuezichen-sha-shareholders-agreement",
@@ -634,7 +634,7 @@
       {
         "catalogName": "Двуезичен Employment Offer Letter",
         "wantedSlug": "dvuezichen-employment-offer-letter",
-        "class": "safe_alias_proposal",
+        "class": "bilingual_separate_flow",
         "candidates": [
           {
             "slug": "dvuezichen-employment-offer-letter",
@@ -653,7 +653,7 @@
       {
         "catalogName": "Двуезична Pro Forma Invoice (BG/EN)",
         "wantedSlug": "dvuezichna-pro-forma-invoice-bg-en",
-        "class": "safe_alias_proposal",
+        "class": "bilingual_separate_flow",
         "candidates": [
           {
             "slug": "dvuezichna-pro-forma-invoice-bg-en",
@@ -672,7 +672,7 @@
       {
         "catalogName": "Двуезично пълномощно (Power of Attorney)",
         "wantedSlug": "dvuezichno-palnomoshtno-power-of-attorney",
-        "class": "safe_alias_proposal",
+        "class": "bilingual_separate_flow",
         "candidates": [
           {
             "slug": "dvuezichno-palnomoshtno-power-of-attorney",
@@ -691,7 +691,7 @@
       {
         "catalogName": "Двуезична Data Processing Agreement (DPA, GDPR)",
         "wantedSlug": "dvuezichna-data-processing-agreement-dpa-gdpr",
-        "class": "safe_alias_proposal",
+        "class": "bilingual_separate_flow",
         "candidates": [
           {
             "slug": "dvuezichna-data-processing-agreement-dpa-gdpr",

@@ -12,6 +12,8 @@ export type MappingClass =
   | "identical_hash"
   | "safe_alias_proposal"
   | "official_form_no_ai"
+  /** Двуезични документи: файлът съществува, но resolver-ът нарочно ги изключва — обслужват се от отделния двуезичен поток. Не е mapping fix. */
+  | "bilingual_separate_flow"
   | "ambiguous_needs_subject_review"
   | "no_candidate";
 
@@ -35,7 +37,8 @@ export function classifyMissing(name: string, wantedSlug: string, orphanSlugs: r
   const ranked = orphanSlugs.map((slug) => ({ slug, score: +similarity(wantedSlug, slug).toFixed(3) }))
     .filter((c) => c.score > 0).sort((a, b) => b.score - a.score).slice(0, 3);
   let cls: MappingClass;
-  if (isOfficialForm(name)) cls = "official_form_no_ai";
+  if (/двуезич/i.test(name)) cls = "bilingual_separate_flow";
+  else if (isOfficialForm(name)) cls = "official_form_no_ai";
   else if (!ranked.length || ranked[0].score < 0.34) cls = "no_candidate";
   else if (ranked[0].score >= 0.75 && (ranked[1]?.score ?? 0) <= ranked[0].score - 0.25) cls = "safe_alias_proposal";
   else cls = "ambiguous_needs_subject_review";
