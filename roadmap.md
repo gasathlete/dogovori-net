@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Main CI 19.10: strict HTTP/AI-parser false positive and Deno typing fixed; full units 2111 passed/4 existing skips, edge 1046/0, Node 26/0, both workflow typechecks and wizard audit passed. Evidence: docs/operations/main-ci-fix-2026-10-19.md. GitHub rerun and unchanged braces advisory remain external release gates.
+
 - [x] Main static commerce installation 19.10: deploy static-catalog/payments-webhook, smoke 401/400/live OFF, verified owner_operator onboarding without asset acceptance; report in docs/operations/static-commerce-main-install-2026-10-19.md. Frontend release and actual accepted live file/price remain parent/owner actions.
 
 - [x] Catalog regen 19.10: inventory 625/576, register, checks, 5 candidate v2 rewrites, tests.

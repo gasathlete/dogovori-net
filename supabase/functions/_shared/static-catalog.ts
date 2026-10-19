@@ -22,10 +22,11 @@ export const isStaticEnv = (v: unknown): v is StaticEnv => v === "sandbox" || v 
 const asEnv = (v: unknown): StaticEnv => isStaticEnv(v) ? v : deny("invalid_environment", 400);
 
 export async function staticRequest(req: Request, keys: readonly string[], limit = 4096): Promise<Record<string, unknown>> {
-  let text: string;
-  try { text = await boundedRequestText(req, limit); } catch { return deny("request_too_large", 413); }
+  // This is an untrusted HTTP request, not model output: never repair partial JSON.
+  let requestBodyText: string;
+  try { requestBodyText = await boundedRequestText(req, limit); } catch { return deny("request_too_large", 413); }
   let body;
-  try { body = JSON.parse(text); } catch { return deny("invalid_body", 400); }
+  try { body = JSON.parse(requestBodyText); } catch { return deny("invalid_body", 400); }
   if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).some((k) => !keys.includes(k))) return deny("invalid_body", 400);
   return body;
 }

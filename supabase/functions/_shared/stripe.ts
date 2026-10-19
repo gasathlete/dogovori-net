@@ -29,7 +29,9 @@ export function createStripeClient(env: StripeEnv): Stripe {
     const baseHeaders = input instanceof Request
       ? new Headers(input.headers)
       : new Headers();
-    for (const [key, value] of new Headers(init?.headers).entries()) {
+    // Deno + npm declarations include a RequestInit variant without headers.
+    const initHeaders = init && "headers" in init ? init.headers : undefined;
+    for (const [key, value] of new Headers(initHeaders).entries()) {
       baseHeaders.set(key, value);
     }
     baseHeaders.set("X-Connection-Api-Key", connectionApiKey);
