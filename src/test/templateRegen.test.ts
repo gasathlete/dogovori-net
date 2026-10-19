@@ -162,24 +162,78 @@ describe("капиталова аритметика (05)", () => {
 });
 
 describe("сглобяване от модули", () => {
-  const s = cand("uchreditelen-akt-na-eood").scenarios[1];
-  const all = Object.fromEntries(s.decisiveFields.map((f) => [f, { state: "value" as const, value: "X" }]));
-  it("„Не знам“ блокира окончателен документ и не става „не“", () => {
-    const r = assembleScenario(s, { ...all, "ФИРМА": { state: "unknown" } }, "personalized_final");
-    expect(r).toEqual({ status: "blocked", missingDecisive: [], unknownDecisive: ["ФИРМА"] });
-    const blank = assembleScenario(s, { "ФИРМА": { state: "unknown" } }, "blank");
-    expect(blank.status).toBe("blank");
+  const c = cand("uchreditelen-akt-na-eood");
+  const s = c.scenarios[0];
+  const placeholders = (t: string) => { const out: string[] = []; let d = 0, st = 0; for (let i = 0; i < t.length; i++) { if (t[i] === "[") { if (d++ === 0) st = i; } else if (t[i] === "]" && --d === 0) out.push(t.slice(st + 1, i).trim()); } return [...new Set(out)]; };
+  const valid: Record<string, string> = { "КАПИТАЛ В EUR": "100", "БРОЙ ДЯЛОВЕ": "100", "НОМИНАЛ НА ДЯЛ В EUR": "1" };
+  const fullAnswers = (sc: typeof s) => Object.fromEntries(placeholders(sc.text).map((f) => [f, { state: "value" as const, value: valid[f] ?? "X" }]));
+  it("„Не знам“ блокира персонализирания документ и не става „не“", () => {
+    const r = assembleScenario(c, s, { ...fullAnswers(s), "ФИРМА": { state: "unknown" } }, "personalized_final");
+    expect(r.status).toBe("blocked");
+    if (r.status === "blocked") expect(r.unknownDecisive).toEqual(["ФИРМА"]);
+    const blank = assembleScenario(c, s, { "ФИРМА": { state: "unknown" } }, "blank");
     if (blank.status === "blank") expect(blank.text).toContain("[ФИРМА]");
   });
-  it("липсващо решаващо поле блокира; бланка запазва маркираните полета", () => {
-    const r = assembleScenario(s, {}, "personalized_final");
+  it("всички отговори „не“ НЕ дават готов документ (решаващи полета и предпоставки)", () => {
+    const allNo = Object.fromEntries(placeholders(s.text).map((f) => [f, { state: "no" as const }]));
+    const r = assembleScenario(c, s, allNo, "personalized_final");
     expect(r.status).toBe("blocked");
-    const b = assembleScenario(s, {}, "blank");
-    if (b.status === "blank") expect(b.openFields).toContain("КАПИТАЛ В EUR");
+    if (r.status === "blocked") expect(r.invalidNo).toEqual(expect.arrayContaining(s.decisiveFields as string[]));
+    const n = cand("predizvestie-za-prekratyavane-na-naem").scenarios.find((x) => x.id === "indefinite.landlord")!;
+    const nAll = Object.fromEntries([...placeholders(n.text), ...n.preconditions!].map((f) => [f, { state: "no" as const }]));
+    const rn = assembleScenario(cand("predizvestie-za-prekratyavane-na-naem"), n, nAll, "personalized_final");
+    expect(rn.status).toBe("blocked");
+    if (rn.status === "blocked") expect(rn.unconfirmedPreconditions).toEqual([...n.preconditions!]);
   });
-  it("пълни отговори → готов; свободна AI клауза → чернова за преглед", () => {
-    expect(assembleScenario(s, all, "personalized_final").status).toBe("final_ready");
-    expect(assembleScenario(s, all, "personalized_final", ["Чл. 11. Нова клауза."]).status).toBe("draft_review_required");
+  it("произволен string не потвърждава предпоставка; само confirmed", () => {
+    const n = cand("predizvestie-za-prekratyavane-na-naem").scenarios.find((x) => x.id === "indefinite.landlord")!;
+    const base = fullAnswers(n);
+    const asString = Object.fromEntries(n.preconditions!.map((p) => [p, { state: "value" as const, value: "да" }]));
+    const r = assembleScenario(cand("predizvestie-za-prekratyavane-na-naem"), n, { ...base, ...asString }, "personalized_final");
+    expect(r.status).toBe("blocked");
+  });
+  it("остатъчни/вложени скоби и условни инструкции блокират", () => {
+    const only = Object.fromEntries(s.decisiveFields.map((f) => [f, { state: "value" as const, value: valid[f] ?? "X" }]));
+    const r = assembleScenario(c, s, only, "personalized_final");
+    expect(r.status).toBe("blocked");
+    if (r.status === "blocked") expect(r.residualPlaceholders.length).toBeGreaterThan(0);
+    const n = cand("predizvestie-za-prekratyavane-na-naem").scenarios.find((x) => x.id === "indefinite.landlord")!;
+    const inner = Object.fromEntries(n.decisiveFields.map((f) => [f, { state: "value" as const, value: "X" }]));
+    const rn = assembleScenario(cand("predizvestie-za-prekratyavane-na-naem"), n, { ...inner, "ДАТА": { state: "value", value: "01.01.2027" } }, "personalized_final");
+    expect(rn.status).toBe("blocked");
+    if (rn.status === "blocked") expect(rn.residualPlaceholders.some((p) => p.startsWith("ПРИ ЮРИДИЧЕСКО ЛИЦЕ ИЛИ ПЪЛНОМОЩНИК"))).toBe(true);
+  });
+  it("грешна капиталова аритметика блокира; публичният препис остава проект", () => {
+    const bad = { ...fullAnswers(s), "БРОЙ ДЯЛОВЕ": { state: "value" as const, value: "3" }, "НОМИНАЛ НА ДЯЛ В EUR": { state: "value" as const, value: "0,33" }, "КАПИТАЛ В EUR": { state: "value" as const, value: "1" } };
+    const r = assembleScenario(c, s, bad, "personalized_final");
+    expect(r.status).toBe("blocked");
+    if (r.status === "blocked") expect(r.validationIssues).toContain("product_mismatch");
+    const pub = c.scenarios.find((x) => x.id === "public_copy")!;
+    const rp = assembleScenario(c, pub, fullAnswers(pub), "personalized_final");
+    expect(rp.status).toBe("blocked");
+    if (rp.status === "blocked") expect(rp.validationIssues).toContain("public_copy_redaction_rules_unresolved");
+  });
+  it("напълно попълнен кандидат е само filled_candidate_draft, никога одобрен; AI клауза → преглед", () => {
+    const r = assembleScenario(c, s, fullAnswers(s), "personalized_final");
+    expect(r).toMatchObject({ status: "filled_candidate_draft", legallyApproved: false });
+    expect(assembleScenario(c, s, fullAnswers(s), "personalized_final", ["Чл. 11. Нова клауза."]).status).toBe("draft_review_required");
+  });
+});
+
+describe("предизвестие — конкретни сценарни дефекти", () => {
+  const c = cand("predizvestie-za-prekratyavane-na-naem");
+  it("безсрочният сценарий изрично изключва наем, уговорен на ден", () => {
+    for (const s of c.scenarios.filter((x) => x.id.startsWith("indefinite."))) {
+      expect(s.text).toContain("наемът не е уговорен на ден");
+      expect(s.preconditions).toContain("Наемът не е уговорен на ден");
+    }
+  });
+  it("развалянето използва срок в дни от получаването, не фиксирана крайна дата", () => {
+    for (const s of c.scenarios.filter((x) => x.id.startsWith("rescission."))) {
+      expect(s.text).not.toMatch(/до \[КРАЙНА ДАТА/);
+      expect(s.text).toContain("тече от деня, следващ получаването");
+      expect(s.decisiveFields).toContain("БРОЙ ДНИ НА ДОПЪЛНИТЕЛНИЯ СРОК");
+    }
   });
 });
 
@@ -192,13 +246,24 @@ describe("регистър и изолация", () => {
     const rewritten = reg.entries.filter((e: { scope: string }) => e.scope === "rewritten");
     for (const e of rewritten) expect(e.status).toBe("rewritten_candidate_pending_legal_review");
     expect(new Set(rewritten.map((e: { draftSlug: string }) => e.draftSlug)).size).toBe(5);
+    for (const e of rewritten) expect(e.resolution).toBe("exact");
+  });
+  it("протокол за МПС с резервно съвпадение към общия протокол не се брои за преработен", () => {
+    const mps = reg.entries.filter((e: { catalogName: string }) => /МПС|автомобил/i.test(e.catalogName) && /протокол/i.test(e.catalogName));
+    expect(mps.length).toBeGreaterThan(0);
+    for (const e of mps) expect(e.scope).not.toBe("rewritten");
+    const c = cand("priemo-predavatelen-protokol");
+    const r = buildRegistry({ date: "t", candidates: [c], allDraftSlugs: [c.slug], kits: [],
+      inputs: [{ catalogName: "Приемо-предавателен протокол за МПС", categoryId: "x", catalogSlug: "priemo-predavatelen-protokol-za-mps", draftSlug: c.slug, resolution: "fuzzy", sourceSha256: c.baseSourceSha256, text: "Протокол [ДАТА]" }] });
+    expect(r.entries[0]).toMatchObject({ scope: "fallback_other_template", status: "scope_mismatch_fallback_template" });
+    expect(r.totals.rewrittenCandidates).toBe(0);
   });
   it("промяна на оригинала обезсилва кандидата и маркира комплекта", () => {
     const c = cand("uchreditelen-akt-na-eood");
     const r = buildRegistry({
       date: "t", candidates: [c], allDraftSlugs: [c.slug],
       kits: [{ id: "k", items: [{ docName: "Учредителен акт на ЕООД" }] }],
-      inputs: [{ catalogName: "Учредителен акт на ЕООД", categoryId: "korp", catalogSlug: c.slug, draftSlug: c.slug, sourceSha256: "0".repeat(64), text: origEood }],
+      inputs: [{ catalogName: "Учредителен акт на ЕООД", categoryId: "korp", catalogSlug: c.slug, draftSlug: c.slug, resolution: "exact", sourceSha256: "0".repeat(64), text: origEood }],
     });
     expect(r.entries[0].status).toBe("candidate_stale_source_changed");
     expect(r.kits[0].status).toBe("needs_recheck");
@@ -219,7 +284,7 @@ describe("предпоставки", () => {
   it("непотвърдена безсрочност блокира окончателното предизвестие по чл. 238", () => {
     const s = cand("predizvestie-za-prekratyavane-na-naem").scenarios.find((x) => x.id === "indefinite.landlord")!;
     const vals = Object.fromEntries(s.decisiveFields.map((f) => [f, { state: "value" as const, value: "X" }]));
-    const r = assembleScenario(s, { ...vals, [s.preconditions![0]]: { state: "unknown" } }, "personalized_final");
+    const r = assembleScenario(cand("predizvestie-za-prekratyavane-na-naem"), s, { ...vals, [s.preconditions![0]]: { state: "unknown" } }, "personalized_final");
     expect(r.status).toBe("blocked");
   });
 });
