@@ -118,3 +118,6 @@ REVOKE ALL ON FUNCTION public.record_static_catalog_payment_env(text,uuid,text,t
   public.revoke_static_catalog_payment_env(text,text,text,timestamptz,text),public.guard_static_catalog_review() FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.record_static_catalog_payment_env(text,uuid,text,text,timestamptz,uuid,uuid,text,text,integer,text),
   public.revoke_static_catalog_payment_env(text,text,text,timestamptz,text) TO service_role;
+
+-- Supabase default privileges may otherwise grant table writes to client roles.
+REVOKE ALL ON public.static_catalog_reviewers, public.static_catalog_asset_reviews FROM PUBLIC, anon, authenticated;
