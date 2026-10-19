@@ -10,6 +10,8 @@ export interface RegistryInput {
   categoryId: string;
   catalogSlug: string;
   draftSlug: string | null;
+  /** Как resolver-ът е избрал файла; fuzzy = резервно съвпадение с файл на друг документ. */
+  resolution: "exact" | "fuzzy" | null;
   sourceSha256: string | null;
   text: string | null;
 }
@@ -19,6 +21,7 @@ export interface RegistryEntry {
   categoryId: string;
   catalogSlug: string;
   draftSlug: string | null;
+  resolution: "exact" | "fuzzy" | null;
   sourceSha256: string | null;
   sourceVersion: "v1-original";
   candidateVersion: string | null;
@@ -53,6 +56,8 @@ export interface Registry {
     draftFilesSharedByEntries: number;
     rewrittenDraftFiles: number;
     rewrittenCandidates: number;
+    fuzzyResolvedEntries: number;
+    scopeMismatchEntries: number;
     scannedOnly: number;
     entriesWithOpenFindings: number;
     legalErrorFindings: number;
@@ -88,12 +93,15 @@ export function buildRegistry(args: {
     const cand = candBySlug.get(inp.draftSlug);
     let status: RegistryStatus = findings.length ? "scanned_findings_open" : "scanned_no_rule_findings";
     let scope: RegenScope = "scanned_only";
-    if (cand) {
+    if (cand && inp.resolution === "fuzzy") {
+      scope = "fallback_other_template";
+      status = "scope_mismatch_fallback_template";
+    } else if (cand) {
       scope = "rewritten";
       status = cand.baseSourceSha256 === inp.sourceSha256 ? "rewritten_candidate_pending_legal_review" : "candidate_stale_source_changed";
     }
     return {
-      catalogName: inp.catalogName, categoryId: inp.categoryId, catalogSlug: inp.catalogSlug, draftSlug: inp.draftSlug,
+      catalogName: inp.catalogName, categoryId: inp.categoryId, catalogSlug: inp.catalogSlug, draftSlug: inp.draftSlug, resolution: inp.resolution,
       sourceSha256: inp.sourceSha256, sourceVersion: "v1-original", candidateVersion: cand?.version ?? null, scope, status, findings,
       unverifiedCitations: extractCitations(inp.text),
       unresolvedFacts: cand ? [...cand.unresolvedFacts] : [],
@@ -137,8 +145,10 @@ export function buildRegistry(args: {
       draftFilesSharedByEntries: [...resolved].filter((s) => entries.filter((e) => e.draftSlug === s).length > 1).length,
       rewrittenDraftFiles: new Set(entries.filter((e) => e.scope === "rewritten").map((e) => e.draftSlug)).size,
       rewrittenCandidates: entries.filter((e) => e.scope === "rewritten").length,
+      fuzzyResolvedEntries: entries.filter((e) => e.resolution === "fuzzy").length,
+      scopeMismatchEntries: entries.filter((e) => e.scope === "fallback_other_template").length,
       scannedOnly: entries.filter((e) => e.scope === "scanned_only").length,
-      entriesWithOpenFindings: entries.filter((e) => e.scope === "scanned_only" && e.findings.length).length,
+      entriesWithOpenFindings: entries.filter((e) => (e.scope === "scanned_only" || e.scope === "fallback_other_template") && e.findings.length).length,
       legalErrorFindings: entries.filter((e) => e.scope === "scanned_only").reduce((n, e) => n + e.findings.filter((f) => f.severity === "legal_error").length, 0),
       legallyApprovedCandidates: 0,
     },

@@ -15,7 +15,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { allTemplates } from "../src/lib/templateIndex";
-import { loadTemplateDraft as resolveByName } from "../src/lib/templateDraftResolver";
+import { resolveTemplateDraftSelection } from "../src/lib/templateDraftResolver";
 import { TEMPLATE_DRAFT_SLUGS, loadTemplateDraft as loadBySlug } from "../src/data/templateDrafts/index";
 import { DOCUMENT_KITS } from "../src/data/documentKits";
 import { TEMPLATE_CANDIDATES } from "../src/data/templateCandidates";
@@ -29,15 +29,14 @@ const sha = (t: string) => createHash("sha256").update(t, "utf8").digest("hex");
 
 const slugText = new Map<string, string>();
 for (const s of TEMPLATE_DRAFT_SLUGS) slugText.set(s, await loadBySlug(s));
-const byText = new Map<string, string>();
-for (const [s, t] of slugText) if (!byText.has(t)) byText.set(t, s);
 
 const inputs: RegistryInput[] = [];
 for (const e of allTemplates()) {
-  const text = await resolveByName(e.doc.name);
+  const sel = resolveTemplateDraftSelection(e.doc.name);
+  const text = sel ? slugText.get(sel.slug) ?? null : null;
   inputs.push({
     catalogName: e.doc.name, categoryId: e.category.id, catalogSlug: e.slug,
-    draftSlug: text ? byText.get(text) ?? null : null, sourceSha256: text ? sha(text) : null, text,
+    draftSlug: sel?.slug ?? null, resolution: sel?.method ?? null, sourceSha256: text ? sha(text) : null, text,
   });
 }
 

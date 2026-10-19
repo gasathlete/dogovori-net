@@ -183,6 +183,23 @@ function resolveSlug(docName: string): string | null {
 
 const draftCache = new Map<string, string>();
 
+export interface TemplateDraftSelection {
+  /** Реално избраният файл в templateDrafts. */
+  slug: string;
+  /** exact — slug-ът на името съвпада; fuzzy — резервно съвпадение с друг файл. */
+  method: "exact" | "fuzzy";
+  wantedSlug: string;
+}
+
+/** Същият избор като loadTemplateDraft, но връща самоличността на файла (за регистъра). */
+export function resolveTemplateDraftSelection(docName: string | undefined | null): TemplateDraftSelection | null {
+  if (!docName || isBilingualDocumentName(docName)) return null;
+  const wantedSlug = slugify(docName);
+  const slug = resolveSlug(docName);
+  if (!slug) return null;
+  return { slug, method: slug === wantedSlug ? "exact" : "fuzzy", wantedSlug };
+}
+
 export async function loadTemplateDraft(docName: string | undefined | null): Promise<string | null> {
   if (!docName) return null;
   if (isBilingualDocumentName(docName)) return null;
