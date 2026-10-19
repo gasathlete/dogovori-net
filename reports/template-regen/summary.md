@@ -22,7 +22,7 @@
 | Файлове, недостижими от каталога | 73 |
 
 ## Съпоставка липсващи / недостижими / дубликати (read-only)
-- Без текст: 49 — {"no_candidate":28,"bilingual_separate_flow":21}
+- Без текст: 49 — {"no_candidate":26,"bilingual_separate_flow":21,"official_form_no_ai":2}
 - Недостижими файлове: 73; идентичен хеш с достижим файл: 0
 - Групи възможни дубликати: 54 — {"ambiguous_needs_subject_review":54}
 - Подробно: mapping-analysis.json. Нищо не е пренасочено автоматично.
