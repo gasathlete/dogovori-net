@@ -1,5 +1,6 @@
 # Roadmap
 
+- [x] Narrow launch check 19.10: npm Stripe checks passed, braces still unpatched, main assets empty, actual indexed DOCX/live prices inventoried; report docs/operations/launch-narrow-check-2026-10-19.md. No checkout activation or publication.
 - [x] Main CI 19.10: strict HTTP/AI-parser false positive and Deno typing fixed; full units 2111 passed/4 existing skips, edge 1046/0, Node 26/0, both workflow typechecks and wizard audit passed. Evidence: docs/operations/main-ci-fix-2026-10-19.md. GitHub rerun and unchanged braces advisory remain external release gates.
 
 - [x] Main static commerce installation 19.10: deploy static-catalog/payments-webhook, smoke 401/400/live OFF, verified owner_operator onboarding without asset acceptance; report in docs/operations/static-commerce-main-install-2026-10-19.md. Frontend release and actual accepted live file/price remain parent/owner actions.
@@ -9,7 +10,7 @@
 - [ ] Catalog regen: run evidence-aware generation in batches (needs owner go-ahead for AI cost) and review 24 content files with findings.
 - [ ] Catalog regen: legal review of 5 candidates — waits on lawyer.
 - [ ] Catalog regen: 540 scanned-only files, 49 without text, 73 orphan, 54 duplicate drafts — owner decision/next waves.
-- [ ] bun.lock is v1 on HEAD — regenerate with Bun 1.4.2.
+- [x] bun.lock restored to v3 using Bun 1.4.2; isolated frozen install and scoped override tests passed (19.10 narrow launch check).
 
 - [x] Beta 19.10: sync package.json/bun.lock with Bun 1.4.2, retain v3/scoped overrides, fix SDK advisory, add regression tests and readiness report.
 - [ ] Beta 19.10: braces high advisory — blocked by no published fixed upstream version; compatible dependency replacement/migration requires separate work.

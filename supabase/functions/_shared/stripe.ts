@@ -1,5 +1,5 @@
 import { boundedRequestText, verifyStripeProof, WEBHOOK_MAX_BYTES } from "./webhook-proof.ts";
-import Stripe from "https://esm.sh/stripe@22.0.2";
+import Stripe from "npm:stripe@22.0.2";
 
 const getEnv = (key: string): string => {
   const value = Deno.env.get(key);
