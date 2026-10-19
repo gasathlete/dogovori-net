@@ -191,7 +191,7 @@ export const CATALOG_RULES: readonly Rule[] = [
     severity: "material_risk",
     category: "absolute_legal_claim",
     message: "Внушава, че дружеството възниква със самия акт, а не с вписването.",
-    pattern: /акт[^.]{0,30}(официално\s+)?учредява\s+(еднолично\s+)?дружество/giu,
+    pattern: /акт[^.]{0,60}(официално\s+)?учредява\s+(еднолично\s+)?дружество/giu,
   },
 ];
 
