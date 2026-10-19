@@ -314,7 +314,7 @@ describe("пояснения (FAQ) — оригинали срещу канди�
     for (const id of ["TZ_115_PARA2", "MIN_CAPITAL_NOT_ONE_EUR", "COMPANY_ARISES_WITH_ACT"]) expect(rules(flat(cEood)).has(id), id).toBe(true);
   });
   it("кандидатите нямат находки, не са одобрени и цитират само реални източници", () => {
-    expect(CONTENT_CANDIDATES).toHaveLength(4);
+    expect(CONTENT_CANDIDATES).toHaveLength(7);
     for (const c of CONTENT_CANDIDATES) {
       expect([...rules(flat(c.content))], c.slug).toEqual([]);
       expect(c.legalApproval).toBeNull();
