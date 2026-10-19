@@ -14,7 +14,9 @@
     "lead-magnets:check": "bun run scripts/generate-lead-magnets.ts --check",
     "product-rollout:preflight": "bun run scripts/product-rollout-preflight.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "templates:regen": "bun run ./scripts/template-regen.ts",
+    "templates:check": "bun run ./scripts/template-regen.ts --check"
   },
   "dependencies": {
     "@fontsource-variable/ibm-plex-sans": "^5.2.8",
