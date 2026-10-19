@@ -70,8 +70,8 @@ export interface CandidateScenario {
 export interface LegalBasisReference {
   cite: string;
   /** Нито един цитат не е проверен от системата срещу прочетен актуален текст. */
-  status: "report_cited_unverified" | "existing_text_unverified" | "owner_read_source";
-  /** Задължително при owner_read_source — id от src/lib/templateRegen/sources.ts. */
+  status: "report_cited_unverified" | "existing_text_unverified" | "user_read_source";
+  /** Задължително при user_read_source — id от src/lib/templateRegen/sources.ts. */
   sourceId?: string;
   note?: string;
 }
