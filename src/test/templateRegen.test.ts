@@ -63,7 +63,10 @@ describe("кандидатите v2", () => {
       expect(c.legalApproval).toBeNull();
       expect(c.inheritsHistoricalAcceptance).toBe(false);
       expect(c.status).toBe("candidate_draft");
-      for (const b of c.legalBases) expect(b.status).toMatch(/unverified$/);
+      for (const b of c.legalBases) {
+        if (b.status === "owner_read_source") expect(sourceById(b.sourceId!)?.status, b.cite).toBe("owner_read");
+        else expect(b.status).toMatch(/unverified$/);
+      }
     }
   });
   it("всеки сценарий минава всички каталожни правила, има балансирани полета и решаващите полета съществуват", () => {
