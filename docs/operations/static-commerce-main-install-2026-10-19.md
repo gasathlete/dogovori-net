@@ -1,5 +1,14 @@
 # Main static-commerce installation — 2026-10-19
 
+## Final frontend release — parent verification, 2026-10-19
+
+- Published main b6f19b277efd952e903df6aa14186b4d44e3e082 via deployment ed9ad8e8-3eb0-4dd1-bc85-47e981c71f31. Browser subsequently confirmed https://dogovori.net/gotovi-dokumenti renders the new catalog and login requirement, with purchases explicitly closed. The admin route redirects unauthenticated visitors to auth with its return path.
+- Exact application source 255addc7 passed Tests, Build & SEO, and Static catalog sandbox. Final b6f19b changes only this report; its Tests and Build & SEO also passed. Its separate static typecheck failed on both attempts because esm.sh refused the HTTP/2 stream for stripe@22.0.2/esm/resources/OAuth.d.ts, before application typechecking. Logs read using the dedicated GitHub job-log connector; no check disabled or suppressed.
+- Known security-shield failure remains GHSA-vfj7-8cjw-p6xm in the braces build/development dependency chain; not represented as resolved.
+- Confirmed aggregate Lovable task cost: **38.7 / 100 credits**. Frontend publication does not imply that live commerce was enabled. Main still needs a genuine final uploaded asset, exact-version human approval, actual live price binding, and deliberate live-checkout activation. No fabricated approval, live charge or customer email.
+- Earlier sections below describe their respective installation times and are retained as historical evidence.
+
+
 Verified at 13:59 UTC. Frontend was not published. No payment, email, synthetic asset, asset acceptance, migration or live-checkout enablement was performed.
 
 ## Final narrow redeployment — after 14:12 UTC
