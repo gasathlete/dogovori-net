@@ -48,12 +48,10 @@ export const EVIDENCE_GAPS: readonly { id: string; label: string; match: RegExp;
 ];
 
 const LAW_ABBR = "ЗЗД|ТЗ|КТ|ГПК|ЗЗЛД|ЗЗП|ЗС|СК|ЗН|ЗУТ|ЗДДФЛ|ЗДДС|КСО|ДОПК|ЗАПСП|ЗЕДЕУУ|ЗКИР|ЗТРРЮЛНЦ|ЗМВР|ЗЗБУТ|ОРЗД|НК|АПК|ЗКПО|ЗЕС|ЗМГО";
-const CITE = new RegExp(`чл\\.\\s*(\\d+[а-я]?)((?:\\s*,\\s*(?:ал|т|б)\\.\\s*\\d+[а-я]?)*)\\s*(?:от\\s+(?:the\\s+)?)?(?:${"(?:"}${LAW_ABBR})(?![А-Яа-я])`, "giu");
 
 export function parseCitations(text: string): Citation[] {
   const out: Citation[] = [];
   const re = new RegExp(`чл\\.\\s*(\\d+[а-я]?)((?:\\s*,\\s*(?:ал|т|б)\\.\\s*\\d+[а-я]?)*)\\s*(?:от\\s+)?(${LAW_ABBR})(?![А-Яа-я])`, "giu");
-  void CITE;
   for (const m of text.matchAll(re)) out.push({ raw: m[0], article: m[1], law: m[3].toUpperCase() });
   const seen = new Set<string>();
   return out.filter((c) => { const k = `${c.law}:${c.article}:${c.raw}`; if (seen.has(k)) return false; seen.add(k); return true; });

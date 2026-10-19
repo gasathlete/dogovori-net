@@ -71,8 +71,8 @@ const candidate: TemplateCandidate = {
   addressedReportItems: ["05.1", "05.2", "05.3", "05.4", "05.5", "05.6", "05.7"],
   scenarios,
   legalBases: [
-    { cite: "чл. 113, чл. 114, ал. 3, чл. 115 ТЗ", status: "owner_read_source", sourceId: "tz-kik-2026-10-19" },
-    { cite: "чл. 117, ал. 1 ТЗ", status: "owner_read_source", sourceId: "tz-kik-2026-10-19", note: "1 EUR капитал / 0,01 EUR дял — проверява се от validateCapital" },
+    { cite: "чл. 113, чл. 114, ал. 3, чл. 115 ТЗ", status: "user_read_source", sourceId: "tz-kik-2026-10-19" },
+    { cite: "чл. 117, ал. 1 ТЗ", status: "user_read_source", sourceId: "tz-kik-2026-10-19", note: "1 EUR капитал / 0,01 EUR дял — проверява се от validateCapital" },
     { cite: "чл. 137 и чл. 147 ТЗ", status: "report_cited_unverified", note: "нотариална форма по чл. 137, ал. 4 — не е дерогирана" },
     { cite: "чл. 154, ал. 1 ТЗ", status: "existing_text_unverified" },
     { cite: "чл. 13, ал. 6 ЗТРРЮЛНЦ", status: "report_cited_unverified", note: "кои лични данни се изискват — нерешено" },

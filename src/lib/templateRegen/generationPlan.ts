@@ -42,7 +42,7 @@ export function candidateOutputPath(kind: GenerationKind, slug: string, sourceSh
 export function buildEvidencePacket(args: Omit<EvidencePacket, "sources"> & { sources?: readonly LegalSource[] }): EvidencePacket {
   if (!args.originalText.trim()) throw new Error("missing_original_text");
   if (!/^[0-9a-f]{64}$/.test(args.sourceSha256)) throw new Error("missing_source_hash");
-  return { ...args, sources: (args.sources ?? LEGAL_SOURCES).filter((s) => s.status === "owner_read") };
+  return { ...args, sources: (args.sources ?? LEGAL_SOURCES).filter((s) => s.status === "user_reported_read") };
 }
 
 const RULES = `Правила:

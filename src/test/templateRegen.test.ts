@@ -64,7 +64,7 @@ describe("кандидатите v2", () => {
       expect(c.inheritsHistoricalAcceptance).toBe(false);
       expect(c.status).toBe("candidate_draft");
       for (const b of c.legalBases) {
-        if (b.status === "owner_read_source") expect(sourceById(b.sourceId!)?.status, b.cite).toBe("owner_read");
+        if (b.status === "user_read_source") expect(sourceById(b.sourceId!)?.status, b.cite).toBe("user_reported_read");
         else expect(b.status).toMatch(/unverified$/);
       }
     }
@@ -312,7 +312,7 @@ describe("пояснения (FAQ) — оригинали срещу канди�
     for (const c of CONTENT_CANDIDATES) {
       expect([...rules(flat(c.content))], c.slug).toEqual([]);
       expect(c.legalApproval).toBeNull();
-      for (const ids of Object.values(c.sourceIds)) for (const id of ids) expect(sourceById(id)?.status, id).toBe("owner_read");
+      for (const ids of Object.values(c.sourceIds)) for (const id of ids) expect(sourceById(id)?.status, id).toBe("user_reported_read");
     }
     const e = CONTENT_CANDIDATES.find((c) => c.slug === "uchreditelen-akt-na-eood")!.content;
     expect(flat(e)).toMatch(/1 евро, а минималната стойност на дял — 1 евроцент/);
