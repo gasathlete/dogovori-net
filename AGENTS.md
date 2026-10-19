@@ -1,5 +1,6 @@
 # Project architecture rules
 
+- Edge Stripe runtime and type imports use the same pinned npm SDK version; retain the shared gateway transport and API version to avoid CDN declaration-fetch failures without changing payment semantics.
 - Generate the canonical Bun lock with the exact CI Bun version and verify a frozen install; preserve lock schema and scoped compatibility overrides rather than weakening CI checks.
 
 - Sector packages are curated browse-only compositions over canonical catalog templates; never duplicate legal document text or create a purchase path from browser-provided content.

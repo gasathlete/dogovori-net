@@ -1,4 +1,4 @@
-import type Stripe from "https://esm.sh/stripe@22.0.2";
+import type Stripe from "npm:stripe@22.0.2";
 
 /**
  * Find or create a Stripe customer for a given Lovable userId.
