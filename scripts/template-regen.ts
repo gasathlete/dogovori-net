@@ -85,7 +85,9 @@ const md = `# Регистър за регенериране — ${DATE}
 | С пълен текст (сканирани) | ${t.withFullText} |
 | Без пълен текст | ${t.withoutFullText} |
 | Файлове с пълни текстове | ${t.distinctDraftFiles} |
-| Реално пренаписани (кандидат v2) | ${t.rewrittenCandidates} / ${t.withFullText} |
+| Файлове, достижими от каталога | ${t.reachableDraftFiles} (от тях споделени от няколко записа: ${t.draftFilesSharedByEntries}) |
+| Реално пренаписани файлове (кандидат v2) | ${t.rewrittenDraftFiles} / ${t.reachableDraftFiles} |
+| Каталожни записи, засегнати от пренаписване | ${t.rewrittenCandidates} / ${t.withFullText} |
 | Само сканирани | ${t.scannedOnly} |
 | Сканирани с отворени находки | ${t.entriesWithOpenFindings} |
 | Находки „правна грешка“ в само сканираните | ${t.legalErrorFindings} |

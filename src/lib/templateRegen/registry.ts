@@ -49,6 +49,9 @@ export interface Registry {
     withFullText: number;
     withoutFullText: number;
     distinctDraftFiles: number;
+    reachableDraftFiles: number;
+    draftFilesSharedByEntries: number;
+    rewrittenDraftFiles: number;
     rewrittenCandidates: number;
     scannedOnly: number;
     entriesWithOpenFindings: number;
@@ -130,6 +133,9 @@ export function buildRegistry(args: {
       withFullText: withText.length,
       withoutFullText: entries.length - withText.length,
       distinctDraftFiles: args.allDraftSlugs.length,
+      reachableDraftFiles: resolved.size,
+      draftFilesSharedByEntries: [...resolved].filter((s) => entries.filter((e) => e.draftSlug === s).length > 1).length,
+      rewrittenDraftFiles: new Set(entries.filter((e) => e.scope === "rewritten").map((e) => e.draftSlug)).size,
       rewrittenCandidates: entries.filter((e) => e.scope === "rewritten").length,
       scannedOnly: entries.filter((e) => e.scope === "scanned_only").length,
       entriesWithOpenFindings: entries.filter((e) => e.scope === "scanned_only" && e.findings.length).length,
