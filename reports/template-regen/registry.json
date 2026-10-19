@@ -7,11 +7,11 @@
     "distinctDraftFiles": 618,
     "reachableDraftFiles": 545,
     "draftFilesSharedByEntries": 18,
-    "rewrittenDraftFiles": 5,
-    "rewrittenCandidates": 5,
+    "rewrittenDraftFiles": 8,
+    "rewrittenCandidates": 8,
     "fuzzyResolvedEntries": 5,
     "scopeMismatchEntries": 1,
-    "scannedOnly": 570,
+    "scannedOnly": 567,
     "entriesWithOpenFindings": 22,
     "legalErrorFindings": 0,
     "legallyApprovedCandidates": 0
@@ -4452,12 +4452,16 @@
       "resolution": "exact",
       "sourceSha256": "e34a9611317b1a879e24758c03b19d76c3a77178504ab057e8c8569e154e07aa",
       "sourceVersion": "v1-original",
-      "candidateVersion": null,
-      "scope": "scanned_only",
-      "status": "scanned_no_rule_findings",
+      "candidateVersion": "v2-candidate-2026-10-19",
+      "scope": "rewritten",
+      "status": "rewritten_candidate_pending_legal_review",
       "findings": [],
       "unverifiedCitations": [],
-      "unresolvedFacts": [],
+      "unresolvedFacts": [
+        "Уговорен ли е по-дълъг срок в трудовия или колективния договор.",
+        "Действителната дата на получаване — определя изчисляването на срока.",
+        "При материалноотчетническа длъжност: дали работодателят удължава срока при условията на чл. 326, ал. 3 (общо до 2 месеца)."
+      ],
       "checks": {
         "rules": 23,
         "bracketImbalance": 0,
@@ -4475,12 +4479,15 @@
       "resolution": "exact",
       "sourceSha256": "9e3a95c7fd6c766b7af18de5685285437ded55a16862335e47fa365ddd8be56d",
       "sourceVersion": "v1-original",
-      "candidateVersion": null,
-      "scope": "scanned_only",
-      "status": "scanned_no_rule_findings",
+      "candidateVersion": "v2-candidate-2026-10-19",
+      "scope": "rewritten",
+      "status": "rewritten_candidate_pending_legal_review",
       "findings": [],
       "unverifiedCitations": [],
-      "unresolvedFacts": [],
+      "unresolvedFacts": [
+        "Брой полагащи се дни платен отпуск — не се попълва по подразбиране.",
+        "Дали случаят попада в изключение по чл. 173 (отпуск без разрешение) — отделна проверка."
+      ],
       "checks": {
         "rules": 23,
         "bracketImbalance": 0,
@@ -4684,15 +4691,18 @@
       "resolution": "exact",
       "sourceSha256": "b3562ef928539ad6a48ab9cc45934e0ab044ec7a7e5799a961df94a292166c22",
       "sourceVersion": "v1-original",
-      "candidateVersion": null,
-      "scope": "scanned_only",
-      "status": "scanned_no_rule_findings",
+      "candidateVersion": "v2-candidate-2026-10-19",
+      "scope": "rewritten",
+      "status": "rewritten_candidate_pending_legal_review",
       "findings": [],
       "unverifiedCitations": [
         "чл. 325, ал. 1, т. 1 от КТ",
         "чл. 224, ал. 1 от КТ"
       ],
-      "unresolvedFacts": [],
+      "unresolvedFacts": [
+        "Дали страните договарят обезщетение — сума и срок не се попълват по подразбиране.",
+        "Дължими по закон обезщетения — изчисляват се отделно, не в образеца."
+      ],
       "checks": {
         "rules": 23,
         "bracketImbalance": 0,
@@ -17179,8 +17189,10 @@
         "УП-2 (образец)",
         "УП-3 (образец)"
       ],
-      "status": "unchanged",
-      "changedItems": [],
+      "status": "needs_recheck",
+      "changedItems": [
+        "Споразумение за прекратяване по чл. 325, ал. 1, т. 1 КТ"
+      ],
       "contradictions": []
     },
     {

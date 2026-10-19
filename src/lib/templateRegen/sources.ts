@@ -52,6 +52,27 @@ export const LEGAL_SOURCES: readonly LegalSource[] = [
     caveats: ["Официално разяснение, не нормативен акт."],
   },
   {
+    id: "kt-mlsp-2026-09-29",
+    title: "Кодекс на труда — PDF на МТСП (изменения до ДВ бр. 89/29.09.2026)",
+    url: "https://www.mlsp.government.bg/uploads/37/politiki/trud/zakonodatelstvo/2026/kt-0926.pdf",
+    status: "user_reported_read", readOn: "2026-10-19",
+    articles: ["КТ 325 ал. 1 т. 1", "КТ 326 ал. 1", "КТ 326 ал. 2", "КТ 326 ал. 3", "КТ 326 ал. 4", "КТ 160 ал. 1", "КТ 160 ал. 2", "КТ 160 ал. 3", "КТ 173 ал. 1"],
+    caveats: [
+      "Прочетено от ChatGPT по указание на 19.10.2026 — не от собственика и не е юридическо одобрение.",
+      "Входна страница: https://www.mlsp.government.bg/zakonodatelstvo. Страници в PDF: чл. 325 — 104, чл. 326 — 105, чл. 160 — 63, чл. 173 — 72.",
+      "Прочетени са само изброените алинеи; другите членове на КТ остават непроверени.",
+      "Чл. 160 не се използва за данъчни или осигурителни изводи.",
+    ],
+  },
+  {
+    id: "eurlex-gdpr-2026-10-19",
+    title: "Регламент (ЕС) 2016/679 — EUR-Lex",
+    url: "https://eur-lex.europa.eu/eli/reg/2016/679/oj?locale=bg",
+    status: "access_failed", readOn: "2026-10-19",
+    articles: [],
+    caveats: ["Страницата беше блокирана (JS/anti-bot). Резултат от търсачка не е прочитане."],
+  },
+  {
     id: "justice-gov-2026-10-19",
     title: "Правно-информационна система justice.government.bg",
     url: "https://justice.government.bg/",
@@ -69,3 +90,31 @@ export function sourceById(id: string): LegalSource | undefined {
 export function sourcesCovering(article: string): LegalSource[] {
   return LEGAL_SOURCES.filter((s) => s.status === "user_reported_read" && s.articles.includes(article));
 }
+
+/** Официални образци, открити, но НЕ прочетени изцяло. Не са собствени бланки и не са проверени. */
+export interface OfficialFormProvenance {
+  id: string;
+  title: string;
+  pageUrl: string;
+  fileUrl: string;
+  seenOn: string;
+  status: "partially_read_unverified";
+  readScope: string;
+  notes: readonly string[];
+}
+
+export const OFFICIAL_FORMS: readonly OfficialFormProvenance[] = [
+  {
+    id: "gpk-410-form-2025-07-01",
+    title: "Заявление за издаване на заповед за изпълнение по чл. 410 ГПК — Приложение № 1 към чл. 3 (8 страници)",
+    pageUrl: "https://kotel-rs.justice.bg/bg/7849",
+    fileUrl: "https://kotel-rs.justice.bg/upload/125181/410.pdf",
+    seenOn: "2026-10-19",
+    status: "partially_read_unverified",
+    readScope: "Само заглавието и първите полета. Целият формуляр не е прочетен.",
+    notes: [
+      "Страницата различава стария образец (до 30.06.2025) от новия (от 01.07.2025).",
+      "Не се преразказва и не се предлага като собствена бланка; потребителят се насочва към официалния файл.",
+    ],
+  },
+];
