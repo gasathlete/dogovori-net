@@ -68,7 +68,7 @@ DECLARE o public.static_catalog_orders; a public.static_catalog_assets; e public
 BEGIN
   IF auth.role() IS DISTINCT FROM 'service_role' AND session_user NOT IN ('postgres','supabase_admin') THEN RAISE EXCEPTION 'service_role_required'; END IF;
   IF p_environment NOT IN ('sandbox','live')
-    OR p_session_id !~ CASE p_environment WHEN 'live' THEN '^cs_live_[A-Za-z0-9_]+$' ELSE '^cs_test_[A-Za-z0-9_]+$' END
+    OR p_session_id !~ (CASE p_environment WHEN 'live' THEN '^cs_live_[A-Za-z0-9_]+$' ELSE '^cs_test_[A-Za-z0-9_]+$' END)
     OR p_event_id !~ '^evt_[A-Za-z0-9_]+$' OR p_paid_at IS NULL THEN RAISE EXCEPTION 'invalid_payment_proof'; END IF;
   PERFORM pg_advisory_xact_lock(hashtextextended(p_session_id,0));
   SELECT * INTO o FROM public.static_catalog_orders WHERE id=p_order_id FOR UPDATE;
@@ -102,7 +102,7 @@ DECLARE e public.static_catalog_payment_events;
 BEGIN
   IF auth.role() IS DISTINCT FROM 'service_role' AND session_user NOT IN ('postgres','supabase_admin') THEN RAISE EXCEPTION 'service_role_required'; END IF;
   IF p_environment NOT IN ('sandbox','live')
-    OR p_session_id !~ CASE p_environment WHEN 'live' THEN '^cs_live_[A-Za-z0-9_]+$' ELSE '^cs_test_[A-Za-z0-9_]+$' END
+    OR p_session_id !~ (CASE p_environment WHEN 'live' THEN '^cs_live_[A-Za-z0-9_]+$' ELSE '^cs_test_[A-Za-z0-9_]+$' END)
     OR p_event_id !~ '^evt_[A-Za-z0-9_]+$' OR p_event_at IS NULL OR p_kind NOT IN ('refund_full','dispute_created') THEN RAISE EXCEPTION 'invalid_reversal_proof'; END IF;
   PERFORM pg_advisory_xact_lock(hashtextextended(p_session_id,0));
   INSERT INTO public.static_catalog_payment_events(stripe_event_id,stripe_session_id,event_at,kind,environment)
