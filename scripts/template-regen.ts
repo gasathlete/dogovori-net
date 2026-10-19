@@ -88,7 +88,7 @@ const md = `# Регистър за регенериране — ${DATE}
 | Реално пренаписани (кандидат v2) | ${t.rewrittenCandidates} / ${t.withFullText} |
 | Само сканирани | ${t.scannedOnly} |
 | Сканирани с отворени находки | ${t.entriesWithOpenFindings} |
-| Находки „правна грешка“ в несканирани кандидати | ${t.legalErrorFindings} |
+| Находки „правна грешка“ в само сканираните | ${t.legalErrorFindings} |
 | Правно одобрени кандидати | 0 |
 | Комплекти за повторна проверка | ${registry.kits.filter((k) => k.status === "needs_recheck").length} / ${registry.kits.length} |
 | Възможни дублиращи файлове (съкратени slug) | ${registry.duplicateDraftSlugs.length} |
