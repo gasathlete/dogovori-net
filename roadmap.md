@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Main CI 19.10: reproduce full units, fix strict HTTP/AI-parser false positive, run affected and final full units plus remaining edge/workflow checks; preserve lock and security gates.
+
 - [x] Main static commerce installation 19.10: deploy static-catalog/payments-webhook, smoke 401/400/live OFF, verified owner_operator onboarding without asset acceptance; report in docs/operations/static-commerce-main-install-2026-10-19.md. Frontend release and actual accepted live file/price remain parent/owner actions.
 
 - [x] Catalog regen 19.10: inventory 625/576, register, checks, 5 candidate v2 rewrites, tests.
