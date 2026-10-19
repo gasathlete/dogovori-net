@@ -127,6 +127,7 @@
     {
       "slug": "uchreditelen-akt-na-eood",
       "rules": [
+        "TZ_115_PARA2",
         "MIN_CAPITAL_NOT_ONE_EUR"
       ]
     },
