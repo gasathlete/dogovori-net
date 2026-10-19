@@ -67,6 +67,7 @@ Sources checked read-only on 19.10:
 |---|---|
 | Bun version | 1.4.2 (744846f84), Linux x64; Node 22.22.0 |
 | `bun install --frozen-lockfile` | PASS, exit 0; 838 installs / 917 packages, no changes; byte comparison of lock before/after PASS |
+| Clean temporary install, no node_modules | PASS, exit 0; **802 packages installed in 4.51 s** with frozen lock; lock remains byte-identical |
 | `bun run test` | PASS, exit 0; **162 files, 2045 passed, 4 pre-existing skipped**, 86.54 s; run started 08:49:54 UTC |
 | New dependency regressions | 3 passing tests: lock v3, all manifest/scoped overrides, every resolved SDK instance exactly 1.31.0 |
 | Node security/static/webhook unit suites | **33 passed, 0 failed**, Node 22 experimental strip-types; synthetic fixtures only |
