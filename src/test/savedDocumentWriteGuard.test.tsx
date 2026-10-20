@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("@/lib/prelaunch", async (original) => ({
+  ...(await original<typeof import("@/lib/prelaunch")>()),
+  canStartNewProcessing: () => false,
+}));
+
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: { access_token: "x" } } })) }, functions: { invoke: vi.fn() } },
 }));

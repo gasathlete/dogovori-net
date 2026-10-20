@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { assertSavedDocumentContentWrite } from "@/lib/savedDocumentWriteGuard";
+import { writeSavedDocumentContent } from "@/lib/savedDocumentContent";
 import { useActivationDraft } from "@/hooks/useActivationDraft";
 import { currentDraftRoute } from "@/lib/activationDraft";
 import { OpsHintBar } from "@/components/wizard/OpsHintBar";
@@ -69,7 +69,7 @@ import {
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { canStartNewProcessing } from "@/lib/prelaunch";
 import { openPrelaunchWaitlist } from "@/lib/prelaunchWaitlist";
-import { createResultSaveCoordinator, insertSavedDocumentOnce, type SavedDocumentsClient } from "@/lib/resultSaveCoordinator";
+import { createResultSaveCoordinator } from "@/lib/resultSaveCoordinator";
 import { readReferenceHandoff } from "@/lib/referenceHandoff";
 import { classifyGenerationError, errorClassOf, type GenerationError } from "@/lib/generationErrors";
 import { getOpSessionId, getStableOpKey, releaseStableOpKey, opaqueOpScope } from "@/lib/opSession";
@@ -694,18 +694,14 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
   const insertResult = useCallback(async (r: AIResult, uid: string, id: string, via: "autosave" | "save"): Promise<string> => {
     if (userRef.current?.id !== uid) throw new Error("owner_changed");
     const finalTitle = (name || r.contract.title).trim() || r.contract.title;
-    // Ново съдържание: отказ ПРЕДИ мрежата, докато няма контролиран бекенд.
-    assertSavedDocumentContentWrite({ payload: r.contract });
-    // Стабилен предварително заделен id: повторен опит след изгубен отговор
-    // разпознава вече записания ред вместо да вмъкне втори.
-    const savedId = await insertSavedDocumentOnce(supabase as unknown as SavedDocumentsClient, {
-      id,
-      user_id: uid,
-      kind: "contract",
-      title: finalTitle,
+    // Стабилният UUID остава същият при повторение; съдържанието се записва
+    // само от контролирания сървърен път, без нова квота или модел.
+    const saved = await writeSavedDocumentContent({
+      action: "create", id, kind: "contract", title: finalTitle,
       payload: { ...r.contract, title: finalTitle },
       source_id: categoryId === "__other__" ? "custom" : categoryId,
     });
+    const savedId = saved.id;
     trackDocumentSaved(savedId, { source: "build", doc_key: documentType, via });
     return savedId;
   }, [name, categoryId, documentType]);

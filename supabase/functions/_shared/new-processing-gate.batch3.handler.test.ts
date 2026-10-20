@@ -223,7 +223,7 @@ T("review-document: преградата е след двете възпроиз
   };
   assert(after("lookupReviewOperation(admin, grantPayload)") < gate);
   assert(after("lookupOwnedReviewOperation(admin, ownedBinding)") < gate);
-  for (const later of ["restrictedIdentifierBlock(rawBody", "checkRateLimitStrict", "retrieveLegalContext", "LOVABLE_API_KEY"]) {
+  for (const later of ["restrictedIdentifierBlock(scanBody", "checkRateLimitStrict", "retrieveLegalContext", "LOVABLE_API_KEY"]) {
     const i = src.indexOf(later, 0);
     assert(i > gate, `${later} трябва да е след преградата`);
   }

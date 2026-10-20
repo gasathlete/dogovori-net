@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { canWriteSavedDocumentContent, payloadChanged, SAVED_DOCUMENT_CONTENT_BLOCKED_MESSAGE } from "@/lib/savedDocumentWriteGuard";
+import { payloadChanged } from "@/lib/savedDocumentWriteGuard";
+import { writeSavedDocumentContent } from "@/lib/savedDocumentContent";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ChevronLeft, ChevronRight, Download, FileDown, FileText, Loader2, Pencil, Save, Trash2, User } from "@/icons";
 import { Header } from "@/components/Header";
@@ -120,20 +121,26 @@ export default function DocumentPage() {
   const handleSave = async () => {
     if (!doc) return;
     const contentChanged = payloadChanged(doc.payload, contract);
-    // Ново съдържание е затворено; метаданните (име, контакт, папка) остават.
-    if (contentChanged && !canWriteSavedDocumentContent()) {
-      toast.error(SAVED_DOCUMENT_CONTENT_BLOCKED_MESSAGE);
-      return;
-    }
-    setSaving(true);
     const meta = { title, contact_id: contactId || null, folder_id: folderId || null };
-    const { error } = await supabase
-      .from("saved_documents")
-      .update(contentChanged ? { ...meta, payload: contract as any } : meta)
-      .eq("id", doc.id);
-    setSaving(false);
-    if (error) toast.error("Грешка", { description: error.message });
-    else { toast.success("Промените са запазени"); setDirty(false); }
+    setSaving(true);
+    try {
+      if (contentChanged) {
+        const saved = await writeSavedDocumentContent({
+          action: "update", id: doc.id, expected_updated_at: doc.updated_at,
+          ...meta, payload: contract,
+        });
+        setDoc(saved as unknown as SavedDoc);
+      } else {
+        // Metadata-only writes and existing team organization remain allowed.
+        const { error } = await supabase.from("saved_documents").update(meta).eq("id", doc.id);
+        if (error) throw error;
+        const { data: latest } = await supabase.from("saved_documents").select("*").eq("id", doc.id).maybeSingle();
+        if (latest) setDoc(latest as unknown as SavedDoc);
+      }
+      toast.success("Промените са запазени"); setDirty(false);
+    } catch (e) {
+      toast.error("Грешка", { description: e instanceof Error ? e.message : "Не успяхме да запазим промените." });
+    } finally { setSaving(false); }
   };
 
   const handleDelete = async () => {

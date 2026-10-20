@@ -14,7 +14,7 @@ beforeEach(() => rpc.mockReset());
 
 describe("prelaunch флагове", () => {
   it("отворени са само проверените функции; плащания, анализ на качен файл и непознато име — затворени", () => {
-    const proven = new Set<string>(["document_generation","assistant","blank_download"]);
+    const proven = new Set<string>(["document_generation","document_review","assistant","blank_download"]);
     for (const f of PRELAUNCH_FEATURES) expect(isFeatureAvailable(f)).toBe(proven.has(f));
     expect(isFeatureAvailable("x")).toBe(false);
   });

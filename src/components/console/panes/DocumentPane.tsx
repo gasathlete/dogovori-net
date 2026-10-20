@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { canWriteSavedDocumentContent, payloadChanged, SAVED_DOCUMENT_CONTENT_BLOCKED_MESSAGE } from "@/lib/savedDocumentWriteGuard";
+import { payloadChanged } from "@/lib/savedDocumentWriteGuard";
+import { writeSavedDocumentContent, SavedContentWriteError } from "@/lib/savedDocumentContent";
 import { SAVED_DOCUMENT_UPDATED_EVENT } from "@/lib/assistantEditProposals";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -138,18 +139,23 @@ export function DocumentPane({ documentId, tabId }: { documentId: string; tabId?
     } else {
       try { payload = JSON.parse(rawText); } catch { payload = { ...payload, text: rawText }; }
     }
-    if (!canWriteSavedDocumentContent() && payloadChanged(doc.payload || {}, payload)) {
-      setSaving(false);
-      toast.error(SAVED_DOCUMENT_CONTENT_BLOCKED_MESSAGE);
-      return;
+    let data: unknown = null;
+    let error: { message: string } | null = null;
+    try {
+      if (payloadChanged(doc.payload || {}, payload)) {
+        data = await writeSavedDocumentContent({
+          action: "update", id: forDocumentId, expected_updated_at: baseUpdatedAt, title, payload,
+        });
+      } else {
+        const result = await supabase.from("saved_documents").update({ title })
+          .eq("id", forDocumentId).eq("updated_at", baseUpdatedAt).select("*").maybeSingle();
+        data = result.data; error = result.error;
+      }
+    } catch (e) {
+      if (!(e instanceof SavedContentWriteError && e.code === "revision_conflict")) {
+        error = { message: e instanceof Error ? e.message : "Не успяхме да запазим документа." };
+      }
     }
-    const { data, error } = await supabase
-      .from("saved_documents")
-      .update(canWriteSavedDocumentContent() ? { title, payload } : { title })
-      .eq("id", forDocumentId)
-      .eq("updated_at", baseUpdatedAt)
-      .select("*")
-      .maybeSingle();
     if (!isCurrent()) return;
     setSaving(false);
     if (error) {

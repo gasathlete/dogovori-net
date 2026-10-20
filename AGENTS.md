@@ -12,3 +12,5 @@
 - Catalog template rewrites live as versioned candidates in src/data/templateCandidates bound to the original's SHA-256; originals in templateDrafts stay immutable and app code never imports candidates until a human legal approval step — automation cannot grant or inherit approval.
 - Bulk catalog/AI regeneration goes only through scripts/template-regen-generate.ts with an evidence packet (original text + SHA-256, findings, owner-read sources) and writes only under reports/template-regen/generated; title-only generators that write templateDrafts/templateContent or their index are retired.
 - Raw uploaded-document text is written only by the uploaded-text-intake edge function (service role); the DB trigger enforce_no_client_document_text_write denies client text writes.
+
+- Generated saved-document JSON is persisted by saved-document-content; client raw payload writes stay disabled. Owner/revision binding and metadata ownership checks apply before service-role writes.

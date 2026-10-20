@@ -1,4 +1,5 @@
-import { canWriteSavedDocumentContent } from "@/lib/savedDocumentWriteGuard";
+import { canStartNewProcessing } from "@/lib/prelaunch";
+import { assertNoRestrictedIdentifiers } from "@/lib/privacyGate";
 import { supabase } from "@/integrations/supabase/client";
 import type { GeneratedContract } from "@/lib/exporters";
 import type { CompanionTemplate } from "@/data/companionTemplates";
@@ -51,10 +52,12 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
   // Ново съдържание на документ не се изпраща към сървъра, докато записът на
   // нов текст е затворен — за всеки `kind` ("template" не е доказателство).
   // Вече запазен документ (saved_document_id) остава.
-    if (!p.saved_document_id && !canWriteSavedDocumentContent()) {
+    if (!p.saved_document_id && !canStartNewProcessing(p.kind === "contract" ? "document_generation" : "blank_download")) {
       trackDownload("fail", { ...fnProps, reason: "prelaunch_closed" });
       return { ok: false, error: "content_save_prelaunch_closed", status: 0 };
     }
+
+    if (!p.saved_document_id) assertNoRestrictedIdentifiers([p.title, p.payload]);
 
   // Require AI disclaimer acceptance once per session before any download.
     try {

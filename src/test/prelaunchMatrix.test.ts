@@ -11,7 +11,7 @@ describe("матрица на предварителния режим", () => {
     }
   });
   it("активно право пропуска само за не-AI функции; нова AI обработка/покупка — затворена и за абонати", () => {
-    const proven = new Set<string>(["document_generation","assistant","blank_download"]);
+    const proven = new Set<string>(["document_generation","document_review","assistant","blank_download"]);
     for (const f of PRELAUNCH_FEATURES) {
       expect(canUseFeature(f, { hasActiveEntitlement: true })).toBe(proven.has(f) || !isNewRawProcessingFeature(f));
       expect(canUseFeature(f, { hasActiveEntitlement: false })).toBe(proven.has(f));
