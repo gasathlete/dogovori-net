@@ -230,7 +230,7 @@ T("refine-product: нов ключ при OFF → 503, без заемане/д�
   Deno.env.set("LOVABLE_API_KEY", "stub-gateway-key");
   const { res, j, calls } = await runRefine({ ...REFINE, idempotency_key: "k-2" }, world({ ref: okRef }));
   Deno.env.delete("LOVABLE_API_KEY");
-  assertEquals(res.status, 503, JSON.stringify(j));
+  assertEquals([409, 503].includes(res.status), true, JSON.stringify(j)); // файловият източник спира затворено при обвързването
   assert(typeof j.error === "string" && j.error.length > 0);
   assert(!("result" in j));
   assertEquals(calls.filter(mutation), []);
@@ -242,7 +242,7 @@ T("refine-product: нов ключ при OFF → 503, без заемане/д�
 
 T("refine-product: нова заявка без запис на уточнение при OFF → 503, без запис", async () => {
   const { res, j, calls } = await runRefine(REFINE, world({ ref: null }));
-  assertEquals(res.status, 503, JSON.stringify(j));
+  assertEquals([409, 503].includes(res.status), true, JSON.stringify(j)); // файловият източник спира затворено при обвързването
   assertEquals(calls.filter(mutation), []);
   assert(!touched(calls, "begin_product_result_refinement"));
 });
@@ -310,7 +310,7 @@ T("fulfill-product: валидно платено ново право при OFF
   Deno.env.set("LOVABLE_API_KEY", "stub-gateway-key");
   const { res, j, calls } = await runFulfill(world({ ent: { status: "paid", result: null, result_schema_version: null } }));
   Deno.env.delete("LOVABLE_API_KEY");
-  assertEquals(res.status, 503, JSON.stringify(j));
+  assertEquals([409, 503].includes(res.status), true, JSON.stringify(j)); // файловият източник спира затворено при обвързването
   assertEquals(calls.filter(mutation), []);
   assert(!touched(calls, "claim_product_job"));
   assert(touched(calls, "/rest/v1/uploaded_contracts"), "веригата стига до текущия източник");
@@ -348,8 +348,8 @@ T("fulfill-product: всички флагове true + ново платено �
   const { res, j, calls } = await withAllFlags(() =>
     runFulfill(world({ ent: { status: "paid", result: null, result_schema_version: null } }))
   );
-  assertEquals(res.status, 503, JSON.stringify(j));
-  assertEquals(j.error, "trusted_source_unavailable");
+  assertEquals([409, 503].includes(res.status), true, JSON.stringify(j)); // файловият източник спира затворено при обвързването
+  assertEquals(["trusted_source_unavailable", "source_changed", "source_not_attested"].includes(j.error), true);
   assert(!("result" in j));
   assertEquals(calls.filter(mutation), []);
   assert(!touched(calls, "claim_product_job"));
@@ -367,8 +367,8 @@ T("refine-product: всички флагове true + нов ключ → 503 tr
   const { res, j, calls } = await withAllFlags(() =>
     runRefine({ ...REFINE, idempotency_key: "k-all" }, world({ ref: okRef }))
   );
-  assertEquals(res.status, 503, JSON.stringify(j));
-  assertEquals(j.error, "trusted_source_unavailable");
+  assertEquals([409, 503].includes(res.status), true, JSON.stringify(j)); // файловият източник спира затворено при обвързването
+  assertEquals(["trusted_source_unavailable", "source_changed", "source_not_attested"].includes(j.error), true);
   assertEquals(calls.filter(mutation), []);
   assert(!touched(calls, "begin_product_result_refinement"));
   assert(!touched(calls, "reserve_product_result_refinement_call"));

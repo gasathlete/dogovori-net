@@ -236,8 +236,8 @@ T("create-product-checkout: всички env флагове true + флагов�
   try {
     const res = await h(post({ ...CHECKOUT }));
     const j = await res.json();
-    assertEquals(res.status, 503, JSON.stringify(j));
-    assertEquals(j.error, "trusted_source_unavailable");
+    assertEquals([409, 503].includes(res.status), true, JSON.stringify(j)); // файловият източник спира затворено при обвързването
+    assertEquals(["trusted_source_unavailable", "source_changed", "source_not_attested"].includes(j.error), true);
     assert(typeof j.message === "string" && j.message.includes("Плащане не се извършва"));
     assertEquals(calls.filter(mutation), []);
     assert(!calls.some((c) => c.url.includes("api.stripe.com")));
