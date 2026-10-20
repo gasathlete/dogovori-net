@@ -43,3 +43,13 @@ GitHub Build&SEO run39398933675 е външен отказ, разследван
 - `git diff --check`: успешно.
 
 Разход: няма инструментално измерен incremental `cost_credits`; не се измисля число. Целта е ≤5 допълнителни кредита. Нищо не е публикувано; metadata достига live URL при следваща разрешена публикация.
+
+
+## Release regression repair — 20.10.2026, 09:16 UTC
+Предходното твърдение „lock непроменен“ не описва реалния резултат: в сесията lock е бил понижен до v1 и GitHub Install dependencies е отказал за overrides. Поправено без промяна на manifest, версии, scoped overrides или CI workflows.
+- `git diff 7b3debac45aa6cad5cbd8ffc6f13fb785aafc36e -- package.json`: празен; manifest е съвместим с известния добър lock.
+- `bun.lock` възстановен байт-по-байт от проверения v3 blob `a260168a413111af4d4dd680a9943e88f883606d` на `7b3debac45aa6cad5cbd8ffc6f13fb785aafc36e`.
+- Използван само самостоятелен **Bun 1.4.2** от официалния npm пакет, извън проекта. Системният Bun 1.3.3 не е използван за install/test; няма промяна в глобалния executable.
+- Frozen install с точния текущ manifest/lock в изолирана `/tmp` директория: **успех, 802 packages**; lock след install е идентичен на проектния. Проектният node_modules не е преинсталиран от стар Bun.
+- Съществуващият `src/test/dependencyLock.test.ts`, изпълнен с Bun 1.4.2: **3 passed / 0 failed**; след всички команди schema остава **3**, blob остава `a260168a413111af4d4dd680a9943e88f883606d`.
+- `git diff --check`: чист. Променени само `bun.lock` и този отчет; целият catalog status и rebrand са запазени. Няма broad suites, ръчен build/typecheck, DB/Stripe/flags/deploy/publish. GitHub резултатът след новия commit не е проверен тук. Цел ≤2 кредита; реален incremental разход не е наличен.
