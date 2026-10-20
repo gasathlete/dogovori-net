@@ -75,7 +75,7 @@ AS $function$
     JOIN public.legal_documents d ON d.id = c.document_id AND d.source_id = s.id AND d.version = s.current_version
   ORDER BY f.score DESC
   LIMIT GREATEST(1, LEAST(match_count, 20));
-$function$
+$function$;
 
 REVOKE ALL ON FUNCTION public.match_legal_chunks(vector,text,text[],text[],integer,text[]) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.match_legal_chunks(vector,text,text[],text[],integer,text[]) TO authenticated, service_role;
