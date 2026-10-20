@@ -24,3 +24,10 @@ Deno.test("short or oversized text refused", () => {
 Deno.test("update requires revision", () => {
   assertEquals(validateBody({ action: "update", id, text }), { ok: false, code: "invalid_revision" });
 });
+Deno.test("product_source must be boolean; product text bounded without truncation", async () => {
+  assertEquals(validateBody({ action: "create", id, title: "Т", text, product_source: "yes" }), { ok: false, code: "invalid_product_source" });
+  const { productText } = await import("./index.ts");
+  assertEquals(productText("кратък"), null);
+  assertEquals(productText("а".repeat(60001)), null);
+  assertEquals(productText("  а  б\r\n" + "в".repeat(90))?.text, "а б\n" + "в".repeat(90));
+});

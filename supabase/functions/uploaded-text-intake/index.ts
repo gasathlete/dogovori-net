@@ -18,13 +18,17 @@ import { buildCors } from "../_shared/cors.ts";
 import { isNewProcessingOpen, newProcessingClosedResponse } from "../_shared/new-processing-gate.ts";
 import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
 import { checkRateLimitStrict } from "../_shared/rate-limit.ts";
+import {
+  countProductSourceChars, normalizeProductSourceText, PRODUCT_MAX_SOURCE_CHARS, PRODUCT_MIN_SOURCE_CHARS,
+} from "../_shared/product-source.ts";
+import { OWNER_TEXT_ATTESTATION_VERSION, ownerTextDigest } from "../_shared/product-source-binding.ts";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export const MIN_TEXT = 80;
 export const MAX_TEXT = 200_000;
 export const MAX_TITLE = 300;
-const CREATE_KEYS = new Set(["action", "id", "title", "text", "folder_id", "contact_id"]);
-const UPDATE_KEYS = new Set(["action", "id", "title", "text", "expected_updated_at"]);
+const CREATE_KEYS = new Set(["action", "id", "title", "text", "folder_id", "contact_id", "product_source"]);
+const UPDATE_KEYS = new Set(["action", "id", "title", "text", "expected_updated_at", "product_source"]);
 
 async function sha256Hex(text: string): Promise<string> {
   const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
@@ -33,8 +37,19 @@ async function sha256Hex(text: string): Promise<string> {
 
 export type Validated =
   | { ok: false; code: string }
-  | { ok: true; action: "create"; id: string; title: string; text: string; folder_id: string | null; contact_id: string | null }
-  | { ok: true; action: "update"; id: string; title?: string; text?: string; expected_updated_at: string };
+  | { ok: true; action: "create"; id: string; title: string; text: string; folder_id: string | null; contact_id: string | null; product_source: boolean }
+  | { ok: true; action: "update"; id: string; title?: string; text?: string; expected_updated_at: string; product_source: boolean };
+
+/**
+ * Платен продукт: каноничен (нормализиран) текст, 80..60000 кодови точки,
+ * без тихо отрязване. Връща null при несъответствие.
+ */
+export function productText(text: string): { text: string; chars: number } | null {
+  const t = normalizeProductSourceText(text);
+  const chars = countProductSourceChars(t);
+  if (chars < PRODUCT_MIN_SOURCE_CHARS || chars > PRODUCT_MAX_SOURCE_CHARS) return null;
+  return { text: t, chars };
+}
 
 /** Чиста валидация на тялото (без мрежа) — тествана отделно. */
 export function validateBody(body: unknown): Validated {
@@ -44,6 +59,8 @@ export function validateBody(body: unknown): Validated {
   if (!allowed) return { ok: false, code: "invalid_action" };
   for (const k of Object.keys(b)) if (!allowed.has(k)) return { ok: false, code: "field_not_allowed" };
   if (typeof b.id !== "string" || !UUID.test(b.id)) return { ok: false, code: "invalid_id" };
+  if (b.product_source !== undefined && typeof b.product_source !== "boolean") return { ok: false, code: "invalid_product_source" };
+  const product_source = b.product_source === true;
   const checkTitle = (t: unknown) => typeof t === "string" && t.trim().length > 0 && t.trim().length <= MAX_TITLE;
   const checkText = (t: unknown) => typeof t === "string" && t.trim().length >= MIN_TEXT && t.length <= MAX_TEXT;
   const optUuid = (v: unknown) => v === undefined || v === null || (typeof v === "string" && UUID.test(v));
@@ -56,6 +73,7 @@ export function validateBody(body: unknown): Validated {
       title: (b.title as string).trim(), text: (b.text as string).trim(),
       folder_id: (b.folder_id as string | null | undefined) ?? null,
       contact_id: (b.contact_id as string | null | undefined) ?? null,
+      product_source,
     };
   }
   if (typeof b.expected_updated_at !== "string" || Number.isNaN(Date.parse(b.expected_updated_at))) {
@@ -69,6 +87,7 @@ export function validateBody(body: unknown): Validated {
     title: b.title === undefined ? undefined : (b.title as string).trim(),
     text: b.text === undefined ? undefined : (b.text as string),
     expected_updated_at: b.expected_updated_at,
+    product_source,
   };
 }
 
@@ -95,6 +114,14 @@ Deno.serve(async (req) => {
     try { raw = await req.json(); } catch { return json(400, { error: "invalid_body" }); }
     const v = validateBody(raw);
     if (!v.ok) return json(400, { error: v.code });
+    let productChars: number | null = null;
+    if (v.product_source) {
+      if (v.text === undefined) return json(400, { error: "product_text_required" });
+      const pt = productText(v.text);
+      if (!pt) return json(422, { error: "product_text_length" });
+      v.text = pt.text;
+      productChars = pt.chars;
+    }
 
     // Сървърна преграда за лични идентификатори ПРЕДИ всяка заявка към базата.
     const blocked = restrictedIdentifierBlock([v.title ?? "", v.text ?? ""], cors);
@@ -102,6 +129,22 @@ Deno.serve(async (req) => {
 
     const rl = await checkRateLimitStrict(`uploaded-text:${userId}`, 30, 600);
     if (!rl.ok) return json(rl.unavailable ? 503 : 429, { error: rl.unavailable ? "rate_limit_unavailable" : "rate_limited" });
+
+    // Сървърна разписка (service role) за точния текст и ревизия на реда.
+    const receipt = async (row: { id: string; text_hash: string; updated_at: string }) => {
+      if (productChars === null) return true;
+      const digest = await ownerTextDigest(sha256Hex, {
+        userId, documentId: row.id, textSha256: row.text_hash, charCount: productChars, revision: String(row.updated_at),
+      });
+      const { error } = await admin.from("product_text_attestations").upsert({
+        user_id: userId, uploaded_contract_id: row.id, attestation_version: OWNER_TEXT_ATTESTATION_VERSION,
+        text_sha256: row.text_hash, char_count: productChars, source_revision: String(row.updated_at), digest,
+      }, { onConflict: "uploaded_contract_id,source_revision", ignoreDuplicates: true });
+      return !error;
+    };
+    const productCols = productChars === null
+      ? { product_extraction_status: null, product_extracted_chars: null, product_source_kind: null, product_source_pages: null }
+      : { product_extraction_status: "full", product_extracted_chars: productChars, product_source_kind: "owner_text", product_source_pages: null, product_extraction_at: new Date().toISOString() };
 
     if (v.action === "create") {
       const text_hash = await sha256Hex(v.text);
@@ -112,6 +155,7 @@ Deno.serve(async (req) => {
           existing.source === "paste";
         if (!same) return json(409, { error: "id_conflict" });
         const { user_id: _o, ...row } = existing;
+        if (!(await receipt(row))) return json(500, { error: "attestation_failed" });
         return json(200, { contract: row, replayed: true });
       }
       if (v.folder_id) {
@@ -127,12 +171,14 @@ Deno.serve(async (req) => {
         id: v.id, user_id: userId, folder_id: v.folder_id, contact_id: v.contact_id,
         title: v.title, source: "paste", extracted_text: v.text, text_hash,
         original_filename: null, storage_path: null, mime_type: null, size_bytes: null,
+        ...productCols,
       }).select(ROW_COLS).single();
       if (error) {
         if ((error as { code?: string }).code === "23505") return json(409, { error: "id_conflict" });
         console.error("uploaded-text-intake insert", (error as { code?: string }).code);
         return json(500, { error: "save_failed" });
       }
+      if (!(await receipt(row))) return json(500, { error: "attestation_failed" });
       return json(201, { contract: row, replayed: false });
     }
 
@@ -141,7 +187,9 @@ Deno.serve(async (req) => {
       .select("id,user_id,updated_at").eq("id", v.id).maybeSingle();
     if (!cur || cur.user_id !== userId) return json(404, { error: "not_found" });
     if (Date.parse(cur.updated_at) !== Date.parse(v.expected_updated_at)) return json(409, { error: "revision_conflict" });
-    const patch: Record<string, string> = {};
+    // Всяка промяна инвалидира старата разписка (нова ревизия); без product_source
+    // продуктовите полета се изчистват.
+    const patch: Record<string, unknown> = { ...productCols };
     if (v.title !== undefined) patch.title = v.title;
     if (v.text !== undefined) { patch.extracted_text = v.text; patch.text_hash = await sha256Hex(v.text); }
     const { data: row, error } = await admin.from("uploaded_contracts").update(patch)
@@ -149,6 +197,7 @@ Deno.serve(async (req) => {
       .select(ROW_COLS).maybeSingle();
     if (error) return json(500, { error: "save_failed" });
     if (!row) return json(409, { error: "revision_conflict" });
+    if (!(await receipt(row))) return json(500, { error: "attestation_failed" });
     return json(200, { contract: row });
   } catch (e) {
     console.error("uploaded-text-intake", e instanceof Error ? e.name : "error");
