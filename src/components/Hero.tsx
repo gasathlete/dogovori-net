@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { isFeatureAvailable } from "@/lib/prelaunch";
 import { markFunnelStep, trackFunnelEvent } from "@/lib/funnel";
 import { Link } from "react-router-dom";
 import { prefetchHandlers } from "@/components/PrefetchLink";
@@ -107,11 +108,11 @@ export function Hero() {
 
               <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[12.5px] text-muted-foreground">
                 <Link to="/build" {...prefetchHandlers("/build")} className="inline-flex min-h-[44px] items-center gap-1.5 hover:text-gold">
-                  <Search className="h-3.5 w-3.5" /> Изготвяне · В подготовка
+                  <Search className="h-3.5 w-3.5" /> {isFeatureAvailable("document_generation") ? "Изгответе документ" : "Изготвяне · В подготовка"}
                 </Link>
                 <span className="hidden h-3 w-px bg-border sm:inline-block" />
                 <Link to="/analiz" {...prefetchHandlers("/analiz")} className="inline-flex min-h-[44px] items-center gap-1.5 hover:text-gold">
-                  <FileUp className="h-3.5 w-3.5" /> Проверка · В подготовка
+                  <FileUp className="h-3.5 w-3.5" /> {isFeatureAvailable("document_review") ? "Проверете документ" : "Проверка · В подготовка"}
                 </Link>
               </div>
             </div>
