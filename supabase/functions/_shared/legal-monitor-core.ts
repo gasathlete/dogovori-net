@@ -127,9 +127,21 @@ export function registryTouchForRun(input: {
 
 export type SnapshotDecision = "unchanged" | "new_snapshot";
 
-/** Идентичен checksum => no-op. Различен => нов snapshot и кандидати. */
-export function decideSnapshot(previousChecksum: string | null, newChecksum: string): SnapshotDecision {
-  return previousChecksum && previousChecksum === newChecksum ? "unchanged" : "new_snapshot";
+/** Parser changes require a new processing receipt even for identical source bytes.
+ * Two-argument callers retain checksum-only comparison for legacy integrations.
+ */
+export function decideSnapshot(
+  previousChecksum: string | null,
+  newChecksum: string,
+  parserVersions?: { previous: string | null; current: string },
+): SnapshotDecision {
+  if (!previousChecksum || previousChecksum !== newChecksum) return "new_snapshot";
+  if (parserVersions && (
+    !parserVersions.previous?.trim() ||
+    !parserVersions.current.trim() ||
+    parserVersions.previous !== parserVersions.current
+  )) return "new_snapshot";
+  return "unchanged";
 }
 
 export interface CandidateRow {

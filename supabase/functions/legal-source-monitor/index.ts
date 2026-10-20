@@ -214,7 +214,7 @@ Deno.serve(async (req) => {
               } else {
                 const prevRead = await admin
                   .from("legal_source_snapshots")
-                  .select("checksum")
+                  .select("checksum, parser_version")
                   .eq("source_key", entry.sourceKey)
                   .order("retrieved_at", { ascending: false })
                   .limit(1)
@@ -225,7 +225,10 @@ Deno.serve(async (req) => {
                   outcome = "failed";
                   errorCode = "snapshot_read_failed";
                 } else {
-                const decision = decideSnapshot(prevRead.data?.checksum ?? null, fetched.checksum);
+                const decision = decideSnapshot(prevRead.data?.checksum ?? null, fetched.checksum, {
+                  previous: prevRead.data?.parser_version ?? null,
+                  current: entry.parserVersion,
+                });
 
                 if (decision === "unchanged") {
                   outcome = "no_change";

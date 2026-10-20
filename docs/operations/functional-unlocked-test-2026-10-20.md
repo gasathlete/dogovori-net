@@ -1,5 +1,18 @@
 # Функционален тест „всичко отключено“ — 20.10.2026
 
+## Точна диагноза на оставащата пречка — root, 20.10.2026
+
+Тази секция заменя предишното „липсващият акт не е установен“ с независимо възпроизведена причина.
+
+- Read-only staging доказателство: `eu_op_gdpr_consolidated` е одобрен с `law-pdf-v2`; текущият документ е `law-pdf-v2:b7bc47d01ff1b45d`, 221 части с 768 измерения, 16 C1 маркера, поправените чл. 14/80 са в индексирания текст. Последният snapshot със същия действителен SHA-256 `b7bc47d01ff1b45dbe1a5ecf42279bb76d8777def579902276c793a32ff93a65` още носи `law-pdf-v1`.
+- Root изпълни действителните staging `verifyRegisteredSource`/`loadCoverageInventory`/`evaluateLegalCoverage` върху изчетените DB метаданни и по 10 действителни embedding реда на текущ документ (без запис/AI/HTTP): ОРЗД → `snapshot_untrusted`; КТ/ЗЗД/ЗЗЛД/ГПК са налични; текущият синтетичен трудов документ → employment → `required_law_unavailable`, липсва САМО ОРЗД. Това е възпроизвеждане с in-memory query adapter върху DB снимка, не нов live review. Хипотезата за ЗДДС е отхвърлена за този employment профил.
+- Приетият реален v2 ingestion е `252c2ec4-7cc7-459c-b51b-2953274a04fd`, 23.09.2026 07:28:47–07:29:02 UTC, HTTP 200, 1 008 425 bytes, changed=221. Старият snapshot не е преетикетиран и не е симулирано ново извличане. Правилната корекция е ново реално извличане/обработка v2 и нов receipt, който пази действителния SHA, parser и време.
+- В кода на монитора е намерена същата checksum-only логика: `decideSnapshot` връща unchanged при еднакви bytes, без да отчита parser. MAIN source поправка: при различна/липсваща версия на parser се иска нов snapshot; caller вече чете и подава `parser_version`. Старите двуаргументни извиквания са съвместими; текущият production caller подава версията. Три нови regression теста + 26 съществуващи monitor теста минаха независимо с Node adapter (29/29). Това предотвратява този вид пропуск в monitor кода; не се твърди, че всички отделни law-file ingestion пътища са проверени или че текущият staging snapshot е поправен.
+- **Главната среда изостава значително:** read-only MAIN query установи 5 registry реда, **0 snapshots**, **0 legal_sources с current_version**; 21 legacy source реда са индексирани последно на 11.06.2026. MAIN code registry няма `eu_op_gdpr_consolidated`. Това е отделна действителна пречка за строгото правно заземяване, независимо от gate флаговете/REVIEW_GRANT_SECRET. Staging готовността не се наследява автоматично.
+- Пълните GitHub Tests `39407487614` за `b2bb99d94d3d88222526935e21857ec375a320c7`: **2112 app passed / 4 existing skipped**, **1059 edge passed / 0 failed**; Build & SEO `39407487608`, Security scan и Static catalog sandbox са success. bun.lock е точният v3 blob `a260168a413111af4d4dd680a9943e88f883606d`. Security shield остава failure за известния braces advisory (не е потиснат).
+- Подготвен е конкретен runbook `docs/operations/launch-unblock-2026-10-20.md`. Няма production DB writes, edge deployment, активирани флагове или нови платени Lovable agent задачи в root продължението.
+
+
 ## Актуализация: поправка на generate → review — 20.10.2026
 
 **Кодът е поправен; пълният публичен AI/платежен старт още не е доказан.** Тази актуализация има предимство пред по-старите резултати по-долу. Не е внедряване на MAIN edge функции.
