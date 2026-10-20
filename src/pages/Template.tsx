@@ -13,7 +13,7 @@ import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
-import { GENERAL_ASSISTANCE_NOTE, getPrelaunchStatus } from "@/lib/prelaunch";
+import { GENERAL_ASSISTANCE_NOTE, getPrelaunchStatus, isFeatureAvailable } from "@/lib/prelaunch";
 import { CatalogReviewNotice } from "@/components/CatalogReviewNotice";
 import { getRelatedTemplates, getTemplateBySlug } from "@/lib/templateIndex";
 import { slugify } from "@/lib/slugify";
@@ -45,6 +45,8 @@ import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 
 export default function TemplatePage() {
+  const generationOpen = isFeatureAvailable("document_generation");
+  const blankOpen = isFeatureAvailable("blank_download");
   const { slug } = useParams<{ slug: string }>();
   const entry = useMemo(() => (slug ? getTemplateBySlug(slug) : undefined), [slug]);
 
@@ -307,7 +309,7 @@ export default function TemplatePage() {
                 className="inline-flex shrink-0 items-center gap-1 rounded-md border border-gold/40 px-2.5 py-1.5 text-xs text-gold transition-colors hover:bg-gold/10"
               >
                 <Download className="h-3 w-3" />
-                Разгледайте подготовката за бланка
+                {blankOpen ? "Изтеглете бланка" : "Разгледайте подготовката за бланка"}
               </Link>
             )}
           </div>
@@ -323,21 +325,21 @@ export default function TemplatePage() {
           <p className="mt-5 text-balance text-base leading-relaxed text-muted-foreground md:text-lg anim-rise" style={{ animationDelay: "160ms" }}>{doc.purpose}</p>
           <CatalogReviewNotice />
           <LegalDisclaimer className="mt-4">{GENERAL_ASSISTANCE_NOTE}</LegalDisclaimer>
-          <LegalDisclaimer className="mt-3">
-            {getPrelaunchStatus("blank_download").title} {getPrelaunchStatus("document_generation").title}: {getPrelaunchStatus("document_generation").reason}
-          </LegalDisclaimer>
+          {(!blankOpen || !generationOpen) && <LegalDisclaimer className="mt-3">
+            {!blankOpen && getPrelaunchStatus("blank_download").title} {!generationOpen && `${getPrelaunchStatus("document_generation").title}: ${getPrelaunchStatus("document_generation").reason}`}
+          </LegalDisclaimer>}
 
           <div className="mt-7 flex flex-col items-start gap-2 anim-rise" style={{ animationDelay: "240ms" }}>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/10 px-2.5 py-1 text-[11px] font-medium text-gold">
               <Sparkles className="h-3 w-3" />
-              Изготвяне · В подготовка
+              {generationOpen ? "Изготвяне на документ" : "Изготвяне · В подготовка"}
             </span>
             <div className="flex flex-col items-start gap-2">
               <Link to={wizardHref} onClick={() => trackCreateCta("hero")} className="btn-gold btn-sheen">
-                Разгледайте подготовката <ArrowRight className="h-4 w-4" />
+                {generationOpen ? "Попълнете документа" : "Разгледайте подготовката"} <ArrowRight className="h-4 w-4" />
               </Link>
               <p className="text-[12px] text-muted-foreground">
-                Новото генериране още не е достъпно ·{" "}
+                {generationOpen ? "Попълнете данните и проверете резултата преди подписване." : "Новото генериране още не е достъпно"} ·{" "}
                 <Link to="/catalog" className="hover:text-gold hover:underline">
                   или виж всички шаблони
                 </Link>
@@ -347,7 +349,7 @@ export default function TemplatePage() {
 
           <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground anim-rise" style={{ animationDelay: "320ms" }}>
             <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-success" /> {fallback.labels.heroLegalFit}</li>
-            <li className="inline-flex items-center gap-1.5">PDF и DOCX експорт · В подготовка</li>
+            <li className="inline-flex items-center gap-1.5">{generationOpen ? "PDF и DOCX експорт" : "PDF и DOCX експорт · В подготовка"}</li>
             <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-success" /> Кратък, насочван въпросник</li>
             <li className="inline-flex items-center gap-1.5">Пояснения и подготовка</li>
           </ul>
@@ -381,15 +383,15 @@ export default function TemplatePage() {
             </ul>
             <div className="mt-6 flex flex-col items-start gap-2">
               <Link to={wizardHref} onClick={() => trackCreateCta("content")} className="btn-gold btn-sheen">
-                Разгледайте подготовката <ArrowRight className="h-4 w-4" />
+                {generationOpen ? "Попълнете документа" : "Разгледайте подготовката"} <ArrowRight className="h-4 w-4" />
               </Link>
-              <p className="text-[12px] text-muted-foreground">Новото генериране е в подготовка.</p>
+              <p className="text-[12px] text-muted-foreground">{generationOpen ? "Проверете внимателно преди подписване." : "Новото генериране е в подготовка."}</p>
               <Link
-                to={wizardHref}
+                to={blankOpen ? blankWizardHref : wizardHref}
                 onClick={trackBlankPreview}
                 className="text-[12px] text-muted-foreground underline-offset-4 transition-colors hover:text-gold hover:underline"
               >
-                {SEO_INTENT_BLANK_LINK_LABEL}
+                {blankOpen ? "Изтеглете бланка" : <>{SEO_INTENT_BLANK_LINK_LABEL}</>}
               </Link>
             </div>
           </section>
@@ -425,7 +427,7 @@ export default function TemplatePage() {
         {!draftText && (
           <Section title="Какво включва документът">
             <p className="mb-4 text-sm text-muted-foreground">
-              Типичните раздели зависят от конкретния случай. Новото генериране още не е достъпно.
+              Типичните раздели зависят от конкретния случай. {generationOpen ? "Адаптирайте документа според Вашите обстоятелства." : "Новото генериране още не е достъпно."}
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               {fallback.sectionCards.map((s) => (
@@ -443,7 +445,7 @@ export default function TemplatePage() {
                   onClick={() => trackCreateCta("content")}
                   className="btn-gold btn-sheen"
                 >
-                  Разгледайте подготовката <ArrowRight className="h-4 w-4" />
+                  {generationOpen ? "Попълнете документа" : "Разгледайте подготовката"} <ArrowRight className="h-4 w-4" />
                 </Link>
               )}
               <button
@@ -458,7 +460,7 @@ export default function TemplatePage() {
               </button>
             </div>
             <p className="mt-2 text-[12px] text-muted-foreground">
-              Новото генериране е в подготовка.
+              {generationOpen ? "Проверете внимателно преди подписване." : "Новото генериране е в подготовка."}
             </p>
           </Section>
         )}
@@ -583,10 +585,10 @@ export default function TemplatePage() {
             {GENERAL_ASSISTANCE_NOTE}
           </p>
           <Link to={wizardHref} onClick={() => trackCreateCta("footer")} className="btn-gold btn-sheen mt-7">
-            Разгледайте подготовката <ArrowRight className="h-4 w-4" />
+            {generationOpen ? "Попълнете документа" : "Разгледайте подготовката"} <ArrowRight className="h-4 w-4" />
           </Link>
           <p className="mt-3 text-[12px] text-muted-foreground">
-            Новото генериране е в подготовка.
+            {generationOpen ? "Проверете внимателно преди подписване." : "Новото генериране е в подготовка."}
           </p>
         </section>
       </article>

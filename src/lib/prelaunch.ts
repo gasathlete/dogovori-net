@@ -158,6 +158,10 @@ export const PRELAUNCH_BLOCKERS: Readonly<Record<PrelaunchFeature, readonly stri
 export const GENERAL_ASSISTANCE_NOTE = "Образците и автоматичните предложения са обща помощ и може да изискват адаптация към конкретния случай. Не заменят индивидуална правна консултация.";
 
 export function getPrelaunchStatus(feature: PrelaunchFeature) {
+  if (isFeatureAvailable(feature)) return {
+    title: "Достъпно в тестовия период", reason: GENERAL_ASSISTANCE_NOTE,
+    alternateHref: "/catalog", alternateLabel: "Разгледайте образците",
+  };
   return {
     title: feature === "blank_download"
       ? "Изтеглянето на нова бланка още не е достъпно; можете да разгледате образеца."
