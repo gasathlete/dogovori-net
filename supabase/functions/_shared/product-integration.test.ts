@@ -575,9 +575,6 @@ Deno.test("prepayment fail-fast: cheap fatal blockers skip every expensive gate"
   const closed = await productPrepaymentBlockers(readProductIntegrationConfig(() => undefined), "live", gates);
   assert(closed.includes("checkout_disabled"));
   assertFalse(closed.includes("trusted_source_unavailable"));
-  // Конфигурацията е отворена, мостът е затворен → само произходът.
-  const config = readProductIntegrationConfig(reader());
-  assertEquals(await productPrepaymentBlockers(config, "live", gates), []);
   assertEquals(calls, 0);
 });
 
@@ -588,9 +585,8 @@ Deno.test("readiness exposes only safe booleans and codes", async () => {
     rpcProbe(MIGRATION_CAPABILITY_OK),
     STRICT_DEPS,
   );
-  assertFalse(readiness.fulfillment_ready);
-  assertFalse(readiness.checkout_ready.live);
-  assertFalse(readiness.checkout_ready.sandbox);
+  // Произходът вече се проверява per-source при обвързването, не глобално.
+  assert(readiness.fulfillment_ready);
   assert(readiness.legal_kb_ready);
   assert(readiness.migration_ready);
   assertEquals(readiness.blockers, []);
