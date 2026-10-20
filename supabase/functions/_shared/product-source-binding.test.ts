@@ -12,7 +12,7 @@ const PARAS = [
   "1. Изпълнителят предава резултата до 30 дни от подписване на договора.",
   "2. Възложителят заплаща възнаграждение по банков път в срок от 10 дни.",
 ];
-const text = normalizeProductSourceText(PARAS.join("\n"));
+const text = normalizeProductSourceText(PARAS.join("\n\n"));
 const sha = (v: string) => sha256HexBytes(new TextEncoder().encode(v));
 const xml = (p: string[]) => `<w:document><w:body>${p.map((x) => `<w:p><w:r><w:t>${x}</w:t></w:r></w:p>`).join("")}</w:body></w:document>`;
 const docx = (p = PARAS) => makeZip({ "[Content_Types].xml": "<Types/>", "word/document.xml": xml(p) });
@@ -64,7 +64,7 @@ Deno.test("cross-user document is refused without download", async () => {
 });
 
 Deno.test("forged browser text (consistent hash, different file) is refused", async () => {
-  const forged = normalizeProductSourceText([...PARAS, "3. Добавена от браузъра клауза, която я няма във файла."].join("\n"));
+  const forged = normalizeProductSourceText([...PARAS, "3. Добавена от браузъра клауза, която я няма във файла."].join("\n\n"));
   const row = await rowFor({ extracted_text: forged, text_hash: await sha(forged), product_extracted_chars: countProductSourceChars(forged) });
   const { d } = deps(row, await docx());
   const r = await bindTrustedProductSource(d, { userId: OWNER, documentId: "doc-1", environment: ENV, forceAttestation: true });
