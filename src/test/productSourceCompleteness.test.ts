@@ -40,6 +40,7 @@ vi.mock("pdfjs-dist/legacy/build/pdf.mjs", () => ({
 vi.mock("pdfjs-dist/legacy/build/pdf.worker.mjs?url", () => ({ default: "worker" }));
 
 import { extractProductSource } from "@/lib/productExtraction";
+import { bindTrustedProductSource } from "../../supabase/functions/_shared/product-source-binding";
 import {
   PRODUCT_MAX_SOURCE_CHARS,
   PRODUCT_ACCEPTED_INPUT,
@@ -265,14 +266,30 @@ describe("продуктовият път не ползва общия OCR/кв�
   });
 });
 
-describe("платеният път е обвързан с файл", () => {
+describe("платеният път изисква доказан сървърен източник", () => {
   const page = readFileSync("src/pages/ProductCheckout.tsx", "utf8");
   const upload = readFileSync("src/lib/productUpload.ts", "utf8");
 
-  it("няма поставяне на текст в платената покупка", () => {
-    expect(page).not.toContain("Или поставете текста");
-    expect(page).not.toMatch(/pastedText|pasted/);
-    expect(upload).not.toMatch(/pastedText/);
+  it("owner_text метаданни без сървърна разписка не дават доверен източник", async () => {
+    const text = normalizeProductSourceText(CYRILLIC_PAGE);
+    const ownerId = "91a066ca-d016-42f2-b8e6-7832f9eb77d0";
+    const documentId = "ab1bf2f8-e3d8-4622-9038-a267368fe583";
+    const row = { id: documentId, user_id: ownerId, extracted_text: text,
+      text_hash: await sha256(text), updated_at: "2026-10-20T12:00:00.000Z",
+      product_extraction_status: "full", product_extracted_chars: text.length,
+      product_source_kind: "owner_text", product_source_pages: null, storage_path: null };
+    const db = { from: (table: string) => {
+      const chain: Record<string, unknown> = {};
+      chain.select = () => chain;
+      chain.eq = () => chain;
+      chain.maybeSingle = async () => ({ data: table === "uploaded_contracts" ? row : null });
+      return chain;
+    } };
+    const download = vi.fn(async () => null);
+    const result = await bindTrustedProductSource({ db, download, sha256Hex: sha256 },
+      { userId: ownerId, documentId, environment: "sandbox" });
+    expect(result).toMatchObject({ ok: false, code: "source_not_attested" });
+    expect(download).not.toHaveBeenCalled();
   });
 
   it("не показва технически хеш на клиента и дава смяна на документа", () => {

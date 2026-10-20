@@ -201,7 +201,7 @@ export default function ProductCheckout() {
             </div>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
               {ONE_TIME_PRELAUNCH_MESSAGE} Не е извършено плащане и не е нужно да
-              качвате документ.
+              изпращате документ.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Button
@@ -460,7 +460,7 @@ export default function ProductCheckout() {
           <div className="flex gap-3">
             <FileUp className="mt-0.5 size-5 shrink-0 text-gold" aria-hidden="true" />
             <div>
-              <p className="text-sm font-semibold text-foreground">Вие качвате</p>
+              <p className="text-sm font-semibold text-foreground">Вие поставяте</p>
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
                 {product.page.youProvide[0]}
               </p>

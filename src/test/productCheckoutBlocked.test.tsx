@@ -38,7 +38,8 @@ describe("купуване при затворена преграда", () => {
         </Routes>
       </MemoryRouter>,
     );
-    expect(screen.getByTestId("product-upload-blocked")).toBeInTheDocument();
+    expect(screen.getByLabelText("Пълен текст на документа")).toBeInTheDocument();
+    expect(screen.getByTestId("product-paste")).toHaveTextContent("Файлове (PDF/DOCX) и снимки временно не се приемат.");
     expect(document.getElementById("product-file")).toBeNull();
   });
 });
