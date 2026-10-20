@@ -5469,6 +5469,8 @@ export type Database = {
           source_id: string | null
           tags: string[]
           team_id: string | null
+          team_shared_at: string | null
+          team_shared_by: string | null
           title: string
           updated_at: string
           user_id: string
@@ -5484,6 +5486,8 @@ export type Database = {
           source_id?: string | null
           tags?: string[]
           team_id?: string | null
+          team_shared_at?: string | null
+          team_shared_by?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -5499,6 +5503,8 @@ export type Database = {
           source_id?: string | null
           tags?: string[]
           team_id?: string | null
+          team_shared_at?: string | null
+          team_shared_by?: string | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -6791,6 +6797,8 @@ export type Database = {
           source: string
           storage_path: string | null
           team_id: string | null
+          team_shared_at: string | null
+          team_shared_by: string | null
           text_hash: string
           title: string
           updated_at: string
@@ -6814,6 +6822,8 @@ export type Database = {
           source: string
           storage_path?: string | null
           team_id?: string | null
+          team_shared_at?: string | null
+          team_shared_by?: string | null
           text_hash?: string
           title: string
           updated_at?: string
@@ -6837,6 +6847,8 @@ export type Database = {
           source?: string
           storage_path?: string | null
           team_id?: string | null
+          team_shared_at?: string | null
+          team_shared_by?: string | null
           text_hash?: string
           title?: string
           updated_at?: string
@@ -6961,6 +6973,7 @@ export type Database = {
       }
       user_consents: {
         Row: {
+          consent_event_id: string
           consent_type: string
           created_at: string
           document_version: string
@@ -6974,6 +6987,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          consent_event_id?: string
           consent_type: string
           created_at?: string
           document_version: string
@@ -6987,6 +7001,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          consent_event_id?: string
           consent_type?: string
           created_at?: string
           document_version?: string
