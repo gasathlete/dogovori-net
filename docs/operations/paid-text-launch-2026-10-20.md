@@ -1,45 +1,31 @@
-# Платени продукти от поставен текст — 20.10.2026
+# Платени продукти от поставен текст — действителен статус, 20.10.2026
 
-База: GitHub MAIN 79c822cc. Commit SHA на тази работа: определя се от root при интеграция (sandbox не прави git commit).
+Платената покупка все още НЕ е завършена от начало до край и публичните покупки остават затворени.
 
-## Какво е доказано
-Разписката потвърждава само едно: пълният текст, който собственикът е поставил и сървърът `uploaded-text-intake` е приел, проверил за ЕГН/IBAN и нормализирал.
-Не е доказателство за извличане от файл. Не се маркира като docx. Файловата DOCX атестация остава непроменена и затворена (мост = false).
+## Внедрено в MAIN
+- Native source9ab5d01e9b8dce47b541090a0d612b1958cec576: owner_text intake with service-only product_text_attestations; seven source-kind constraints and record_product_purchase extended additively. Original file extraction is not asserted; raw files and the DOCX bridge remain closed.
+- Functions uploaded-text-intake/create-product-checkout/fulfill-product/refine-product/product-result-state/payments-webhook deployed.
+- ROOT sourcef705603: four independent initially-unchecked confirmations; captured owner Authorization for text save/payment, stable UUID on exact text retry and account-change isolation; restricted-identifier refusal also covers role/objective/counterparty. Checkout/fulfill/refine redeployed with context guard (native deployment edit sourceed50c3a9).
+- Read-only source0ac08c46 adds staff-only readiness_only to payments-price-audit. THIS LAST ENDPOINT CHANGE IS SOURCE-ONLY: its deployment was rejected because the Lovable workspace is out of credits. MAIN readiness booleans were therefore not obtained.
+- MAIN canonical migration receipt20261020162000 reconciled only after verifying the deployed table/7constraints/purchase RPC/client ACL. Additive lifecycle migration20261020170000 adds two validated ON DELETE CASCADE foreign keys for account/document deletion. Preflight:one receipt,zero orphan/ownership mismatches; postflight:one receipt,two cascade FKs,client insert remainsfalse. No user content rewritten.
 
-## Приложено в MAIN (DEPLOYED)
-- Миграция `drizzle/0026_owner_text_product_source` (огледало `supabase/migrations/20261020162000_owner_text_product_source.sql`):
-  - добавя `owner_text` към 7 CHECK ограничения и към `record_product_purchase`;
-  - нова таблица `product_text_attestations`, достъпна само за service role (anon/authenticated: REVOKE ALL, RLS без политики).
-  - Проверка след прилагането: 7 ограничения, функцията е обновена.
-- Функции: uploaded-text-intake, create-product-checkout, fulfill-product, refine-product, product-result-state, payments-webhook.
+## Проверки
+- Actual synthetic MAIN owner intake:201→exact replay200,one receipt; restricted IDs/over-limit rejected422; client kind spoof400; receipt client read/write403. Checkout without consent400 before Stripe. This is NOT payment proof.
+- Original focused tests205/205 server and6/6 UI; context/gate17/17 and new consent/account-change2/2 passed.
+- Full functional sourceb891b2a: GitHub Tests39460870939 SUCCESS —172 app files,2124 passed,4 existing skipped;1091 edge passed,zero failed; Wizard audit noCRITICAL. Build&SEO/Security scan/Static catalog passed. Known braces build/dev Security shield failure remains unsuppressed.
+- Canonical bun.lock a260168a413111af4d4dd680a9943e88f883606d restored after native build auto-rewrote it; no package changes.
+- Public frontend deployment7d5830a3-7adb-4d4f-af5d-d17a0afc7cd6, source0ac08c46, verified on https://dogovori.net/produkti/proverka-predi-podpis: owner-provided text and80..60000 limit displayed; prices299/399/799 unchanged; purchases visibly remain unavailable. Existing core beta kept open. Frontend publication does not deploy Edge Functions.
 
-## Логика
-- intake с `product_source:true`:
-  - нормализира текста;
-  - изисква 80..60000 кодови точки и отказва с 422, без отрязване;
-  - записва `product_source_kind=owner_text`;
-  - записва разписка (owner, doc, text SHA-256, брой знаци, ревизия `updated_at`, digest pta-v1).
-  - Всяка редакция без флага изчиства продуктовите полета. Всяка промяна дава нова ревизия, а старата разписка вече не съвпада.
-- `bindTrustedProductSource` (checkout/fulfill/refine):
-  - за owner_text изисква разписка със същия собственик, хеш, брой знаци и ревизия, плюс верен digest;
-  - за файлове спира затворено (`trusted_source_unavailable`);
-  - сравнява точното обвързване (owner/doc/hash/revision/env).
-- Глобалното `trusted_source_unavailable` в prepayment е премахнато. Произходът се проверява за всеки източник поотделно.
-- ProductCheckout: поле за поставен текст, брояч, локална проверка за ЕГН/IBAN и указание за [ЕГН]/[IBAN]. Публично остава затворено (`ONE_TIME_PURCHASES_AVAILABLE=false`).
+## Реалният Stripe TEST
+See staging-paid-text-test-2026-10-20.md. Isolated staging reached503 content_save_prelaunch_closed and503 zero_retention_unverified before a Stripe session. No payment/webhook/paid result/export/refund proven; no main-wide inference from staging config. No privacy flag was falsely marked verified.
 
-## Доказателства (MAIN, owner --self, синтетичен текст)
-- create 201 → replay 200; разписки: 1.
-- ЕГН → 422 restricted_identifier_blocked; 60 001+ знака → 422; подаден `product_source_kind` → 400.
-- Клиентът не може да запише разписка (403) и не може да я прочете (403).
-- Смяна на заглавие от клиента → нова ревизия. Старата разписка вече не обвързва (покрито от теста за остаряла ревизия).
-- create-product-checkout без съгласие → 400 consent_required, без Stripe.
-- Deno: 205/205 (product-*, intake). Vitest productCheckoutFlow: 6/6.
+## Кредитен блокер и точна следваща стъпка
+Tracked spend before continuation147.4; additional12 +1.9 +5.79 =19.69; total167.09. User authorized additional spend; actual workspace balance is exhausted. Native send_message twice rejected before creating a new message: "Your workspace is out of credits, so Lovable can't send this message." No additional agent started or charge recorded for those rejections.
+Billing action is required at https://lovable.dev/settings/billing. No new conversational permission alone changes the provider balance.
 
-## ТОЧЕН оставащ блокер
-Истинското платено TEST плащане не е изпълнено. Положителният checkout изисква явно съгласие с Условията за покупка. Няма поддържан синтетичен TEST fixture за съгласие или идентичност. Единствената налична сесия е на реален човек (собственика). Създаване на идентичности е забранено, а съгласие от името на реален човек не се приписва.
-Нужно е едно от двете:
-1. собственикът лично минава checkout в preview със Stripe тестова карта 4242;
-2. одобрен синтетичен staff TEST акаунт.
-След това остават webhook → fulfill → PDF/DOCX → replay → refund/stale.
+After actual top-up:
+1. Deploy ONLY the prepared payments-price-audit readiness branch; owner --self POST sandbox/readiness_only; record actual MAIN booleans/blockers without secrets/consent/session/model calls.
+2. Resolve documented provider-retention evidence/configuration accurately if MAIN is also unverified. Do not flip an attestation flag merely to remove a refusal.
+3. Continue isolated synthetic genuine Stripe TEST paid→verified webhook→fulfillment→readable export→replay/refund/stale-source, then assess actual LIVE configuration before enabling public commerce.
 
-Не са проверени: Stripe сесия, webhook, fulfillment, доставка, refund. Public commerce: ЗАТВОРЕН.
+All accepted paid tasks have completed; do not rerun old message IDs. No active paid task. Subscriptions/signing/static catalog sales remain separate unfinished work.
