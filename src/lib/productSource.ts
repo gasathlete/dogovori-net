@@ -31,7 +31,7 @@ export function countProductSourceChars(text: string): number {
 }
 
 /** Платеният продукт е обвързан с ФАЙЛ: PDF с четим текст или DOCX. */
-export type ProductSourceKind = "pdf" | "docx";
+export type ProductSourceKind = "pdf" | "docx" | "owner_text";
 export type ProductExtractionStatus = "full" | "partial";
 
 export function normalizeProductSourceText(raw: string): string {
@@ -46,4 +46,4 @@ export function normalizeProductSourceText(raw: string): string {
 
 /** Кратко човешко обяснение какво приемаме за платените продукти. */
 export const PRODUCT_ACCEPTED_INPUT =
-  "Приемаме PDF с четим текст или DOCX, до 60 000 знака. Сканирани документи и снимки още не се приемат.";
+  "Поставяте пълния текст на документа: от 80 до 60 000 знака. Файлове (PDF/DOCX) и снимки временно не се приемат.";

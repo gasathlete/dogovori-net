@@ -135,7 +135,7 @@ export async function verifyStoredProductSource(
     throw new ProductSourceError("source_incomplete");
   }
   const kind = row?.product_source_kind;
-  if (kind !== "pdf" && kind !== "docx") {
+  if (kind !== "pdf" && kind !== "docx" && kind !== "owner_text") {
     throw new ProductSourceError("source_kind_unsupported");
   }
   const updatedAt = typeof row?.updated_at === "string" ? row.updated_at : "";
