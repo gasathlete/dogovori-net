@@ -147,12 +147,15 @@ Deno.serve(async (req) => {
     );
 
     // Sandbox плащанията дават реален entitlement — само за staff.
-    await assertEnvironmentAllowed(asUser, environment, userId);
-
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    // is_staff EXECUTE е отнет от authenticated: проверката минава със
+    // service-role клиент (без препратен потребителски Authorization) и userId
+    // от вече проверения JWT, никога от тялото.
+    await assertEnvironmentAllowed(admin, environment, userId);
 
     // Сървърен кран ПРЕДИ всяко Stripe извикване и преди всеки запис: продава се
     // само това, което може да бъде изпълнено. Затова тук влизат и условията на

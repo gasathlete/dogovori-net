@@ -33,3 +33,17 @@ Source SHA: `b908d5f22311c58b9a968bad41e1033dddad657e` (CI поправката 
 1. Достъп до staging `d134f73e…` от тази сесия или от родителя.
 2. Там: AI тайни, разгърнати DTrust функции и тестова пощенска кутия.
 3. Отворените пътища (AI, checkout, доставка, DTrust OTP) остават непроверени; отказ или отворена страница не е функционален успех. Staging проверката се прави отделно от родителя.
+
+## Поправки в MAIN след staging репетицията (20.10.2026, 2-ри проход)
+Публикуван UI: root deployment `b5f98953-984b-4b89-8607-0a7bfa0b293f` от `e6d813182a9d411c800d1b9731e33dfa56779323`; root провери в браузър на dogovori.net новия hero, търсенето в каталога, еднаквото предупреждение в резултати/образец и `/produkti`. **Корекция:** правилният адрес е `/produkti` (не `/products`); там има реално заглавие и карти на продуктите, не 404.
+
+A) **Staff sandbox checkout 403.** `create-checkout`, `create-strict-unlock-checkout`, `create-product-checkout` викаха `assertEnvironmentAllowed` с потребителски клиент, а `public.is_staff` EXECUTE е отнет от authenticated → всички staff sandbox опити 403. Сега: service-role клиент без препратен потребителски Authorization, userId от вече проверения JWT. Ред на auth, флагове, source binding, URL allowlist и pinned npm Stripe са запазени; роли/grants/`is_staff` SQL не са пипани. Тест `_shared/staff-check-client.test.ts` 3/3.
+
+B) **504 CPU в `productPrepaymentBlockers`.** Сега fail-fast: `productCheckoutBlockers` (вкл. `checkout_disabled`) → връща веднага; после `productTrustedSourceBlockers` → връща веднага; само без тях се пускат всички скъпи проверки (миграция, правна база, местопребиваване). `PRODUCT_TRUSTED_SOURCE_BRIDGE.available=false` е непроменен; `productIntegrationReadiness` и fulfillment агрегирането не са променени. Тестовете с отворен мост ползват само вътрешен 4-ти параметър (не HTTP/тяло/env). Нов тест с капан доказва 0 скъпи извиквания при фатален евтин блокер.
+
+C) **REVIEW_GRANT_SECRET в MAIN: липсва** (проверено само име). Предпоставка: тайната трябва да се добави сигурно в MAIN преди генерирането да може да издава review_grant. Стойност не е създавана/показвана.
+
+Проверки: Deno sandbox-guard + product-integration + product-gates.handler 45/45, staff-check 3/3; `deno check` на трите handler-а OK. App source не е променян → без повторен пълен app suite (2112/4 skipped; GitHub Tests 39402026554, Build 39402026458 за e6).
+Deploy само на трите handler-а. Source SHA-256 (deploy): create-checkout `ca202e9d…f7b4`, create-strict-unlock-checkout `e9508a20…f985`, create-product-checkout `2e26d40b…6816`. Runtime: OPTIONS 200 и неавтентикиран POST 401 и за трите. Prod флагове не са променяни; не са създавани Stripe сесии, клиенти, имейли; live покупка не е опитвана.
+
+**Присъда остава:** production не е „всичко отключено“; staff sandbox checkout в MAIN след поправката не е проверен с реална staff сесия от тук.
