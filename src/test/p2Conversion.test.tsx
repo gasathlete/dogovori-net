@@ -17,19 +17,19 @@ const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 describe("Hero — едно основно действие към безплатното начало", () => {
   const src = read("src/components/Hero.tsx");
 
-  it("основният CTA е реален Link към /start и за анонимни, и за влезли", () => {
-    expect(src).toContain('to="/start"');
-    expect(src).toContain("Започнете безплатно");
+  it("основният CTA е реален Link към /catalog и за анонимни, и за влезли", () => {
+    expect(src).toContain('to="/catalog"');
+    expect(src).toContain("Намерете документ");
     expect(src).toContain('trackFunnelEvent("home_primary_cta_clicked"');
-    expect(src).toContain('destination: "/start"');
+    expect(src).toContain('destination: "/catalog"');
   });
 
   it("има само едно златно (primary) действие", () => {
     expect(src.match(/btn-gold/g)?.length ?? 0).toBe(1);
   });
 
-  it("„Вижте как работи“ отваря демо стори, не навигира", () => {
-    expect(src).toContain("Вижте как работи");
+  it("„Вижте демонстрацията“ отваря демо стори, не навигира", () => {
+    expect(src).toContain("Вижте демонстрацията");
     expect(src).toContain("openStartStory");
     expect(src).toContain('trackFunnelEvent("home_demo_story_opened"');
   });
@@ -42,9 +42,9 @@ describe("Hero — едно основно действие към безпла�
 
   it("второстепенните връзки водят към създаване и качване", () => {
     expect(src).toContain('to="/build"');
-    expect(src).toContain("Създайте документ");
+    expect(src).toContain("Изготвяне · В подготовка");
     expect(src).toContain('to="/analiz"');
-    expect(src).toContain("Проверка на документ");
+    expect(src).toContain("Проверка · В подготовка");
   });
 
   it("няма onStart prop, нито мъртъв TeaserDialog", () => {
@@ -107,9 +107,8 @@ describe("Template — създаването на документ е без au
 
   it("hero / content / footer CTA-тата не викат requireAuth", () => {
     for (const marker of [
-      "Изготви за 3 минути",
-      "Изготви документа сега",
-      "Започни сега",
+      "Разгледайте подготовката за бланка",
+      "Разгледайте подготовката",
     ]) {
       const idx = src.indexOf(marker);
       expect(idx, marker).toBeGreaterThan(-1);
@@ -131,8 +130,10 @@ describe("Template — създаването на документ е без au
     expect(around).toContain("requireAuth");
   });
 
-  it("микрокопието е еднакво и за шаблони с, и без готов текст", () => {
-    expect(src.match(/Старт без регистрация · преглед преди плащане/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
+  it("не обещава работещо или безплатно генериране", () => {
+    expect(src).not.toContain("Старт без регистрация · преглед преди плащане");
+    expect(src).not.toContain("Изготви за 3 минути");
+    expect(src).toContain("Новото генериране е в подготовка.");
   });
 });
 
