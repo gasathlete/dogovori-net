@@ -44,6 +44,20 @@ function deferred<T>(): Deferred<T> {
 const loads: Array<{ id: string; d: Deferred<any> }> = [];
 const saves: Array<{ id: string; updatedAt: string; title: string; d: Deferred<any> }> = [];
 
+vi.mock("@/lib/savedDocumentContent", async (original) => ({
+  ...(await original<typeof import("@/lib/savedDocumentContent")>()),
+  writeSavedDocumentContent: async (body: Record<string, unknown>) => {
+    const d = deferred<any>();
+    saves.push({ id: String(body.id), updatedAt: String(body.expected_updated_at), title: String(body.title), d });
+    const result = await d.promise;
+    if (!result.data) {
+      const { SavedContentWriteError } = await import("@/lib/savedDocumentContent");
+      throw new SavedContentWriteError("revision_conflict");
+    }
+    return result.data;
+  },
+}));
+
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from() {
