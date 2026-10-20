@@ -460,7 +460,13 @@ Deno.serve(async (req: Request) => {
     // метаданни. Стои СЛЕД само-четящото търсене (завършена ревизия се
     // възпроизвежда) и ПРЕДИ резервацията на право и повикването на модел.
     {
-      const blocked = restrictedIdentifierBlock(rawBody, {
+      // Подписаните от сървъра пропуск и манифест са служебни метаданни (полета
+      // като „egn“ в списъка с решения), не потребителски текст и не стигат до
+      // модела — сканира се само останалото тяло.
+      const {
+        grant: _g, review_grant: _rg, qualityManifest: _qm, quality_manifest: _qm2, ...scanBody
+      } = rawBody ?? {};
+      const blocked = restrictedIdentifierBlock(scanBody, {
         ...corsHeaders,
         ...correlationHeaders(correlationId),
       });
