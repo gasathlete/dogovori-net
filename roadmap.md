@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Final narrow saved-content pass 20.10: deployed controlled handler, 4 pure/23 focused tests, real owner helper create/replay/concurrency/revision/negative checks, applied canonical payload boundary, proved client denial/server save/trusted restore/metadata and UI title save; no frontend publish. Evidence in functional-unlocked-test report. ROOT CI/publication and migration receipt reconciliation remain ROOT release actions.
+
 - [x] Final narrow followup 19.10: deployed npm Stripe source 8b4a8d70; fresh 401/400/owner readiness 200/live checkout 503. Stored deposit DOCX hash verified but differs from canonical original and contains null null; no asset registered or accepted. Evidence in main install report; exact reviewed final file remains required.
 
 - [x] Narrow launch check 19.10: npm Stripe checks passed, braces still unpatched, main assets empty, actual indexed DOCX/live prices inventoried; report docs/operations/launch-narrow-check-2026-10-19.md. No checkout activation or publication.
