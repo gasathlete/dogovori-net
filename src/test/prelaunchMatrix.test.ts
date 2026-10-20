@@ -11,9 +11,10 @@ describe("матрица на предварителния режим", () => {
     }
   });
   it("активно право пропуска само за не-AI функции; нова AI обработка/покупка — затворена и за абонати", () => {
+    const proven = new Set<string>(["document_generation","assistant","blank_download"]);
     for (const f of PRELAUNCH_FEATURES) {
-      expect(canUseFeature(f, { hasActiveEntitlement: true })).toBe(!isNewRawProcessingFeature(f));
-      expect(canUseFeature(f, { hasActiveEntitlement: false })).toBe(false);
+      expect(canUseFeature(f, { hasActiveEntitlement: true })).toBe(proven.has(f) || !isNewRawProcessingFeature(f));
+      expect(canUseFeature(f, { hasActiveEntitlement: false })).toBe(proven.has(f));
       expect(PRELAUNCH_BLOCKERS[f].length).toBeGreaterThan(0);
     }
     expect(canUseFeature("x", { hasActiveEntitlement: true })).toBe(false);
@@ -24,7 +25,8 @@ describe("матрица на предварителния режим", () => {
     expect(w).not.toContain("isFeatureAvailable(");
     expect(w).not.toContain("canUseFeature(");
     expect(w.match(/canStartNewProcessing\("(document_generation|blank_download)"\)/g)?.length).toBe(4);
-    expect(canUseFeature("document_generation", { hasActiveEntitlement: true })).toBe(false);
+    // Отворено за всички след реална проверка; абонатът не получава нищо повече.
+    expect(canUseFeature("document_generation", { hasActiveEntitlement: false })).toBe(true);
     expect(c).toContain('canUseFeature("blank_download", { hasActiveEntitlement: isPro })');
   });
   it("сценарий А: пътят за готови шаблони не вика AI", () => {

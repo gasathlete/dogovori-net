@@ -39,11 +39,16 @@ beforeEach(() => {
 
 describe("нова обработка ≠ запазено право", () => {
   it("абонат не получава нова AI обработка/покупка; не-AI право се запазва", () => {
-    for (const f of ["assistant", "document_review", "document_generation", "one_time_product", "subscription"]) {
+    for (const f of ["document_review", "one_time_product", "subscription"]) {
       expect(canStartNewProcessing(f)).toBe(false);
       expect(canUseFeature(f, { hasActiveEntitlement: true })).toBe(false);
     }
     expect(canUseFeature("blank_download", { hasActiveEntitlement: true })).toBe(true);
+    // Отворени след реална MAIN проверка — еднакво за всички, без изключение за абонати.
+    for (const f of ["assistant", "document_generation"]) {
+      expect(canStartNewProcessing(f)).toBe(true);
+      expect(canUseFeature(f, { hasActiveEntitlement: false })).toBe(true);
+    }
   });
 });
 
