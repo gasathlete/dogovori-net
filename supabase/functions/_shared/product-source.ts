@@ -31,7 +31,7 @@ export function countProductSourceChars(text: string): number {
 }
 
 /** Платеният продукт е обвързан с ФАЙЛ: PDF с четим текст или DOCX. */
-export type ProductSourceKind = "pdf" | "docx";
+export type ProductSourceKind = "pdf" | "docx" | "owner_text";
 
 export type ProductExtractionStatus = "full" | "partial";
 
@@ -135,7 +135,7 @@ export async function verifyStoredProductSource(
     throw new ProductSourceError("source_incomplete");
   }
   const kind = row?.product_source_kind;
-  if (kind !== "pdf" && kind !== "docx") {
+  if (kind !== "pdf" && kind !== "docx" && kind !== "owner_text") {
     throw new ProductSourceError("source_kind_unsupported");
   }
   const updatedAt = typeof row?.updated_at === "string" ? row.updated_at : "";

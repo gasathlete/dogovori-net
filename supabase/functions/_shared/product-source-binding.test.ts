@@ -1,6 +1,6 @@
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { makeZip } from "./test-docx-fixture.ts";
-import { attestationReceiptRow, bindTrustedProductSource, PRODUCT_SOURCE_BUCKET } from "./product-source-binding.ts";
+import { attestationReceiptRow, bindTrustedProductSource, ownerTextDigest, PRODUCT_SOURCE_BUCKET } from "./product-source-binding.ts";
 import { countProductSourceChars, normalizeProductSourceText } from "./product-source.ts";
 import { sha256HexBytes } from "./product-source-attestation.ts";
 import { PRODUCT_TRUSTED_SOURCE_BRIDGE, productTrustedSourceBlockers } from "./product-trusted-source.ts";
@@ -105,12 +105,42 @@ Deno.test("fulfillment re-check: revision race, hash tamper, wrong environment",
   assert((await bindTrustedProductSource(d, { userId: OWNER, documentId: "doc-1", environment: ENV, forceAttestation: true, expected: base })).ok);
 });
 
-Deno.test("bridge OFF: no download, no model text, consistency still enforced", async () => {
+Deno.test("bridge OFF: file source fails closed without download", async () => {
   const { d, downloads } = deps(await rowFor(), await docx());
   const r = await bindTrustedProductSource(d, { userId: OWNER, documentId: "doc-1", environment: ENV });
-  assert(r.ok);
-  if (!r.ok) return;
-  assertEquals(r.source.modelText, null);
-  assertEquals(r.source.attestation, null);
+  assertEquals(r.ok ? "ok" : r.reason, "trusted_source_unavailable");
   assertEquals(downloads.length, 0);
+});
+
+const REV = "2026-10-13T09:00:00.000Z";
+async function ownerTextDeps(receipt: Record<string, unknown> | null, rowOver: Record<string, unknown> = {}) {
+  const row = await rowFor({ storage_path: null, product_source_kind: "owner_text", ...rowOver });
+  const tq = (data: unknown) => { const q = { select: () => q, eq: () => q, maybeSingle: async () => ({ data }) }; return q; };
+  return { db: { from: (t: string) => tq(t === "uploaded_contracts" ? row : receipt) }, download: async () => { throw new Error("no download"); }, sha256Hex: sha };
+}
+async function goodReceipt(over: Record<string, unknown> = {}) {
+  const h = await sha(text); const c = countProductSourceChars(text);
+  return { user_id: OWNER, uploaded_contract_id: "doc-1", text_sha256: h, char_count: c, source_revision: REV,
+    digest: await ownerTextDigest(sha, { userId: OWNER, documentId: "doc-1", textSha256: h, charCount: c, revision: REV }), ...over };
+}
+
+Deno.test("owner_text: server receipt binds exact stored text", async () => {
+  const r = await bindTrustedProductSource(await ownerTextDeps(await goodReceipt()), { userId: OWNER, documentId: "doc-1", environment: ENV });
+  assert(r.ok); if (!r.ok) return;
+  assertEquals(r.source.modelText, text);
+  assertEquals(r.source.verified.sourceKind, "owner_text");
+});
+
+Deno.test("owner_text: missing / foreign / forged / stale receipt refused", async () => {
+  for (const rc of [null, await goodReceipt({ user_id: OTHER }), await goodReceipt({ digest: "0".repeat(64) }), await goodReceipt({ text_sha256: "1".repeat(64) })]) {
+    const r = await bindTrustedProductSource(await ownerTextDeps(rc), { userId: OWNER, documentId: "doc-1", environment: ENV });
+    assertEquals(r.ok ? "ok" : r.code, "source_not_attested");
+  }
+  // Текстът е сменен след разписката (хеш несъвпадение на реда) → отказ.
+  const changed = normalizeProductSourceText(text + "\n\nДобавено.");
+  const r = await bindTrustedProductSource(await ownerTextDeps(await goodReceipt(), { extracted_text: changed, text_hash: await sha(changed), product_extracted_chars: countProductSourceChars(changed) }), { userId: OWNER, documentId: "doc-1", environment: ENV });
+  assertEquals(r.ok ? "ok" : r.code, "source_not_attested");
+  const st = await bindTrustedProductSource(await ownerTextDeps(await goodReceipt()), { userId: OWNER, documentId: "doc-1", environment: ENV,
+    expected: { user_id: OWNER, source_document_id: "doc-1", source_hash: await sha(text), source_updated_at: "2026-10-13T08:00:00.000Z", environment: "sandbox" } });
+  assertEquals(st.ok ? "ok" : st.code, "source_changed");
 });

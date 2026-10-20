@@ -99,16 +99,44 @@ export async function bindTrustedProductSource(
     throw error;
   }
 
-  // Мостът е изключен: не сваляме файла; функцията спира на
-  // `trusted_source_unavailable` преди задача, доставчик или Stripe сесия.
-  if (!PRODUCT_TRUSTED_SOURCE_BRIDGE.available && !input.forceAttestation) {
-    if (input.expected && (
-      verified.sourceHash !== String(input.expected.source_hash).toLowerCase() ||
-      String(verified.sourceUpdatedAt) !== String(input.expected.source_updated_at)
-    )) {
-      return { ok: false, code: "source_changed", reason: "binding_mismatch" };
+  if (input.expected && (
+    verified.sourceHash !== String(input.expected.source_hash).toLowerCase() ||
+    String(verified.sourceUpdatedAt) !== String(input.expected.source_updated_at) ||
+    input.expected.user_id !== input.userId ||
+    input.expected.source_document_id !== input.documentId ||
+    input.expected.environment !== input.environment
+  )) {
+    return { ok: false, code: "source_changed", reason: "binding_mismatch" };
+  }
+
+  // Предоставен от собственика текст: доверието е САМО в сървърната разписка,
+  // записана от uploaded-text-intake (service role) за точния текст и ревизия.
+  // Не е доказателство за извличане от файл.
+  if (verified.sourceKind === "owner_text") {
+    const { data: receipt } = await deps.db
+      .from("product_text_attestations")
+      .select("user_id, uploaded_contract_id, text_sha256, char_count, source_revision, digest")
+      .eq("uploaded_contract_id", input.documentId)
+      .eq("source_revision", String(verified.sourceUpdatedAt))
+      .maybeSingle();
+    if (
+      !receipt || receipt.user_id !== input.userId ||
+      receipt.text_sha256 !== verified.sourceHash ||
+      receipt.char_count !== verified.charCount ||
+      receipt.digest !== await ownerTextDigest(deps.sha256Hex, {
+        userId: input.userId, documentId: input.documentId,
+        textSha256: verified.sourceHash, charCount: verified.charCount,
+        revision: String(verified.sourceUpdatedAt),
+      })
+    ) {
+      return { ok: false, code: "source_not_attested", reason: "owner_text_receipt_missing" };
     }
-    return { ok: true, source: { verified, attestation: null, modelText: null } };
+    return { ok: true, source: { verified, attestation: null, modelText: verified.text } };
+  }
+
+  // Файловият мост е изключен: файловите източници спират затворено.
+  if (!PRODUCT_TRUSTED_SOURCE_BRIDGE.available && !input.forceAttestation) {
+    return { ok: false, code: "source_not_attested", reason: "trusted_source_unavailable" };
   }
 
   let bytes: Uint8Array | null = null;
@@ -176,4 +204,17 @@ export function storageDownloader(
     if (error || !data) return null;
     return new Uint8Array(await data.arrayBuffer());
   };
+}
+
+
+export const OWNER_TEXT_ATTESTATION_VERSION = "pta-v1" as const;
+
+/** Детерминистичен digest на разписката за предоставен от собственика текст. */
+export function ownerTextDigest(
+  sha256Hex: (v: string) => Promise<string>,
+  r: { userId: string; documentId: string; textSha256: string; charCount: number; revision: string },
+): Promise<string> {
+  return sha256Hex(JSON.stringify([
+    OWNER_TEXT_ATTESTATION_VERSION, r.userId, r.documentId, r.textSha256, r.charCount, r.revision,
+  ]));
 }

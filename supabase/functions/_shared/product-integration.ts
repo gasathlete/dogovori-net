@@ -11,7 +11,6 @@
 import { PRODUCT_GENERATION_POLICY_VERSION } from "./product-generation-policy.ts";
 import { isLegalKnowledgeBaseReady, type LegalDbClient } from "./product-legal-basis.ts";
 import type { VerifierDeps } from "./legal-verification.ts";
-import { productTrustedSourceBlockers } from "./product-trusted-source.ts";
 
 export type EnvReader = (key: string) => string | undefined;
 
@@ -213,7 +212,7 @@ async function asyncBlockers(
   gates: ProductServiceGates,
 ): Promise<ProductIntegrationCode[]> {
   // Произходът на източника е ПЪРВАТА асинхронна врата и не зависи от env.
-  return [...productTrustedSourceBlockers(), ...(await serviceGateBlockers(gates))];
+  return [...(await serviceGateBlockers(gates))];
 }
 
 /** Скъпите проверки (миграция, правна база, местопребиваване) — без произхода. */
@@ -256,7 +255,9 @@ export async function productPrepaymentBlockers(
 ): Promise<readonly ProductIntegrationCode[]> {
   const cheap = productCheckoutBlockers(config, environment);
   if (cheap.length > 0) return Object.freeze([...cheap]);
-  const trusted = (testDeps.trustedSourceBlockers ?? productTrustedSourceBlockers)();
+  // Произходът се проверява per-source в bindTrustedProductSource (файлове
+  // затворени; предоставен текст само със сървърна разписка).
+  const trusted = testDeps.trustedSourceBlockers?.() ?? [];
   if (trusted.length > 0) return Object.freeze([...trusted]);
   return Object.freeze(await serviceGateBlockers(gates));
 }
@@ -302,8 +303,7 @@ export async function productIntegrationReadiness(
   const fulfillmentBlockers = [...productFulfillmentBlockers(config)];
   if (!migrationReady) fulfillmentBlockers.push("migration_not_verified");
   if (!legalReady) fulfillmentBlockers.push("legal_kb_not_ready");
-  const trustedSource = productTrustedSourceBlockers();
-  fulfillmentBlockers.push(...trustedSource);
+  const trustedSource: ProductIntegrationCode[] = [];
   const checkoutFor = (environment: "sandbox" | "live") =>
     productCheckoutBlockers(config, environment).length === 0 && legalReady && migrationReady &&
     trustedSource.length === 0;

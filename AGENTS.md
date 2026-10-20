@@ -14,3 +14,4 @@
 - Raw uploaded-document text is written only by the uploaded-text-intake edge function (service role); the DB trigger enforce_no_client_document_text_write denies client text writes.
 
 - Generated saved-document JSON is persisted by saved-document-content; client raw payload writes stay disabled. Owner/revision binding and metadata ownership checks apply before service-role writes.
+- Paid product sources of kind owner_text are trusted only via service-only product_text_attestations receipts written by uploaded-text-intake for the exact text hash+revision; file sources stay closed until the independent bridge is enabled — never relabel pasted text as file extraction.

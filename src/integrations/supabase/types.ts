@@ -4786,6 +4786,42 @@ export type Database = {
           },
         ]
       }
+      product_text_attestations: {
+        Row: {
+          attestation_version: string
+          char_count: number
+          created_at: string
+          digest: string
+          id: string
+          source_revision: string
+          text_sha256: string
+          uploaded_contract_id: string
+          user_id: string
+        }
+        Insert: {
+          attestation_version: string
+          char_count: number
+          created_at?: string
+          digest: string
+          id?: string
+          source_revision: string
+          text_sha256: string
+          uploaded_contract_id: string
+          user_id: string
+        }
+        Update: {
+          attestation_version?: string
+          char_count?: number
+          created_at?: string
+          digest?: string
+          id?: string
+          source_revision?: string
+          text_sha256?: string
+          uploaded_contract_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           allow_third_country_ai: boolean
