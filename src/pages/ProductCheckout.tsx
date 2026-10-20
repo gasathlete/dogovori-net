@@ -51,8 +51,6 @@ import {
 import { DocumentFilePicker } from "@/components/products/DocumentFilePicker";
 import { PRODUCT_ACCEPTED_INPUT, countProductSourceChars, normalizeProductSourceText } from "@/lib/productSource";
 import {
-  RAW_FILE_BLOCKED_MESSAGE,
-  RAW_FILE_BLOCKED_TITLE,
   RAW_FILE_INGRESS_ALLOWED,
 } from "@/lib/privacyGate";
 import { CheckCircle2, FileUp } from "@/icons";
