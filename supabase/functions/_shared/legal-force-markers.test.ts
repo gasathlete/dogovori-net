@@ -5,7 +5,7 @@ import {
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { assessChunkForce } from "./legal-force-markers.ts";
 
-const NOW = new Date("2026-09-23T00:00:00Z");
+const NOW = Date.parse("2026-09-23T00:00:00Z");
 
 Deno.test("действащ откъс без отметки е авторитетен", () => {
   const r = assessChunkForce(
