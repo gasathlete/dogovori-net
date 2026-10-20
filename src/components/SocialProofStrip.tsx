@@ -83,7 +83,7 @@ export function SocialProofStrip() {
   const loop = base.length > 0 ? [...base, ...base] : [];
 
   const catalogMetrics: { value: string; label: string }[] = [
-    ...(TEMPLATES_COUNT > 0 ? [{ value: `${TEMPLATES_COUNT}`, label: "готови шаблона" }] : []),
+    ...(TEMPLATES_COUNT > 0 ? [{ value: `${TEMPLATES_COUNT}`, label: "образеца в каталога" }] : []),
     ...(SECTORS_COUNT > 0 ? [{ value: `${SECTORS_COUNT}`, label: "правни сектора" }] : []),
   ];
   const metricsCols = catalogMetrics.length + (hasUsers || usersPending ? 1 : 0);
