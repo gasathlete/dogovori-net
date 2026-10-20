@@ -29,7 +29,7 @@ export function HeroProductRail() {
           Еднократни продукти
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          {ONE_TIME_SCOPE_NOTE}
+          {ONE_TIME_SCOPE_NOTE} Покупките още не са активни. Разгледайте примерите.
         </p>
       </div>
 

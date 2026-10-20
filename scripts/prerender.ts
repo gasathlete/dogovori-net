@@ -231,11 +231,12 @@ const [HOME_SHELL_HEADER, HOME_SHELL_HERO] = HOME_SHELL.split("<!--hero-->").map
 // Index
 pages.push({
   path: "/",
-  title: "Договори и документи на български — Dogovori.net",
-  description: `Изготвяте документ по образец от ${totalDocs} шаблона, проверявате чужд документ преди подпис и го сваляте в PDF или DOCX. Първият документ е безплатен.`,
+  title: "Dogovori.net — по-малко бюрокрация. Повече време за Вас.",
+  description: "Помагаме на хората и малкия и средния бизнес да се справят с ежедневната бюрокрация. Образци, пояснения и подготовка за лични въпроси, работа и бизнес.",
   bodyHtml: `<div class="min-h-dvh" data-home-shell="true">${HOME_SHELL_HEADER}<main data-home-variant="responsive">${HOME_SHELL_HERO}<section class="container max-w-3xl py-10 text-sm leading-relaxed text-muted-foreground">
-      <h2 class="font-serif text-xl font-bold text-foreground">Dogovori.net — договори и документи на български</h2>
-      <p>Изготвяте документ по образец от ${totalDocs} шаблона по ЗЗД, ТЗ и КТ, проверявате чужд документ преди подпис и го сваляте в PDF или DOCX. Първият документ е безплатен.</p>
+      <h2 class="font-serif text-xl font-bold text-foreground">Dogovori.net — образци за ежедневните задачи</h2>
+      <p>Намерете подходящия образец, разберете какво Ви е необходимо и подгответе следващата стъпка — за лични въпроси, работа и бизнес.</p>
+      <p>Разглеждането е достъпно. Новото генериране и проверката са в подготовка; покупките още не са активни.</p>
       <h2>Категории</h2>
       <ul>${CATALOG.map((c) => `<li><a href="/kategoria/${c.id}">${escapeHtml(c.title)}</a> — ${c.documents.length} шаблона</li>`).join("")}</ul>
       <h2>Еднократни продукти за един документ</h2>

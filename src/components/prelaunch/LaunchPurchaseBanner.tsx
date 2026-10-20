@@ -1,7 +1,7 @@
 import { Bell, Lock } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { PrelaunchFeature } from "@/lib/prelaunch";
+import { getPrelaunchStatus, type PrelaunchFeature } from "@/lib/prelaunch";
 import { openPrelaunchWaitlist, type WaitlistSource } from "@/lib/prelaunchWaitlist";
 
 interface LaunchPurchaseBannerProps {
@@ -19,6 +19,7 @@ export function LaunchPurchaseBanner({
   compact = false,
   className,
 }: LaunchPurchaseBannerProps) {
+  const status = getPrelaunchStatus(feature);
   return (
     <aside
       data-testid="launch-purchase-banner"
@@ -34,9 +35,9 @@ export function LaunchPurchaseBanner({
           <Lock className="size-4" aria-hidden="true" />
         </span>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-foreground">Покупките се отключват скоро</p>
+          <p className="text-sm font-semibold text-foreground">{status.title}</p>
           <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-            Разгледайте съдържанието и примерите. Ще Ви уведомим при пускане.
+            {status.reason} Разгледайте съдържанието и примерите.
           </p>
         </div>
       </div>

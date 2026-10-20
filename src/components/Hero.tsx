@@ -70,6 +70,10 @@ export function Hero() {
             {copy.heroSub}
           </p>
 
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
+            Намерете подходящия образец, разберете какво Ви е необходимо и подгответе следващата стъпка — за лични въпроси, работа и бизнес.
+          </p>
+
           <div className="mt-4 flex justify-center">
             <AudienceToggle size="sm" />
           </div>
@@ -84,30 +88,30 @@ export function Hero() {
           <div className="mt-7 flex flex-col items-center gap-3">
             <div className="mx-auto flex w-full max-w-[560px] flex-col items-center gap-3">
               <Link
-                to="/start"
-                {...prefetchHandlers("/start")}
+                to="/catalog"
+                {...prefetchHandlers("/catalog")}
                 data-testid="hero-primary-cta"
                 onClick={() => {
                   trackFunnelEvent("home_primary_cta_clicked", {
-                    destination: "/start",
+                    destination: "/catalog",
                     authenticated: Boolean(user),
                   });
                 }}
                 className="btn-gold btn-press inline-flex min-h-[60px] w-full items-center justify-center gap-2 rounded-xl px-8 py-3 shadow-elegant sm:w-auto sm:px-12"
               >
                 <span className="inline-flex items-center gap-2 text-[18px] font-bold normal-case tracking-normal sm:text-[20px]">
-                  Започнете безплатно
+                  Намерете документ
                   <ArrowRight className="h-[18px] w-[18px]" />
                 </span>
               </Link>
 
               <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[12.5px] text-muted-foreground">
                 <Link to="/build" {...prefetchHandlers("/build")} className="inline-flex min-h-[44px] items-center gap-1.5 hover:text-gold">
-                  <Search className="h-3.5 w-3.5" /> Създайте документ
+                  <Search className="h-3.5 w-3.5" /> Изготвяне · В подготовка
                 </Link>
                 <span className="hidden h-3 w-px bg-border sm:inline-block" />
                 <Link to="/analiz" {...prefetchHandlers("/analiz")} className="inline-flex min-h-[44px] items-center gap-1.5 hover:text-gold">
-                  <FileUp className="h-3.5 w-3.5" /> Проверка на документ
+                  <FileUp className="h-3.5 w-3.5" /> Проверка · В подготовка
                 </Link>
               </div>
             </div>
@@ -120,7 +124,7 @@ export function Hero() {
               }}
               className="story-link text-[12px] font-semibold text-muted-foreground transition-colors hover:text-gold"
             >
-              Вижте как работи
+              Вижте демонстрацията
             </button>
           </div>
 

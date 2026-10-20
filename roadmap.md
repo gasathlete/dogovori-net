@@ -41,3 +41,5 @@
 - [x] Скрий „Тестов период“ в header под 640 px, обнови stored shell и провери 390 px с отворено „Затвори“.
 - [x] Security audit 28.09: dependency patches, PDF.js hardening, SigningPane columns, DB hardening patch + PGlite tests, report.
 - [ ] Owner: review/apply docs/migrations/security_hardening_2026_09_28.sql, then publish (blocked on owner review).
+
+- [x] Positioning 20.10: catalog-first home, contextual feature statuses, exactly five original warnings, regenerated shell; 62 focused tests and desktop/mobile browser checks passed. No deployment/publication. See docs/operations/positioning-beta-2026-10-20.md.

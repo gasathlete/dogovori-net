@@ -1,41 +1,10 @@
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
-import { ArrowRight, Search, FileUp } from "@/icons";
-import { useDownloadCounts } from "@/hooks/useDownloadCounts";
-import { useCountUp } from "@/hooks/useCountUp";
-import { useMemo, useState } from "react";
-import { TeaserDialog } from "@/components/TeaserDialog";
-import { openStartStory } from "@/components/funnel/StartStoryOverlay";
-import { useAuth } from "@/hooks/useAuth";
+import { ArrowRight } from "@/icons";
 import { useAudience } from "@/hooks/useAudience";
 import { AudienceToggle } from "@/components/funnel/AudienceToggle";
 
-function LiveCounter() {
-  const counts = useDownloadCounts();
-  const total = useMemo(() => {
-    let sum = 0;
-    counts.forEach((v) => (sum += v));
-    // Стартова база 1000 + реалните изтегляния до момента.
-    return sum + 1000;
-  }, [counts]);
-  const { ref, value } = useCountUp(total, { duration: 1600 });
-  return (
-    <p
-      ref={ref as any}
-      className="mb-4 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-gold"
-    >
-      <span className="relative flex h-2 w-2">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold/60 opacity-75" />
-        <span className="relative inline-flex h-2 w-2 rounded-full bg-gold" />
-      </span>
-      <span className="whitespace-nowrap">Над <span className="tabular-nums text-foreground">{value.toLocaleString("bg-BG")}</span> документа вече изтеглени</span>
-    </p>
-  );
-}
-
 export function CTABand() {
-  const { user } = useAuth();
   const { copy } = useAudience();
-  const [teaserOpen, setTeaserOpen] = useState(false);
   return (
     <section id="cta-band" className="container py-12 sm:py-16 md:py-20">
       <div
@@ -59,7 +28,6 @@ export function CTABand() {
 
 
         <div className="relative z-10">
-          <LiveCounter />
           <div className="eyebrow mb-3 justify-center">Готови?</div>
           <h2 className="mx-auto max-w-2xl font-serif text-3xl font-bold leading-tight text-balance sm:text-4xl md:text-5xl">
             {copy.ctaHeadline}
@@ -73,56 +41,14 @@ export function CTABand() {
           <div className="mt-5 flex justify-center">
             <AudienceToggle size="sm" />
           </div>
-          {user ? (
-            <div className="mx-auto mt-8 flex w-full max-w-[460px] flex-col items-center gap-3">
-              <Link
-                to="/start"
-                className="btn-gold btn-sheen btn-press w-full normal-case tracking-normal text-[15px] px-6 py-3.5"
-              >
-                <ArrowRight className="h-[16px] w-[16px]" /> Започни документ
-              </Link>
-              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[12px] text-muted-foreground">
-                <Link to="/catalog" className="inline-flex items-center gap-1.5 hover:text-gold">
-                  <Search className="h-3.5 w-3.5" /> Разгледай шаблоните
-                </Link>
-                <span className="hidden h-3 w-px bg-border sm:inline-block" />
-                <Link
-                  to="/account?tab=documents&action=upload"
-                  className="inline-flex items-center gap-1.5 hover:text-gold"
-                >
-                  <FileUp className="h-3.5 w-3.5" /> Проверка на документ
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <div className="mt-8 flex flex-col items-center justify-center gap-3">
-              <div className="relative w-full sm:w-auto">
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute -inset-1.5 rounded-2xl bg-gradient-to-r from-gold/0 via-gold/25 to-gold/0 opacity-35 blur-2xl"
-                />
-                <button
-                  type="button"
-                  onClick={() => openStartStory()}
-                  className="btn-gold btn-sheen btn-press relative w-full whitespace-nowrap sm:w-auto normal-case tracking-normal text-base sm:text-xl px-6 py-4 sm:px-14 sm:py-6 lg:px-10 lg:py-4 lg:text-lg rounded-xl font-bold shadow-gold"
-                >
-                  <ArrowRight className="h-[22px] w-[22px]" /> Започни безплатно
-                </button>
-              </div>
-              <Link
-                to="/catalog"
-                className="story-link text-xs uppercase tracking-[0.18em] text-muted-foreground hover:text-gold"
-              >
-                <Search className="mr-1 inline-block h-3.5 w-3.5" /> или разгледай каталога
-              </Link>
-            </div>
-          )}
-          <p className="mt-5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            БЕЗ КАРТА · ГОТОВ ДОКУМЕНТ ЗА 2 МИНУТИ
-          </p>
+          <div className="mt-8 flex justify-center">
+            <Link to="/catalog" className="btn-gold btn-press inline-flex min-h-11 items-center gap-2 px-6 py-3">
+              <ArrowRight className="h-4 w-4" /> Намерете документ
+            </Link>
+          </div>
+          <p className="mt-5 text-xs text-muted-foreground">Разглеждането е достъпно. Новото генериране и покупките са в подготовка.</p>
         </div>
       </div>
-      <TeaserDialog open={teaserOpen} onOpenChange={setTeaserOpen} />
     </section>
   );
 }

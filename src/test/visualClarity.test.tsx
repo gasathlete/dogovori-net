@@ -45,7 +45,7 @@ describe("йерархия на началната страница", () => {
     const hero = read("src/components/Hero.tsx");
     expect(hero.match(/btn-gold/g)?.length).toBe(1);
     expect(hero).toContain('data-testid="hero-primary-cta"');
-    expect(hero).toContain("Започнете безплатно");
+    expect(hero).toContain("Намерете документ");
     expect(hero).toContain("HeroProductRail");
   });
 
