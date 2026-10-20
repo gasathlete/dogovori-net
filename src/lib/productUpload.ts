@@ -21,7 +21,7 @@ export const MIN_PRODUCT_TEXT_LENGTH = PRODUCT_MIN_SOURCE_CHARS;
 export interface PreparedProductDocument {
   readonly uploadedContractId: string;
   readonly title: string;
-  readonly source: ExtractSource;
+  readonly source: ExtractSource | "owner_text";
   /** Дължина в каноничната единица (Unicode кодови точки). */
   readonly textLength: number;
   readonly charUnit: typeof PRODUCT_SOURCE_CHAR_UNIT;
@@ -203,3 +203,42 @@ export async function prepareProductDocument(
 
 }
 
+
+
+/**
+ * Платен продукт от ПОСТАВЕН текст: каноничен текст 80..60000 кодови точки,
+ * без тихо отрязване; лични идентификатори се отказват локално и на сървъра.
+ * Записът и сървърната разписка ги прави само uploaded-text-intake.
+ */
+export async function prepareProductText(input: { title: string; text: string }): Promise<PreparedProductDocument> {
+  const { normalizeProductSourceText, countProductSourceChars, PRODUCT_MAX_SOURCE_CHARS } = await import("@/lib/productSource");
+  const { findRestrictedIdentifiers, restrictedIdentifierMessage } = await import("@/lib/privacyGate");
+  const text = normalizeProductSourceText(input.text);
+  const chars = countProductSourceChars(text);
+  if (chars < PRODUCT_MIN_SOURCE_CHARS) throw new ProductUploadError("Текстът е твърде кратък. Поставете пълния текст на документа.");
+  if (chars > PRODUCT_MAX_SOURCE_CHARS) {
+    throw new ProductUploadError(`Текстът е ${chars.toLocaleString("bg-BG")} знака — над лимита от 60 000. Не съкращаваме документа без Вас.`);
+  }
+  const title = (input.title.trim() || "Поставен документ").slice(0, 300);
+  const kinds = findRestrictedIdentifiers(`${title}\n${text}`);
+  if (kinds.length > 0) throw new ProductUploadError(restrictedIdentifierMessage(kinds));
+  await ensureFreshSession();
+  const id = crypto.randomUUID();
+  const { data, error } = await supabase.functions.invoke("uploaded-text-intake", {
+    body: { action: "create", id, title, text, product_source: true },
+  });
+  const contract = (data as { contract?: { id: string; text_hash: string } } | null)?.contract;
+  if (error || !contract) throw new ProductUploadError(PRODUCT_PERSIST_FAILED_MESSAGE);
+  return {
+    uploadedContractId: contract.id,
+    title,
+    source: "owner_text",
+    textLength: chars,
+    charUnit: "unicode_code_points",
+    sourceHash: contract.text_hash,
+    originalFilename: null,
+    extractionStatus: "full",
+    pageCount: null,
+    preview: text.slice(0, 160),
+  };
+}
