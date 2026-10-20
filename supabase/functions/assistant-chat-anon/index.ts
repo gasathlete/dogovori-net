@@ -380,7 +380,7 @@ Deno.serve(async (req) => {
           matchCount: 5,
         });
         if (legal.hasMatches) {
-          citations = legal.citations.slice(0, 3);
+          citations = legal.citations; // всички извлечени [Sn] от промпта, иначе [S4]/[S5] се отхвърлят като извън обхват
           promptBlock = legal.promptBlock;
           hasMatches = true;
         }

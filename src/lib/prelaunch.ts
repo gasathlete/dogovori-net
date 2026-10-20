@@ -18,12 +18,17 @@ export const PRELAUNCH_FEATURES = [
 
 export type PrelaunchFeature = (typeof PRELAUNCH_FEATURES)[number];
 
-/** Всички затворени. Отваряне само с изрично решение и проверка преди пускане. */
+/**
+ * Отворени са само функциите с реална положителна MAIN проверка (20.10.2026):
+ * генериране + ревизия на генериран документ, асистент (регистриран и анонимен),
+ * бланка. Анализът на качен документ (document_review) още не е проверен.
+ * Плащанията остават затворени.
+ */
 const AVAILABLE: Readonly<Record<PrelaunchFeature, boolean>> = Object.freeze({
-  blank_download: false,
-  document_generation: false,
+  blank_download: true,
+  document_generation: true,
   document_review: false,
-  assistant: false,
+  assistant: true,
   one_time_product: false,
   subscription: false,
 });
