@@ -1,3 +1,4 @@
+import { CatalogReviewNotice } from "@/components/CatalogReviewNotice";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { useSearchParams } from "react-router-dom";
@@ -192,6 +193,7 @@ export default function CatalogPage() {
               Изберете вид документ или потърсете по име. Каталогът е подреден по
               сектори — трудови и наемни отношения, IT, корпоративни документи.
             </p>
+            <CatalogReviewNotice catalog />
             <div className="relative mx-auto mt-6 max-w-xl">
               <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -250,6 +252,7 @@ export default function CatalogPage() {
                                 </span>
                               )}
                             </div>
+                            <CatalogReviewNotice />
                             <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{s.purpose}</div>
                             <div className="mt-1 text-[10px] uppercase tracking-wider text-gold/80">{s.category_title}</div>
                           </Link>
@@ -621,6 +624,7 @@ function CategoryDocs({ cat, forceExpanded, downloadCounts }: { cat: any; forceE
                         {doc.name}
                       </Link>
                       {doc.badge && <Badge label={doc.badge} />}
+                      <CatalogReviewNotice />
                       {doc.bilingual && (
                         <>
                           <span className="inline-block shrink-0 rounded-sm border border-gold/40 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-gold">BG/EN</span>
@@ -697,6 +701,7 @@ function CategoryDocs({ cat, forceExpanded, downloadCounts }: { cat: any; forceE
                     </span>
                   )}
                 </div>
+                <CatalogReviewNotice />
                 <p className="mt-2 text-sm text-muted-foreground">{doc.purpose}</p>
                 <p className="mt-2 text-xs italic text-gold/90">⚖ {doc.keyClause}</p>
                 <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-gold">
@@ -893,6 +898,7 @@ function SectorCatalogGrid({
                               </span>
                             )}
                           </div>
+                          <CatalogReviewNotice />
                           <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{doc.purpose}</p>
                           <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground/80">
                             <Link
