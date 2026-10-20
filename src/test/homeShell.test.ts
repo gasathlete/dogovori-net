@@ -22,8 +22,8 @@ describe("prerendered home shell", () => {
     const { lead, accent, tail } = AUDIENCE_COPY[DEFAULT_AUDIENCE].heroHeadline;
     const h1 = text(hero.slice(hero.indexOf("<h1"), hero.indexOf("</h1>")));
     for (const part of [lead, accent, tail.trim()].filter(Boolean)) expect(h1).toContain(part);
-    expect(hero).toMatch(/href="\/start"[^>]*data-testid="hero-primary-cta"|data-testid="hero-primary-cta"[^>]*href="\/start"/);
-    expect(text(hero)).toContain("Започнете безплатно");
+    expect(hero).toMatch(/href="\/catalog"[^>]*data-testid="hero-primary-cta"|data-testid="hero-primary-cta"[^>]*href="\/catalog"/);
+    expect(text(hero)).toContain("Намерете документ");
     expect(text(header)).toContain(TEST_PERIOD_LABEL);
     expect(header).toMatch(/data-testid="test-period-badge"[^>]*class="[^"]*\bhidden\b[^"]*\bsm:inline-flex\b/);
     expect(header).not.toContain("min-[360px]:inline-flex");
