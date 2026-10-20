@@ -8,6 +8,8 @@ import {
 import { ShieldAlert, ShieldCheck, ShieldQuestion } from "@/icons";
 import { cn } from "@/lib/utils";
 import type { RiskLevel } from "@/components/wizard/RiskMeter";
+import { LegalDisclaimer } from "@/components/LegalDisclaimer";
+import { GENERAL_ASSISTANCE_NOTE } from "@/lib/prelaunch";
 
 const RISK_META: Record<RiskLevel, { label: string; color: string; bar: string; tone: string; Icon: typeof ShieldCheck }> = {
   low: { label: "Нисък риск", color: "text-success", bar: "bg-success", tone: "border-success/30 bg-success/5", Icon: ShieldCheck },
@@ -67,6 +69,7 @@ export function ResultShell({
 
   return (
     <div className={cn("space-y-3", className)}>
+      <LegalDisclaimer>{GENERAL_ASSISTANCE_NOTE}</LegalDisclaimer>
       {risk && (
         <button
           type="button"
