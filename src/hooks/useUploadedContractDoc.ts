@@ -113,10 +113,18 @@ export const supabaseUploadedDocApi: UploadedDocApi = {
       .eq("kind", "contract")
       .eq("source_id", `uploaded:${docId}`)
       .maybeSingle() as unknown as Promise<DbResult<{ id: string }>>,
-  updateContract: (docId, patch, capturedVersion) => {
-    let q = supabase.from("uploaded_contracts").update(patch).eq("id", docId);
-    q = capturedVersion ? q.eq("updated_at", capturedVersion) : q.is("updated_at", null);
-    return q.select("*").maybeSingle() as unknown as Promise<DbResult<Contract>>;
+  updateContract: async (docId, patch, capturedVersion) => {
+    // Суров текст се записва само през контролирания сървърен вход (0044).
+    if (!capturedVersion) return { data: null, error: null };
+    const body: Record<string, unknown> = { action: "update", id: docId, expected_updated_at: capturedVersion };
+    if (patch.title !== undefined) body.title = patch.title;
+    if (patch.extracted_text !== undefined) body.text = patch.extracted_text;
+    const { data, error } = await supabase.functions.invoke("uploaded-text-intake", { body });
+    const status = (error as { context?: { status?: number } } | null)?.context?.status;
+    // 409 ревизия = конфликт (0 реда), както при предишния CAS запис.
+    if (error && status === 409) return { data: null, error: null };
+    if (error) return { data: null, error: { message: "save_failed" } };
+    return { data: ((data as { contract?: Contract } | null)?.contract ?? null), error: null };
   },
   updateContactLink: (docId, contactId) =>
     supabase
