@@ -107,3 +107,14 @@ C) **REVIEW_GRANT_SECRET в MAIN: липсва** (проверено само и
 Deploy само на трите handler-а. Source SHA-256 (deploy): create-checkout `ca202e9d…f7b4`, create-strict-unlock-checkout `e9508a20…f985`, create-product-checkout `2e26d40b…6816`. Runtime: OPTIONS 200 и неавтентикиран POST 401 и за трите. Prod флагове не са променяни; не са създавани Stripe сесии, клиенти, имейли; live покупка не е опитвана.
 
 **Присъда остава:** production не е „всичко отключено“; staff sandbox checkout в MAIN след поправката не е проверен с реална staff сесия от тук.
+
+## MAIN deploy/config preparation — 20.10.2026 (source base e405b925…, sandbox HEAD 15c08a87…)
+
+- Secret inventory (names only): REVIEW_GRANT_SECRET was absent → generated new 64-char server-only random value via the platform generator. Not copied from staging, not shown anywhere. No other secret touched/rotated.
+- Fix: `_shared/legal-force-markers.test.ts` fixture `NOW` changed from `Date` to epoch ms (`Date.parse`) to match promoted `assessChunkForce(content, now: number)`. No assertion changed.
+- Focused Deno (legal/source/grant/token/monitor/attestation shared tests + review-document): 249/249 pass (2 tests read repo-root paths; pass when run from root, 14/14). `deno check` clean for all 12 deployed entrypoints.
+- bun.lock blob unchanged `a260168a413111af4d4dd680a9943e88f883606d`; no package/install changes.
+- Deployed (submitted source SHA-256): generate-contract 67cfcbf2…0826; build-custom-contract 73668af7…defa; apply-corrections 3c7b0fb2…c142; refine-contract 2b69cb15…82c4; generate-linked-document 16279ea3…ce; review-document dfe0e022…a83; analyze-contract 31d5c668…2c6; assistant-chat 3d6978e0…67; assistant-chat-anon 265175b3…94; legal-source-monitor b70dfd55…082; plus fetch-legal-source 5667bddc…af3 and ingest-legal-source 038a2556…04b (same shared legal modules).
+- Endpoint smoke only (not E2E): OPTIONS 200 on all 12. Unauth empty POST: 401 on 9; generate-contract and review-document 400 (body validation precedes auth, no model call); assistant-chat-anon 503 (public flag closed, unchanged).
+- Not changed: public processing/payment flags, legal corpus, schema/data migrations, roles/approvals, frontend publish.
+- Readiness limitation: MAIN not ready for generate→review until root verifies corpus promotion (expected 7 current laws / 3563 chunks; earlier 0 snapshots). No real generate/review call made in MAIN.
