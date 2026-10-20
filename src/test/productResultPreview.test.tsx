@@ -144,7 +144,7 @@ describe("hero — едно доминиращо действие", () => {
     );
     const text = document.body.textContent ?? "";
     expect(screen.getByTestId("hero-primary-cta")).toHaveTextContent(
-      "Започнете безплатно",
+      "Намерете документ",
     );
     for (const banned of [
       "Вижте колко спестявате",

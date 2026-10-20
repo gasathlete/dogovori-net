@@ -62,14 +62,14 @@ describe("мобилна долна навигация", () => {
 describe("hero — безплатното начало е водещо", () => {
   const hero = read("src/components/Hero.tsx");
 
-  it("основният CTA е „Започнете безплатно“ към /start", () => {
-    expect(hero).toContain('to="/start"');
-    expect(hero).toContain("Започнете безплатно");
+  it("основният CTA е „Намерете документ“ към /catalog", () => {
+    expect(hero).toContain('to="/catalog"');
+    expect(hero).toContain("Намерете документ");
     expect(hero).not.toContain("Изберете какво Ви трябва");
   });
 
   it("основният CTA стои преди платения ред и е визуално по-силен", () => {
-    expect(hero.indexOf("Започнете безплатно")).toBeLessThan(
+    expect(hero.indexOf("Намерете документ")).toBeLessThan(
       hero.indexOf("<HeroProductRail />"),
     );
     expect(hero).toMatch(/min-h-\[60px\]/);
@@ -114,7 +114,8 @@ describe("ранен продуктов ред в hero-а", () => {
       expect(link).toHaveTextContent(productPriceLabel(p.id));
     }
     // Обхватът се казва веднъж — за целия ред, не на всяка карта.
-    expect(screen.getAllByText("За един документ. Без абонамент.")).toHaveLength(1);
+    expect(screen.getAllByText(/За един документ\. Без абонамент\./)).toHaveLength(1);
+    expect(screen.getByText(/Покупките още не са активни\./)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Еднократни продукти" })).toBeInTheDocument();
   });
 
@@ -286,16 +287,17 @@ describe("hero копие и продуктови карти", () => {
   const audience = read("src/lib/audience.ts");
 
   it("H1 и подкрепящият ред казват какво прави човекът", () => {
-    expect(audience).toContain("Създайте, проверете или");
-    expect(audience).toContain(" документ.");
-    expect(audience).toContain("Започнете от шаблон или качете свой файл.");
+    expect(audience).toContain("По-малко бюрокрация.");
+    expect(audience).toContain("Помагаме на хората и малкия и средния бизнес да се справят с ежедневната бюрокрация.");
   });
 
-  it("основното действие е безплатното начало, а второстепенните са реални пътища", () => {
-    expect(hero).toContain("Започнете безплатно");
-    expect(hero).toContain('to="/start"');
-    expect(hero).toContain("Създайте документ");
-    expect(hero).toContain("Проверка на документ");
+  it("основното действие е каталогът, а второстепенните са реални пътища с честен статус", () => {
+    expect(hero).toContain("Намерете документ");
+    expect(hero).toContain('to="/catalog"');
+    expect(hero).toContain('to="/build"');
+    expect(hero).toContain("Изготвяне · В подготовка");
+    expect(hero).toContain('to="/analiz"');
+    expect(hero).toContain("Проверка · В подготовка");
   });
 
   it("септемврийската промоция не се конкурира с продуктите в hero-а", () => {

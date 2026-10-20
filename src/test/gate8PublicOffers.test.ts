@@ -43,7 +43,7 @@ describe("Gate 8 — публични оферти преди пускане", (
       const source = read(path);
       expect(source).not.toContain("Качете за проверка");
       expect(source).not.toContain("Качи за анализ");
-      expect(source).toContain("Проверка на документ");
+      expect(source).not.toContain("Качете файл за проверка");
     }
   });
 });

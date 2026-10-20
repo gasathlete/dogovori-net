@@ -119,8 +119,9 @@ describe("seoTemplateIntent — allowlist и копие", () => {
 });
 
 describe("Template.tsx — eligible поведение", () => {
-  it("hero CTA ползва конфигурирания етикет, а baseline запазва стария", () => {
-    expect(src).toContain('{intent ? intent.primaryLabel : "Изготви за 3 минути"}');
+  it("hero CTA не обещава работещо генериране", () => {
+    expect(src).not.toContain("Изготви за 3 минути");
+    expect(src).toContain("Разгледайте подготовката");
   });
 
   it("intent панелът се рендира веднага след intro и НЕ зависи от draftText", () => {
@@ -133,7 +134,7 @@ describe("Template.tsx — eligible поведение", () => {
     const panel = src.slice(panelIdx, draftIdx);
     expect(panel).not.toContain("draftText");
     expect(panel).toContain("intent.proofPoints.map");
-    expect(panel).toContain("SEO_INTENT_SUPPORT_LINE");
+    expect(panel).toContain("Новото генериране е в подготовка.");
     expect(panel).toContain('aria-labelledby="intent-panel-title"');
     // Един визуално доминиращ златен CTA в панела.
     expect(panel.match(/btn-gold/g) ?? []).toHaveLength(1);
@@ -198,7 +199,7 @@ describe("Template.tsx — eligible поведение", () => {
 
   it("baseline шаблоните запазват hero линка за празна бланка с blank=1", () => {
     expect(src).toContain("&blank=1&returnTo=");
-    const heroBlank = src.slice(src.indexOf("{intent ? null : ("), src.lastIndexOf("Свали само бланка"));
+    const heroBlank = src.slice(src.indexOf("{intent ? null : ("), src.indexOf("Разгледайте подготовката за бланка"));
     expect(heroBlank).toContain("to={blankWizardHref}");
     expect(heroBlank).toContain('trackBlankCta("hero")');
   });
