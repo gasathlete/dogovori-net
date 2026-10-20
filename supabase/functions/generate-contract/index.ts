@@ -8,7 +8,7 @@ import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
 import { getDocumentTypeSpec, inferDocumentType } from "../_shared/document-types.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
-import { unredact } from "../_shared/redact.ts";
+import { finalizeGeneratedOutput } from "../_shared/generator-output-tokens.ts";
 import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
 import { isNewProcessingOpen, newProcessingClosedResponse } from "../_shared/new-processing-gate.ts";
 import {
@@ -36,6 +36,7 @@ import {
   qualitySigningSecretFromEnv,
   GENERATED_QUALITY_POLICY_VERSION,
   flattenGeneratedContract,
+  renderCanonicalPlainText,
   mergeIntentFindingsIntoRisk,
 } from "../_shared/generated-document-quality.ts";
 import {
@@ -513,7 +514,7 @@ Deno.serve(async (req: Request) => {
       : `\nАРБИТРАЖ: enabled=false (използвай държавна подсъдност)`;
     const languageLine = s.languageContext ? `\nЕЗИКОВ КОНТЕКСТ: ${s.languageContext}` : "";
     const redactionNote = route.redactionRequired
-      ? "ВАЖНО: Лични данни (имена, ЕГН, IBAN, адреси) са заменени с плейсхолдъри (<NAME_1>, <EGN_1> и т.н.). В готовия документ ИЗПОЛЗВАЙ плейсхолдърите дословно — те ще бъдат заменени с реалните стойности при връщане на потребителя.\n\n"
+      ? "ВАЖНО: Лични данни (имена, ЕГН, IBAN, адреси) са заменени с плейсхолдъри (<NAME_1>, <EGN_1> и т.н.). Използвай дословно само дадените служебни маркери; не измисляй нови <ТИП_n>. За липсващи данни използвай видими полета [ЕГН], [Адрес], [IBAN].\n\n"
       : "";
 
     const userPrompt = `${redactionNote}СЕКТОР: ${s.sector}
@@ -742,26 +743,9 @@ ${docTypeSpec.systemAddendum}
       if (res.stage !== "direct") console.log(`generate-contract: JSON recovered via ${res.stage} (attempts=${res.attempts})`);
     }
 
-    // Unredact AI output so the user sees real names/EGN/IBAN in the final doc.
-    // Walk the parsed object and replace placeholders directly in string leaves
-    // to avoid JSON round-trip issues when original values contain control chars.
-    if (Object.keys(mergedMapping).length > 0) {
-      try {
-        const walk = (v: unknown): unknown => {
-          if (typeof v === "string") return unredact(v, mergedMapping);
-          if (Array.isArray(v)) return v.map(walk);
-          if (v && typeof v === "object") {
-            const out: Record<string, unknown> = {};
-            for (const [k, val] of Object.entries(v as Record<string, unknown>)) out[k] = walk(val);
-            return out;
-          }
-          return v;
-        };
-        parsed = walk(parsed);
-      } catch (e) {
-        console.error("unredact failed:", e instanceof Error ? e.name : "unknown_error");
-      }
-    }
+    // Finalize output before manifest/hash/grant; restore only this request's
+    // exact tokens and turn invented personal-data markers into visible blanks.
+    parsed = finalizeGeneratedOutput(parsed, mergedMapping);
 
     // Defensive: ensure bilingual flag is set on contract when requested, so
     // exporters render BG/EN two-column layout reliably. ВАЖНО: това става ПРЕДИ
@@ -851,7 +835,7 @@ ${docTypeSpec.systemAddendum}
         const reviewGrant = await issueGrantForGeneratedContent({
           secret: reviewGrantSecret(),
           ownerId: userId,
-          documentText,
+          documentText: renderCanonicalPlainText(parsed.contract),
         });
         if (reviewGrant) (parsed as Record<string, unknown>).review_grant = reviewGrant;
       }

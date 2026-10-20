@@ -7,7 +7,8 @@ import { buildCors } from "../_shared/cors.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
-import { redactForAI, unredact } from "../_shared/redact.ts";
+import { redactForAI } from "../_shared/redact.ts";
+import { finalizeGeneratedOutput } from "../_shared/generator-output-tokens.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
@@ -495,27 +496,7 @@ ${redaction.answersText}
 
     if (!parsed?.contract) throw new Error("AI не върна contract");
 
-    // Unredact
-    if (Object.keys(redaction.mapping).length > 0) {
-      try {
-        const walk = (v: unknown): unknown => {
-          if (typeof v === "string") return unredact(v, redaction.mapping);
-          if (Array.isArray(v)) return v.map(walk);
-          if (v && typeof v === "object") {
-            const out: Record<string, unknown> = {};
-            for (const [k, val] of Object.entries(v as Record<string, unknown>)) out[k] = walk(val);
-            return out;
-          }
-          return v;
-        };
-        parsed.contract = walk(parsed.contract);
-        if (typeof parsed.change_summary === "string") {
-          parsed.change_summary = unredact(parsed.change_summary, redaction.mapping);
-        }
-      } catch (e) {
-        console.error("unredact failed:", e);
-      }
-    }
+    Object.assign(parsed, finalizeGeneratedOutput(parsed, redaction.mapping));
 
     // Q4a — ВАЖНО: промптът на refine-contract НЕ изисква и схемата НЕ връща
     // свеж risk анализ (връща се само коригиран договор + резюме на промените).

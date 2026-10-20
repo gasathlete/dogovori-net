@@ -4,7 +4,8 @@ import { buildCors } from "../_shared/cors.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
-import { redactForAI, unredact } from "../_shared/redact.ts";
+import { redactForAI } from "../_shared/redact.ts";
+import { finalizeGeneratedOutput } from "../_shared/generator-output-tokens.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
@@ -13,6 +14,7 @@ import {
   buildQualityManifest,
   qualitySigningSecretFromEnv,
   flattenGeneratedContract,
+  renderCanonicalPlainText,
   mergeIntentFindingsIntoRisk,
   verifyManifestSignatureOnly,
 } from "../_shared/generated-document-quality.ts";
@@ -509,29 +511,7 @@ ${answersRedacted}
       regenerateAttempts: 1,
     })).parsed as Record<string, unknown>;
 
-    // Unredact AI output so the user sees real names/EGN/IBAN in the final doc.
-    // Walk the parsed object and replace placeholders directly in string leaves
-    // to avoid JSON round-trip issues when original values contain control chars.
-    if (Object.keys(redaction.mapping).length > 0) {
-      try {
-        const walk = (v: unknown): unknown => {
-          if (typeof v === "string") return unredact(v, redaction.mapping);
-          if (Array.isArray(v)) return v.map(walk);
-          if (v && typeof v === "object") {
-            const out: Record<string, unknown> = {};
-            for (const [k, val] of Object.entries(v as Record<string, unknown>)) out[k] = walk(val);
-            return out;
-          }
-          return v;
-        };
-        const restored = walk(parsed);
-        if (restored && typeof restored === "object" && !Array.isArray(restored)) {
-          Object.assign(parsed, restored as Record<string, unknown>);
-        }
-      } catch (e) {
-        console.error("unredact failed:", e);
-      }
-    }
+    Object.assign(parsed, finalizeGeneratedOutput(parsed, redaction.mapping));
 
     if (!parsed?.contract) throw new Error("AI не върна contract");
 
@@ -595,7 +575,7 @@ ${answersRedacted}
         const reviewGrant = await issueGrantForGeneratedContent({
           secret: reviewGrantSecret(),
           ownerId: userId,
-          documentText,
+          documentText: renderCanonicalPlainText(p.contract),
         });
         if (reviewGrant) p.review_grant = reviewGrant;
       }

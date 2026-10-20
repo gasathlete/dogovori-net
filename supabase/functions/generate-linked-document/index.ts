@@ -5,7 +5,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
-import { redactForAI, unredact } from "../_shared/redact.ts";
+import { redactForAI } from "../_shared/redact.ts";
+import { finalizeGeneratedOutput } from "../_shared/generator-output-tokens.ts";
 import { canonicalize, sha256Hex } from "../_shared/canonical-digest.ts";
 import {
   asOperationId,
@@ -429,7 +430,10 @@ ${safeParentText}
     } catch (_parseError) {
       return await reconcileAndRespond("malformed_response");
     }
-    const parsed = JSON.parse(unredact(JSON.stringify(rawParsed), redaction.mapping));
+    if (!rawParsed || typeof rawParsed !== "object" || Array.isArray(rawParsed)) {
+      return await reconcileAndRespond("malformed_response");
+    }
+    const parsed = finalizeGeneratedOutput(rawParsed, redaction.mapping);
 
     const payload = {
       ...parsed,

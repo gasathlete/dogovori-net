@@ -9,7 +9,8 @@ import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { guardIllegalContent } from "../_shared/illegal-content.ts";
 import { getDocumentTypeSpec, ALL_DOCUMENT_TYPE_IDS } from "../_shared/document-types.ts";
 import { classifyDocumentBeforeAI } from "../_shared/classify.ts";
-import { redactForAI, unredact } from "../_shared/redact.ts";
+import { redactForAI } from "../_shared/redact.ts";
+import { finalizeGeneratedOutput } from "../_shared/generator-output-tokens.ts";
 import { routeModel } from "../_shared/model-router.ts";
 import { logAiAudit } from "../_shared/ai-call.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
@@ -20,6 +21,7 @@ import {
   qualitySigningSecretFromEnv,
   GENERATED_QUALITY_POLICY_VERSION,
   flattenGeneratedContract,
+  renderCanonicalPlainText,
   mergeIntentFindingsIntoRisk,
 } from "../_shared/generated-document-quality.ts";
 import {
@@ -726,12 +728,7 @@ ${fieldsSection}
     }
 
 
-    // Unredact AI output so the user sees real names/EGN/IBAN in the final doc.
-    if (Object.keys(redacted.mapping).length > 0) {
-      try {
-        parsed = JSON.parse(unredact(JSON.stringify(parsed), redacted.mapping));
-      } catch (e) { console.error("unredact failed:", e); }
-    }
+    parsed = finalizeGeneratedOutput(parsed, redacted.mapping);
 
     // Ensure bilingual flag is set when requested, so the renderer/exporters
     // know to use the two-column layout even if the AI forgets to include it.
@@ -819,7 +816,7 @@ ${fieldsSection}
         const reviewGrant = await issueGrantForGeneratedContent({
           secret: reviewGrantSecret(),
           ownerId: userId,
-          documentText,
+          documentText: renderCanonicalPlainText(parsed.contract),
         });
         if (reviewGrant) (parsed as Record<string, unknown>).review_grant = reviewGrant;
       }
