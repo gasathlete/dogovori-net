@@ -5466,6 +5466,7 @@ export type Database = {
           id: string
           kind: Database["public"]["Enums"]["document_kind"]
           payload: Json
+          save_request_key: string | null
           source_id: string | null
           tags: string[]
           team_id: string | null
@@ -5483,6 +5484,7 @@ export type Database = {
           id?: string
           kind: Database["public"]["Enums"]["document_kind"]
           payload: Json
+          save_request_key?: string | null
           source_id?: string | null
           tags?: string[]
           team_id?: string | null
@@ -5500,6 +5502,7 @@ export type Database = {
           id?: string
           kind?: Database["public"]["Enums"]["document_kind"]
           payload?: Json
+          save_request_key?: string | null
           source_id?: string | null
           tags?: string[]
           team_id?: string | null
