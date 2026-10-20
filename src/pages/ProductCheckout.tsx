@@ -101,6 +101,7 @@ export default function ProductCheckout() {
 
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
+  const [pasted, setPasted] = useState("");
   const [prepared, setPrepared] = useState<PreparedProductDocument | null>(null);
   const [phase, setPhase] = useState("");
   const [busy, setBusy] = useState(false);
