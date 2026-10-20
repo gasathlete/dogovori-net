@@ -7,6 +7,7 @@
  * задава класификация, модел или маршрут — само тези кратки полета.
  */
 import type { ProductPurchaseId } from "./product-purchase.ts";
+import { findRestrictedIdentifierKindsDeep } from "./text-identifier-gate.ts";
 
 export const PRODUCT_CONTEXT_KEYS = Object.freeze([
   "role",
@@ -19,6 +20,7 @@ export const PRODUCT_POSITIONS = Object.freeze(["conservative", "balanced", "ass
 export type ProductPosition = (typeof PRODUCT_POSITIONS)[number];
 
 export type ProductContextProblem =
+  | "restricted_identifier_blocked"
   | "invalid_context"
   | "unknown_context_field"
   | "context_too_long"
@@ -98,6 +100,9 @@ export function validateProductContext(raw: unknown, productId: ProductPurchaseI
   }
   if (productId === "negotiation_package" && !out.counterparty_context) {
     throw new ProductContextError("counterparty_required");
+  }
+  if (findRestrictedIdentifierKindsDeep(out).length > 0) {
+    throw new ProductContextError("restricted_identifier_blocked");
   }
   return out as unknown as ProductContext;
 }

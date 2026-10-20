@@ -74,3 +74,14 @@ Deno.test("сравнението е по канонично съдържани�
   assert(!sameProductContext(CHECK_CONTEXT, { role: "Наемател" }));
   assertEquals(canonicalContextJson(null), "{}");
 });
+
+Deno.test("ограничени идентификатори в роля/цел/контрагент се отказват преди покупка", () => {
+  for (const [raw, product] of [
+    [{ role: "ЕГН: 1234567890" }, "contract_check"],
+    [{ ...IMPROVE_CONTEXT, objective: "ЕГН: 1234567890" }, "contract_improve"],
+    [{ ...PREMIUM_CONTEXT, counterparty_context: "ЕГН: 1234567890" }, "negotiation_package"],
+  ] as const) {
+    const err = assertThrows(() => validateProductContext(raw, product), ProductContextError);
+    assertEquals((err as ProductContextError).reason, "restricted_identifier_blocked");
+  }
+});

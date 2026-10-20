@@ -210,7 +210,7 @@ export async function prepareProductDocument(
  * без тихо отрязване; лични идентификатори се отказват локално и на сървъра.
  * Записът и сървърната разписка ги прави само uploaded-text-intake.
  */
-export async function prepareProductText(input: { title: string; text: string }): Promise<PreparedProductDocument> {
+export async function prepareProductText(input: { userId: string; id: string; title: string; text: string }): Promise<PreparedProductDocument> {
   const { normalizeProductSourceText, countProductSourceChars, PRODUCT_MAX_SOURCE_CHARS } = await import("@/lib/productSource");
   const { findRestrictedIdentifiers, restrictedIdentifierMessage } = await import("@/lib/privacyGate");
   const text = normalizeProductSourceText(input.text);
@@ -222,10 +222,11 @@ export async function prepareProductText(input: { title: string; text: string })
   const title = (input.title.trim() || "Поставен документ").slice(0, 300);
   const kinds = findRestrictedIdentifiers(`${title}\n${text}`);
   if (kinds.length > 0) throw new ProductUploadError(restrictedIdentifierMessage(kinds));
-  await ensureFreshSession();
-  const id = crypto.randomUUID();
+  const session = await ensureFreshSession();
+  if (session.user.id !== input.userId) throw new ProductUploadError("Сесията се промени. Влезте отново и опитайте пак.");
   const { data, error } = await supabase.functions.invoke("uploaded-text-intake", {
-    body: { action: "create", id, title, text, product_source: true },
+    headers: { Authorization: `Bearer ${session.access_token}` },
+    body: { action: "create", id: input.id, title, text, product_source: true },
   });
   const contract = (data as { contract?: { id: string; text_hash: string } } | null)?.contract;
   if (error || !contract) throw new ProductUploadError(PRODUCT_PERSIST_FAILED_MESSAGE);

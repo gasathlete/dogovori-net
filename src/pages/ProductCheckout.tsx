@@ -1,7 +1,7 @@
 /**
  * Купуване на един еднократен продукт за един документ.
  *
- * Пътят е кратък и стъпка по стъпка: качвате файл → казвате коя страна сте →
+ * Пътят е кратък и стъпка по стъпка: поставяте текст → казвате коя страна сте →
  * потвърждавате четирите условия и плащате. Готовите стъпки се свиват до кратко
  * резюме и се отварят отново, докато плащането не е отворено.
  *
@@ -52,6 +52,7 @@ import { DocumentFilePicker } from "@/components/products/DocumentFilePicker";
 import { PRODUCT_ACCEPTED_INPUT, countProductSourceChars, normalizeProductSourceText } from "@/lib/productSource";
 import {
   RAW_FILE_INGRESS_ALLOWED,
+  assertNoRestrictedIdentifiers,
 } from "@/lib/privacyGate";
 import { CheckCircle2, FileUp } from "@/icons";
 
@@ -109,12 +110,14 @@ export default function ProductCheckout() {
   const [counterparty, setCounterparty] = useState("");
   const [position, setPosition] = useState<Position>("balanced");
 
-  /**
-   * Едно изрично съгласие към Условията за покупка. Условията изброяват четирите
-   * точки (условия и поверителност, автоматичен резултат, незабавно изпълнение,
-   * загуба на правото на отказ), затова сървърът получава истината както е дадена.
-   */
-  const [purchaseTerms, setPurchaseTerms] = useState(false);
+  // Всяко потвърждение е отделно и започва неотметнато.
+  const [consents, setConsents] = useState({
+    termsAccepted: false, aiAckAccepted: false,
+    immediatePerformanceConsent: false, withdrawalLossAcknowledged: false,
+  });
+  const userRef = useRef(user?.id);
+  userRef.current = user?.id;
+  const textAttemptRef = useRef<{ userId: string; title: string; text: string; id: string } | null>(null);
 
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   /**
@@ -130,9 +133,17 @@ export default function ProductCheckout() {
     if (!product && legacy) navigate(`${legacy}/start`, { replace: true });
   }, [product, slug, navigate]);
 
+  useEffect(() => {
+    setPrepared(null); setPasted(""); setTitle(""); setFile(null);
+    setRole(""); setObjective(""); setCounterparty(""); setClientSecret(null); setBlocked(null);
+    setConsents({ termsAccepted: false, aiAckAccepted: false, immediatePerformanceConsent: false, withdrawalLossAcknowledged: false });
+    textAttemptRef.current = null;
+    requestIdRef.current = crypto.randomUUID();
+  }, [user?.id]);
+
   const needsObjective = product?.id !== "contract_check";
   const needsCounterparty = product?.id === "negotiation_package";
-  const allConsents = purchaseTerms;
+  const allConsents = Object.values(consents).every((value) => value === true);
   // Плащаме само когато имаме всичко, което продуктът реално ползва.
   const contextReady =
     role.trim().length > 1 &&
@@ -243,7 +254,15 @@ export default function ProductCheckout() {
     if (!user) return;
     setBusy(true);
     try {
-      setPrepared(await prepareProductText({ title, text: pasted }));
+      const uid = user.id;
+      const canonical = normalizeProductSourceText(pasted);
+      const attempt = textAttemptRef.current;
+      if (!attempt || attempt.userId !== uid || attempt.title !== title || attempt.text !== canonical) {
+        textAttemptRef.current = { userId: uid, title, text: canonical, id: crypto.randomUUID() };
+      }
+      const result = await prepareProductText({ userId: uid, id: textAttemptRef.current!.id, title, text: canonical });
+      if (userRef.current !== uid) return;
+      setPrepared(result);
       setOpenStep("context");
       toast.success("Текстът е записан целият.");
     } catch (e) {
@@ -254,6 +273,9 @@ export default function ProductCheckout() {
   };
 
   const changeDocument = () => {
+    setConsents({ termsAccepted: false, aiAckAccepted: false, immediatePerformanceConsent: false, withdrawalLossAcknowledged: false });
+    textAttemptRef.current = null;
+    requestIdRef.current = crypto.randomUUID();
     setPasted("");
     setPrepared(null);
     setFile(null);
@@ -266,16 +288,24 @@ export default function ProductCheckout() {
     requestIdRef.current = crypto.randomUUID();
     setClientSecret(null);
     changeDocument();
-    setPurchaseTerms(false);
+    setConsents({ termsAccepted: false, aiAckAccepted: false, immediatePerformanceConsent: false, withdrawalLossAcknowledged: false });
     setOpenStep(null);
   };
 
   const handlePay = async () => {
-    if (!prepared || !canPay) return;
+    if (!user || !prepared || !canPay) return;
     setBusy(true);
     setBlocked(null);
     try {
+      assertNoRestrictedIdentifiers([role, objective, counterparty]);
+      const uid = user.id;
+      const { data: auth } = await supabase.auth.getSession();
+      if (!auth.session || auth.session.user.id !== uid || userRef.current !== uid) {
+        setBlocked("Сесията се промени. Влезте отново и подгответе документа.");
+        return;
+      }
       const { data, error } = await supabase.functions.invoke("create-product-checkout", {
+        headers: { Authorization: `Bearer ${auth.session.access_token}` },
         body: {
           productId: product.id,
           uploadedContractId: prepared.uploadedContractId,
@@ -286,11 +316,7 @@ export default function ProductCheckout() {
             ...(needsObjective ? { objective: objective.trim(), preferred_position: position } : {}),
             ...(needsCounterparty ? { counterparty_context: counterparty.trim() } : {}),
           },
-          // Едно съгласие към Условията за покупка, които изброяват четирите точки.
-          termsAccepted: purchaseTerms,
-          aiAckAccepted: purchaseTerms,
-          immediatePerformanceConsent: purchaseTerms,
-          withdrawalLossAcknowledged: purchaseTerms,
+          ...consents,
         },
       });
       if (error || !data?.clientSecret) {
@@ -304,7 +330,7 @@ export default function ProductCheckout() {
         }
         throw new Error(error?.message ?? "checkout_failed");
       }
-      setClientSecret(data.clientSecret as string);
+      if (userRef.current === uid) setClientSecret(data.clientSecret as string);
     } catch (e) {
       setBlocked(null);
       toast.error("Не успяхме да отворим плащането. Плащане не е извършено.");
@@ -554,7 +580,7 @@ export default function ProductCheckout() {
             prepared?.originalFilename || prepared?.title || "Вашият документ",
             prepared
               ? `Прочетен целият${prepared.pageCount ? ` · ${prepared.pageCount} стр.` : ""}`
-              : "Още не е качен",
+              : "Още не е поставен",
             prepared ? "document" : null,
           )
         )}
@@ -656,42 +682,32 @@ export default function ProductCheckout() {
                 className="rounded-xl border border-gold/30 bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground"
               >
                 <span className="block font-medium text-foreground">
-                  Личните данни остават при Вас
+                  Преди да изпратите текста
                 </span>
-                Преди анализа системата разпознава лични данни в текста — имена, ЕГН,
-                адреси, телефони, имейли, банкови сметки — и ги заменя с маркери. Към
-                езиковия модел се изпраща само заличеният текст, а Вие виждате мястото в
-                своя документ.
+                Заменете личните идентификатори при Вас с [ЕГН], [IBAN] или
+                [номер на лична карта]. При разпознати ограничени идентификатори
+                заявката се отказва преди плащане. Проверете внимателно преди подписване.
               </div>
 
               <label className="flex min-h-11 items-start gap-3">
-                <Checkbox
-                  checked={purchaseTerms}
-                  disabled={locked}
-                  onCheckedChange={(v) => setPurchaseTerms(v === true)}
-                />
-                <span>
-                  Приемам{" "}
-                  <Link
-                    to="/usloviya-za-pokupka"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline"
-                  >
-                    Условията за покупка
-                  </Link>
-                  : резултатът е автоматичен и не е юридически съвет, обработката започва
-                  веднага след плащането и след започването губя правото на отказ за вече
-                  доставеното съдържание. Приемам и{" "}
-                  <Link to="/terms" target="_blank" rel="noopener noreferrer" className="underline">
-                    Общите условия
-                  </Link>{" "}
-                  и{" "}
-                  <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="underline">
-                    Политиката за поверителност
-                  </Link>
-                  .
-                </span>
+                <Checkbox checked={consents.termsAccepted} disabled={locked}
+                  onCheckedChange={(value) => setConsents((previous) => ({ ...previous, termsAccepted: value === true }))} />
+                <span>Приемам{" "}<Link to="/usloviya-za-pokupka" target="_blank" rel="noopener noreferrer" className="underline">Условията за покупка</Link>,{" "}<Link to="/terms" target="_blank" rel="noopener noreferrer" className="underline">Общите условия</Link>{" "}и{" "}<Link to="/privacy" target="_blank" rel="noopener noreferrer" className="underline">Политиката за поверителност</Link>.</span>
+              </label>
+              <label className="flex min-h-11 items-start gap-3">
+                <Checkbox checked={consents.aiAckAccepted} disabled={locked}
+                  onCheckedChange={(value) => setConsents((previous) => ({ ...previous, aiAckAccepted: value === true }))} />
+                <span>Разбирам, че резултатът е автоматичен и не е юридически съвет.</span>
+              </label>
+              <label className="flex min-h-11 items-start gap-3">
+                <Checkbox checked={consents.immediatePerformanceConsent} disabled={locked}
+                  onCheckedChange={(value) => setConsents((previous) => ({ ...previous, immediatePerformanceConsent: value === true }))} />
+                <span>Изрично искам обработката да започне веднага след плащането.</span>
+              </label>
+              <label className="flex min-h-11 items-start gap-3">
+                <Checkbox checked={consents.withdrawalLossAcknowledged} disabled={locked}
+                  onCheckedChange={(value) => setConsents((previous) => ({ ...previous, withdrawalLossAcknowledged: value === true }))} />
+                <span>Разбирам, че след започването губя правото на отказ за вече доставеното съдържание.</span>
               </label>
             </div>
 

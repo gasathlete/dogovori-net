@@ -166,8 +166,8 @@ describe("една отворена стъпка", () => {
     );
     expect(screen.queryByLabelText(/Коя страна сте по документа/)).toBeNull();
     expect(screen.getByTestId("step-summary-context").textContent).toMatch(/наемател/);
-    // Едно явно съгласие към Общите условия за покупка.
-    expect(document.querySelectorAll('[role="checkbox"]').length).toBe(1);
+    // Четири отделни и непредварително отметнати потвърждения.
+    expect(document.querySelectorAll('[role="checkbox"]').length).toBe(4);
     expect(screen.getByRole("button", { name: /Към плащане/ })).toBeInTheDocument();
   });
 });
