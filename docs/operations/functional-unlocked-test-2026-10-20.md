@@ -1,5 +1,15 @@
 # Функционален тест „всичко отключено“ — 20.10.2026
 
+## Phase150 — MAIN правна база действително пренесена и внедрена
+
+Собственикът потвърди общ лимит150; начална оценка102.4. Staging поправка/положителен тест6.7 + MAIN deploy3.3 → текущо **112.4/150**, остатък37.6.
+
+- Staging fresh GDPR v2 receipt пази v1; реално generate200→review200 (needs_fixes,11checks,5missing requisites,КТ66), exact cached retry, changed text и different user403; точно2model calls. Няма твърдение за правна готовност за подписване.
+- MAIN source `ad7a4fdd1d78d629691721721b8c301af1a5212e`: собствен REVIEW_GRANT_SECRET създаден сигурно; 12 AI/source функции внедрени с новите shared модули. Fixture Date→epoch поправена без промяна на assertions;249фокусни теста/entrypoint checks минаха. bun.lock е точният v3 blob.
+- Root приложи записаната schema migration (source2637bdd9) и пренесе **7пълни текущи закона /3563части с768мерни вектори**. Основните текстове и всички chunk/content/embedding fingerprints съвпаднаха между базите; source IDs за петте налични закона са запазени, добавени само двата липсващи нормативни source реда. Историческите документи/receipts са запазени. Registry7 + истински snapshots8 + ingestion provenance23 са пренесени; current_version pointers са активирани в проверена транзакция след зареждането. Няма копирани потребителски/ролни/платежни данни.
+- MAIN новият6arg match RPC реално връща само текущияКТ при allowlistКТ; празен allowlist връща0. RPC изпълнение е само authenticated/service_role, както стария5arg; стариятRPC остава за съвместимост. Съдържателната/времева verifier защита не е отслабена.
+- Manifest/преди-state за rollback: `docs/operations/legal-corpus-promotion-2026-10-20.json`. Public processing/payment флаговете още не са променени; следва реална MAIN проверка и съгласувано UI/backend отваряне. Това е завършен corpus promotion/deploy, не доказателство за публично работещи плащания/подписване.
+
 ## Финална CI проверка на кода
 
 За source `fe55412d94c15aa672ffd9dd2aaf5781436a5f2e`: GitHub Tests `39408617814` success — **2112 app passed / 4 existing skipped, 1062 edge passed / 0 failed**, typecheck стъпката и wizard audit без CRITICAL. Build & SEO `39408617672`, Static catalog sandbox `39408617806`, Security scan `39408617990` success. Security shield `39408617756` остава failure за известния dependency advisory. Няма MAIN runtime deploy/правна migration/отваряне на флагове; докладът не се представя като доказателство за публично работещ анализ или покупки. Следващата промяна е само този отчет, без нов код.
