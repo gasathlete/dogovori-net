@@ -6887,31 +6887,58 @@ export type Database = {
       }
       mark_all_notifications_read: { Args: never; Returns: number }
       mark_notification_read: { Args: { _id: string }; Returns: undefined }
-      match_legal_chunks: {
-        Args: {
-          jurisdictions?: string[]
-          match_count?: number
-          query_embedding: string
-          query_text?: string
-          source_types?: string[]
-        }
-        Returns: {
-          article_no: string
-          chunk_id: string
-          citation_label: string
-          content: string
-          document_id: string
-          jurisdiction: string
-          official_url: string
-          paragraph_no: string
-          score: number
-          similarity: number
-          source_id: string
-          source_short_code: string
-          source_title: string
-          text_rank: number
-        }[]
-      }
+      match_legal_chunks:
+        | {
+            Args: {
+              jurisdictions?: string[]
+              match_count?: number
+              query_embedding: string
+              query_text?: string
+              source_types?: string[]
+            }
+            Returns: {
+              article_no: string
+              chunk_id: string
+              citation_label: string
+              content: string
+              document_id: string
+              jurisdiction: string
+              official_url: string
+              paragraph_no: string
+              score: number
+              similarity: number
+              source_id: string
+              source_short_code: string
+              source_title: string
+              text_rank: number
+            }[]
+          }
+        | {
+            Args: {
+              jurisdictions?: string[]
+              match_count?: number
+              query_embedding: string
+              query_text?: string
+              short_codes?: string[]
+              source_types?: string[]
+            }
+            Returns: {
+              article_no: string
+              chunk_id: string
+              citation_label: string
+              content: string
+              document_id: string
+              jurisdiction: string
+              official_url: string
+              paragraph_no: string
+              score: number
+              similarity: number
+              source_id: string
+              source_short_code: string
+              source_title: string
+              text_rank: number
+            }[]
+          }
       metrics_event_timeseries: {
         Args: { _bucket: string; _from: string; _to: string }
         Returns: {
