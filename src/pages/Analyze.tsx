@@ -2,7 +2,7 @@
  * /analiz — страницата за проверка на собствен договор.
  *
  * Публичната версия не показва примерен резултат. Всеки посетител отива към
- * реалната проверка в акаунта, която работи с качения документ.
+ * реалната проверка в акаунта, която работи с поставения текст.
  *
  * При валиден ?product= страницата показва точното ограничение на платения
  * продукт (само PDF с четим текст или DOCX, до 60 000 знака, без сканирани
@@ -23,6 +23,7 @@ import {
   parseProductParam,
 } from "@/lib/products";
 import { FREE_OFFER_RULE } from "@/lib/pricing";
+import { isFeatureAvailable } from "@/lib/prelaunch";
 import {
   PRODUCT_ACCEPTED_INPUT,
   PRODUCT_MAX_SOURCE_CHARS,
@@ -73,6 +74,7 @@ export default function Analyze() {
   };
 
   const productCopy = product ? getProduct(product) : null;
+  const textReviewOpen = !productCopy && isFeatureAvailable("document_review");
 
   // В продуктов режим показваме точно платеното ограничение; в общия режим —
   // реално поддържаните възможности на проверката в акаунта.
@@ -102,13 +104,13 @@ export default function Analyze() {
         },
         {
           icon: Sparkles,
-          title: "И сканирани документи",
-          body: "Разчитаме и сканирани PDF файлове — първите 3 страници са включени, всяка следваща е +1 операция.",
+          title: "Поставете текст",
+          body: "Копирайте текста на документа. Заменете личните идентификатори с [ЕГН] или [IBAN] преди изпращане.",
         },
         {
           icon: FileUp,
-          title: "PDF, Word или текст",
-          body: "Качвате файл до 10 MB или поставяте текста. Времето за обработка зависи от обема на документа.",
+          title: "Текст без качване на файл",
+          body: "Приемаме поставен текст. Качването на PDF, Word и сканирани документи временно не е налично.",
         },
       ];
 
@@ -116,8 +118,10 @@ export default function Analyze() {
     <>
       <Seo
         title="Проверка на договор — какво поемате и какво да промените"
-        description={ONE_TIME_PURCHASES_AVAILABLE
-          ? "Качвате PDF или Word файл и виждате какво поемате по договора, кои клаузи носят риск и какво да промените, с точно място в текста. Резултатът е автоматичен и не е правен съвет."
+        description={textReviewOpen
+          ? "Поставете текста на документ и проверете условията, сроковете и рисковете. Проверете внимателно преди подписване."
+          : ONE_TIME_PURCHASES_AVAILABLE
+          ? "Качвате PDF или Word файл и виждате какво поемате по договора, кои клаузи носят риск и какво да промените, с точно място в текста. Резултатът е автоматичен и не е правен съвет. Проверете внимателно преди подписване."
           : "Проверката на договори е в подготовка. В момента не приемаме документи и не отваряме плащане за услугата."}
         canonical="https://dogovori.net/analiz"
       />
@@ -149,7 +153,9 @@ export default function Analyze() {
               )}
             </h1>
             <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
-              {!ONE_TIME_PURCHASES_AVAILABLE
+              {textReviewOpen
+                ? "Поставете текста на документа и вижте кои условия, срокове и рискове изискват внимание."
+                : !ONE_TIME_PURCHASES_AVAILABLE
                 ? "Проверката е в подготовка. В момента не приемаме документи и не отваряме плащане за услугата."
                 : productCopy
                 ? productCopy.promise
@@ -158,8 +164,31 @@ export default function Analyze() {
           </header>
 
           {/* Последователността на екрана: документ → проверка → резултат. */}
-          {ONE_TIME_PURCHASES_AVAILABLE && <WorkStepStrip steps={ANALYZE_STEPS} current={0} className="mt-5" />}
+          {(textReviewOpen || ONE_TIME_PURCHASES_AVAILABLE) && <WorkStepStrip steps={ANALYZE_STEPS} current={0} className="mt-5" />}
 
+          {textReviewOpen ? (
+            <div className="mt-4 rounded-2xl border border-gold/30 bg-card/70 p-5 shadow-elegant sm:p-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold">Достъпно в тестовия период</p>
+              <h2 className="mt-2 font-serif text-xl font-bold sm:text-2xl">Проверете текста на документ</h2>
+              <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
+                Безплатният профил включва {FREE_OFFER_RULE}. Поставете текста в профила си.
+                Заменете личните идентификатори с [ЕГН] или [IBAN] преди изпращане.
+                Качването на PDF, Word и сканирани документи временно не е налично.
+              </p>
+              <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+                <button type="button" disabled={loading}
+                  onClick={() => user ? navigate(uploadRoute) : goSignup()}
+                  className="btn-gold inline-flex min-h-12 flex-1 items-center justify-center rounded-xl px-5 text-[15px] font-semibold disabled:opacity-50">
+                  {user ? "Поставете текст за проверка" : "Създайте безплатен профил"}
+                </button>
+                {!user && <button type="button" disabled={loading} onClick={goLogin}
+                  className="inline-flex min-h-12 items-center justify-center rounded-xl border border-border/60 px-5 text-[15px] font-semibold">
+                  Вход в профила
+                </button>}
+              </div>
+              <p className="mt-3 text-[13px] text-muted-foreground">Подробната платена проверка още не приема документи или плащания.</p>
+            </div>
+          ) : (
           <div className="mt-4 rounded-2xl border border-gold/30 bg-card/70 p-5 shadow-elegant sm:p-6">
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-gold">
               <Lock className="h-3.5 w-3.5" /> Преди официалното пускане
@@ -201,13 +230,15 @@ export default function Analyze() {
             </div>
           </div>
 
+          )}
+
           {/* Подробностите стоят на едно място и са свити по подразбиране. */}
           <details
             data-testid="analyze-details"
             className="group mt-4 rounded-xl border border-border/60 bg-card/40 px-4 py-3"
           >
             <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-[15px] font-semibold text-foreground">
-              Какво получавате и какви файлове приемаме
+              Какво получавате и какъв текст приемаме
               <span className="text-[13px] font-normal text-muted-foreground group-open:hidden">
                 Отворете
               </span>
