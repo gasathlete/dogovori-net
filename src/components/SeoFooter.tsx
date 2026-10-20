@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Logo } from "./Logo";
 import { ONE_TIME_PRODUCTS, productPath } from "@/lib/products";
 import { CATALOG_DOCUMENT_COUNT } from "@/lib/catalogStats";
+import { CATALOG_REVIEW_STATUS } from "@/lib/templateReviewStatus";
 import FOOTER_ANCHOR_SLUGS from "@/data/footerAnchors.generated.json";
 
 
@@ -79,7 +80,10 @@ export function SeoFooter() {
           <div className="md:col-span-1">
             <Logo />
             <p className="mt-3 max-w-xs text-xs leading-relaxed text-muted-foreground">
-              Документи, договори, бланки и шаблони онлайн на български език. {CATALOG_DOCUMENT_COUNT} готови шаблона по ЗЗД, ТЗ и КТ — попълнете с AI асистент.
+              Помощ в ежедневната бюрокрация за хората и малкия и средния бизнес. {CATALOG_DOCUMENT_COUNT} образеца за лични въпроси, работа и бизнес.
+            </p>
+            <p className="mt-2 max-w-xs text-xs leading-relaxed text-muted-foreground">
+              {CATALOG_REVIEW_STATUS.notice}
             </p>
             <a
               href="https://im-development.imot.bg"
