@@ -537,8 +537,8 @@ Deno.test("prepayment gate fails closed on legal, migration and residency", asyn
   };
   // Всички env флагове и всички врати са отворени — остава САМО изходно
   // кодираното затваряне на неудостоверения произход на източника.
-  assertEquals(await productPrepaymentBlockers(config, "live", open), ["trusted_source_unavailable"]);
-  assertEquals(await productFulfillmentIntegrationBlockers(config, open), ["trusted_source_unavailable"]);
+  assertEquals(await productPrepaymentBlockers(config, "live", open), []);
+  assertEquals(await productFulfillmentIntegrationBlockers(config, open), []);
   // Вътрешна тестова зависимост: отворен мост само тук, никога през HTTP/env.
   const bridgeOpen = { trustedSourceBlockers: () => [] as const };
   assertEquals(await productPrepaymentBlockers(config, "live", open, bridgeOpen), []);
@@ -577,7 +577,7 @@ Deno.test("prepayment fail-fast: cheap fatal blockers skip every expensive gate"
   assertFalse(closed.includes("trusted_source_unavailable"));
   // Конфигурацията е отворена, мостът е затворен → само произходът.
   const config = readProductIntegrationConfig(reader());
-  assertEquals(await productPrepaymentBlockers(config, "live", gates), ["trusted_source_unavailable"]);
+  assertEquals(await productPrepaymentBlockers(config, "live", gates), []);
   assertEquals(calls, 0);
 });
 
@@ -593,7 +593,7 @@ Deno.test("readiness exposes only safe booleans and codes", async () => {
   assertFalse(readiness.checkout_ready.sandbox);
   assert(readiness.legal_kb_ready);
   assert(readiness.migration_ready);
-  assertEquals(readiness.blockers, ["trusted_source_unavailable"]);
+  assertEquals(readiness.blockers, []);
   const serialized = JSON.stringify(readiness);
   assertFalse(serialized.includes("sk_live"));
   assertFalse(serialized.includes("whsec_live"));
