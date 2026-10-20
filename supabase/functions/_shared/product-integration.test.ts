@@ -539,21 +539,23 @@ Deno.test("prepayment gate fails closed on legal, migration and residency", asyn
   // кодираното затваряне на неудостоверения произход на източника.
   assertEquals(await productPrepaymentBlockers(config, "live", open), ["trusted_source_unavailable"]);
   assertEquals(await productFulfillmentIntegrationBlockers(config, open), ["trusted_source_unavailable"]);
-  assert(
-    (await productPrepaymentBlockers(config, "live", { ...open, rpc: rpcProbe(false) })).includes(
-      "migration_not_verified",
-    ),
+  // Вътрешна тестова зависимост: отворен мост само тук, никога през HTTP/env.
+  const bridgeOpen = { trustedSourceBlockers: () => [] as const };
+  assertEquals(await productPrepaymentBlockers(config, "live", open, bridgeOpen), []);
+  assertEquals(
+    await productPrepaymentBlockers(config, "live", { ...open, rpc: rpcProbe(false) }, bridgeOpen),
+    ["migration_not_verified"],
   );
-  assert(
-    (await productPrepaymentBlockers(config, "live", { ...open, legalDb: legalDb({}) })).includes(
-      "legal_kb_not_ready",
-    ),
+  assertEquals(
+    await productPrepaymentBlockers(config, "live", { ...open, legalDb: legalDb({}) }, bridgeOpen),
+    ["legal_kb_not_ready"],
   );
-  assert(
-    (await productPrepaymentBlockers(config, "live", {
+  assertEquals(
+    await productPrepaymentBlockers(config, "live", {
       ...open,
       residencyDb: profileDb({ allow_third_country_ai: false }),
-    })).includes("residency_not_allowed"),
+    }, bridgeOpen),
+    ["residency_not_allowed"],
   );
   // Липсващ клиент означава ЗАТВОРЕНО, не „приемаме, че е наред“.
   const none = await productPrepaymentBlockers(config, "live", {
@@ -561,10 +563,22 @@ Deno.test("prepayment gate fails closed on legal, migration and residency", asyn
     rpc: null,
     residencyDb: null,
     userId: null,
-  });
-  assert(none.includes("migration_not_verified"));
-  assert(none.includes("legal_kb_not_ready"));
-  assert(none.includes("residency_not_allowed"));
+  }, bridgeOpen);
+  assertEquals([...none], ["migration_not_verified", "legal_kb_not_ready", "residency_not_allowed"]);
+});
+
+Deno.test("prepayment fail-fast: cheap fatal blockers skip every expensive gate", async () => {
+  let calls = 0;
+  const trap = new Proxy({}, { get: () => { calls++; throw new Error("expensive gate called"); } });
+  const gates = { legalDb: trap as never, rpc: trap as never, residencyDb: trap as never, userId: "u1" };
+  // Конфигурацията е затворена (празен env) → checkout_disabled, без скъпи извиквания.
+  const closed = await productPrepaymentBlockers(readProductIntegrationConfig(() => undefined), "live", gates);
+  assert(closed.includes("checkout_disabled"));
+  assertFalse(closed.includes("trusted_source_unavailable"));
+  // Конфигурацията е отворена, мостът е затворен → само произходът.
+  const config = readProductIntegrationConfig(reader());
+  assertEquals(await productPrepaymentBlockers(config, "live", gates), ["trusted_source_unavailable"]);
+  assertEquals(calls, 0);
 });
 
 Deno.test("readiness exposes only safe booleans and codes", async () => {
