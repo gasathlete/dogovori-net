@@ -44,4 +44,4 @@
 
 - [x] Positioning 20.10: catalog-first home, contextual feature statuses, original warnings (five-only scope superseded by owner whole-catalog correction), regenerated shell; 62 focused tests and desktop/mobile browser checks passed. No deployment/publication. See docs/operations/positioning-beta-2026-10-20.md.
 
-- [ ] Owner correction 20.10 09:13: uniform whole-catalog review status on catalog/category/sector/template/static-store surfaces; browsing and paid rights unchanged; focused checks, no publish.
+- [x] Owner correction 20.10 09:13: uniform whole-catalog review status on catalog/category/sector/template/static-store surfaces; browsing and paid rights unchanged; 1 focused test + catalog/category/sector/template/static-store browser checks passed; harness build OK; no publish.
