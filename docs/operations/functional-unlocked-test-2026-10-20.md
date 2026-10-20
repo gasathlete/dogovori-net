@@ -137,3 +137,16 @@ Deploy само на трите handler-а. Source SHA-256 (deploy): create-chec
 - Action: all 14 flags were **deleted again**, so they are missing and therefore closed, the same as before this run. The frontend `AVAILABLE` map is unchanged (all false). There were no DB mutations, no charges, no emails and no frontend changes. REVIEW_GRANT_SECRET is kept.
 - Not done (blocked by the above): generate→review200 / cache / tamper / wrong-owner, assistant SSE, anon widget, analysis, save/history and PDF/DOCX download, and the blank AI path.
 - Required next input: the root applies the pending ledger/gate migration chain to MAIN in order, verified against `supabase/tests/0034–0043`. After that, this opening can be rerun as written.
+
+## Real positive MAIN core E2E — 20.10.2026 11:21–11:35 UTC
+Identity: supported owner `auth-session --self`; synthetic content only (no real names/IDs). No charges, emails, signatures; payment/subscription/team/product flags untouched (OFF).
+- Flags: the 14 non-payment `*_NEW_PROCESSING_ENABLED`/`*_NEW_WRITE_ENABLED` set `true` again. New server secret `ANON_IDENTITY_SECRET` generated (was missing → anon 503 identity_unavailable).
+- generate-contract (op dc564baf…): 200, `charge_state: charged`, review_grant issued; same operation_id retry → 200 byte-identical; ledger `quota_operations` exactly 1 row committed/charged. No reserved PII tokens in output.
+- review-document with grant: 200 (model gemini-2.5-flash, checks incl. findings — not relabelled ready); retry same op → byte-identical; tampered text → 403 `invalid_grant`.
+- assistant-chat (registered): 200 `text/event-stream`, citations from current Кодекс на труда chunk; retry same operationId → replayed stream.
+- assistant-chat-anon: FIX — handler sliced citations to 3 while prompt exposed [S1..S5], so valid [S4]/[S5] failed the grounding validator (always 503 legal_answer_unavailable, not consumed). Now validates against all retrieved sources; redeployed (sha c3c61c68…). After fix: 200 grounded reply with [S1]; retry same request_id → identical. A question with no RAG match still fails closed (503 legal_verification_unavailable, not consumed) — correct.
+- download-document (save + history): FIX — legacy `consume_quota_session` used `ON CONFLICT (user_id, session_id, doc_key)` but the canonical 20260920093000 index is `(user_id, session_id, doc_key, kind)` → every save 500 `quota_unavailable`. Migration `consume_quota_session_kind_conflict` (drizzle 0022) aligns conflict target and same-tab lookup with kind; ACL unchanged. After: 200 twice, exactly 1 session charge. Limitation: retry creates a 2nd `saved_documents` history row (no double charge).
+- download-blank: 200 signed DOCX URL, 1 session charge; retry returns a fresh signed URL for same object.
+- PDF/DOCX of generated documents are rendered client-side (exporters) from the saved payload; not browser-exercised in this run.
+- NOT run (budget): upload analysis (analyze-contract), build-custom, refine, corrections, linked, negotiation.
+- UI gates opened: `document_generation`, `assistant`, `blank_download`. Kept closed: `document_review` (gates upload analysis, unverified), `one_time_product`, `subscription`. Vitest 2112 passed / 4 skipped / 0 failed. bun.lock blob unchanged. Frontend not published (awaiting root CI).
