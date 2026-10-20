@@ -87,6 +87,8 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
   // exporter chunk parse and font fetch are no longer waiting for the
   // edge response.
     const invokePromise = supabase.functions.invoke("download-document", {
+      // Keep this operation bound to the session captured before confirmation.
+      headers: { Authorization: `Bearer ${session.access_token}` },
       body: {
         kind: p.kind,
         title: p.title,

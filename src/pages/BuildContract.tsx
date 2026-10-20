@@ -696,11 +696,13 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
     const finalTitle = (name || r.contract.title).trim() || r.contract.title;
     // Стабилният UUID остава същият при повторение; съдържанието се записва
     // само от контролирания сървърен път, без нова квота или модел.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || session.user.id !== uid || userRef.current?.id !== uid) throw new Error("owner_changed");
     const saved = await writeSavedDocumentContent({
       action: "create", id, kind: "contract", title: finalTitle,
       payload: { ...r.contract, title: finalTitle },
       source_id: categoryId === "__other__" ? "custom" : categoryId,
-    });
+    }, { Authorization: `Bearer ${session.access_token}` });
     const savedId = saved.id;
     trackDocumentSaved(savedId, { source: "build", doc_key: documentType, via });
     return savedId;
