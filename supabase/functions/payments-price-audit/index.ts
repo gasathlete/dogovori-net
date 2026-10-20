@@ -12,6 +12,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
 import { type StripeEnv, createStripeClient } from "../_shared/stripe.ts";
+import { readProductIntegrationConfig, productIntegrationReadiness } from "../_shared/product-integration.ts";
 
 /** Всички ключове, по които приложението отваря плащане. */
 const LOOKUP_KEYS = [
@@ -66,6 +67,15 @@ Deno.serve(async (req: Request) => {
     const rawEnv = (body as { environment?: unknown } | null)?.environment;
     if (rawEnv !== "sandbox" && rawEnv !== "live") return json({ error: "invalid_environment" }, 400);
     const env: StripeEnv = rawEnv;
+
+    // Служебна read-only диагностика: само булеви стойности и кодове, без тайни.
+    if ((body as { readiness_only?: unknown } | null)?.readiness_only === true) {
+      const readiness = await productIntegrationReadiness(
+        readProductIntegrationConfig((key) => Deno.env.get(key)),
+        admin as never, admin as never,
+      );
+      return json({ environment: env, readiness });
+    }
 
     const stripe = createStripeClient(env);
     const rows: Array<Record<string, unknown>> = [];
