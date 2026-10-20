@@ -150,3 +150,14 @@ Identity: supported owner `auth-session --self`; synthetic content only (no real
 - PDF/DOCX of generated documents are rendered client-side (exporters) from the saved payload; not browser-exercised in this run.
 - NOT run (budget): upload analysis (analyze-contract), build-custom, refine, corrections, linked, negotiation.
 - UI gates opened: `document_generation`, `assistant`, `blank_download`. Kept closed: `document_review` (gates upload analysis, unverified), `one_time_product`, `subscription`. Vitest 2112 passed / 4 skipped / 0 failed. bun.lock blob unchanged. Frontend not published (awaiting root CI).
+
+## Core continuation — 20.10.2026 11:38–12:00 UTC (source base 8cd00041)
+Owner `--self` session, synthetic content only; payment/product/subscription/signing flags untouched (OFF); no publish.
+- build-custom-contract (/build): 200 + review_grant; same operation_id retry byte-identical; no reserved PII tokens.
+- FIX (shared output finalizer, all 5 generators): model returned literal `\n` sequences that showed verbatim in document/PDF/DOCX; now normalized before grant binding. Deno test added (10/10). Redeployed build-custom-contract, generate-contract, refine-contract, apply-corrections, generate-linked-document.
+- FIX review-document: the restricted-identifier scan covered the server-signed quality manifest, whose decision list ("egn") falsely blocked every reviewed generated document with 422. The scan now excludes only server-signed grant/manifest (never sent to model). Review tests 67/67. After: build→review 200, retry identical, tampered 403 invalid_grant.
+- Browser export (Playwright, existing exporters.pdf/exporters.docx on the synthetic built payload): PDF 179 690 B, pdftotext readable Cyrillic; DOCX 11 411 B, 1 932 chars of document.xml text readable.
+- Concurrent saves: 4 simultaneous identical download-document → 4×200, 1 quota_session_charge. FIX duplicate history: migration `saved_documents_save_request_key` (nullable column + partial unique (user_id, save_request_key)); key computed only server-side from owner+session+doc_key+kind+title+payload(+source/contact/folder). After: 4 concurrent → 1 charge, 1 saved_documents row.
+- analyze-contract: NOT run. Concrete blocker: it requires an `uploaded_contracts` row, client raw INSERT is (correctly) denied, and no supported server ingress function exists for pasted/extracted text. `document_review` gate stays closed with that reason shown; review of documents made here works.
+- Not run (budget): refine, apply-corrections, linked, negotiation.
+- UI: open gates unchanged (document_generation, assistant, blank_download); prelaunch tests updated to the proven state, 58/58. bun.lock blob a260168a… unchanged.
