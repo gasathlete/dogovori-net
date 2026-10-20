@@ -37,13 +37,13 @@ beforeEach(() => {
 afterEach(cleanup);
 async function pasteDocument() {
   fireEvent.change(screen.getByLabelText("Пълен текст на документа"), { target: { value: "Синтетичен текст за проверка. ".repeat(5) } });
-  await userEvent.click(screen.getByRole("button", { name: "Продължете", exact: true }));
+  await userEvent.click(screen.getByRole("button", { name: /^Продължете$/ }));
 }
 it("requires four independent unchecked confirmations and sends their actual values", async () => {
   render(<Harness />);
   await pasteDocument();
   fireEvent.change(await screen.findByLabelText(/Коя страна сте по документа/), { target: { value: "наемател" } });
-  await userEvent.click(screen.getByRole("button", { name: "Продължете", exact: true }));
+  await userEvent.click(screen.getByRole("button", { name: /^Продължете$/ }));
   const boxes = screen.getAllByRole("checkbox");
   const pay = screen.getByRole("button", { name: /Към плащане/ });
   expect(boxes).toHaveLength(4);
