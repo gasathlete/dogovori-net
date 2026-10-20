@@ -241,8 +241,8 @@ describe("generateContractJob", () => {
 });
 
 describe("generateContractJob — предварителна преграда за НОВ старт", () => {
-  it("по подразбиране (затворено) не изпраща payload и не стартира", async () => {
-    const res = await generateContractJob({ slug: "closed", answers: { secret: "x" } }, { idempotencyKey: "closed-key-0001" });
+  it("изрично затворен флаг не изпраща payload и не стартира", async () => {
+    const res = await generateContractJob({ slug: "closed", answers: { secret: "x" } }, { idempotencyKey: "closed-key-0001", canStartNew: () => false });
     expect(invoke).not.toHaveBeenCalled();
     expect((res.data as { code?: string }).code).toBe("generation_prelaunch_closed");
     expect(res.jobId).toBeUndefined();

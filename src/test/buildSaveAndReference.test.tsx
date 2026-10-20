@@ -2,6 +2,12 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 
+vi.mock("@/lib/prelaunch", async (original) => ({
+  ...(await original<typeof import("@/lib/prelaunch")>()),
+  // Explicitly exercise the closed state independently of release defaults.
+  canStartNewProcessing: () => false,
+}));
+
 const h = vi.hoisted(() => ({ from: vi.fn(), invoke: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { from: h.from, functions: { invoke: h.invoke }, rpc: vi.fn() } }));
 vi.mock("@/hooks/useAuth", () => ({ useAuth: () => ({ user: { id: "u-synthetic" } }) }));
@@ -180,7 +186,7 @@ describe("referenceHandoff", () => {
   });
 });
 
-describe("ReferencePromptDialog в предварителен режим", () => {
+describe("ReferencePromptDialog с изрично затворен флаг", () => {
   it("„изготви“ отваря заявката, не навигира и не слага контекст в URL", async () => {
     const events: string[] = [];
     const on = (e: Event) => events.push((e as CustomEvent<{ feature: string }>).detail.feature);

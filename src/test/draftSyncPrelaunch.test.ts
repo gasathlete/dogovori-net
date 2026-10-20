@@ -5,6 +5,11 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@/lib/prelaunch", async (original) => ({
+  ...(await original<typeof import("@/lib/prelaunch")>()),
+  canStartNewProcessing: () => false,
+}));
+
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { functions: { invoke: vi.fn() } } }));
 const invokeMock = vi.fn();
 vi.mock("@/lib/invokeEdgeFunction", () => ({ invokeEdgeFunction: (...a: unknown[]) => invokeMock(...a) }));
@@ -33,7 +38,7 @@ describe("syncDraft при затворен предварителен режи�
     invokeMock.mockReset();
   });
 
-  it("по подразбиране сървърният запис на чернова е затворен", () => {
+  it("изрично затвореният флаг спира сървърния запис на чернова", () => {
     expect(isDraftServerSyncOpen()).toBe(false);
   });
 
