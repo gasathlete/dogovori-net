@@ -31,7 +31,7 @@ export function countProductSourceChars(text: string): number {
 }
 
 /** Платеният продукт е обвързан с ФАЙЛ: PDF с четим текст или DOCX. */
-export type ProductSourceKind = "pdf" | "docx";
+export type ProductSourceKind = "pdf" | "docx" | "owner_text";
 
 export type ProductExtractionStatus = "full" | "partial";
 
