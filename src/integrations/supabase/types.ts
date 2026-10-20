@@ -79,6 +79,84 @@ export type Database = {
           },
         ]
       }
+      ai_document_operations: {
+        Row: {
+          binding_digest: string
+          cancelled_at: string | null
+          charged: boolean
+          committed_at: string | null
+          created_at: string
+          detail: string | null
+          input_digest: string | null
+          lease_expires_at: string | null
+          lease_owner: string | null
+          model_started_at: string | null
+          operation_id: string
+          purpose: string
+          reconciliation_required: boolean
+          resource_id: string | null
+          resource_version: string | null
+          result: Json | null
+          result_expires_at: string | null
+          state: string
+          updated_at: string
+          user_id: string
+          wave_allocation: Json | null
+          wave_ops: number
+          wave_state: string | null
+        }
+        Insert: {
+          binding_digest: string
+          cancelled_at?: string | null
+          charged?: boolean
+          committed_at?: string | null
+          created_at?: string
+          detail?: string | null
+          input_digest?: string | null
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          model_started_at?: string | null
+          operation_id: string
+          purpose: string
+          reconciliation_required?: boolean
+          resource_id?: string | null
+          resource_version?: string | null
+          result?: Json | null
+          result_expires_at?: string | null
+          state: string
+          updated_at?: string
+          user_id: string
+          wave_allocation?: Json | null
+          wave_ops?: number
+          wave_state?: string | null
+        }
+        Update: {
+          binding_digest?: string
+          cancelled_at?: string | null
+          charged?: boolean
+          committed_at?: string | null
+          created_at?: string
+          detail?: string | null
+          input_digest?: string | null
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          model_started_at?: string | null
+          operation_id?: string
+          purpose?: string
+          reconciliation_required?: boolean
+          resource_id?: string | null
+          resource_version?: string | null
+          result?: Json | null
+          result_expires_at?: string | null
+          state?: string
+          updated_at?: string
+          user_id?: string
+          wave_allocation?: Json | null
+          wave_ops?: number
+          wave_state?: string | null
+        }
+        Relationships: []
+      }
       ai_parse_failures: {
         Row: {
           attempts: number | null
@@ -601,6 +679,7 @@ export type Database = {
           id: string
           ip_hash: string | null
           model: string | null
+          operation_id: string | null
           tokens_in: number | null
           tokens_out: number | null
           user_id: string | null
@@ -612,6 +691,7 @@ export type Database = {
           id?: string
           ip_hash?: string | null
           model?: string | null
+          operation_id?: string | null
           tokens_in?: number | null
           tokens_out?: number | null
           user_id?: string | null
@@ -623,9 +703,67 @@ export type Database = {
           id?: string
           ip_hash?: string | null
           model?: string | null
+          operation_id?: string | null
           tokens_in?: number | null
           tokens_out?: number | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      anon_delivery_operations: {
+        Row: {
+          cancelled_at: string | null
+          cap: number
+          committed_at: string | null
+          created_at: string
+          detail: Json
+          identity_hash: string
+          lease_expires_at: string
+          operation_id: string
+          purpose: string
+          request_digest: string
+          response: Json | null
+          response_expires_at: string | null
+          state: string
+          updated_at: string
+          window_seconds: number
+          window_start: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          cap: number
+          committed_at?: string | null
+          created_at?: string
+          detail?: Json
+          identity_hash: string
+          lease_expires_at: string
+          operation_id: string
+          purpose?: string
+          request_digest: string
+          response?: Json | null
+          response_expires_at?: string | null
+          state?: string
+          updated_at?: string
+          window_seconds: number
+          window_start?: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          cap?: number
+          committed_at?: string | null
+          created_at?: string
+          detail?: Json
+          identity_hash?: string
+          lease_expires_at?: string
+          operation_id?: string
+          purpose?: string
+          request_digest?: string
+          response?: Json | null
+          response_expires_at?: string | null
+          state?: string
+          updated_at?: string
+          window_seconds?: number
+          window_start?: string
         }
         Relationships: []
       }
@@ -680,6 +818,119 @@ export type Database = {
         }
         Relationships: []
       }
+      article_generation_evidence: {
+        Row: {
+          article_id: string
+          content_hash: string
+          created_at: string
+          generated_at: string
+          generator: string
+          id: string
+          model: string
+          policy_version: string
+          prompt_digest: string
+          prompt_version: string
+          sources: Json
+          verified: boolean
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          article_id: string
+          content_hash: string
+          created_at?: string
+          generated_at?: string
+          generator: string
+          id?: string
+          model: string
+          policy_version: string
+          prompt_digest: string
+          prompt_version: string
+          sources?: Json
+          verified?: boolean
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          article_id?: string
+          content_hash?: string
+          created_at?: string
+          generated_at?: string
+          generator?: string
+          id?: string
+          model?: string
+          policy_version?: string
+          prompt_digest?: string
+          prompt_version?: string
+          sources?: Json
+          verified?: boolean
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_generation_evidence_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "user_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      article_review_events: {
+        Row: {
+          article_id: string
+          created_at: string
+          current_content_hash: string
+          decision: string
+          evidence_id: string
+          hash_matches_generation: boolean
+          id: string
+          note: string | null
+          reviewer_id: string
+          sources_still_approved: boolean
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          current_content_hash: string
+          decision: string
+          evidence_id: string
+          hash_matches_generation: boolean
+          id?: string
+          note?: string | null
+          reviewer_id: string
+          sources_still_approved: boolean
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          current_content_hash?: string
+          decision?: string
+          evidence_id?: string
+          hash_matches_generation?: boolean
+          id?: string
+          note?: string | null
+          reviewer_id?: string
+          sources_still_approved?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_review_events_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "user_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "article_review_events_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "article_generation_evidence"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assistant_edit_proposals: {
         Row: {
           after_text: string
@@ -691,6 +942,7 @@ export type Database = {
           created_at: string
           decided_at: string | null
           id: string
+          operation_id: string | null
           reason: string | null
           reverted_at: string | null
           reverted_updated_at: string | null
@@ -710,6 +962,7 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           id?: string
+          operation_id?: string | null
           reason?: string | null
           reverted_at?: string | null
           reverted_updated_at?: string | null
@@ -729,6 +982,7 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           id?: string
+          operation_id?: string | null
           reason?: string | null
           reverted_at?: string | null
           reverted_updated_at?: string | null
@@ -760,6 +1014,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          operation_id: string | null
           role: string
           thread_id: string
         }
@@ -767,6 +1022,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          operation_id?: string | null
           role: string
           thread_id: string
         }
@@ -774,6 +1030,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          operation_id?: string | null
           role?: string
           thread_id?: string
         }
@@ -796,6 +1053,7 @@ export type Database = {
           created_at: string
           id: string
           title: string
+          turn_revision: number
           updated_at: string
           user_id: string
         }
@@ -807,6 +1065,7 @@ export type Database = {
           created_at?: string
           id?: string
           title?: string
+          turn_revision?: number
           updated_at?: string
           user_id: string
         }
@@ -818,6 +1077,73 @@ export type Database = {
           created_at?: string
           id?: string
           title?: string
+          turn_revision?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      assistant_turn_operations: {
+        Row: {
+          allocation: Json | null
+          binding_digest: string
+          cancelled_at: string | null
+          charged: boolean
+          created_at: string
+          detail: string | null
+          lease_expires_at: string | null
+          mode: string
+          model_started_at: string | null
+          operation_id: string
+          prior_turn_revision: number | null
+          reconciliation_required: boolean
+          requested_thread_id: string | null
+          result: Json | null
+          result_expires_at: string | null
+          state: string
+          thread_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allocation?: Json | null
+          binding_digest: string
+          cancelled_at?: string | null
+          charged?: boolean
+          created_at?: string
+          detail?: string | null
+          lease_expires_at?: string | null
+          mode: string
+          model_started_at?: string | null
+          operation_id: string
+          prior_turn_revision?: number | null
+          reconciliation_required?: boolean
+          requested_thread_id?: string | null
+          result?: Json | null
+          result_expires_at?: string | null
+          state: string
+          thread_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allocation?: Json | null
+          binding_digest?: string
+          cancelled_at?: string | null
+          charged?: boolean
+          created_at?: string
+          detail?: string | null
+          lease_expires_at?: string | null
+          mode?: string
+          model_started_at?: string | null
+          operation_id?: string
+          prior_turn_revision?: number | null
+          reconciliation_required?: boolean
+          requested_thread_id?: string | null
+          result?: Json | null
+          result_expires_at?: string | null
+          state?: string
+          thread_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -852,6 +1178,39 @@ export type Database = {
           metadata?: Json | null
           target_id?: string | null
           target_type?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      billing_reconciliation_items: {
+        Row: {
+          created_at: string
+          detail: Json
+          id: string
+          kind: string | null
+          operation_id: string | null
+          reason: string
+          resolved_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          detail?: Json
+          id?: string
+          kind?: string | null
+          operation_id?: string | null
+          reason: string
+          resolved_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          detail?: Json
+          id?: string
+          kind?: string | null
+          operation_id?: string | null
+          reason?: string
+          resolved_at?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -1198,27 +1557,45 @@ export type Database = {
       corrections_batch_charges: {
         Row: {
           batch_id: string
+          cancelled_at: string | null
           created_at: string
+          from_plan: number | null
+          from_topup: number | null
           id: string
           ops_charged: number
+          request_digest: string | null
+          result_ref: Json | null
           session_id: string | null
           user_id: string
+          was_pro: boolean | null
         }
         Insert: {
           batch_id: string
+          cancelled_at?: string | null
           created_at?: string
+          from_plan?: number | null
+          from_topup?: number | null
           id?: string
           ops_charged?: number
+          request_digest?: string | null
+          result_ref?: Json | null
           session_id?: string | null
           user_id: string
+          was_pro?: boolean | null
         }
         Update: {
           batch_id?: string
+          cancelled_at?: string | null
           created_at?: string
+          from_plan?: number | null
+          from_topup?: number | null
           id?: string
           ops_charged?: number
+          request_digest?: string | null
+          result_ref?: Json | null
           session_id?: string | null
           user_id?: string
+          was_pro?: boolean | null
         }
         Relationships: []
       }
@@ -3453,6 +3830,7 @@ export type Database = {
           intake_id: string | null
           last_error_code: string | null
           paid_at: string | null
+          pre_reversal_status: string | null
           processing_started_at: string | null
           processing_token: string | null
           product_id: string
@@ -3465,6 +3843,9 @@ export type Database = {
           refinements_used: number
           result: Json | null
           result_schema_version: number | null
+          reversal_event_id: string | null
+          reversal_reason: string | null
+          reversed_at: string | null
           source_char_count: number | null
           source_char_unit: string | null
           source_document_id: string | null
@@ -3493,6 +3874,7 @@ export type Database = {
           intake_id?: string | null
           last_error_code?: string | null
           paid_at?: string | null
+          pre_reversal_status?: string | null
           processing_started_at?: string | null
           processing_token?: string | null
           product_id: string
@@ -3505,6 +3887,9 @@ export type Database = {
           refinements_used?: number
           result?: Json | null
           result_schema_version?: number | null
+          reversal_event_id?: string | null
+          reversal_reason?: string | null
+          reversed_at?: string | null
           source_char_count?: number | null
           source_char_unit?: string | null
           source_document_id?: string | null
@@ -3533,6 +3918,7 @@ export type Database = {
           intake_id?: string | null
           last_error_code?: string | null
           paid_at?: string | null
+          pre_reversal_status?: string | null
           processing_started_at?: string | null
           processing_token?: string | null
           product_id?: string
@@ -3545,6 +3931,9 @@ export type Database = {
           refinements_used?: number
           result?: Json | null
           result_schema_version?: number | null
+          reversal_event_id?: string | null
+          reversal_reason?: string | null
+          reversed_at?: string | null
           source_char_count?: number | null
           source_char_unit?: string | null
           source_document_id?: string | null
@@ -3663,6 +4052,10 @@ export type Database = {
           lease_expires_at: string | null
           lease_token: string | null
           product_id: string
+          reconciliation_call_id: string | null
+          reconciliation_code: string | null
+          reconciliation_required_at: string | null
+          reconciliation_resolved_at: string | null
           result_schema_version: number
           source_char_count: number
           source_char_unit: string
@@ -3700,6 +4093,10 @@ export type Database = {
           lease_expires_at?: string | null
           lease_token?: string | null
           product_id: string
+          reconciliation_call_id?: string | null
+          reconciliation_code?: string | null
+          reconciliation_required_at?: string | null
+          reconciliation_resolved_at?: string | null
           result_schema_version?: number
           source_char_count: number
           source_char_unit: string
@@ -3737,6 +4134,10 @@ export type Database = {
           lease_expires_at?: string | null
           lease_token?: string | null
           product_id?: string
+          reconciliation_call_id?: string | null
+          reconciliation_code?: string | null
+          reconciliation_required_at?: string | null
+          reconciliation_resolved_at?: string | null
           result_schema_version?: number
           source_char_count?: number
           source_char_unit?: string
@@ -3964,6 +4365,141 @@ export type Database = {
           },
         ]
       }
+      product_reconciliation_events: {
+        Row: {
+          call_id: string | null
+          code: string
+          created_at: string
+          entitlement_id: string
+          event: string
+          id: string
+          kind: string
+          reason_code: string | null
+          subject_id: string
+          ticket_ref: string | null
+          user_id: string
+        }
+        Insert: {
+          call_id?: string | null
+          code: string
+          created_at?: string
+          entitlement_id: string
+          event: string
+          id?: string
+          kind: string
+          reason_code?: string | null
+          subject_id: string
+          ticket_ref?: string | null
+          user_id: string
+        }
+        Update: {
+          call_id?: string | null
+          code?: string
+          created_at?: string
+          entitlement_id?: string
+          event?: string
+          id?: string
+          kind?: string
+          reason_code?: string | null
+          subject_id?: string
+          ticket_ref?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_reconciliation_events_entitlement_id_fkey"
+            columns: ["entitlement_id"]
+            isOneToOne: false
+            referencedRelation: "product_entitlements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_reconciliation_resolutions: {
+        Row: {
+          call_id: string | null
+          created_at: string
+          entitlement_id: string
+          id: string
+          kind: string
+          reason_code: string
+          resolution: string
+          subject_id: string
+          ticket_ref: string | null
+        }
+        Insert: {
+          call_id?: string | null
+          created_at?: string
+          entitlement_id: string
+          id?: string
+          kind: string
+          reason_code: string
+          resolution: string
+          subject_id: string
+          ticket_ref?: string | null
+        }
+        Update: {
+          call_id?: string | null
+          created_at?: string
+          entitlement_id?: string
+          id?: string
+          kind?: string
+          reason_code?: string
+          resolution?: string
+          subject_id?: string
+          ticket_ref?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_reconciliation_resolutions_entitlement_id_fkey"
+            columns: ["entitlement_id"]
+            isOneToOne: false
+            referencedRelation: "product_entitlements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_reconciliation_terminal_calls: {
+        Row: {
+          call_id: string | null
+          created_at: string
+          cursor_key: string | null
+          entitlement_id: string
+          id: string
+          kind: string
+          reason_code: string
+          subject_id: string
+        }
+        Insert: {
+          call_id?: string | null
+          created_at?: string
+          cursor_key?: string | null
+          entitlement_id: string
+          id?: string
+          kind: string
+          reason_code: string
+          subject_id: string
+        }
+        Update: {
+          call_id?: string | null
+          created_at?: string
+          cursor_key?: string | null
+          entitlement_id?: string
+          id?: string
+          kind?: string
+          reason_code?: string
+          subject_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_reconciliation_terminal_calls_entitlement_id_fkey"
+            columns: ["entitlement_id"]
+            isOneToOne: false
+            referencedRelation: "product_entitlements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_result_refinement_calls: {
         Row: {
           call_id: string
@@ -4057,6 +4593,10 @@ export type Database = {
           lease_expires_at: string | null
           lease_token: string | null
           product_id: string
+          reconciliation_call_id: string | null
+          reconciliation_code: string | null
+          reconciliation_required_at: string | null
+          reconciliation_resolved_at: string | null
           refinement_version: number
           result: Json | null
           result_canonical: string | null
@@ -4079,6 +4619,10 @@ export type Database = {
           lease_expires_at?: string | null
           lease_token?: string | null
           product_id: string
+          reconciliation_call_id?: string | null
+          reconciliation_code?: string | null
+          reconciliation_required_at?: string | null
+          reconciliation_resolved_at?: string | null
           refinement_version: number
           result?: Json | null
           result_canonical?: string | null
@@ -4101,6 +4645,10 @@ export type Database = {
           lease_expires_at?: string | null
           lease_token?: string | null
           product_id?: string
+          reconciliation_call_id?: string | null
+          reconciliation_code?: string | null
+          reconciliation_required_at?: string | null
+          reconciliation_resolved_at?: string | null
           refinement_version?: number
           result?: Json | null
           result_canonical?: string | null
@@ -4453,6 +5001,75 @@ export type Database = {
         }
         Relationships: []
       }
+      quota_operations: {
+        Row: {
+          batch_id: string | null
+          cancelled_at: string | null
+          charged: boolean
+          committed_at: string | null
+          created_at: string
+          detail: Json
+          doc_key: string | null
+          kind: string
+          lease_expires_at: string | null
+          operation_id: string
+          purpose: string
+          request_digest: string
+          result_ref: Json | null
+          result_ref_expires_at: string | null
+          session_id: string | null
+          source: string | null
+          state: string
+          updated_at: string
+          used_bonus: boolean
+          user_id: string
+        }
+        Insert: {
+          batch_id?: string | null
+          cancelled_at?: string | null
+          charged?: boolean
+          committed_at?: string | null
+          created_at?: string
+          detail?: Json
+          doc_key?: string | null
+          kind: string
+          lease_expires_at?: string | null
+          operation_id: string
+          purpose: string
+          request_digest: string
+          result_ref?: Json | null
+          result_ref_expires_at?: string | null
+          session_id?: string | null
+          source?: string | null
+          state: string
+          updated_at?: string
+          used_bonus?: boolean
+          user_id: string
+        }
+        Update: {
+          batch_id?: string | null
+          cancelled_at?: string | null
+          charged?: boolean
+          committed_at?: string | null
+          created_at?: string
+          detail?: Json
+          doc_key?: string | null
+          kind?: string
+          lease_expires_at?: string | null
+          operation_id?: string
+          purpose?: string
+          request_digest?: string
+          result_ref?: Json | null
+          result_ref_expires_at?: string | null
+          session_id?: string | null
+          source?: string | null
+          state?: string
+          updated_at?: string
+          used_bonus?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       quota_session_charges: {
         Row: {
           created_at: string
@@ -4477,6 +5094,75 @@ export type Database = {
           kind?: string
           session_id?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      quota_wave_operations: {
+        Row: {
+          allocation: Json
+          batch_id: string | null
+          cancelled_at: string | null
+          committed_at: string | null
+          created_at: string
+          detail: Json
+          doc_key: string | null
+          kind: string
+          lease_expires_at: string | null
+          operation_id: string
+          ops_count: number
+          purpose: string
+          request_digest: string
+          result: Json | null
+          result_expires_at: string | null
+          session_id: string | null
+          state: string
+          updated_at: string
+          user_id: string
+          was_pro: boolean | null
+        }
+        Insert: {
+          allocation?: Json
+          batch_id?: string | null
+          cancelled_at?: string | null
+          committed_at?: string | null
+          created_at?: string
+          detail?: Json
+          doc_key?: string | null
+          kind: string
+          lease_expires_at?: string | null
+          operation_id: string
+          ops_count: number
+          purpose: string
+          request_digest: string
+          result?: Json | null
+          result_expires_at?: string | null
+          session_id?: string | null
+          state?: string
+          updated_at?: string
+          user_id: string
+          was_pro?: boolean | null
+        }
+        Update: {
+          allocation?: Json
+          batch_id?: string | null
+          cancelled_at?: string | null
+          committed_at?: string | null
+          created_at?: string
+          detail?: Json
+          doc_key?: string | null
+          kind?: string
+          lease_expires_at?: string | null
+          operation_id?: string
+          ops_count?: number
+          purpose?: string
+          request_digest?: string
+          result?: Json | null
+          result_expires_at?: string | null
+          session_id?: string | null
+          state?: string
+          updated_at?: string
+          user_id?: string
+          was_pro?: boolean | null
         }
         Relationships: []
       }
@@ -4600,6 +5286,111 @@ export type Database = {
         }
         Relationships: []
       }
+      review_grant_nonces: {
+        Row: {
+          aud: string
+          consumed_at: string
+          content_digest: string
+          created_at: string
+          expires_at: string
+          nonce: string
+          operation: string
+          owner_id: string | null
+          subject: string | null
+        }
+        Insert: {
+          aud: string
+          consumed_at?: string
+          content_digest: string
+          created_at?: string
+          expires_at: string
+          nonce: string
+          operation: string
+          owner_id?: string | null
+          subject?: string | null
+        }
+        Update: {
+          aud?: string
+          consumed_at?: string
+          content_digest?: string
+          created_at?: string
+          expires_at?: string
+          nonce?: string
+          operation?: string
+          owner_id?: string | null
+          subject?: string | null
+        }
+        Relationships: []
+      }
+      review_operations: {
+        Row: {
+          aud: string
+          cancelled_at: string | null
+          committed_at: string | null
+          content_digest: string
+          created_at: string
+          detail: Json
+          grant_expires_at: string
+          lease_expires_at: string
+          nonce: string
+          operation: string
+          owned_document_hash: string | null
+          owned_document_id: string | null
+          owned_document_version: string | null
+          owned_owner_id: string | null
+          owner_id: string | null
+          response: Json | null
+          response_expires_at: string | null
+          state: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          aud: string
+          cancelled_at?: string | null
+          committed_at?: string | null
+          content_digest: string
+          created_at?: string
+          detail?: Json
+          grant_expires_at: string
+          lease_expires_at: string
+          nonce: string
+          operation: string
+          owned_document_hash?: string | null
+          owned_document_id?: string | null
+          owned_document_version?: string | null
+          owned_owner_id?: string | null
+          owner_id?: string | null
+          response?: Json | null
+          response_expires_at?: string | null
+          state?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aud?: string
+          cancelled_at?: string | null
+          committed_at?: string | null
+          content_digest?: string
+          created_at?: string
+          detail?: Json
+          grant_expires_at?: string
+          lease_expires_at?: string
+          nonce?: string
+          operation?: string
+          owned_document_hash?: string | null
+          owned_document_id?: string | null
+          owned_document_version?: string | null
+          owned_owner_id?: string | null
+          owner_id?: string | null
+          response?: Json | null
+          response_expires_at?: string | null
+          state?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       risk_analyses: {
         Row: {
           contract_type: string
@@ -4678,6 +5469,8 @@ export type Database = {
           source_id: string | null
           tags: string[]
           team_id: string | null
+          team_shared_at: string | null
+          team_shared_by: string | null
           title: string
           updated_at: string
           user_id: string
@@ -4693,6 +5486,8 @@ export type Database = {
           source_id?: string | null
           tags?: string[]
           team_id?: string | null
+          team_shared_at?: string | null
+          team_shared_by?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -4708,6 +5503,8 @@ export type Database = {
           source_id?: string | null
           tags?: string[]
           team_id?: string | null
+          team_shared_at?: string | null
+          team_shared_by?: string | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -5409,6 +6206,54 @@ export type Database = {
         }
         Relationships: []
       }
+      storage_artifacts: {
+        Row: {
+          bucket: string
+          created_at: string
+          delete_error: string | null
+          deleted_at: string | null
+          expires_at: string
+          id: string
+          operation_id: string | null
+          purpose: string | null
+          ready_at: string | null
+          request_digest: string | null
+          scope: string
+          storage_path: string
+          user_id: string | null
+        }
+        Insert: {
+          bucket: string
+          created_at?: string
+          delete_error?: string | null
+          deleted_at?: string | null
+          expires_at: string
+          id?: string
+          operation_id?: string | null
+          purpose?: string | null
+          ready_at?: string | null
+          request_digest?: string | null
+          scope: string
+          storage_path: string
+          user_id?: string | null
+        }
+        Update: {
+          bucket?: string
+          created_at?: string
+          delete_error?: string | null
+          deleted_at?: string | null
+          expires_at?: string
+          id?: string
+          operation_id?: string | null
+          purpose?: string | null
+          ready_at?: string | null
+          request_digest?: string | null
+          scope?: string
+          storage_path?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       strict_doc_unlocks: {
         Row: {
           created_at: string
@@ -5952,6 +6797,8 @@ export type Database = {
           source: string
           storage_path: string | null
           team_id: string | null
+          team_shared_at: string | null
+          team_shared_by: string | null
           text_hash: string
           title: string
           updated_at: string
@@ -5975,6 +6822,8 @@ export type Database = {
           source: string
           storage_path?: string | null
           team_id?: string | null
+          team_shared_at?: string | null
+          team_shared_by?: string | null
           text_hash?: string
           title: string
           updated_at?: string
@@ -5998,6 +6847,8 @@ export type Database = {
           source?: string
           storage_path?: string | null
           team_id?: string | null
+          team_shared_at?: string | null
+          team_shared_by?: string | null
           text_hash?: string
           title?: string
           updated_at?: string
@@ -6122,6 +6973,7 @@ export type Database = {
       }
       user_consents: {
         Row: {
+          consent_event_id: string
           consent_type: string
           created_at: string
           document_version: string
@@ -6135,6 +6987,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          consent_event_id?: string
           consent_type: string
           created_at?: string
           document_version: string
@@ -6148,6 +7001,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          consent_event_id?: string
           consent_type?: string
           created_at?: string
           document_version?: string
@@ -6586,6 +7440,64 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      ai_document_operation_cancel: {
+        Args: { p_operation_id: string; p_reason: string; p_user_id: string }
+        Returns: Json
+      }
+      ai_document_operation_commit: {
+        Args: {
+          p_binding: string
+          p_business: Json
+          p_operation_id: string
+          p_purpose: string
+          p_result: Json
+          p_result_ttl_seconds: number
+          p_usage_function: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      ai_document_operation_lookup: {
+        Args: {
+          p_binding: string
+          p_operation_id: string
+          p_purpose: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      ai_document_operation_mark_model_started: {
+        Args: {
+          p_binding: string
+          p_operation_id: string
+          p_purpose: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      ai_document_operation_mark_reconciliation: {
+        Args: { p_operation_id: string; p_reason: string; p_user_id: string }
+        Returns: Json
+      }
+      ai_document_operation_reserve: {
+        Args: {
+          p_binding: string
+          p_input_digest: string
+          p_lease_seconds: number
+          p_operation_id: string
+          p_purpose: string
+          p_resource_id: string
+          p_resource_version: string
+          p_user_id: string
+          p_wave_kind: string
+          p_wave_ops: number
+        }
+        Returns: Json
+      }
+      ai_document_operations_reconcile_stale: {
+        Args: { p_limit: number }
+        Returns: Json
+      }
       analytics_app_kpis: {
         Args: { _from: string; _to: string }
         Returns: {
@@ -6620,6 +7532,57 @@ export type Database = {
           visitors: number
         }[]
       }
+      anon_delivery_cancel: {
+        Args: {
+          p_identity_hash: string
+          p_operation_id: string
+          p_purpose?: string
+          p_reason?: string
+          p_request_digest: string
+        }
+        Returns: Json
+      }
+      anon_delivery_commit: {
+        Args: {
+          p_identity_hash: string
+          p_operation_id: string
+          p_purpose?: string
+          p_request_digest: string
+          p_response: Json
+        }
+        Returns: Json
+      }
+      anon_delivery_lookup: {
+        Args: {
+          p_identity_hash: string
+          p_operation_id: string
+          p_purpose?: string
+          p_request_digest: string
+        }
+        Returns: Json
+      }
+      anon_delivery_reserve: {
+        Args: {
+          p_cap?: number
+          p_identity_hash: string
+          p_lease_seconds?: number
+          p_operation_id: string
+          p_purpose?: string
+          p_request_digest: string
+          p_window_seconds?: number
+        }
+        Returns: Json
+      }
+      anon_delivery_state: {
+        Args: {
+          p_cap?: number
+          p_identity_hash: string
+          p_purpose?: string
+          p_window_seconds?: number
+        }
+        Returns: Json
+      }
+      artifact_metadata_retention_seconds: { Args: never; Returns: number }
       assemble_prompt_content: { Args: { _prompt_id: string }; Returns: string }
       assistant_edit_payload_path: {
         Args: { _path: string }
@@ -6627,6 +7590,54 @@ export type Database = {
       }
       assistant_edit_proposal_action: {
         Args: { _action: string; _proposal_id: string }
+        Returns: Json
+      }
+      assistant_turn_cancel: {
+        Args: { p_operation_id: string; p_reason: string; p_user_id: string }
+        Returns: Json
+      }
+      assistant_turn_commit: {
+        Args: {
+          p_assistant_message: string
+          p_events: Json
+          p_operation_id: string
+          p_proposal: Json
+          p_result_ttl_seconds: number
+          p_user_id: string
+          p_user_message: string
+        }
+        Returns: Json
+      }
+      assistant_turn_lookup: {
+        Args: { p_binding: string; p_operation_id: string; p_user_id: string }
+        Returns: Json
+      }
+      assistant_turn_mark_model_started: {
+        Args: { p_operation_id: string; p_user_id: string }
+        Returns: Json
+      }
+      assistant_turn_mark_reconciliation: {
+        Args: { p_operation_id: string; p_reason: string; p_user_id: string }
+        Returns: Json
+      }
+      assistant_turn_reconcile_stale: {
+        Args: { p_limit: number }
+        Returns: Json
+      }
+      assistant_turn_reserve: {
+        Args: {
+          p_alloc_source: string
+          p_binding: string
+          p_charge: boolean
+          p_free_ai_cap: number
+          p_lease_seconds: number
+          p_mode: string
+          p_new_thread: Json
+          p_operation_id: string
+          p_requested_thread_id: string
+          p_team_id: string
+          p_user_id: string
+        }
         Returns: Json
       }
       award_team_loyalty: {
@@ -6660,6 +7671,10 @@ export type Database = {
         Returns: boolean
       }
       can_use_kit_slot: { Args: never; Returns: Json }
+      cancel_corrections_wave: {
+        Args: { p_batch_id: string; p_reason?: string; p_user_id: string }
+        Returns: Json
+      }
       charge_corrections_wave: {
         Args: { p_batch_id: string; p_count: number; p_user_id: string }
         Returns: Json
@@ -6782,11 +7797,27 @@ export type Database = {
         Returns: Json
       }
       consume_quota: { Args: { _kind: string }; Returns: Json }
+      consume_quota_for: {
+        Args: { _kind: string; _uid: string }
+        Returns: Json
+      }
       consume_quota_session: {
         Args: { _doc_key: string; _kind: string; _session_id: string }
         Returns: Json
       }
       consume_team_quota: { Args: { _team_id: string }; Returns: Json }
+      corrections_wave_bind: {
+        Args: {
+          p_batch_id: string
+          p_request_digest: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      corrections_wave_set_result: {
+        Args: { p_batch_id: string; p_result_ref: Json; p_user_id: string }
+        Returns: Json
+      }
       credit_topup_ops: {
         Args: {
           p_amount: number
@@ -6798,6 +7829,19 @@ export type Database = {
         }
         Returns: Json
       }
+      erase_anon_delivery_payloads: {
+        Args: { p_identity_hash: string }
+        Returns: Json
+      }
+      erase_quota_result_payloads: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
+      erase_review_operation_payloads: {
+        Args: { p_owner_id: string }
+        Returns: Json
+      }
+      exact_response_retention_seconds: { Args: never; Returns: number }
       fail_product_fulfillment: {
         Args: {
           p_entitlement_id: string
@@ -6887,6 +7931,24 @@ export type Database = {
       }
       mark_all_notifications_read: { Args: never; Returns: number }
       mark_notification_read: { Args: { _id: string }; Returns: undefined }
+      mark_product_job_reconciliation: {
+        Args: {
+          p_call_id?: string
+          p_code: string
+          p_job_id: string
+          p_lease_token: string
+        }
+        Returns: Json
+      }
+      mark_product_refinement_reconciliation: {
+        Args: {
+          p_call_id?: string
+          p_code: string
+          p_lease_token: string
+          p_refinement_id: string
+        }
+        Returns: Json
+      }
       match_legal_chunks:
         | {
             Args: {
@@ -6951,6 +8013,40 @@ export type Database = {
       }
       metrics_overview: { Args: { _from: string; _to: string }; Returns: Json }
       my_team_ids: { Args: never; Returns: string[] }
+      owned_review_grant_ttl_seconds: { Args: never; Returns: number }
+      owned_review_operation_cancel: {
+        Args: { p_operation_id: string; p_owner_id: string; p_reason?: string }
+        Returns: Json
+      }
+      owned_review_operation_commit: {
+        Args: { p_operation_id: string; p_owner_id: string; p_response: Json }
+        Returns: Json
+      }
+      owned_review_operation_lookup: {
+        Args: {
+          p_content_digest: string
+          p_document_hash: string
+          p_document_id: string
+          p_document_version: string
+          p_operation_id: string
+          p_owner_id: string
+          p_purpose: string
+        }
+        Returns: Json
+      }
+      owned_review_operation_reserve: {
+        Args: {
+          p_content_digest: string
+          p_document_hash: string
+          p_document_id: string
+          p_document_version: string
+          p_lease_seconds?: number
+          p_operation_id: string
+          p_owner_id: string
+          p_purpose: string
+        }
+        Returns: Json
+      }
       owner_scorecard: { Args: { _from: string; _to: string }; Returns: Json }
       product_job_cursor_advances: {
         Args: { p_current: Json; p_next: Json; p_product_id: string }
@@ -6962,11 +8058,112 @@ export type Database = {
         Returns: string[]
       }
       product_job_status: { Args: { p_entitlement_id: string }; Returns: Json }
+      product_reconciliation_state: {
+        Args: { p_entitlement_id: string; p_user_id: string }
+        Returns: Json
+      }
       product_rollout_capability: { Args: never; Returns: Json }
+      purge_ai_document_operation_payloads: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
+      purge_assistant_turn_payloads: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       purge_expired_prelaunch_waitlist: { Args: never; Returns: number }
       purge_old_funnel_events: { Args: never; Returns: undefined }
+      quota_cancel: {
+        Args: { p_operation_id: string; p_reason?: string }
+        Returns: Json
+      }
+      quota_commit: {
+        Args: { p_operation_id: string; p_result_ref?: Json }
+        Returns: Json
+      }
+      quota_lookup: { Args: { p_operation_id: string }; Returns: Json }
+      quota_operation_lookup: {
+        Args: {
+          p_batch_id?: string
+          p_doc_key?: string
+          p_kind: string
+          p_operation_id: string
+          p_purpose: string
+          p_request_digest?: string
+          p_session_id?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      quota_reconcile_stale: { Args: { p_limit?: number }; Returns: Json }
+      quota_reserve: {
+        Args: {
+          p_batch_id?: string
+          p_doc_key?: string
+          p_kind: string
+          p_lease_seconds?: number
+          p_operation_id: string
+          p_purpose: string
+          p_request_digest?: string
+          p_session_id?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      quota_reserve_no_charge: {
+        Args: {
+          p_batch_id?: string
+          p_doc_key?: string
+          p_kind: string
+          p_operation_id: string
+          p_purpose: string
+          p_request_digest?: string
+          p_session_id?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      quota_result_is_content_bearing: {
+        Args: { p_result_ref: Json }
+        Returns: boolean
+      }
+      quota_wave_cancel: {
+        Args: { p_operation_id: string; p_reason?: string; p_user_id: string }
+        Returns: Json
+      }
+      quota_wave_commit: {
+        Args: { p_operation_id: string; p_result: Json; p_user_id: string }
+        Returns: Json
+      }
+      quota_wave_reconcile_stale: { Args: { p_limit?: number }; Returns: Json }
+      quota_wave_reserve: {
+        Args: {
+          p_batch_id?: string
+          p_doc_key?: string
+          p_kind: string
+          p_lease_seconds?: number
+          p_operation_id: string
+          p_ops_count?: number
+          p_purpose: string
+          p_request_digest?: string
+          p_session_id?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       rate_limit_check: {
         Args: { _key: string; _max: number; _window_s: number }
+        Returns: Json
+      }
+      record_article_review: {
+        Args: {
+          _current_hash: string
+          _decision: string
+          _evidence_id: string
+          _note?: string
+          _reviewer: string
+          _sources_ok: boolean
+        }
         Returns: Json
       }
       record_product_generation_artifact: {
@@ -6997,6 +8194,16 @@ export type Database = {
           p_usage_cost_micro_usd?: number
           p_usage_input_tokens?: number
           p_usage_output_tokens?: number
+        }
+        Returns: Json
+      }
+      record_product_payment_reversal: {
+        Args: {
+          p_action: string
+          p_environment: string
+          p_event_at: string
+          p_event_id: string
+          p_session_id: string
         }
         Returns: Json
       }
@@ -7099,6 +8306,66 @@ export type Database = {
         }
         Returns: Json
       }
+      resolve_product_reconciliation: {
+        Args: {
+          p_kind: string
+          p_reason_code: string
+          p_resolution: string
+          p_subject_id: string
+          p_ticket_ref?: string
+        }
+        Returns: Json
+      }
+      retention_due_counts: { Args: never; Returns: Json }
+      review_grant_nonce_consume: {
+        Args: {
+          p_aud: string
+          p_content_digest: string
+          p_expires_at: string
+          p_nonce: string
+          p_operation: string
+          p_owner_id: string
+          p_subject: string
+        }
+        Returns: Json
+      }
+      review_operation_cancel: {
+        Args: {
+          p_content_digest: string
+          p_nonce: string
+          p_reason?: string
+          p_reconciliation_required?: boolean
+        }
+        Returns: Json
+      }
+      review_operation_commit: {
+        Args: { p_content_digest: string; p_nonce: string; p_response: Json }
+        Returns: Json
+      }
+      review_operation_lookup: {
+        Args: {
+          p_aud: string
+          p_content_digest: string
+          p_nonce: string
+          p_operation: string
+          p_owner_id: string
+          p_subject: string
+        }
+        Returns: Json
+      }
+      review_operation_reserve: {
+        Args: {
+          p_aud: string
+          p_content_digest: string
+          p_expires_at: string
+          p_lease_seconds?: number
+          p_nonce: string
+          p_operation: string
+          p_owner_id: string
+          p_subject: string
+        }
+        Returns: Json
+      }
       revoke_static_catalog_payment: {
         Args: {
           p_event_at: string
@@ -7159,6 +8426,22 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      storage_artifact_bind: {
+        Args: {
+          p_bucket: string
+          p_expires_at: string
+          p_operation_id: string
+          p_purpose: string
+          p_request_digest: string
+          p_storage_path: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      storage_artifact_lookup: {
+        Args: { p_operation_id: string }
+        Returns: Json
+      }
       submit_wizard_feedback: {
         Args: {
           _body: string
@@ -7176,6 +8459,26 @@ export type Database = {
           _source_group: string
         }
         Returns: boolean
+      }
+      sweep_expired_ai_document_operation_results: {
+        Args: { p_dry_run: boolean; p_limit: number }
+        Returns: Json
+      }
+      sweep_expired_assistant_turn_results: {
+        Args: { p_dry_run: boolean; p_limit: number }
+        Returns: Json
+      }
+      sweep_expired_exact_responses: {
+        Args: { p_dry_run?: boolean; p_limit?: number }
+        Returns: Json
+      }
+      sweep_expired_quota_results: {
+        Args: { p_dry_run?: boolean; p_limit?: number }
+        Returns: Json
+      }
+      sweep_expired_quota_wave_results: {
+        Args: { p_dry_run?: boolean; p_limit?: number }
+        Returns: Json
       }
       sync_plans_into_prompts: { Args: never; Returns: undefined }
       top_blog_articles: {
