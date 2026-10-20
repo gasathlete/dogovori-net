@@ -161,3 +161,13 @@ Owner `--self` session, synthetic content only; payment/product/subscription/sig
 - analyze-contract: NOT run. Concrete blocker: it requires an `uploaded_contracts` row, client raw INSERT is (correctly) denied, and no supported server ingress function exists for pasted/extracted text. `document_review` gate stays closed with that reason shown; review of documents made here works.
 - Not run (budget): refine, apply-corrections, linked, negotiation.
 - UI: open gates unchanged (document_generation, assistant, blank_download); prelaunch tests updated to the proven state, 58/58. bun.lock blob a260168a… unchanged.
+
+## 20.10.2026 — контролиран текстов вход за /analiz (MAIN, синтетично, owner --self)
+- Нов handler `uploaded-text-intake` (create/update, само JSON текст; owner от JWT; allowlist полета; 80–200000 знака; сървърна ЕГН/IBAN преграда преди DB; strict rate limit; флаг document_content_save; папка/контакт само на същия собственик; create идемпотентен по UUID, обвързан с owner+title+text hash; update с owner+updated_at). Deno 4/4.
+- Реално: ЕГН → 422; чужда папка → 403 folder_not_owned; подаден user_id → 400; create 201; същия id/същия текст → 200 replayed; същия id/друг текст → 409; стара ревизия → 409; чужд id → 404.
+- analyze-contract 200; същият operation_id → байт-идентичен; 1 risk_analyses ред; quota_operation `committed` ×1; без лични токени в изхода.
+- Приложена миграция 0024_privacy_client_write_gate (= 0044): anon/authenticated не могат да пишат extracted_text/text_hash. Реално: директен INSERT/PATCH на текст → 403 42501; смяна на заглавие → 200; intake update/create след guard → 200/201.
+- 0047 (saved_documents payload) НЕ е приложена: копието „запази в моите документи“ от качен документ и някои генерирани записи още пишат payload от клиента — трябва да минат през сървър първо.
+- productUpload.ts (платен продукт, затворен) още пише текст директно — ще бъде отказан от guard; трябва сървърен път преди отваряне на продукти.
+- Редакция на текст от член на екип (не собственик) вече се отказва (само собственик).
+- UI: document_review отворен за поставен текст; PDF/DOCX остават спрени.

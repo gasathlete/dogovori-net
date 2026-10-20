@@ -35,22 +35,22 @@ import * as extract from "@/lib/extractContractText";
 beforeEach(() => Object.values(h).forEach((f) => f.mockReset()));
 
 describe("UploadContractDialog в предварителен режим", () => {
-  it("„Качи и анализирай“ отваря заявката преди хеш, сесия, запис или AI", async () => {
-    const events: string[] = [];
-    const on = (e: Event) => events.push((e as CustomEvent<{ feature: string }>).detail.feature);
-    window.addEventListener(PRELAUNCH_WAITLIST_EVENT, on);
+  it("поставен текст минава само през контролирания сървърен вход, не през директен запис", async () => {
+    h.invoke.mockImplementation(async (fn: string) =>
+      fn === "uploaded-text-intake"
+        ? { data: { contract: { id: "11111111-1111-4111-8111-111111111111" } }, error: null }
+        : { data: { analysis: { id: "a" } }, error: null });
     render(<MemoryRouter><UploadContractDialog folders={[]} contacts={[]} onUploaded={() => undefined} /></MemoryRouter>);
     fireEvent.click(screen.getByRole("button", { name: /Добави договор/ }));
     fireEvent.change(await screen.findByPlaceholderText(/Поставете пълния текст/), { target: { value: "Синтетичен текст ".repeat(10) } });
     fireEvent.change(screen.getByPlaceholderText(/напр\. Договор/), { target: { value: "Синтетично заглавие" } });
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Качи и анализирай" })); });
-    window.removeEventListener(PRELAUNCH_WAITLIST_EVENT, on);
-    expect(events).toEqual(["document_review"]);
-    expect(extract.sha256Hex).not.toHaveBeenCalled();
-    expect(h.from).not.toHaveBeenCalled();
-    expect(h.invoke).not.toHaveBeenCalled();
-    expect(h.refreshSession).not.toHaveBeenCalled();
+    expect(h.from).not.toHaveBeenCalledWith("uploaded_contracts");
     expect(h.upload).not.toHaveBeenCalled();
+    const [fn, opts] = h.invoke.mock.calls[0];
+    expect(fn).toBe("uploaded-text-intake");
+    expect(Object.keys(opts.body).sort()).toEqual(["action", "contact_id", "folder_id", "id", "text", "title"]);
+    expect(h.invoke.mock.calls[1][0]).toBe("analyze-contract");
   });
   it("не рекламира „само запис“ на нов текст (забранен от 0044)", async () => {
     render(<MemoryRouter><UploadContractDialog folders={[]} contacts={[]} onUploaded={() => undefined} /></MemoryRouter>);

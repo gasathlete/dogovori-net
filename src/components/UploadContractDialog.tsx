@@ -243,27 +243,24 @@ export function UploadContractDialog({
       }
 
       setPhase("Запис...");
-      const text_hash = await sha256Hex(text);
-      const insertRes = await supabase
-        .from("uploaded_contracts")
-        .insert({
-          user_id: user.id,
+      if (tab !== "paste") throw new UploadStepError("raw_file_blocked", RAW_FILE_BLOCKED_MESSAGE);
+      void storagePath; void mime; void size; void originalName;
+      // Контролиран сървърен вход: собственикът идва от сесията, текстът минава
+      // сървърната преграда преди запис. Идентичността е обвързана с текста.
+      const intakeId = getStableOpKey(`intake:${await sha256Hex(`${title.trim()}\u0000${text}`)}`);
+      const intakeRes = await supabase.functions.invoke("uploaded-text-intake", {
+        body: {
+          action: "create",
+          id: intakeId,
+          title: title.trim(),
+          text,
           folder_id: folderId === "none" ? null : folderId,
           contact_id: contactId === "none" ? null : contactId,
-          title: title.trim(),
-          source: tab,
-          original_filename: originalName,
-          storage_path: storagePath,
-          mime_type: mime,
-          size_bytes: size,
-          extracted_text: text,
-          text_hash,
-        })
-        .select("id")
-        .single();
-
-      if (insertRes.error) throw new UploadStepError("save_failed", "Не успяхме да запазим документа. Опитайте отново.");
-      const newId = insertRes.data!.id as string;
+        },
+      });
+      const intakeContract = (intakeRes.data as { contract?: { id?: string } } | null)?.contract;
+      if (intakeRes.error || !intakeContract?.id) throw new UploadStepError("save_failed", "Не успяхме да запазим документа. Опитайте отново.");
+      const newId = intakeContract.id;
 
       if (skipAnalysis) {
         toast.success("Договорът е качен. Можете да го редактирате.");
