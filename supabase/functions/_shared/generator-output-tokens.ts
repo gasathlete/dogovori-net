@@ -46,10 +46,19 @@ export function finalizeServiceTokens(text: string, mapping: RedactionMapping): 
   });
 }
 
+/**
+ * Моделът понякога връща двойно екранирани нови редове („\\n“ като два знака),
+ * които се показват буквално в документа и експорта. Превръщат се в реални.
+ */
+export function normalizeEscapedNewlines(text: string): string {
+  if (typeof text !== "string" || !text.includes("\\")) return text;
+  return text.replace(/\\r\\n|\\n/g, "\n");
+}
+
 /** Прилага finalizeServiceTokens към всички текстови листа (ключовете не се пипат). */
 export function finalizeGeneratedOutput<T>(value: T, mapping: RedactionMapping): T {
   const walk = (v: unknown): unknown => {
-    if (typeof v === "string") return finalizeServiceTokens(v, mapping);
+    if (typeof v === "string") return finalizeServiceTokens(normalizeEscapedNewlines(v), mapping);
     if (Array.isArray(v)) return v.map(walk);
     if (v && typeof v === "object") {
       const out: Record<string, unknown> = {};

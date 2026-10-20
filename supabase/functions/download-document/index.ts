@@ -243,19 +243,53 @@ Deno.serve(async (req) => {
     const useBonus = !!quotaResult.used_bonus;
     const charged = quotaResult.charged !== false && !strictUnlockActive;
 
-    const { data: saved, error: saveErr } = await admin
-      .from("saved_documents")
-      .insert({
-        user_id: userId,
+    // Точно същият запис (собственик + таб + doc_key + вид + име + съдържание)
+    // не създава втори ред в историята — нито при повторение, нито при
+    // едновременни заявки (уникален индекс). Ключът се изчислява само тук.
+    let saveRequestKey: string | null = null;
+    if (typeof session_id === "string" && session_id && typeof doc_key === "string" && doc_key && !saved_document_id) {
+      const { canonicalRequestDigest } = await import("../_shared/canonical-digest.ts");
+      saveRequestKey = await canonicalRequestDigest({
+        purpose: "saved_document_save",
+        userId,
+        sessionId: session_id,
+        docKey: doc_key,
         kind,
-        title,
-        payload,
-        source_id: source_id ?? null,
-        contact_id: contact_id ?? null,
-        folder_id: folder_id ?? null,
-      })
-      .select()
-      .single();
+        title: title ?? null,
+        payload: payload ?? null,
+        sourceId: source_id ?? null,
+        contactId: contact_id ?? null,
+        folderId: folder_id ?? null,
+      });
+    }
+    const findExisting = async () =>
+      saveRequestKey
+        ? (await admin.from("saved_documents").select().eq("user_id", userId).eq("save_request_key", saveRequestKey).maybeSingle()).data
+        : null;
+    let saved = await findExisting();
+    let saveErr: unknown = null;
+    if (!saved) {
+      const ins = await admin
+        .from("saved_documents")
+        .insert({
+          user_id: userId,
+          kind,
+          title,
+          payload,
+          source_id: source_id ?? null,
+          contact_id: contact_id ?? null,
+          folder_id: folder_id ?? null,
+          save_request_key: saveRequestKey,
+        })
+        .select()
+        .single();
+      saved = ins.data;
+      saveErr = ins.error;
+      if (saveErr && (saveErr as { code?: string }).code === "23505" && saveRequestKey) {
+        saved = await findExisting();
+        if (saved) saveErr = null;
+      }
+    }
     if (saveErr) {
       // Refund the quota we just consumed since the save failed.
       // Only refund when we actually charged (session-reused calls are free).
