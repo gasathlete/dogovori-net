@@ -69,7 +69,14 @@ Deno.serve(async (req) => {
     if (!return_url || typeof return_url !== "string") throw new Error("return_url required");
     if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
     // Sandbox (test) плащания пишат в общите entitlement таблици — само staff.
-    await assertEnvironmentAllowed(supabase, environment, userId);
+        // is_staff EXECUTE е отнет от authenticated: проверката минава със
+    // service-role клиент (без препратен потребителски Authorization) и userId
+    // от вече проверения JWT, никога от тялото.
+    const staffClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    await assertEnvironmentAllowed(staffClient, environment, userId);
 
     const stripe = createStripeClient(environment);
     // Бъндъл: отключване на документа + входен пакет операции. Ползваме

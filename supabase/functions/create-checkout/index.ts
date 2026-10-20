@@ -73,7 +73,14 @@ Deno.serve(async (req) => {
     if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
     // Sandbox (test) плащания дават реален entitlement в общите таблици —
     // разрешени са само за staff. Проверката е server-side по JWT user id.
-    await assertEnvironmentAllowed(supabase, environment, userId);
+        // is_staff EXECUTE е отнет от authenticated: проверката минава със
+    // service-role клиент (без препратен потребителски Authorization) и userId
+    // от вече проверения JWT, никога от тялото.
+    const staffClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    await assertEnvironmentAllowed(staffClient, environment, userId);
 
     const stripe = createStripeClient(environment);
 
