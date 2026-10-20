@@ -28,7 +28,7 @@ const xml = (paras: string[]) =>
 const docx = (paras = PARAS, opts = {}) =>
   makeZip({ "[Content_Types].xml": "<Types/>", "word/document.xml": xml(paras) }, opts);
 const textHash = async (paras = PARAS) =>
-  sha256HexBytes(new TextEncoder().encode(normalizeProductSourceText(paras.join("\n"))));
+  sha256HexBytes(new TextEncoder().encode(normalizeProductSourceText(paras.join("\n\n"))));
 
 async function row(over: Record<string, unknown> = {}) {
   return {
@@ -48,7 +48,7 @@ const reason = async (p: Promise<unknown>) => {
 Deno.test("attests server-extracted DOCX text and binds owner/file/revision/env", async () => {
   const bytes = await docx();
   const a = await attestProductSource({ ownerId: OWNER, environment: "sandbox", fileBytes: bytes, row: await row() });
-  assertEquals(a.text, normalizeProductSourceText(PARAS.join("\n")));
+  assertEquals(a.text, normalizeProductSourceText(PARAS.join("\n\n")));
   assertEquals(a.textSha256, await textHash());
   assertEquals(a.fileSha256, await sha256HexBytes(bytes));
   assert(a.text.includes("два месечни наема & се връща"));
@@ -108,10 +108,18 @@ Deno.test("deterministic: concurrent attestations of same file give identical di
 
 Deno.test("deleted/instruction text is not extracted; tabs/breaks kept", () => {
   const t = extractDocxXmlText(`<w:p><w:r><w:t>А</w:t><w:tab/><w:t>Б</w:t><w:br/><w:delText>скрито</w:delText><w:instrText>HYPERLINK</w:instrText></w:r></w:p>`);
-  assertEquals(t, "А\tБ\n\n");
+  assertEquals(t, "А\tБ\n\n\n");
 });
 
 Deno.test("attestation module does not open the live bridge", async () => {
   assertEquals(PRODUCT_TRUSTED_SOURCE_BRIDGE.available, false);
   await assertRejects(() => Promise.reject(new AttestationError("source_mismatch")));
+});
+
+Deno.test("DOCX paragraph boundaries match browser Mammoth raw text before hashing", async () => {
+  const xml = '<w:document><w:body><w:p><w:r><w:t>Трудов договор</w:t></w:r></w:p><w:p><w:r><w:t>Чл. 1. Възнаграждение 1500 евро.</w:t></w:r></w:p></w:body></w:document>';
+  const browserText = "Трудов договор\n\nЧл. 1. Възнаграждение 1500 евро.";
+  const serverText = normalizeProductSourceText(extractDocxXmlText(xml));
+  assertEquals(serverText, browserText);
+  assertEquals(await sha256HexBytes(new TextEncoder().encode(serverText)), await sha256HexBytes(new TextEncoder().encode(browserText)));
 });

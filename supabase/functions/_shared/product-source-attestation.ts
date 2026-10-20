@@ -215,7 +215,8 @@ export function extractDocxXmlText(xml: string): string {
     const tok = m[0];
     if (m[1] !== undefined) out.push(decodeXmlEntities(m[1]));
     else if (tok.startsWith("<w:tab")) out.push("\t");
-    else if (tok === "</w:p>") out.push("\n");
+    // Mammoth extractRawText uses two newlines after each paragraph.
+    else if (tok === "</w:p>") out.push("\n\n");
     else out.push("\n");
   }
   return out.join("");
