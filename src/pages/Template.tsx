@@ -387,11 +387,11 @@ export default function TemplatePage() {
               </Link>
               <p className="text-[12px] text-muted-foreground">{generationOpen ? "Проверете внимателно преди подписване." : "Новото генериране е в подготовка."}</p>
               <Link
-                to={blankOpen ? blankWizardHref : wizardHref}
+                to={wizardHref}
                 onClick={trackBlankPreview}
                 className="text-[12px] text-muted-foreground underline-offset-4 transition-colors hover:text-gold hover:underline"
               >
-                {blankOpen ? "Изтеглете бланка" : <>{SEO_INTENT_BLANK_LINK_LABEL}</>}
+                {SEO_INTENT_BLANK_LINK_LABEL}
               </Link>
             </div>
           </section>
