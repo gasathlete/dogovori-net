@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { PRELAUNCH_COPY, PRELAUNCH_LABELS, isPrelaunchFeature, type PrelaunchFeature } from "@/lib/prelaunch";
+import { PRELAUNCH_COPY, PRELAUNCH_LABELS, getPrelaunchStatus, isPrelaunchFeature, type PrelaunchFeature } from "@/lib/prelaunch";
 import {
   PRELAUNCH_WAITLIST_EVENT,
   submitPrelaunchWaitlist,
@@ -91,15 +91,18 @@ export function PrelaunchWaitlistDialog() {
           ? PRELAUNCH_COPY.unavailable
           : "";
 
+  const status = feature ? getPrelaunchStatus(feature) : null;
+
   return (
     <Dialog open={feature !== null} onOpenChange={(o) => { if (!o) close(); }}>
       <DialogContent className="max-w-md" data-testid="prelaunch-waitlist">
         <DialogHeader>
-          <DialogTitle>{PRELAUNCH_COPY.title}</DialogTitle>
+          <DialogTitle>{status?.title ?? PRELAUNCH_COPY.title}</DialogTitle>
           <DialogDescription className="text-base leading-relaxed text-foreground/80">
-            {PRELAUNCH_COPY.body}
+            {status?.reason} {PRELAUNCH_COPY.body}
           </DialogDescription>
         </DialogHeader>
+        {status && <Link to={status.alternateHref} onClick={close} className="inline-flex min-h-11 items-center text-sm text-gold underline">{status.alternateLabel}</Link>}
         {result === "accepted" ? (
           <p role="status" className="text-sm">{message}</p>
         ) : (

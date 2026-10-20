@@ -16,6 +16,7 @@ export function Footer() {
         <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center xl:gap-12">
           <div className="flex min-w-[220px] flex-col gap-2">
             <Logo />
+            <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">По-малко бюрокрация. Повече време за Вас.</p>
             <a
               href="https://im-development.imot.bg"
               target="_blank"
@@ -67,7 +68,7 @@ export function Footer() {
               <a href="mailto:imdevelopmentoffice@gmail.com" className="ml-1 hover:text-gold">imdevelopmentoffice@gmail.com</a>
             </p>
             <p className="mt-2">
-              © {new Date().getFullYear()} Dogovori.net · Изготвените договори са образци, създадени с изкуствен интелект, и не заместват консултация с адвокат.
+              © {new Date().getFullYear()} Dogovori.net · Образците и автоматичните предложения са обща помощ и може да изискват адаптация към конкретния случай. Не заменят индивидуална правна консултация.
             </p>
           </div>
           <div className="flex items-center justify-center gap-2 md:justify-end">
