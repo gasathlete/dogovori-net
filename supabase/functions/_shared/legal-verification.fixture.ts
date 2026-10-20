@@ -28,6 +28,8 @@ export const LEX_URL = "https://lex.bg/laws/zzd";
 export const CHUNK_ID = "11111111-1111-4111-8111-111111111111";
 export const DOCUMENT_ID = "22222222-2222-4222-8222-222222222222";
 export const SOURCE_ID = "33333333-3333-4333-8333-333333333333";
+/** Контролната сума обвързва индексирания документ с приетата снимка. */
+export const CHECKSUM = "a".repeat(64);
 
 export interface FixtureRows {
   chunk?: Record<string, unknown> | null;
@@ -57,6 +59,7 @@ export const READY_ROWS: FixtureRows = Object.freeze({
     version: "2026-01-15",
     effective_from: "2026-01-15T00:00:00Z",
     effective_to: null,
+    checksum: CHECKSUM,
   },
   source: {
     id: SOURCE_ID,
@@ -91,6 +94,7 @@ export const READY_ROWS: FixtureRows = Object.freeze({
     canonical_url: OFFICIAL_URL,
     parser_version: APPROVED_ENTRY.parserVersion,
     retrieved_at: "2026-09-19T00:05:00Z",
+    checksum: CHECKSUM,
   },
 });
 

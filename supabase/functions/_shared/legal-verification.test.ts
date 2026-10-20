@@ -33,11 +33,20 @@ function rows(patch: FixtureRows): FixtureRows {
   return { ...READY_ROWS, ...patch };
 }
 
-Deno.test("production registry has no usable source — readiness is false and costs zero queries", async () => {
-  assertEquals(usableRegistryEntries().length, 0);
-  const db = fixtureDb();
-  assertFalse(await isStrictLegalKnowledgeBaseReady(db));
-  assertEquals(Object.keys(db.calls).length, 0);
+Deno.test("production registry exposes only the approved official sources and stays unready without data", async () => {
+  assertEquals(usableRegistryEntries().map((e) => e.sourceKey), [
+    "bg_mj_zzd",
+    "bg_nra_labour_code",
+    "bg_constcourt_constitution",
+    "bg_kzp_consumer_act",
+    "bg_registryagency_pdpa",
+    "bg_registryagency_zzd",
+    "bg_registryagency_gpk",
+    "eu_op_gdpr_consolidated",
+  ]);
+
+  // Празна база → готовността остава false въпреки одобрения регистър.
+  assertFalse(await isStrictLegalKnowledgeBaseReady(fixtureDb()));
 });
 
 Deno.test("a fully approved and fresh injected chain is accepted", async () => {
@@ -485,10 +494,8 @@ Deno.test("извличането не обхожда корпуса преди 
 Deno.test("лекият контролен слой не зависи от корпуса, но остава строг", async () => {
   const { isLegalControlPlaneReady } = await import("./legal-verification.ts");
   assert(await isLegalControlPlaneReady(fixtureDb(READY_ROWS), deps));
-  // Без одобрен code-owned източник — нула заявки.
-  const db = fixtureDb();
-  assertFalse(await isLegalControlPlaneReady(db));
-  assertEquals(Object.keys(db.calls).length, 0);
+  // Без данни в базата — отказ, дори с одобрен code-owned регистър.
+  assertFalse(await isLegalControlPlaneReady(fixtureDb()));
   // Неприето последно изпълнение → отказ.
   assertFalse(
     await isLegalControlPlaneReady(
@@ -514,4 +521,80 @@ Deno.test("отказът на веригата на кандидата оста
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+Deno.test("действащ документ НЕ прави действащ всеки откъс: отменен, бъдещ и противоконституционен текст се отхвърля", async () => {
+  const cases: Array<[string, string]> = [
+    ["отменен", "Чл. 1001а. (Отм. - ДВ, бр. 59 от 2007 г.) Старата уредба."],
+    ["бъдещ", "Чл. 7. (Нов - ДВ, бр. 69 от 2026 г., в сила от 02.04.2027 г.) Нова уредба."],
+    ["изтекъл", "§ 5. Прилага се в сила от 09.08.2024 г. до 09.08.2025 г."],
+    ["противоконституционен", "Чл. 129. Разпоредбата е обявена за противоконституционна с РКС № 9/2025 г."],
+    ["неясен", "Чл. 40. (Изм.) Влиза в сила от деня на обнародването."],
+  ];
+  for (const [name, content] of cases) {
+    const res = await verifyLegalChunk(
+      fixtureDb(rows({ chunk: { ...READY_ROWS.chunk!, content } })),
+      CHUNK_ID,
+      deps,
+    );
+    assertFalse(res.ok, name);
+    assertEquals(res.ok === false ? res.reason : "", "chunk_not_authoritative_today", name);
+  }
+
+  // Действащият откъс минава и носи честен клас на действие.
+  const good = await verifyLegalChunk(fixtureDb(), CHUNK_ID, deps);
+  assert(good.ok);
+  assertEquals(good.chunk.force_class, "in_force");
+});
+
+Deno.test("разрешените закони се налагат в самата заявка към базата, преди класиране и таван", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (() =>
+    Promise.resolve(
+      new Response(JSON.stringify({ data: [{ embedding: [0.1, 0.2, 0.3] }] }), { status: 200 }),
+    )) as typeof fetch;
+  let args: Record<string, unknown> | null = null;
+  try {
+    const base = fixtureDb();
+    const admin = {
+      ...base,
+      rpc: (_name: string, a: Record<string, unknown>) => {
+        args = a;
+        return Promise.resolve({ data: [], error: null });
+      },
+    };
+    await retrieveLegalContext(admin as never, "key", "въпрос", {
+      verifier: deps,
+      allowedShortCodes: ["ЗЗД"],
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  assert(args);
+  assertEquals((args as Record<string, unknown>).short_codes, ["ЗЗД"]);
+});
+
+Deno.test("част, по-дълга от вградения текст, не може да служи за точно цитиране", async () => {
+  // ЗЗЛД „чл. 87“ в корпуса е 20 185 знака и обхваща и допълнителни разпоредби:
+  // моделът е видял само първите 8000 знака.
+  const long = "Чл. 87. Установяването на нарушенията се извършва по реда на ЗАНН. " +
+    "Текст. ".repeat(3000);
+  const res = await verifyLegalChunk(
+    fixtureDb(rows({ chunk: { ...READY_ROWS.chunk!, content: long } })),
+    CHUNK_ID,
+    deps,
+  );
+  assertFalse(res.ok);
+  assertEquals(res.ok === false ? res.reason : "", "chunk_exceeds_embedded_text");
+});
+
+Deno.test("Конституцията чл. 149 остава цитируема въпреки думата „противоконституционност“", async () => {
+  const krb = "Чл. 149. (1) Конституционният съд произнася се по искане за " +
+    "установяване на противоконституционност на законите и на другите актове.";
+  const res = await verifyLegalChunk(
+    fixtureDb(rows({ chunk: { ...READY_ROWS.chunk!, content: krb } })),
+    CHUNK_ID,
+    deps,
+  );
+  assertEquals(res.ok, true);
 });

@@ -28,12 +28,19 @@
  */
 
 import {
+  EMBED_TEXT_CHAR_LIMIT,
+  assessChunkForce,
+  type ForceClass,
+} from "./legal-force-markers.ts";
+import {
   type ExpectedCadence,
   type LegalSourceEntry,
   LEGAL_SOURCE_REGISTRY,
 } from "./legal-source-registry.ts";
 
 const HTTPS_RE = /^https:\/\/[^\s"']+$/;
+/** SHA-256 в шестнадесетичен вид — единственият приет вид контролна сума. */
+export const CHECKSUM_RE = /^[0-9a-f]{64}$/i;
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -75,6 +82,8 @@ export type VerificationReason =
   | "document_invalid"
   | "document_not_in_force"
   | "chunk_invalid"
+  | "chunk_not_authoritative_today"
+  | "chunk_exceeds_embedded_text"
   | "db_error";
 
 export interface StrictResult {
@@ -162,9 +171,18 @@ export function usableRegistryEntries(
   );
 }
 
+/** Доказателството от последната приета снимка на официалния източник. */
+export interface VerifiedSnapshot {
+  readonly checksum: string;
+  readonly retrieved_at: string;
+  readonly parser_version: string;
+  readonly canonical_url: string;
+}
+
 export interface VerifiedSource {
   readonly entry: LegalSourceEntry;
   readonly sourceKey: string;
+  readonly snapshot: VerifiedSnapshot;
 }
 
 export type SourceVerification =
@@ -234,7 +252,7 @@ export async function verifyRegisteredSource(
 
     const snapshots = await db
       .from("legal_source_snapshots")
-      .select("source_key, canonical_url, parser_version, retrieved_at")
+      .select("source_key, canonical_url, parser_version, retrieved_at, checksum")
       .eq("source_key", sourceKey)
       .order("retrieved_at", { ascending: false })
       .limit(1);
@@ -247,8 +265,27 @@ export async function verifyRegisteredSource(
     if (!isRecent(snapshot.retrieved_at, d.now, d.snapshotMaxAge)) return fail("snapshot_missing");
     if (snapshot.parser_version !== entry.parserVersion) return fail("snapshot_untrusted");
     if (!isApprovedUrl(snapshot.canonical_url, entry)) return fail("snapshot_untrusted");
+    // Контролната сума е част от доказателството: без нея източникът не може да
+    // бъде обвързан с документа, който сме индексирали.
+    const snapChecksum = str(snapshot.checksum);
+    const snapRetrieved = str(snapshot.retrieved_at);
+    if (!snapChecksum || !CHECKSUM_RE.test(snapChecksum) || !snapRetrieved) {
+      return fail("snapshot_untrusted");
+    }
 
-    return { ok: true, source: Object.freeze({ entry, sourceKey }) };
+    return {
+      ok: true,
+      source: Object.freeze({
+        entry,
+        sourceKey,
+        snapshot: Object.freeze({
+          checksum: snapChecksum.toLowerCase(),
+          retrieved_at: snapRetrieved,
+          parser_version: entry.parserVersion,
+          canonical_url: String(snapshot.canonical_url),
+        }),
+      }),
+    };
   } catch {
     return fail("db_error");
   }
@@ -268,6 +305,17 @@ export interface VerifiedLegalChunk {
   readonly title: string;
   readonly canonical_url: string;
   readonly version: string;
+  /** Контролната сума на индексирания документ = тази на приетата снимка. */
+  readonly checksum: string;
+  /** Какъв е този източник според регистъра — честно, без разкрасяване. */
+  readonly authority_kind: string;
+  /** Официална консолидация НЕ е обнародване. */
+  readonly is_promulgation: boolean;
+  /** Кога официалният файл е изтеглен и кога базата е индексирана. */
+  readonly retrieved_at: string;
+  readonly last_indexed_at: string;
+  /** Класът на действие НА САМИЯ ОТКЪС. Само "in_force" е авторитетен днес. */
+  readonly force_class: ForceClass;
 }
 
 export type ChunkVerification =
@@ -302,7 +350,7 @@ export async function verifyLegalChunk(
 
     const docRes = await db
       .from("legal_documents")
-      .select("id, source_id, version, effective_from, effective_to")
+      .select("id, source_id, version, effective_from, effective_to, checksum")
       .eq("id", documentId)
       .maybeSingle();
     if (docRes.error) return { ok: false, reason: "db_error" };
@@ -310,9 +358,28 @@ export async function verifyLegalChunk(
     if (!doc || doc.source_id !== sourceId) return { ok: false, reason: "document_invalid" };
     const version = str(doc.version);
     if (!version) return { ok: false, reason: "document_invalid" };
+    const docChecksum = str(doc.checksum);
+    if (!docChecksum || !CHECKSUM_RE.test(docChecksum)) {
+      return { ok: false, reason: "document_invalid" };
+    }
     if (!isInForce(doc.effective_from, doc.effective_to, d.now)) {
       return { ok: false, reason: "document_not_in_force" };
     }
+
+    // Действащ документ НЕ значи действащ откъс: отменените, бъдещите,
+    // изтеклите и обявените за противоконституционни пасажи остават в корпуса
+    // за исторически контекст, но не могат да обосноват извод за днешно право.
+    const force = assessChunkForce(content, d.now);
+    if (!force.authoritative) {
+      return { ok: false, reason: "chunk_not_authoritative_today" };
+    }
+
+    // Частта е по-дълга от вградения текст: търсенето „вижда“ само началото ѝ,
+    // затова тя не може да обоснове точно цитиране.
+    if (content.length > EMBED_TEXT_CHAR_LIMIT) {
+      return { ok: false, reason: "chunk_exceeds_embedded_text" };
+    }
+
 
     const srcRes = await db
       .from("legal_sources")
@@ -341,6 +408,12 @@ export async function verifyLegalChunk(
     const verified = await verifyRegisteredSource(db, entry.sourceKey, deps);
     if (!verified.ok) return { ok: false, reason: verified.reason };
 
+    // Индексираният документ трябва да е ТОЧНО приетата снимка на официалния
+    // файл. Различна контролна сума значи, че нещо друго е било индексирано.
+    if (verified.source.snapshot.checksum !== docChecksum.toLowerCase()) {
+      return { ok: false, reason: "snapshot_untrusted" };
+    }
+
     return {
       ok: true,
       chunk: Object.freeze({
@@ -357,6 +430,12 @@ export async function verifyLegalChunk(
         title: str(src.title) ?? entry.title,
         canonical_url: officialUrl,
         version,
+        checksum: docChecksum.toLowerCase(),
+        authority_kind: entry.authorityTier,
+        is_promulgation: entry.authorityTier === "official_promulgation",
+        retrieved_at: verified.source.snapshot.retrieved_at,
+        last_indexed_at: String(src.last_indexed_at),
+        force_class: force.forceClass,
       }),
     };
   } catch {

@@ -11,6 +11,7 @@ import {
   verifyLegalChunk,
   type VerifierDeps,
 } from "./legal-verification.ts";
+import { EMBED_TEXT_CHAR_LIMIT } from "./legal-force-markers.ts";
 
 const EMBED_MODEL = "google/gemini-embedding-001";
 const EMBED_DIMS = 768;
@@ -25,6 +26,19 @@ export interface LegalCitation {
   official_url: string | null;
   jurisdiction: "BG" | "EU";
   similarity: number;
+  /** Пълната верига на произхода — за честно показване и за одит. */
+  source_id: string;
+  document_id: string;
+  source_key: string;
+  version: string;
+  /** Контролна сума на индексирания официален текст (= тази на снимката). */
+  checksum: string;
+  /** Видът на източника според регистъра и честното разграничение. */
+  authority_kind: string;
+  is_promulgation: boolean;
+  /** Кога официалният файл е изтеглен и кога е индексиран. */
+  retrieved_at: string;
+  last_indexed_at: string;
 }
 
 export interface LegalContext {
@@ -39,15 +53,23 @@ export interface RetrieveOpts {
   sourceTypes?: string[];
   matchCount?: number;
   minSimilarity?: number;
+  /**
+   * Затворен списък кратки кодове, разрешени за тази заявка (идва от сървърната
+   * оценка на покритието). Празен масив НЕ означава „всичко“ — означава нищо.
+   * Така никога не се подменя липсващ закон с друг.
+   */
+  allowedShortCodes?: readonly string[];
   /** Само за тестове: инжектиране на регистър/часовник. */
   verifier?: VerifierDeps;
 }
+
+export { EMBED_TEXT_CHAR_LIMIT };
 
 export async function embedText(
   apiKey: string,
   text: string,
 ): Promise<number[] | null> {
-  const trimmed = text.slice(0, 8000).trim();
+  const trimmed = text.slice(0, EMBED_TEXT_CHAR_LIMIT).trim();
   if (!trimmed) return null;
   try {
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
@@ -101,6 +123,15 @@ export async function retrieveLegalContext(
     hasMatches: false,
   };
 
+  // Разрешените закони се задават от сървърната оценка на покритието. Ако е
+  // подаден списък, всичко извън него отпада — без тиха замяна с друг закон.
+  // Празен списък значи „нищо не е разрешено“: нито мрежа, нито доставчик.
+  const allowed = opts.allowedShortCodes
+    ? new Set(opts.allowedShortCodes.map((c) => c.trim()).filter(Boolean))
+    : null;
+  if (allowed && allowed.size === 0) return empty;
+
+
   // Fail-closed ПРЕДИ всякаква мрежа: лека проверка на контролния слой (одобрен
   // източник + доверен регистър + приет последен ingestion + скорошен snapshot).
   // Без нея няма embedding, няма RPC, няма доставчик. Корпусът НЕ се обхожда
@@ -111,12 +142,17 @@ export async function retrieveLegalContext(
   const vec = await embedText(apiKey, query);
   if (!vec) return empty;
 
+  // Разрешените закони се налагат ОТ СЪРВЪРА още в заявката към базата, преди
+  // класирането и тавана. Така неприложими закони не могат да изместят
+  // изискван закон от първите резултати. Филтърът в кода отдолу остава като
+  // втора защита — прагът и проверката на откъсите не се отслабват.
   const { data, error } = await admin.rpc("match_legal_chunks", {
     query_embedding: vec as unknown as string,
     query_text: query,
     jurisdictions: opts.jurisdictions ?? null,
     source_types: opts.sourceTypes ?? null,
     match_count: opts.matchCount ?? 8,
+    short_codes: allowed ? [...allowed] : null,
   });
 
   if (error) {
@@ -133,19 +169,10 @@ export async function retrieveLegalContext(
 
   // Изходът на RPC е само СПИСЪК С КАНДИДАТИ. Всеки кандидат се препрочита и
   // проверява; етикет, връзка и съдържание идват само от сървъра.
-  const enriched: Array<{
-    _idx: number;
-    chunk_id: string;
-    citation_label: string;
-    short_code: string;
-    title: string;
-    article_no: string | null;
-    paragraph_no: string | null;
-    official_url: string | null;
-    jurisdiction: "BG" | "EU";
-    similarity: number;
-    content: string;
-  }> = [];
+  const enriched: Array<LegalCitation & { _idx: number; content: string }> = [];
+
+
+
 
   // Детерминирано: дедупликация по id, най-силните съвпадения първи, таван.
   const bySimilarity = new Map<string, number>();
@@ -165,6 +192,7 @@ export async function retrieveLegalContext(
     const verified = await verifyLegalChunk(strictDb, chunkId, opts.verifier);
     if (!verified.ok) continue;
     const v = verified.chunk;
+    if (allowed && !allowed.has(v.short_code)) continue;
     enriched.push({
       _idx: enriched.length + 1,
       chunk_id: v.chunk_id,
@@ -177,8 +205,18 @@ export async function retrieveLegalContext(
       jurisdiction: v.jurisdiction,
       similarity: similarity,
       content: v.content,
+      source_id: v.source_id,
+      document_id: v.document_id,
+      source_key: v.source_key,
+      version: v.version,
+      checksum: v.checksum,
+      authority_kind: v.authority_kind,
+      is_promulgation: v.is_promulgation,
+      retrieved_at: v.retrieved_at,
+      last_indexed_at: v.last_indexed_at,
     });
   }
+
 
   if (enriched.length === 0) return empty;
 
@@ -195,6 +233,12 @@ export async function retrieveLegalContext(
   lines.push(
     "Никога не цитирай актове извън списъка по-долу. Не измисляй членове, алинеи или съдебни решения.",
   );
+  if (enriched.some((c) => !c.is_promulgation)) {
+    lines.push(
+      "Част от извадките идват от официална административна консолидация, а не от " +
+        "обнародване. Не представяй консолидацията като обнародван текст.",
+    );
+  }
   lines.push("");
   for (const c of enriched) {
     const jur = c.jurisdiction === "EU" ? " (ЕС)" : "";

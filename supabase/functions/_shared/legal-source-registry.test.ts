@@ -52,9 +52,48 @@ Deno.test("registry: непотвърден endpoint => disabled + needs_access_
     assert(e.origin.startsWith("https://"));
     assert(e.entryPath.startsWith("/"));
   }
-  // Fail-closed: нищо не се пуска без одобрен достъп.
-  assertEquals(enabledSources().length, 0);
+  // Fail-closed: пуснати са само одобрените точни официални източници.
+  assertEquals(enabledSources().map((e) => e.sourceKey), [
+    "bg_mj_zzd",
+    "bg_nra_labour_code",
+    "bg_constcourt_constitution",
+    "bg_kzp_consumer_act",
+    "bg_registryagency_pdpa",
+    "bg_registryagency_zzd",
+    "bg_registryagency_gpk",
+    "eu_op_gdpr_consolidated",
+  ]);
+  // Търговският закон е КАРАНТИНИРАН: файлът на министерството е продуктова
+  // консолидация на АПИС (маркери в самия текст), а правилото за произход се
+  // прилага според производителя на текста, не според домейна на хостинга.
+  const tz = getRegistryEntry("bg_mi_commerce_act")!;
+  assertEquals(tz.enabled, false);
+  assertEquals(tz.watchOnly, true);
+  assertEquals(tz.reviewStatus, "rejected");
+  assert(tz.reviewNotes.includes("АПИС"));
+  // Некоригираното възпроизвеждане на ОРЗД (без поправката ОВ L 127,
+  // 23.5.2018 г.) е КАРАНТИНИРАНО и не може да бъде поглъщано.
+  const stale = getRegistryEntry("bg_registryagency_gdpr")!;
+  assertEquals(stale.enabled, false);
+  assertEquals(stale.watchOnly, true);
+  assertEquals(stale.reviewStatus, "rejected");
+  assert(stale.reviewNotes.includes("ОВ L 127, 23.5.2018"));
+  // Действащият ОРЗД идва от официалната консолидация на ЕС и НЕ се представя
+  // като автентична публикация в Официален вестник.
+  const current = getRegistryEntry("eu_op_gdpr_consolidated")!;
+  assertEquals(current.authorityTier, "official_eu_consolidated_helper");
+  assertEquals(current.lawBinding?.shortCode, "ОРЗД");
+  assertEquals(current.lawBinding?.hasPreamble, false);
+  assertEquals(current.lawBinding?.minRecitals, 0);
+  assertEquals(getRegistryEntry("eu_gdpr_oj_bg")?.enabled, false);
+  assertEquals(getRegistryEntry("eu_gdpr_oj_bg")?.reviewStatus, "needs_access_review");
 });
+
+Deno.test("registry: само един източник заема краткия код „ОРЗД“", () => {
+  const holders = enabledSources().filter((e) => e.lawBinding?.shortCode === "ОРЗД");
+  assertEquals(holders.map((e) => e.sourceKey), ["eu_op_gdpr_consolidated"]);
+});
+
 
 Deno.test("registry: sync редовете са идемпотентни и fail-closed", () => {
   const a = registrySyncRows();
@@ -65,6 +104,33 @@ Deno.test("registry: sync редовете са идемпотентни и fail
     assert(row.review_notes.length <= 2000);
     assert(/^[a-z][a-z0-9_]{2,59}$/.test(row.source_key));
   }
+});
+
+Deno.test("registry: кандидатът за ТЗ е записан, но НЕ е одобрен и не замества карантината", () => {
+  const cand = getRegistryEntry("bg_registryagency_commerce_act_candidate")!;
+  assertEquals(cand.enabled, false);
+  assertEquals(cand.watchOnly, true);
+  assertEquals(cand.reviewStatus, "needs_access_review");
+  // Без правно обвързване кандидатът не може да бъде поглъщан като закон.
+  assertEquals(cand.lawBinding, undefined);
+  assert(cand.reviewNotes.includes("6810010886838395079035db6780c4f76c74be3bc6b1f42f27741fca18dc0677"));
+  assert(cand.reviewNotes.includes("НЕ Е ОДОБРЕН"));
+  // Кандидатът не влиза сред пуснатите източници.
+  assert(!enabledSources().some((e) => e.sourceKey === cand.sourceKey));
+  // Старата карантина остава непокътната.
+  const quarantined = getRegistryEntry("bg_mi_commerce_act")!;
+  assertEquals(quarantined.enabled, false);
+  assertEquals(quarantined.reviewStatus, "rejected");
+  // Нито един пуснат източник не носи краткия код „ТЗ“.
+  assert(!enabledSources().some((e) => e.lawBinding?.shortCode === "ТЗ"));
+});
+
+Deno.test("registry: ЗДДС остава без обвързан източник, докато няма пълен текст с ДВ бр. 69/2026", () => {
+  // Нито един запис (пуснат или не) не носи правно обвързване за ЗДДС:
+  // файлът на НАП е до ДВ бр. 115/2025, а огледалото на damtn е със „Сиела“ маркери.
+  assert(!LEGAL_SOURCE_REGISTRY.some((e) => e.lawBinding?.shortCode === "ЗДДС"));
+  // Огледалото със „Сиела“ маркери никога не е пуснат източник.
+  assert(!enabledSources().some((e) => /damtn\.government\.bg/.test(e.origin)));
 });
 
 // ---------- Origin / URL allowlist ----------
