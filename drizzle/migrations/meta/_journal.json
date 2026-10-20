@@ -169,6 +169,13 @@
       "when": 1792496702557,
       "tag": "0023_saved_documents_save_request_key",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792497498018,
+      "tag": "0024_privacy_client_write_gate",
+      "breakpoints": true
     }
   ]
 }
