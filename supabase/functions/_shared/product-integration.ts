@@ -213,7 +213,14 @@ async function asyncBlockers(
   gates: ProductServiceGates,
 ): Promise<ProductIntegrationCode[]> {
   // Произходът на източника е ПЪРВАТА асинхронна врата и не зависи от env.
-  const codes: ProductIntegrationCode[] = [...productTrustedSourceBlockers()];
+  return [...productTrustedSourceBlockers(), ...(await serviceGateBlockers(gates))];
+}
+
+/** Скъпите проверки (миграция, правна база, местопребиваване) — без произхода. */
+async function serviceGateBlockers(
+  gates: ProductServiceGates,
+): Promise<ProductIntegrationCode[]> {
+  const codes: ProductIntegrationCode[] = [];
   if (!gates.rpc || !(await isProductMigrationApplied(gates.rpc))) {
     codes.push("migration_not_verified");
   }
@@ -229,20 +236,29 @@ async function asyncBlockers(
   return codes;
 }
 
+/** Вътрешна тестова зависимост; продукцията винаги ползва изходно кодирания мост. */
+export interface PrepaymentTestDeps {
+  readonly trustedSourceBlockers?: () => readonly ProductIntegrationCode[];
+}
+
 /**
  * Пълната проверка ПРЕДИ плащане: нито едно Stripe извикване и нито един запис
  * не се прави, докато всяко условие не е изпълнено.
+ *
+ * Fail-fast: евтините фатални блокери (конфигурация → произход) връщат веднага,
+ * без скъпите асинхронни проверки; само без тях се изпълняват всички останали.
  */
 export async function productPrepaymentBlockers(
   config: ProductIntegrationConfig,
   environment: "sandbox" | "live",
   gates: ProductServiceGates,
+  testDeps: PrepaymentTestDeps = {},
 ): Promise<readonly ProductIntegrationCode[]> {
-  const codes = [...productCheckoutBlockers(config, environment)];
-  for (const code of await asyncBlockers(gates)) {
-    if (!codes.includes(code)) codes.push(code);
-  }
-  return Object.freeze(codes);
+  const cheap = productCheckoutBlockers(config, environment);
+  if (cheap.length > 0) return Object.freeze([...cheap]);
+  const trusted = (testDeps.trustedSourceBlockers ?? productTrustedSourceBlockers)();
+  if (trusted.length > 0) return Object.freeze([...trusted]);
+  return Object.freeze(await serviceGateBlockers(gates));
 }
 
 /** Пълната проверка ПРЕДИ заявяване на задача и преди всяко извикване. */
