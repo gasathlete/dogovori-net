@@ -14,7 +14,7 @@ import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { GENERAL_ASSISTANCE_NOTE, getPrelaunchStatus } from "@/lib/prelaunch";
-import { isOriginalUnderRevision } from "@/lib/templateReviewStatus";
+import { CatalogReviewNotice } from "@/components/CatalogReviewNotice";
 import { getRelatedTemplates, getTemplateBySlug } from "@/lib/templateIndex";
 import { slugify } from "@/lib/slugify";
 import { TEMPLATE_CONTENT_META } from "@/data/templateContentMeta";
@@ -321,11 +321,7 @@ export default function TemplatePage() {
             )}
           </h1>
           <p className="mt-5 text-balance text-base leading-relaxed text-muted-foreground md:text-lg anim-rise" style={{ animationDelay: "160ms" }}>{doc.purpose}</p>
-          {isOriginalUnderRevision(entry.slug) && (
-            <LegalDisclaimer className="mt-4 border-gold/40">
-              Този образец се преработва. Не използвайте текущата версия за подписване.
-            </LegalDisclaimer>
-          )}
+          <CatalogReviewNotice />
           <LegalDisclaimer className="mt-4">{GENERAL_ASSISTANCE_NOTE}</LegalDisclaimer>
           <LegalDisclaimer className="mt-3">
             {getPrelaunchStatus("blank_download").title} {getPrelaunchStatus("document_generation").title}: {getPrelaunchStatus("document_generation").reason}

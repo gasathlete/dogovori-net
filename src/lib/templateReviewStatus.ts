@@ -1,12 +1,11 @@
-/** Exact reviewed originals from the 12 October report; never infer by title or category. */
-export const ORIGINALS_UNDER_REVISION = [
-  "predizvestie-za-prekratyavane-na-naem",
-  "priemo-predavatelen-protokol",
-  "sporazumenie-za-prekratyavane-na-naem-po-vzaimno-saglasie",
-  "dogovor-za-naem-na-parkomyasto-garazh",
-  "uchreditelen-akt-na-eood",
-] as const;
+/** Owner-selected public review status; not a finding of individual legal defects. */
+export const CATALOG_REVIEW_STATUS = Object.freeze({
+  badge: "В преработка",
+  warning: "Този образец се преработва. Не използвайте текущата версия за подписване.",
+  notice: "Каталогът е в преработка. Образците са достъпни за разглеждане; не използвайте текущите версии за подписване.",
+});
 
-export function isOriginalUnderRevision(slug: string): boolean {
-  return ORIGINALS_UNDER_REVISION.some((original) => original === slug);
+/** No slug, category or acceptance lookup: all canonical templates share this status. */
+export function getTemplateReviewStatus() {
+  return CATALOG_REVIEW_STATUS;
 }

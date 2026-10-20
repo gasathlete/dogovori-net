@@ -1,3 +1,4 @@
+import { CatalogReviewNotice } from "@/components/CatalogReviewNotice";
 import { useMemo } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
@@ -135,6 +136,7 @@ export default function SectorPage() {
                 {sector.description}
               </p>
 
+              <CatalogReviewNotice catalog />
               <div className="mt-7 flex flex-wrap items-center gap-3">
                 <Link to={`/build?category=${sector.id}`} className="btn-gold">
                   Изготви договор <ArrowRight className="h-4 w-4" />
@@ -254,6 +256,7 @@ export default function SectorPage() {
                             {doc.name}
                           </h4>
                         </div>
+                        <CatalogReviewNotice />
                         <p className="text-xs leading-relaxed text-muted-foreground">
                           {doc.purpose}
                         </p>

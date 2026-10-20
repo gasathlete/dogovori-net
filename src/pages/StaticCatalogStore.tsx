@@ -1,3 +1,4 @@
+import { CatalogReviewNotice } from "@/components/CatalogReviewNotice";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ function Item({ item, open }: { item: StaticCatalogItem; open: boolean }) {
         <h2 className="text-lg font-semibold text-foreground">{title}</h2>
         <p className="text-lg font-semibold text-foreground">{formatEur(item.amount_cents)} <span className="text-sm font-normal text-muted-foreground">с ДДС</span></p>
       </header>
+      <CatalogReviewNotice />
       <p className="text-sm text-muted-foreground">
         Сваляте точно файла <strong className="text-foreground">{item.filename}</strong>, версия {item.version}
         {" "}({item.mime_type === "application/pdf" ? "PDF" : "DOCX"}).
@@ -77,6 +79,7 @@ export default function StaticCatalogStore() {
         <h1 className="text-3xl font-semibold text-foreground">Готови документи</h1>
         <p className="text-muted-foreground">Готови бланки, които сваляте веднага след плащане. Покупките Ви остават в <Link to="/pokupki" className="underline">Моите покупки</Link>.</p>
       </header>
+      <CatalogReviewNotice catalog />
       {state === "loading" && <p role="status" className="text-muted-foreground">Зареждаме…</p>}
       {state === "closed" && (
         <div className="space-y-4">

@@ -42,4 +42,6 @@
 - [x] Security audit 28.09: dependency patches, PDF.js hardening, SigningPane columns, DB hardening patch + PGlite tests, report.
 - [ ] Owner: review/apply docs/migrations/security_hardening_2026_09_28.sql, then publish (blocked on owner review).
 
-- [x] Positioning 20.10: catalog-first home, contextual feature statuses, exactly five original warnings, regenerated shell; 62 focused tests and desktop/mobile browser checks passed. No deployment/publication. See docs/operations/positioning-beta-2026-10-20.md.
+- [x] Positioning 20.10: catalog-first home, contextual feature statuses, original warnings (five-only scope superseded by owner whole-catalog correction), regenerated shell; 62 focused tests and desktop/mobile browser checks passed. No deployment/publication. See docs/operations/positioning-beta-2026-10-20.md.
+
+- [ ] Owner correction 20.10 09:13: uniform whole-catalog review status on catalog/category/sector/template/static-store surfaces; browsing and paid rights unchanged; focused checks, no publish.
