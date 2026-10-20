@@ -36,11 +36,105 @@
       "total_used": 297
     }
   ],
-  "newLedgerTables": {
-    "rls": true,
-    "clientPolicies": 0
+  "ledgerAcl": {
+    "serverOnlyFunctions": [
+      "consume_quota_for",
+      "quota_reserve",
+      "quota_lookup",
+      "quota_commit",
+      "quota_cancel",
+      "quota_reconcile_stale",
+      "cancel_corrections_wave",
+      "charge_corrections_wave",
+      "corrections_wave_bind",
+      "corrections_wave_set_result",
+      "storage_artifact_bind",
+      "storage_artifact_lookup",
+      "anon_delivery_reserve",
+      "anon_delivery_commit",
+      "anon_delivery_cancel",
+      "anon_delivery_state",
+      "review_grant_nonce_consume",
+      "review_operation_reserve",
+      "review_operation_commit",
+      "review_operation_cancel",
+      "quota_operation_lookup",
+      "quota_result_is_content_bearing",
+      "review_operation_lookup",
+      "quota_reserve_no_charge",
+      "anon_delivery_lookup",
+      "quota_wave_reserve",
+      "quota_wave_commit",
+      "quota_wave_cancel",
+      "quota_wave_reconcile_stale"
+    ],
+    "exposedClientExecute": 0,
+    "quotaTableClientPrivileges": false
   },
-  "aclCorrection": "Explicit anon/authenticated privileges inherited from production defaults require an additive correction; no data change.",
-  "coreOpen": false,
-  "positiveRuntimeRetest": "pending"
+  "additionalMigrations": [
+    "20261020133000_team_file_binding",
+    "20261020133100_storage_raw_ingress_gate",
+    "20261020133200_consent_event_identity"
+  ],
+  "teamBindingPreflight": [
+    {
+      "object_owner_mismatch": 0,
+      "owner_not_in_team_forged": 0,
+      "path_owner_mismatch": 0,
+      "shared_path_ambiguous": 0,
+      "tbl": "uploaded_contracts",
+      "team_file_rows_need_reshare": 0,
+      "team_rows": 0,
+      "total": 60,
+      "with_file": 57
+    },
+    {
+      "object_owner_mismatch": 0,
+      "owner_not_in_team_forged": 0,
+      "path_owner_mismatch": 0,
+      "shared_path_ambiguous": 0,
+      "tbl": "saved_documents",
+      "team_file_rows_need_reshare": 0,
+      "team_rows": 2,
+      "total": 41,
+      "with_file": 0
+    }
+  ],
+  "teamBindingPostflight": [
+    {
+      "object_owner_mismatch": 0,
+      "owner_not_in_team_forged": 0,
+      "path_owner_mismatch": 0,
+      "shared_path_ambiguous": 0,
+      "tbl": "uploaded_contracts",
+      "team_file_rows_need_reshare": 0,
+      "team_rows": 0,
+      "total": 60,
+      "with_file": 57
+    },
+    {
+      "object_owner_mismatch": 0,
+      "owner_not_in_team_forged": 0,
+      "path_owner_mismatch": 0,
+      "shared_path_ambiguous": 0,
+      "tbl": "saved_documents",
+      "team_file_rows_need_reshare": 0,
+      "team_rows": 2,
+      "total": 41,
+      "with_file": 0
+    }
+  ],
+  "consentIdentity": {
+    "existingEvents": 520,
+    "identifiedEvents": 520,
+    "grantedValuesNotUpdated": true,
+    "noFabricatedConsent": true
+  },
+  "rawStorage": {
+    "bucket": "user-contracts",
+    "directClientInsertAndUpdate": "restrictive deny",
+    "serverServiceRoleUnchanged": true,
+    "existingDownloadDeletePreserved": true
+  },
+  "coreRuntimeRetest": "in progress"
 }

@@ -74,7 +74,7 @@ describe("SocialProofStrip — брой регистрирани потреби�
       ),
     );
     expect(screen.queryByText("регистрирани потребители")).toBeNull();
-    expect(document.body.textContent).toContain("готови шаблона");
+    expect(document.body.textContent).toContain("образеца в каталога");
   });
 
   it("при невалиден резултат също не показва брой", async () => {
