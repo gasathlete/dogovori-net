@@ -1,0 +1,46 @@
+{
+  "project": "6b2da12e-e1d6-4f97-8549-b632fb66ddd1",
+  "date": "2026-10-20",
+  "appliedCanonicalMigrations": [
+    "supabase/migrations/20260920093000_quota_operation_ledger.sql",
+    "supabase/migrations/20260920113000_article_generation_evidence.sql",
+    "supabase/migrations/20260920123000_quota_ledger_binding_correction.sql",
+    "supabase/migrations/20260920143000_anon_delivery_and_review_authorization.sql",
+    "supabase/migrations/20260920163000_exact_delivery_response_and_review_ledger.sql",
+    "supabase/migrations/20260920183000_committed_replay_lookup_and_payload_retention.sql",
+    "supabase/migrations/20260920193000_quota_result_retention_and_review_lookup.sql",
+    "supabase/migrations/20260920203000_owned_review_and_atomic_wave.sql",
+    "supabase/migrations/20260920213000_wave_exact_once_reconciliation_and_retention.sql",
+    "supabase/migrations/20260920223000_readonly_retention_counts_and_review_lease.sql",
+    "supabase/migrations/20260920233000_assistant_turn_exact_once.sql",
+    "supabase/migrations/20260921003000_gate2_ai_operations.sql",
+    "supabase/migrations/20260921013000_gate3_paid_fulfillment_exact_once.sql",
+    "supabase/migrations/20260921090000_gate4_db_proof_corrections.sql",
+    "supabase/migrations/20260921133500_gate5_public_rpc_acl_correction.sql",
+    "supabase/migrations/20260922100000_gate6_payment_reversal.sql"
+  ],
+  "atomic": true,
+  "quotaBefore": [
+    {
+      "bonus": 18,
+      "quota_rows": 193,
+      "topup": 4,
+      "total_used": 297
+    }
+  ],
+  "quotaAfter": [
+    {
+      "bonus": 18,
+      "quota_rows": 193,
+      "topup": 4,
+      "total_used": 297
+    }
+  ],
+  "newLedgerTables": {
+    "rls": true,
+    "clientPolicies": 0
+  },
+  "aclCorrection": "Explicit anon/authenticated privileges inherited from production defaults require an additive correction; no data change.",
+  "coreOpen": false,
+  "positiveRuntimeRetest": "pending"
+}
