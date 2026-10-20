@@ -86,3 +86,9 @@ Deno.test("точната стойност с кавички и нов ред с
   assertEquals(result.contract.preamble, original);
   assertEquals(result.risk.note, "[Имейл]");
 });
+
+Deno.test("буквални \\n от модела стават реални нови редове", async () => {
+  const { finalizeGeneratedOutput } = await import("./generator-output-tokens.ts");
+  const out = finalizeGeneratedOutput({ preamble: "между:\\n\\n1. Страна" }, {});
+  if (out.preamble !== "между:\n\n1. Страна") throw new Error(JSON.stringify(out.preamble));
+});
