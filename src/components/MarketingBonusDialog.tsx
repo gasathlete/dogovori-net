@@ -48,7 +48,7 @@ export function MarketingBonusDialog() {
   useEffect(() => {
     if (!active) return;
     let current = true;
-    void supabase.rpc("marketing_bonus_status").then(({ data, error: failure }) => {
+    void Promise.resolve(supabase.rpc("marketing_bonus_status")).then(({ data, error: failure }) => {
       if (current && (failure || (data as { eligible?: boolean } | null)?.eligible !== true)) finish(false);
     }).catch(() => { if (current) finish(false); });
     return () => { current = false; };
