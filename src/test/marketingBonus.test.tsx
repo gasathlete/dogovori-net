@@ -61,6 +61,15 @@ describe("one-time consent recovery", () => {
     await invokeWithMarketingBonus("download-document", { body: {} });
     expect(screen.queryByRole("checkbox")).toBeNull(); expect(mocks.invoke).toHaveBeenCalledTimes(1);
   });
+  it("reads SDK HTTP denial from a clone, leaving caller error body readable", async () => {
+    mount();
+    const context = new Response(JSON.stringify({ code: "quota_exceeded" }), { status: 402 });
+    mocks.invoke.mockResolvedValueOnce({ data: null, error: { context } }).mockResolvedValueOnce({ data: { ok: true }, error: null });
+    const pending = invokeWithMarketingBonus("download-document", { body: { operation_id: "same" } });
+    await accept(); await pending;
+    expect(await context.json()).toEqual({ code: "quota_exceeded" });
+    expect(mocks.invoke).toHaveBeenCalledTimes(2);
+  });
   it("server failure keeps checkbox dialog and input request pending; retry succeeds", async () => {
     mount(); mocks.invoke.mockResolvedValueOnce(denied).mockResolvedValueOnce({ data: { ok: true }, error: null });
     const original = mocks.rpc.getMockImplementation();
