@@ -7,6 +7,7 @@ import { Search, ArrowRight, FileUp } from "@/icons";
 import { HeroProductRail } from "@/components/products/HeroProductRail";
 import { useAuth } from "@/hooks/useAuth";
 import { useAudience } from "@/hooks/useAudience";
+import { CATALOG_REVIEW_STATUS } from "@/lib/templateReviewStatus";
 import { AudienceToggle } from "@/components/funnel/AudienceToggle";
 
 /** Бързи търсения — водят към реалното търсене в каталога (/catalog?q=…). */
@@ -57,7 +58,7 @@ export function Hero() {
             {copy.heroSub}
           </p>
 
-          <form role="search" onSubmit={onSubmit} className="mt-7 max-w-xl">
+          <form role="search" action="/catalog" method="get" onSubmit={onSubmit} className="mt-7 max-w-xl">
             <label htmlFor="hero-search" className="mb-2 block text-sm font-semibold text-foreground">
               Какъв документ търсите?
             </label>
@@ -66,6 +67,7 @@ export function Hero() {
                 <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <input
                   id="hero-search"
+                  name="q"
                   type="search"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -75,16 +77,15 @@ export function Hero() {
                   className="h-14 w-full rounded-xl border-2 border-border bg-card pl-12 pr-4 text-base text-foreground placeholder:text-muted-foreground focus:border-gold focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/40"
                 />
               </div>
-              <Link
-                to={catalogHref(query)}
-                {...prefetchHandlers("/catalog")}
+              <button
+                type="submit"
                 data-testid="hero-primary-cta"
-                onClick={track}
+                data-href="/catalog"
                 className="btn-gold btn-press inline-flex min-h-14 items-center justify-center gap-2 rounded-xl px-7 text-base font-bold normal-case tracking-normal shadow-elegant"
               >
                 Намерете документ
                 <ArrowRight className="h-[18px] w-[18px]" />
-              </Link>
+              </button>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
               <span className="text-muted-foreground">Често търсени:</span>
@@ -103,6 +104,16 @@ export function Hero() {
             <Link to="/analiz" {...prefetchHandlers("/analiz")} className="inline-flex min-h-11 items-center gap-1.5 hover:text-gold">
               <FileUp className="h-4 w-4" /> {isFeatureAvailable("document_review") ? "Проверете документ" : "Проверка · В подготовка"}
             </Link>
+            <button
+              type="button"
+              onClick={() => {
+                trackFunnelEvent("home_demo_story_opened", { source: "hero" });
+                import("@/components/funnel/StartStoryOverlay").then((m) => m.openStartStory());
+              }}
+              className="inline-flex min-h-11 items-center font-semibold hover:text-gold"
+            >
+              Вижте демонстрацията
+            </button>
             <AudienceToggle size="sm" />
           </div>
         </div>
@@ -111,7 +122,7 @@ export function Hero() {
         <figure aria-label="Примерен документ" className="relative mx-auto w-full max-w-md rounded-2xl border border-gold/30 bg-muted p-4 shadow-elegant sm:p-6">
           <figcaption className="mb-3 flex items-center justify-between text-xs font-semibold text-foreground/80">
             <span>Примерен документ · Демонстрация</span>
-            <span className="rounded-full border border-gold/50 px-2 py-0.5 text-gold">В преработка</span>
+            <span className="rounded-full border border-gold/50 px-2 py-0.5 text-gold">{CATALOG_REVIEW_STATUS.badge}</span>
           </figcaption>
           <div className="rounded-lg bg-card p-5 text-card-foreground shadow-sm">
             <p className="text-center font-serif text-lg font-bold">ДОГОВОР ЗА НАЕМ НА ЖИЛИЩЕ</p>
@@ -124,7 +135,7 @@ export function Hero() {
               ))}
             </dl>
             <p className="mt-4 rounded-md bg-gold/10 px-3 py-2 text-xs leading-relaxed text-foreground">
-              Проверете внимателно преди подписване.
+              {CATALOG_REVIEW_STATUS.warning}
             </p>
           </div>
         </figure>
