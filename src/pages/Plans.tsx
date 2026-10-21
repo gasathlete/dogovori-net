@@ -52,6 +52,8 @@ import { CheckoutResumeCard } from "@/components/plans/CheckoutResumeCard";
 import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
 import { Button } from "@/components/ui/button";
 import { openPrelaunchWaitlist } from "@/lib/prelaunchWaitlist";
+import { isFeatureAvailable } from "@/lib/prelaunch";
+const SUBS_OPEN = isFeatureAvailable("subscription");
 
 
 const PLAN_ICON: Record<PlanId, React.ComponentType<{ className?: string }>> = {
@@ -456,6 +458,11 @@ export default function Plans() {
                   </div>
 
                   <div className="relative z-10 mt-auto flex flex-col gap-2 pt-7">
+{SUBS_OPEN ? (() => { const cta = buildCta(plan.id as PlanId, billing, isAuthed); return (
+                    <Link to={cta.href} onClick={() => trackEvent("plans_cta_clicked", { plan: plan.id, billing, authed: isAuthed, audience })}
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-gold/40 px-5 text-sm font-semibold text-foreground hover:bg-gold/10">
+                      {cta.label}<ArrowRight className="h-4 w-4" />
+                    </Link>); })() : (
                     <Button
                       type="button"
                       variant="outline"
@@ -473,7 +480,7 @@ export default function Plans() {
                       className="min-h-11 rounded-full border-gold/40 text-foreground hover:bg-gold/10"
                     >
                       Извести ме при пускане
-                    </Button>
+                    </Button>)}
                   </div>
                 </article>
               );
@@ -516,7 +523,7 @@ export default function Plans() {
           })()}
 
           <div className="mt-6 sm:mt-8">
-            <LaunchPurchaseBanner className="mb-6" feature="subscription" source="plans" productId="subscription_plans" />
+            {!SUBS_OPEN && <LaunchPurchaseBanner className="mb-6" feature="subscription" source="plans" productId="subscription_plans" />}
             <TrustGuaranteeBar />
           </div>
         </PlanStoryStage>
@@ -736,10 +743,12 @@ export default function Plans() {
                 Разгледайте плановете спокойно
               </h2>
               <p className="mt-2 text-sm text-white/80 sm:text-base">
-                Покупките още не са отворени. Безплатният старт остава достъпен без карта.
+                {SUBS_OPEN ? "Изберете план или започнете безплатно без карта." : "Покупките още не са отворени. Безплатният старт остава достъпен без карта."}
               </p>
               <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <Button type="button" variant="outline" className="min-h-11 border-gold/50 bg-background/20 text-white hover:bg-gold/10" onClick={() => openPrelaunchWaitlist("subscription", { source: "plans", productId: "subscription_entrepreneur" })}>Извести ме при пускане</Button>
+                {SUBS_OPEN ? (
+                  <Link to={buildCta("entrepreneur", "monthly" as Billing, isAuthed).href} className="inline-flex min-h-11 items-center justify-center rounded-full border border-gold/50 bg-background/20 px-6 text-sm font-medium text-white hover:bg-gold/10">{buildCta("entrepreneur", "monthly" as Billing, isAuthed).label}</Link>
+                ) : <Button type="button" variant="outline" className="min-h-11 border-gold/50 bg-background/20 text-white hover:bg-gold/10" onClick={() => openPrelaunchWaitlist("subscription", { source: "plans", productId: "subscription_entrepreneur" })}>Извести ме при пускане</Button>}
                 <Link
                   to="/catalog"
                   className="inline-flex items-center justify-center gap-2 rounded-full border border-white/30 px-6 py-3 text-sm font-medium text-white/90 transition-all hover:border-white/60 hover:bg-white/5"
