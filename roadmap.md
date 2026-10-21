@@ -1,9 +1,9 @@
 # Roadmap
 
-- [ ] Release package 06:06: reconcile genuine refunds independent of roles; retest improve/negotiation/export/refinement; inspect LIVE catalog/webhook/token; prepare unified frontend without publishing or opening LIVE.
+- [x] Release package 06:06 + final06:40: genuine refunds reconciled; improve/premium/refinement/export and exact owner UI reload proved; LIVE catalog/webhook/token revalidated; one-time iframe gate fixed/tested; final fixture refunded/disabled, audits retained. ROOT coordinates CI/opening/publication; no new owner permission needed.
 
 - [x] Paid runtime 21.10 boundary/check proof: LIVE default-closed service row deployed/503 verified; genuine check TEST webhook→ready→browser PDF→identical replay proven. Fixture disabled, staff revoked; LIVE/public stay closed.
-- [ ] Paid release review: correct immutable paid sandbox reversal handling/redeliver genuine historical refunds; two improve failures fixed but latest changes await genuine paid retest; negotiation/refinement/DOCX/mobile untested. ROOT review and project AI app-context confirmation required before opening.
+- [x] Paid release verification: immutable reversals, corrected DOCX/PDF, premium/refinement/reloaded stored letters/used1 and mobile pasted checkout verified with genuine TEST; no public opening in verification pass. Separate service logging unknown is disclosed, not invented as a permanent release gate.
 
 - [x] Runtime legal readiness 21.10: request-only row reuse,47 tests, deployed v5 ready marker,10 HTTP200 queries/979ms. ROOT copy and canonical lock preserved; commerce closed.
 - [ ] Content logging confirmation: actual project AI app context read/write absent from exposed tools; project editor must disable/confirm in Cloud→AI/project settings.
