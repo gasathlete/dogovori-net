@@ -375,7 +375,7 @@ export const LEGAL_SOURCE_REGISTRY: readonly LegalSourceEntry[] = Object.freeze(
     authorityTier: "official_administrative_consolidation",
     origin: "https://www.registryagency.bg",
     entryPath: "/media/filer_public/2026/08/01/zakon_za_zashchita_na_lichnite_danni.pdf",
-    allowedPathPrefixes: ["/media/filer_public/2026/08/01/"],
+    allowedPathPrefixes: ["/media/filer_public/2026/08/01/zakon_za_zashchita_na_lichnite_danni.pdf"],
     accessMethod: "file_export",
     adapterId: "bg_official_pdf",
     enabled: true,
