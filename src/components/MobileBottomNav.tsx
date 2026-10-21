@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { useHideOnScroll } from "@/hooks/useHideOnScroll";
 import { prefetchHandlers } from "@/lib/routePrefetch";
+import { useKeyboardOpen } from "@/hooks/useKeyboardOpen";
 
 const dogovaiIcon = "/dogovai-favicon.png";
 
@@ -45,10 +46,12 @@ export function MobileBottomNav() {
   const { user } = useAuth();
   const { count: unread } = useUnreadNotifications();
   const visible = useHideOnScroll(10);
+  const keyboardOpen = useKeyboardOpen();
 
   const path = location.pathname;
   if (
-    path.startsWith("/admin") ||
+    keyboardOpen || path.startsWith("/admin") ||
+    (path.startsWith("/produkti/") && path.endsWith("/start")) ||
     path.startsWith("/sign/") ||
     path.startsWith("/signing/") ||
     path.startsWith("/checkout/") ||

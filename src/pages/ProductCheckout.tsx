@@ -1,4 +1,5 @@
 import { PRODUCT_MAX_SOURCE_CHARS } from "@/lib/productSource";
+import { trackMetric } from "@/lib/metrics";
 import { ensureFeatureDisclaimer } from "@/lib/aiDisclaimerGate";
 /**
  * Купуване на един еднократен продукт за един документ.
@@ -99,6 +100,7 @@ export default function ProductCheckout() {
   // Един и същ requestId при повторен опит в същата сесия — така не се създава
   // втора заявка и втора Stripe сесия.
   const requestIdRef = useRef<string>(crypto.randomUUID());
+  const payInFlight = useRef(false);
 
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
@@ -320,7 +322,8 @@ export default function ProductCheckout() {
   };
 
   const handlePay = async () => {
-    if (!user || !prepared || !canPay) return;
+    if (!user || !prepared || !canPay || payInFlight.current) return;
+    payInFlight.current = true;
     setBusy(true);
     setBlocked(null);
     try {
@@ -358,11 +361,13 @@ export default function ProductCheckout() {
         throw new Error(error?.message ?? "checkout_failed");
       }
       if (userRef.current === uid) setClientSecret(data.clientSecret as string);
+      trackMetric("product_purchase_start", { product: product.id, source: "product_checkout" });
     } catch (e) {
-      setBlocked(null);
-      toast.error("Не успяхме да отворим плащането. Плащане не е извършено.");
+      setBlocked("Не успяхме да отворим плащането. Данните остават в този раздел. Опитайте отново със същата заявка.");
+      trackMetric("product_checkout_error", { product: product.id, reason: "session_unavailable" });
       console.error(e);
     } finally {
+      payInFlight.current = false;
       setBusy(false);
     }
   };
@@ -462,12 +467,14 @@ export default function ProductCheckout() {
               <Link
                 to={`/auth?tab=signup&redirect=${encodeURIComponent(`${productPath(product)}/start`)}`}
               >
-                Вход или безплатна регистрация
+                Създайте безплатен профил
               </Link>
             </Button>
+            <Button asChild variant="link" className="mt-2 min-h-11"><Link to={`/auth?redirect=${encodeURIComponent(`${productPath(product)}/start`)}`}>Вече имате профил? Влезте</Link></Button>
           </div>
         )}
 
+        <p className="mt-3 text-sm text-muted-foreground">След вход: документ → Вашата страна → потвърждения → плащане. Въведеното остава при повторен опит в този раздел; при напускане или презареждане изберете файла отново. Резултатите от платени покупки са в профила Ви.</p>
         {blocked && (
           <div
             data-testid="product-checkout-blocked"
@@ -764,8 +771,9 @@ export default function ProductCheckout() {
                   analyticsBilling="one_time"
                 />
                 <p className="text-sm text-muted-foreground">
-                  Плащате точно за документа и условията по-горе. Ако искате друг документ:
+                  Ако спрете тук, можете да продължите в същата платежна форма без нова заявка. За вече платен резултат проверете „Моите покупки“ в профила.
                 </p>
+                <Button asChild variant="link" className="min-h-11"><Link to="/account?tab=purchases">Проверете покупките си</Link></Button>
                 <Button type="button" variant="outline" className="min-h-11" onClick={restart}>
                   Започнете отначало
                 </Button>
