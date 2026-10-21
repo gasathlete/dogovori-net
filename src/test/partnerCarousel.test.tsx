@@ -98,7 +98,10 @@ describe("partner carousel behavior", () => {
     const track = container.querySelector<HTMLElement>("[data-partner-track]")!;
     const imgs = [...container.querySelectorAll("img")];
     const pos = () => container.querySelector("[data-partner-position]")?.textContent?.replace(/\s/g, "");
-    fireEvent.pointerEnter(screen.getByRole("region"), { pointerType: "touch" });
+    const region = screen.getByRole("region");
+    const touchEnter = new Event("pointerover", { bubbles: true }); Object.defineProperty(touchEnter, "pointerType", { value: "touch" });
+    act(() => { region.dispatchEvent(touchEnter); });
+    fireEvent.touchStart(region.firstElementChild!, { touches: [{ clientX: 10 }] }); fireEvent.touchEnd(region.firstElementChild!, { changedTouches: [{ clientX: 12 }] });
     for (let i = 1; i <= 4; i++) {
       act(() => vi.advanceTimersByTime(3500));
       fireEvent.transitionEnd(track.querySelector("img")!);

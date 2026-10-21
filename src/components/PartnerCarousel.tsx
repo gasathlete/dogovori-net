@@ -103,7 +103,7 @@ export function PartnerCarousel({ partners }: { partners: PartnerLogo[] }) {
 
   return (
     <div className="mt-6 min-w-0" role="region" aria-roledescription="карусел" aria-label="Регистрирани фирми"
-      onPointerEnter={event => { if (event.pointerType === "mouse") setHovered(true); }}
+      onPointerEnter={event => { if (event.pointerType !== "touch" && event.pointerType !== "pen") setHovered(true); }}
       onPointerLeave={() => setHovered(false)}
       onPointerDownCapture={() => { pointerFocus.current = true; window.setTimeout(() => { pointerFocus.current = false; }, 0); }}
       onFocusCapture={() => { if (!pointerFocus.current) setFocused(true); }}
