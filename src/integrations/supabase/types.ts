@@ -4365,6 +4365,30 @@ export type Database = {
           },
         ]
       }
+      product_operator_observations: {
+        Row: {
+          build_marker: string
+          config: Json
+          legal_probe: Json
+          migration_probe: Json
+          observed_at: string
+        }
+        Insert: {
+          build_marker: string
+          config: Json
+          legal_probe?: Json
+          migration_probe?: Json
+          observed_at?: string
+        }
+        Update: {
+          build_marker?: string
+          config?: Json
+          legal_probe?: Json
+          migration_probe?: Json
+          observed_at?: string
+        }
+        Relationships: []
+      }
       product_reconciliation_events: {
         Row: {
           call_id: string | null

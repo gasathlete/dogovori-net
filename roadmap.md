@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Operator visibility 21.10: private runtime marker/config and migration-ready record proved; 24 focused tests, observer check, lock preserved. Commerce closed; stopped for ROOT review. Evidence in launch-continuation report.
+- [ ] Commercial evidence 21.10: strict legal probe hit deadline; workspace request-content retention toggle/region evidence unavailable. ROOT review required before separate Stripe TEST E2E; no LIVE opening from ENV flags.
+
 - [x] Final narrow saved-content pass 20.10: deployed controlled handler, 4 pure/23 focused tests, real owner helper create/replay/concurrency/revision/negative checks, applied canonical payload boundary, proved client denial/server save/trusted restore/metadata and UI title save; no frontend publish. Evidence in functional-unlocked-test report. ROOT CI/publication and migration receipt reconciliation remain ROOT release actions.
 
 - [x] Final narrow followup 19.10: deployed npm Stripe source 8b4a8d70; fresh 401/400/owner readiness 200/live checkout 503. Stored deposit DOCX hash verified but differs from canonical original and contains null null; no asset registered or accepted. Evidence in main install report; exact reviewed final file remains required.

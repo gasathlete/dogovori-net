@@ -9,10 +9,11 @@
  * Не създава, не променя и не изтрива нищо в Stripe и в базата.
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors } from "../_shared/cors.ts";
-import { type StripeEnv, createStripeClient } from "../_shared/stripe.ts";
-import { readProductIntegrationConfig, productIntegrationReadiness } from "../_shared/product-integration.ts";
+import type { StripeEnv } from "../_shared/stripe.ts";
+import { readProductIntegrationConfig } from "../_shared/product-integration-config.ts";
+import { persistProductOperatorObservation } from "../_shared/product-operator-observation.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 /** Всички ключове, по които приложението отваря плащане. */
 const LOOKUP_KEYS = [
@@ -49,9 +50,12 @@ Deno.serve(async (req: Request) => {
     });
 
   try {
+    const url = Deno.env.get("SUPABASE_URL");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !serviceKey) return json({ error: "audit_failed" }, 500);
     const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      url,
+      serviceKey,
     );
 
     const authHeader = req.headers.get("Authorization") ?? "";
@@ -70,6 +74,7 @@ Deno.serve(async (req: Request) => {
 
     // Служебна read-only диагностика: само булеви стойности и кодове, без тайни.
     if ((body as { readiness_only?: unknown } | null)?.readiness_only === true) {
+      const { productIntegrationReadiness } = await import("../_shared/product-integration.ts");
       const readiness = await productIntegrationReadiness(
         readProductIntegrationConfig((key) => Deno.env.get(key)),
         admin as never, admin as never,
@@ -77,6 +82,7 @@ Deno.serve(async (req: Request) => {
       return json({ environment: env, readiness });
     }
 
+    const { createStripeClient } = await import("../_shared/stripe.ts");
     const stripe = createStripeClient(env);
     const rows: Array<Record<string, unknown>> = [];
     for (const key of LOOKUP_KEYS) {
@@ -104,3 +110,9 @@ Deno.serve(async (req: Request) => {
     return json({ error: "audit_failed" }, 500);
   }
 });
+
+// Serving starts first; internal observation cannot block public/auth handling.
+const observation = persistProductOperatorObservation((name) => Deno.env.get(name))
+  .catch(() => console.error("product_operator_observation_failed"));
+const runtime = (globalThis as typeof globalThis & { EdgeRuntime?: { waitUntil(work: Promise<unknown>): void } }).EdgeRuntime;
+runtime?.waitUntil(observation);
