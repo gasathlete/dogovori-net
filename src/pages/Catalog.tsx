@@ -196,20 +196,20 @@ export default function CatalogPage() {
         <div className="absolute inset-0 bg-fine-grid opacity-50" />
         <div className="absolute inset-x-0 top-0 hairline-x" />
         <div className="container relative py-9 md:py-14">
-          <div className="mx-auto max-w-3xl text-center">
-            <div className="eyebrow mb-3 justify-center anim-rise" style={{ animationDelay: "0ms" }}>
+          <div className="max-w-3xl text-left">
+            <div className="eyebrow mb-3 anim-rise" style={{ animationDelay: "0ms" }}>
               <BookOpen className="h-3.5 w-3.5" />
               Каталог на документите
             </div>
             <h1 className="font-serif text-[28px] font-bold leading-[1.12] text-balance md:text-5xl anim-rise" style={{ animationDelay: "80ms" }}>
               {totalDocs}+ професионални договора и бланки
             </h1>
-            <p className="mx-auto mt-3 max-w-2xl text-balance text-[15px] leading-relaxed text-muted-foreground md:text-base anim-rise" style={{ animationDelay: "160ms" }}>
+            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-muted-foreground md:text-base anim-rise" style={{ animationDelay: "160ms" }}>
               Изберете вид документ или потърсете по име. Каталогът е подреден по
               сектори — трудови и наемни отношения, IT, корпоративни документи.
             </p>
             <CatalogReviewNotice catalog />
-            <div className="relative mx-auto mt-6 max-w-xl">
+            <div className="relative mt-6 max-w-xl">
               <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 aria-label="Търсене в каталога с договори и бланки"
