@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Menu, X, User as UserIcon, LogIn, ChevronDown } from "@/icons";
+import { Button } from "@/components/ui/button";
 import { BrandLockup } from "./BrandLockup";
 import { TEST_PERIOD_LABEL } from "@/lib/prelaunch";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -142,6 +143,7 @@ export function Header() {
 
         {/* Zone 3 — Utility (helpers + account), separated by a hairline */}
         <div className="flex items-center justify-end gap-2 justify-self-end">
+          <Button asChild className="header-catalog-action hidden min-h-11 px-4 text-sm xl:inline-flex"><Link to="/catalog">Намерете документ</Link></Button>
           {/* Helpers subgroup */}
           <div className="hidden items-center gap-1 xl:flex">
             <ThemeToggle />

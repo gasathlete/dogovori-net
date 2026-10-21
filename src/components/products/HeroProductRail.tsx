@@ -7,7 +7,7 @@ import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { ArrowRight } from "@/icons";
 import { trackFunnelEvent } from "@/lib/funnel";
 import { ProductPrice } from "@/components/products/ProductPrice";
-import { ProductOutputVisual } from "@/components/products/ProductOutputVisual";
+
 import { Button } from "@/components/ui/button";
 import {
   ONE_TIME_PRODUCTS,
@@ -29,9 +29,9 @@ export function HeroProductRail() {
         </p>
       </div>
 
-      <ul className="brand-product-grid mt-5 grid gap-4 lg:grid-cols-3">
+      <ul className="hero-commerce-products mt-4 grid gap-3 lg:grid-cols-3">
         {ONE_TIME_PRODUCTS.map((product) => (
-          <li key={product.id} className="brand-product flex min-w-0 flex-col border border-border bg-card p-5 sm:p-6">
+          <li key={product.id} className="hero-commerce-product flex min-w-0 flex-col border border-border p-4 sm:p-5">
             <Link
               to={productPath(product)}
               data-product-id={product.id}
@@ -53,9 +53,9 @@ export function HeroProductRail() {
                 Примерен резултат <ArrowRight className="size-4" aria-hidden="true" />
               </span>
             </Link>
-            <div className="my-4"><ProductOutputVisual productId={product.id} /></div>
-            <p className="mb-4 text-sm leading-relaxed text-muted-foreground">{product.promise}</p>
-            <Button asChild variant="outline" className="mt-auto h-auto min-h-11 whitespace-normal text-left">
+            
+            
+            <Button asChild variant="outline" className="mt-3 h-auto min-h-11 whitespace-normal text-left">
               <Link to={ONE_TIME_PURCHASES_AVAILABLE ? product.ctaHref : productPath(product)}>
                 {ONE_TIME_PURCHASES_AVAILABLE ? product.ctaLabel : "Вижте продукта"}<ArrowRight aria-hidden="true" />
               </Link>

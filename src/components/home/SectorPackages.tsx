@@ -1,3 +1,4 @@
+import { BrowseShelf } from "@/components/home/BrowseShelf";
 import { ArrowRight } from "@/icons";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
@@ -14,9 +15,9 @@ const IMAGES = { rentals: rentImage, services: servicesImage, digital: digitalIm
 
 export function SectorPackages() {
   return (
-    <section id="paketi" aria-labelledby="sector-packages-heading" className="border-b border-border">
+    <section id="paketi" aria-labelledby="sector-packages-heading" className="commerce-packages border-b border-border">
       <div className="container py-14 sm:py-20">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
+        <div className="min-w-0">
           <div>
             <h2 id="sector-packages-heading" className="font-serif text-3xl font-bold leading-tight sm:text-4xl">
               Пакети по сектори
@@ -29,27 +30,27 @@ export function SectorPackages() {
             </Link>
           </div>
 
-          <ul className="border-t border-foreground/80">
+          <BrowseShelf label="Пакети по сектори">
             {SECTOR_PACKAGES.map((item) => {
               const availability = getDeclaredSectorPackageAvailability(item);
               const stages = [...new Set(item.documents.map((document) => document.stage.replace(/^\d+ · /, "")))];
               return (
-                <li key={item.id} className="border-b border-border">
-                  <Link to={`/paketi/${item.slug}`} className="group grid grid-cols-[64px_minmax(0,1fr)] gap-4 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[88px_minmax(0,1fr)]">
-                    <img src={IMAGES[item.image]} alt="" loading="lazy" decoding="async" width={88} height={88} className="size-16 rounded-sm object-cover sm:size-[88px]" />
-                    <span className="min-w-0">
+                <li key={item.id} className="browse-item">
+                  <Link to={`/paketi/${item.slug}`} className="group block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <img src={IMAGES[item.image]} alt="" loading="lazy" decoding="async" width={480} height={320} className="browse-image" />
+                    <span className="block min-w-0 p-5">
                       <span className="block font-serif text-[22px] font-bold leading-tight text-foreground underline-offset-4 group-hover:underline">{item.title}</span>
                       <span className="mt-2 block text-sm leading-relaxed text-muted-foreground">{item.outcome}</span>
-                      <span className="mt-3 hidden text-sm text-foreground/80 sm:block">
+                      <span className="mt-3 block text-xs leading-relaxed text-muted-foreground">
                         <span className="font-semibold">Етапи:</span> {stages.join(" · ")}
                       </span>
                       <span className="mt-1 block text-sm text-muted-foreground">{availability.available} налични · {availability.planned} планирани</span>
-                    </span>
+                    <span className="mt-5 flex min-h-11 items-center justify-between border-t border-border pt-3 text-sm font-semibold text-foreground">Разгледайте пакета <ArrowRight className="size-4" /></span></span>
                   </Link>
                 </li>
               );
             })}
-          </ul>
+          </BrowseShelf>
         </div>
         <LaunchPurchaseBanner className="mt-8" source="package_catalog" productId="package_catalog" />
       </div>
