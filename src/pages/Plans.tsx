@@ -53,6 +53,7 @@ import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanne
 import { Button } from "@/components/ui/button";
 import { openPrelaunchWaitlist } from "@/lib/prelaunchWaitlist";
 import { isFeatureAvailable } from "@/lib/prelaunch";
+import { entryPackCtaHref } from "@/lib/entryPack";
 const SUBS_OPEN = isFeatureAvailable("subscription");
 
 
@@ -99,24 +100,22 @@ function buildCta(planId: PlanId, billing: Billing, isAuthed: boolean): {
  * неговият handler, без собствена рамка, за да не дублира картата около него.
  */
 function EntryPackCta({ isAuthed, audience }: { isAuthed: boolean; audience: string }) {
-  void isAuthed;
+  const track = () => {
+    trackEvent("plans_cta_clicked", { plan: ENTRY_PACK_CONFIG.priceId, billing: "one_time", source: "public_entry_pack", authed: isAuthed, audience });
+    trackEvent("plans_purchase_mode_selected", { mode: "one_time", audience });
+  };
+  if (SUBS_OPEN) {
+    return (
+      <Link to={entryPackCtaHref(isAuthed)} onClick={track}
+        className="inline-flex min-h-11 w-fit shrink-0 items-center justify-center rounded-full border border-gold/40 px-5 text-sm font-semibold text-foreground hover:bg-gold/10">
+        Купи за {fmtEur(ENTRY_PACK_CONFIG.eur)}
+      </Link>
+    );
+  }
   return (
-    <Button
-      type="button"
-      variant="outline"
-      onClick={() => {
-        trackEvent("plans_cta_clicked", {
-          plan: ENTRY_PACK_CONFIG.priceId,
-          billing: "one_time",
-          source: "public_entry_pack",
-          authed: isAuthed,
-          audience,
-        });
-        trackEvent("plans_purchase_mode_selected", { mode: "one_time", audience });
-        openPrelaunchWaitlist("subscription", { source: "plans", productId: "entry_pack" });
-      }}
-      className="min-h-11 w-fit shrink-0 border-gold/40 text-foreground hover:bg-gold/10"
-    >
+    <Button type="button" variant="outline"
+      onClick={() => { track(); openPrelaunchWaitlist("subscription", { source: "plans", productId: "entry_pack" }); }}
+      className="min-h-11 w-fit shrink-0 border-gold/40 text-foreground hover:bg-gold/10">
       Извести ме при пускане
     </Button>
   );

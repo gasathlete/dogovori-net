@@ -34,3 +34,14 @@ describe("/plans при отворени абонаменти", () => {
     expect(screen.queryAllByRole("button", { name: "Извести ме при пускане" }).length).toBeLessThanOrEqual(1); // само входният пакет
   });
 });
+
+describe("/plans входен пакет", () => {
+  it("CTA води към регистрация → checkout=five_operations в профила", () => {
+    render(
+      <HelmetProvider><QueryClientProvider client={new QueryClient()}><MemoryRouter initialEntries={["/plans"]}><Plans /></MemoryRouter></QueryClientProvider></HelmetProvider>,
+    );
+    const link = screen.getByRole("link", { name: /^Купи за 2,90/ });
+    expect(link.getAttribute("href")).toBe(`/auth?tab=signup&redirect=${encodeURIComponent("/account?tab=subscription&checkout=five_operations")}&intent=one_off_five_operations`);
+    expect(screen.queryByRole("button", { name: "Извести ме при пускане" })).toBeNull();
+  });
+});
