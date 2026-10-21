@@ -30,8 +30,15 @@ const DYNAMIC_SLUGS = DYNAMIC_GRAPH_SLUG_SET;
 
 
 
+/** Sets/removes ?q= while preserving every other catalog filter. */
+export function withCatalogQuery(params: URLSearchParams, q: string): URLSearchParams {
+  const next = new URLSearchParams(params);
+  if (q.trim()) next.set("q", q);
+  else next.delete("q");
+  return next;
+}
+
 export default function CatalogPage() {
-  const [query, setQuery] = useState("");
   const [showAll, setShowAll] = useState(false);
   const [open, setOpen] = useState(false);
   const [docTypeOpen, setDocTypeOpen] = useState(false);
@@ -39,6 +46,14 @@ export default function CatalogPage() {
   const activeVid = (searchParams.get("vid") as DocumentTypeId | null) ?? null;
   const bilingualOnly = searchParams.get("bilingual") === "1";
   const dynamicOnly   = searchParams.get("dynamic") === "1";
+  // ?q= е източникът на истина за търсенето: хидратира полето и следва назад/напред.
+  const urlQuery = searchParams.get("q") ?? "";
+  const [query, setQueryState] = useState(urlQuery);
+  useEffect(() => { setQueryState(urlQuery); }, [urlQuery]);
+  const setQuery = (q: string) => {
+    setQueryState(q);
+    setSearchParams(withCatalogQuery(searchParams, q), { replace: true });
+  };
 
   const setVid = (vid: DocumentTypeId | null) => {
     const next = new URLSearchParams(searchParams);
