@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Lawyer access: create Momchil account through supported auth; owner-approved free test permissions and prior-approval edits with owner notification, no payment/signature bypass.
+
 - [x] Security flow review 21.10: partial verified remediation deployed/tested, exact inventory in security-flow-review report; public chat200, commerce unchanged.
 - [ ] Security full closure: complete DScan/ignored history unavailable; upstream braces/sprintf-js unpatched, hosting CSP/anti-framing not served; MCP/CSV await coordinated publication and remaining invitation/EXECUTE/runtime checks not complete.
 
