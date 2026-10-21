@@ -108,8 +108,8 @@ export function Hero() {
         </div>
 
         {/* Демонстрационен лист — ясно означен пример, не реален документ. */}
-        <figure aria-label="Примерен документ" className="relative mx-auto w-full max-w-md rounded-2xl bg-primary p-4 shadow-elegant sm:p-6">
-          <figcaption className="mb-3 flex items-center justify-between text-xs font-semibold text-primary-foreground/80">
+        <figure aria-label="Примерен документ" className="relative mx-auto w-full max-w-md rounded-2xl border border-gold/30 bg-muted p-4 shadow-elegant sm:p-6">
+          <figcaption className="mb-3 flex items-center justify-between text-xs font-semibold text-foreground/80">
             <span>Примерен документ · Демонстрация</span>
             <span className="rounded-full border border-gold/50 px-2 py-0.5 text-gold">В преработка</span>
           </figcaption>
