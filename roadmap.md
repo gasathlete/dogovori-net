@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Premium commerce homepage: stronger hero/workflow, image-led browsing shelves, compact products and comparison; focused tests and desktop/mobile verification, no publish.
+
 - [x] Balanced home text density and completed light/dark preview scopes; 32 tests and automatic build OK; desktop/393×706 checked in both themes. No publication; home-theme-balance-2026-10-21.md.
 
 - [x] Rich platform homepage: restored product carousel and truthful comparison, interactive canonical calculators and workflow/branding previews; 32 focused tests, automatic build/typecheck OK, desktop/390px interactions verified. No publish; rich-platform-home-2026-10-21.md.
