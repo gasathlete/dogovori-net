@@ -67,6 +67,7 @@ import {
   validateStoredRefinementResponse,
 } from "../_shared/product-refinement-outcome.ts";
 import { modelPrice } from "../_shared/product-generation-policy.ts";
+import { mergeRefinementPatch } from "../_shared/product-refinement-patch.ts";
 
 /** Точна цена в цели micro-USD по датираната таблица на политиката. */
 function refinementCallCostMicroUsd(
@@ -484,7 +485,7 @@ Deno.serve(async (req) => {
       // пътуват лични данни от документа.
       const redacted = redactProductBundle(refineSourceText, {
         instruction,
-        base_result: JSON.parse(canonical(access.resultRaw)),
+        base_result: { objectives: base.payload.objectives, red_lines: base.payload.red_lines, acceptable_concessions: base.payload.acceptable_concessions, fallbacks: base.payload.fallbacks, negotiation_questions: base.payload.negotiation_questions, actions: base.payload.actions, messages: base.payload.messages },
       });
       const callId = `${refinementId}:refinement`;
       const request = Object.freeze({
@@ -498,6 +499,7 @@ Deno.serve(async (req) => {
           policy_version: access.policyVersion,
           source: redacted.text,
           context: redacted.context,
+          output_contract: 'Return only a narrative patch object containing changed fields from objectives, red_lines, acceptable_concessions, fallbacks, negotiation_questions, actions, messages. Never return source, corrections, passport, legal evidence, or a full result. Messages, if changed, must be exactly two objects with tone neutral and firm, subject, body. Actions retain id, action, owner, due, priority. Preserve all placeholders. The server retains exact paid evidence and source.',
         }),
       });
       // Самоличността на извикването е обвързана с правото, уточнението,
@@ -593,7 +595,7 @@ Deno.serve(async (req) => {
         rehydrateProductOutput(JSON.stringify(response.output), redacted.map, []),
       );
       const refined = validateRefinedNegotiation(
-        hydrated,
+        mergeRefinementPatch(base, hydrated),
         base,
         access.binding,
         redacted.map.orderedTokens,
