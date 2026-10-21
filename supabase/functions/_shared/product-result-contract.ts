@@ -55,7 +55,7 @@ export type EconomicTermKind = (typeof ECONOMIC_TERM_KINDS)[number];
 export const MESSAGE_TONES = ["neutral", "firm"] as const;
 export type MessageTone = (typeof MESSAGE_TONES)[number];
 
-export const SOURCE_KINDS = ["pdf", "docx"] as const;
+export const SOURCE_KINDS = ["pdf", "docx", "owner_text"] as const;
 
 /** Единственото покритие, за което твърдим нещо: целият приет източник. */
 export const ABSENCE_COVERAGE = "whole_document" as const;
@@ -94,7 +94,7 @@ export const MAX_REFINEMENTS = 1 as const;
 export interface ProductSourceBinding {
   readonly document_id: string;
   readonly source_hash: string;
-  readonly source_kind: "pdf" | "docx";
+  readonly source_kind: "pdf" | "docx" | "owner_text";
   readonly char_count: number;
   readonly char_unit: typeof PRODUCT_SOURCE_CHAR_UNIT;
   /** Точната ревизия на реда — `uploaded_contracts.updated_at`. */

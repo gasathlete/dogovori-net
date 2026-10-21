@@ -43,6 +43,20 @@ function state(overrides: Partial<ProductGenerationState> = {}): ProductGenerati
 
 const legal: ProductLegalBasisPort = { resolve: async () => null };
 
+Deno.test("synthesis with no validated findings explicitly forbids invented priority ids", async () => {
+  let contract = "";
+  const model: ProductModelPort = { invoke: async (request) => {
+    contract = JSON.stringify(request.payload);
+    return { output: { executive_summary: "Обобщение", priority_summary: [], termination: { summary: "Няма извод.", spans: [] }, disputes: { summary: "Няма извод.", spans: [] }, absence_checks: [], missing_protections: [], questions: [] }, inputTokens: 1, outputTokens: 1, elapsedMs: 1 };
+  } };
+  await new ProductGenerationRuntime(model, legal).runStep(state({
+    binding: { ...binding, source_kind: "owner_text" },
+    artifacts: [{ stage: "passport", version: 1, payload: { passport: { title: "Договор", document_type: "Договор", parties: [], governing_law: null, signature_state: null } } }, { stage: "review", version: 1, payload: [] }],
+    cursor: { stage: "synthesis", batch_index: 0, chunk_index: 0 },
+  }));
+  assert(contract.includes("priority_summary задължително е []"));
+});
+
 Deno.test("generation gateway is unreachable until zero retention is verified", async () => {
   let calls = 0;
   const model: ProductModelPort = { invoke: async () => { calls += 1; return { output: {}, inputTokens: 1, outputTokens: 1, elapsedMs: 1 }; } };
