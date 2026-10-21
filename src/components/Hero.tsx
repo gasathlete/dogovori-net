@@ -58,7 +58,7 @@ export function Hero() {
             {copy.heroSub}
           </p>
 
-          <form role="search" onSubmit={onSubmit} className="mt-7 max-w-xl">
+          <form role="search" action="/catalog" method="get" onSubmit={onSubmit} className="mt-7 max-w-xl">
             <label htmlFor="hero-search" className="mb-2 block text-sm font-semibold text-foreground">
               Какъв документ търсите?
             </label>
@@ -67,6 +67,7 @@ export function Hero() {
                 <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <input
                   id="hero-search"
+                  name="q"
                   type="search"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
