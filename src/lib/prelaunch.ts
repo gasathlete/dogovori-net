@@ -23,7 +23,7 @@ export type PrelaunchFeature = (typeof PRELAUNCH_FEATURES)[number];
  * генериране + ревизия на генериран документ, асистент (регистриран и анонимен),
  * бланка, анализ на поставен текст (document_review). Суровите файлове остават спрени.
  * Еднократните продукти са подготвени за пускане; LIVE се контролира отделно на сървъра.
- * Абонаментите остават затворени.
+ * Абонаментите: проверен Stripe TEST checkout → подписан webhook → активен ред (21.10.2026).
  */
 const AVAILABLE: Readonly<Record<PrelaunchFeature, boolean>> = Object.freeze({
   blank_download: true,
@@ -31,7 +31,7 @@ const AVAILABLE: Readonly<Record<PrelaunchFeature, boolean>> = Object.freeze({
   document_review: true,
   assistant: true,
   one_time_product: true,
-  subscription: false,
+  subscription: true,
 });
 
 export function isPrelaunchFeature(value: unknown): value is PrelaunchFeature {
