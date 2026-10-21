@@ -10,7 +10,7 @@
 - Home must not import the full catalog (templateIndex/CATALOG); use declared metadata guarded by a test against the canonical catalog — keeps the home bundle small without silent count drift.
 - Below-fold home experiences reuse product previews and canonical calculator compute functions through lazy modules; demonstrations never submit input or substitute for workflow consent.
 - Catalog and template review notices use one shared public-status constant/component without slug/category/acceptance inference; this keeps all browse surfaces consistent without changing approvals, paid rights or legal content.
-- The home hero keeps working catalog search and task links alongside native, explicitly labelled demonstration visuals; reuse approved brand geometry and canonical preview data, with no media dependency or customer-document styling changes.
+- Home search/task links and manual scroll-snap shelves use declared metadata; native hero tabs reuse canonical fictional previews without submission or customer-document styling.
 - The header wordmark is pre-outlined SVG paths (src/lib/headerWordmark.ts) derived from an OFL font with its licence in public/licenses; never ship a web font or raster for it — avoids font flash and missing Cyrillic.
 - Public detail reading styles use the explicit editorial-detail/sample-document scope; preserve hidden sample panels and do not extend these layout rules to admin, editors or customer documents.
 - Ledgers that mean "already charged" (quota_session_charges, corrections_batch_charges) and signer rows are written only by SECURITY DEFINER / service-role code; clients never get INSERT/UPDATE on them — a client-written row would grant free or forged value.

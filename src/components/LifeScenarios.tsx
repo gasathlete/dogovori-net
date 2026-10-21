@@ -1,3 +1,5 @@
+import { BrowseShelf } from "@/components/home/BrowseShelf";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { ArrowRight, ChevronDown } from "@/icons";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
@@ -61,7 +63,7 @@ export function LifeScenarios() {
   const hiddenCount = remaining.length;
 
   return (
-    <section id="scenarios" aria-labelledby="scenarios-heading" className="border-b border-border">
+    <section id="scenarios" aria-labelledby="scenarios-heading" className="browse-item">
       <div className="container py-14 sm:py-20">
         <div className="max-w-2xl">
           <h2 id="scenarios-heading" className="font-serif text-3xl font-bold leading-tight sm:text-4xl">
@@ -72,32 +74,32 @@ export function LifeScenarios() {
           </p>
         </div>
 
-        <ul className="mt-8 grid border-t border-foreground/80 md:grid-cols-2 md:gap-x-12">
+        <BrowseShelf label="Комплекти по ситуации">
           {visible.map((s) => {
             const kit = s.kitId ? getKit(s.kitId) : undefined;
             const to = s.href ?? (kit ? `/komplekti/${kit.id}` : "/komplekti");
             const meta = kit ? `${kit.items.length} документа в каталога` : "Всички комплекти";
             return (
-              <li key={s.id} className="border-b border-border">
-                <Link to={to} className="group flex min-h-11 items-center gap-4 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <img src={SCENARIO_IMAGE[s.id]} alt="" loading="lazy" width={56} height={56} className="size-14 shrink-0 rounded-sm object-cover" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-semibold leading-snug text-foreground underline-offset-4 group-hover:underline">{s.label}</span>
+              <li key={s.id} className="browse-item">
+                <Link to={to} className="group block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <img src={SCENARIO_IMAGE[s.id]} alt="" loading="lazy" width={480} height={320} className="browse-image" />
+                  <span className="block min-w-0 p-5">
+                    <span className="block font-serif text-xl font-bold leading-snug text-foreground underline-offset-4 group-hover:underline">{s.label}</span>
                     <span className="mt-0.5 block text-sm text-muted-foreground">{meta}</span>
                   </span>
-                  <ArrowRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <span className="mx-5 mb-5 flex min-h-11 items-center justify-between border-t border-border pt-3 text-sm font-semibold">Вижте документите <ArrowRight className="size-4" aria-hidden="true" /></span>
                 </Link>
               </li>
             );
           })}
-        </ul>
+        </BrowseShelf>
 
         <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-2">
           {hiddenCount > 0 && (
-            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="link-ink inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold">
+            <Button variant="link" type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="link-ink inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold">
               {expanded ? "Покажете по-малко" : `Още ${hiddenCount} ситуации`}
               <ChevronDown className={`h-4 w-4 ${expanded ? "rotate-180" : ""}`} />
-            </button>
+            </Button>
           )}
           <Link to="/komplekti" className="link-ink inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold">
             Всички комплекти <ArrowRight className="h-4 w-4" />
