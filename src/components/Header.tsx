@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Menu, X, User as UserIcon, LogIn, ChevronDown } from "@/icons";
-import { HeaderWordmark } from "./HeaderWordmark";
+import { BrandLockup } from "./BrandLockup";
 import { TEST_PERIOD_LABEL } from "@/lib/prelaunch";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -83,7 +83,7 @@ export function Header() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 transition-all duration-300",
+        "brand-header sticky top-0 z-40 transition-all duration-300",
         scrolled
           ? "border-b border-border bg-background"
           : "border-b border-border/40 bg-background",
@@ -94,7 +94,7 @@ export function Header() {
           // Възстановени пропорции на предишния мобилен хедър (68px, 64px при
           // скрол); десктоп височините остават непроменени.
           "container flex items-center justify-between gap-3 transition-[height] duration-300 xl:gap-6",
-          scrolled ? "h-16" : "h-[68px] xl:h-[72px]",
+          scrolled ? "h-[76px]" : "h-[80px] xl:h-[92px]",
         )}
       >
         {/* Zone 1 — Brand */}
@@ -105,7 +105,7 @@ export function Header() {
             className="flex min-w-0 items-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Договори.нет — начало"
           >
-            <HeaderWordmark className="max-[359px]:h-9 max-[359px]:w-[178px]" />
+            <BrandLockup />
           </Link>
           <span
             data-testid="test-period-badge"

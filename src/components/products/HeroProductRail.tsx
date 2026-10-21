@@ -7,11 +7,14 @@ import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { ArrowRight } from "@/icons";
 import { trackFunnelEvent } from "@/lib/funnel";
 import { ProductPrice } from "@/components/products/ProductPrice";
+import { ProductOutputVisual } from "@/components/products/ProductOutputVisual";
+import { Button } from "@/components/ui/button";
 import {
   ONE_TIME_PRODUCTS,
   ONE_TIME_SCOPE_NOTE,
   PRODUCT_EVENTS,
   productPath,
+  ONE_TIME_PURCHASES_AVAILABLE,
 } from "@/lib/products";
 
 export function HeroProductRail() {
@@ -26,9 +29,9 @@ export function HeroProductRail() {
         </p>
       </div>
 
-      <ul>
+      <ul className="brand-product-grid mt-5 grid gap-4 lg:grid-cols-3">
         {ONE_TIME_PRODUCTS.map((product) => (
-          <li key={product.id} className="border-b border-border">
+          <li key={product.id} className="brand-product flex min-w-0 flex-col border border-border bg-card p-5 sm:p-6">
             <Link
               to={productPath(product)}
               data-product-id={product.id}
@@ -39,17 +42,24 @@ export function HeroProductRail() {
                   variant: "rail",
                 })
               }
-              className="group grid min-h-11 gap-x-6 gap-y-2 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center"
+              className="group flex min-h-11 flex-col gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span className="min-w-0">
-                <span className="block font-semibold text-foreground underline-offset-4 group-hover:underline">{product.name}</span>
+                <span className="block font-serif text-xl font-bold leading-tight text-foreground underline-offset-4 group-hover:underline">{product.name}</span>
                 <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">{product.shortOutcome}</span>
               </span>
-              <ProductPrice id={product.id} size="sm" />
-              <span className="hidden items-center gap-1 text-sm font-semibold text-foreground sm:inline-flex">
+              <ProductPrice id={product.id} size="md" />
+              <span className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-foreground">
                 Примерен резултат <ArrowRight className="size-4" aria-hidden="true" />
               </span>
             </Link>
+            <div className="my-4"><ProductOutputVisual productId={product.id} /></div>
+            <p className="mb-4 text-sm leading-relaxed text-muted-foreground">{product.promise}</p>
+            <Button asChild variant="outline" className="mt-auto h-auto min-h-11 whitespace-normal text-left">
+              <Link to={ONE_TIME_PURCHASES_AVAILABLE ? product.ctaHref : productPath(product)}>
+                {ONE_TIME_PURCHASES_AVAILABLE ? product.ctaLabel : "Вижте продукта"}<ArrowRight aria-hidden="true" />
+              </Link>
+            </Button>
           </li>
         ))}
       </ul>

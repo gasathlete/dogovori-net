@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { HeaderWordmark } from "./HeaderWordmark";
+import { BrandLockup } from "./BrandLockup";
 import { ONE_TIME_PRODUCTS, productPath } from "@/lib/products";
 import { CATALOG_DOCUMENT_COUNT } from "@/lib/catalogStats";
 import { CATALOG_REVIEW_STATUS } from "@/lib/templateReviewStatus";
@@ -74,11 +74,11 @@ export function SeoFooter() {
 
 
   return (
-    <footer className="border-t border-border bg-background pt-12 pb-16 lg:pb-0">
+    <footer className="brand-footer border-t border-border bg-background pt-12 pb-16 lg:pb-0">
       <div className="container">
         <div className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <div className="sm:col-span-2 lg:col-span-1">
-            <Link to="/" aria-label="Договори.нет — начало" className="inline-flex min-h-11 items-center"><HeaderWordmark /></Link>
+            <Link to="/" aria-label="Договори.нет — начало" className="inline-flex min-h-11 items-center"><BrandLockup /></Link>
             <p className="mt-3 max-w-xs text-xs leading-relaxed text-muted-foreground">
               Помощ в ежедневната бюрокрация за хората и малкия и средния бизнес. {CATALOG_DOCUMENT_COUNT} образеца за лични въпроси, работа и бизнес.
             </p>

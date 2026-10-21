@@ -8,6 +8,7 @@
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { ArrowRight, Check } from "@/icons";
 import { ProductPrice } from "@/components/products/ProductPrice";
+import { ProductOutputVisual } from "@/components/products/ProductOutputVisual";
 import {
   ONE_TIME_PRODUCTS,
   productPath,
@@ -48,7 +49,7 @@ export function ProductComparisonList() {
             to={productPath(p)}
             data-testid={`product-entry-${p.id}`}
             className={cn(
-              "block rounded-2xl border px-4 py-4 transition-colors hover:border-gold/60 sm:px-5",
+              "brand-product block rounded-2xl border px-4 py-4 transition-colors hover:border-gold/60 sm:px-5",
               CARD_TONE[p.id],
             )}
           >
@@ -72,6 +73,7 @@ export function ProductComparisonList() {
               </span>
             </span>
 
+            <ProductOutputVisual productId={p.id} />
             <span
               className="mt-3 block border-t border-border/60 pt-3"
               data-testid={`product-entry-receive-${p.id}`}

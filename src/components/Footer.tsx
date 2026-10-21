@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Logo } from "./Logo";
+import { BrandLockup } from "./BrandLockup";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { revokeCookieConsent } from "@/lib/analytics";
 
@@ -11,11 +11,11 @@ function openCookieSettings() {
 
 export function Footer() {
   return (
-    <footer className="border-t border-border/60 bg-card/40 py-10">
+    <footer className="brand-footer border-t border-border/60 bg-card/40 py-10">
       <div className="container flex flex-col gap-8">
         <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center xl:gap-12">
           <div className="flex min-w-[220px] flex-col gap-2">
-            <Logo />
+            <Link to="/" aria-label="Договори.нет — начало"><BrandLockup /></Link>
             <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">По-малко бюрокрация. Повече време за Вас.</p>
             <a
               href="https://im-development.imot.bg"
