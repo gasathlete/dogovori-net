@@ -2,6 +2,17 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { vi } from "vitest";
+import { pathToFileURL } from "node:url";
+// Real parsers; only module resolution is adapted to Node: pdfjs worker URL and
+// the browser build of mammoth (the one the app ships), which accepts arrayBuffer.
+vi.mock("pdfjs-dist/legacy/build/pdf.worker.mjs?url", () => ({
+  default: pathToFileURL(resolve(process.cwd(), "node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs")).href,
+}));
+vi.mock("mammoth", async () => {
+  const m = await import("mammoth/mammoth.browser.js");
+  return { default: (m as { default?: unknown }).default ?? m, ...(m as object) };
+});
 import { extractLocalFileText, truncationNotice } from "@/lib/localFileText";
 
 const fx = (n: string, type: string) =>
