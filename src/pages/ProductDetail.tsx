@@ -166,6 +166,10 @@ export default function ProductDetail() {
                   Вижте другите продукти
                 </Link>
               </div>
+              <div className="mt-4 max-w-xl border-l-2 border-gold pl-3 text-sm leading-relaxed">
+                <p className="font-semibold">Получавате: {product.page.youReceive[0]}</p>
+                <p className="mt-2 text-muted-foreground">Първо разглеждате, след това влизате или създавате профил, за да свържем документа и резултата с Вас. Подготвяте текста и потвърждавате условията преди плащане.</p>
+              </div>
 
               {!ONE_TIME_PURCHASES_AVAILABLE && (
                 <>

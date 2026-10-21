@@ -6,6 +6,9 @@ import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { useHideOnScroll } from "@/hooks/useHideOnScroll";
 import { prefetchHandlers } from "@/lib/routePrefetch";
 import { useKeyboardOpen } from "@/hooks/useKeyboardOpen";
+import { getProductBySlug, ONE_TIME_PURCHASES_AVAILABLE, productPriceLabel, PRODUCT_EVENTS } from "@/lib/products";
+import { Button } from "@/components/ui/button";
+import { trackMetric } from "@/lib/metrics";
 
 const dogovaiIcon = "/dogovai-favicon.png";
 
@@ -49,6 +52,7 @@ export function MobileBottomNav() {
   const keyboardOpen = useKeyboardOpen();
 
   const path = location.pathname;
+  const product = /^\/produkti\/[^/]+$/.test(path) ? getProductBySlug(path.split("/")[2]) : null;
   if (
     keyboardOpen || path.startsWith("/admin") ||
     (path.startsWith("/produkti/") && path.endsWith("/start")) ||
@@ -60,6 +64,15 @@ export function MobileBottomNav() {
   ) {
     return null;
   }
+
+  if (product && ONE_TIME_PURCHASES_AVAILABLE) return (
+    <nav aria-label="Продължете с този продукт" data-testid="mobile-product-action" className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background pb-safe lg:hidden">
+      <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-2">
+        <div className="min-w-0 flex-1"><p className="text-base font-semibold">{productPriceLabel(product.id)}</p><p className="text-xs text-muted-foreground">Еднократно · без абонамент</p></div>
+        <Button asChild className="min-h-12"><Link to={product.ctaHref} onClick={() => trackMetric(PRODUCT_EVENTS.productSelected, { product: product.id, source: "mobile_product_action" })}>Продължете</Link></Button>
+      </div>
+    </nav>
+  );
 
   return (
     <nav

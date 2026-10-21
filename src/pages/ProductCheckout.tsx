@@ -443,7 +443,7 @@ export default function ProductCheckout() {
         noindex
       />
       <Header />
-      <main className="mx-auto max-w-2xl px-4 pb-28 pt-8 md:pb-16">
+      <main className="mx-auto max-w-2xl px-4 pb-28 pt-8 md:pb-16 [&_input]:text-base [&_textarea]:text-base">
         <p className="truncate text-sm text-muted-foreground">
           <Link to={productPath(product)} className="underline">{product.name}</Link>
         </p>
@@ -481,7 +481,7 @@ export default function ProductCheckout() {
             role="alert"
             className="mt-4 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm"
           >
-            <p className="font-semibold text-foreground">Плащането не е извършено</p>
+            <p className="font-semibold text-foreground">Плащането не е отворено</p>
             <p className="mt-1 text-muted-foreground">{blocked}</p>
           </div>
         )}
@@ -773,7 +773,7 @@ export default function ProductCheckout() {
                 <p className="text-sm text-muted-foreground">
                   Ако спрете тук, можете да продължите в същата платежна форма без нова заявка. За вече платен резултат проверете „Моите покупки“ в профила.
                 </p>
-                <Button asChild variant="link" className="min-h-11"><Link to="/account?tab=purchases">Проверете покупките си</Link></Button>
+                <Button asChild variant="link" className="min-h-11"><Link to="/produkti/moite-pokupki">Проверете покупките си</Link></Button>
                 <Button type="button" variant="outline" className="min-h-11" onClick={restart}>
                   Започнете отначало
                 </Button>

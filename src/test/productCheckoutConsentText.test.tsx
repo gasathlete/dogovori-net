@@ -56,12 +56,28 @@ it("requires four independent unchecked confirmations and sends their actual val
   await userEvent.click(boxes[1]);
   expect(pay).toBeDisabled();
   await userEvent.click(boxes[1]);
-  await userEvent.click(pay);
+  fireEvent.click(pay);
+  fireEvent.click(pay);
   await waitFor(() => expect(mocks.invoke).toHaveBeenCalledTimes(1));
   expect(mocks.invoke.mock.calls[0][1]).toMatchObject({
     headers: { Authorization: "Bearer synthetic-token" },
     body: { termsAccepted: true, aiAckAccepted: true, immediatePerformanceConsent: true, withdrawalLossAcknowledged: true },
   });
+});
+it("retains the prepared document and request identity after checkout creation failure", async () => {
+  mocks.invoke.mockRejectedValueOnce(new Error("synthetic connection failure"));
+  render(<Harness />);
+  await pasteDocument();
+  fireEvent.change(await screen.findByLabelText(/Коя страна сте по документа/), { target: { value: "наемател" } });
+  await userEvent.click(screen.getByRole("button", { name: /^Продължете$/ }));
+  for (const box of screen.getAllByRole("checkbox")) await userEvent.click(box);
+  await userEvent.click(screen.getByRole("button", { name: /Към плащане/ }));
+  await screen.findByTestId("product-checkout-blocked");
+  expect(screen.queryByLabelText("Пълен текст на документа")).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: /Към плащане/ }));
+  await waitFor(() => expect(mocks.invoke).toHaveBeenCalledTimes(2));
+  expect(mocks.invoke.mock.calls[1][1].body).toEqual(mocks.invoke.mock.calls[0][1].body);
+  expect(mocks.invoke.mock.calls[1][1].body.uploadedContractId).toBe("synthetic-document");
 });
 it("does not expose the old prepared document after an account changes during save", async () => {
   let finish!: (value: typeof prepared) => void;
