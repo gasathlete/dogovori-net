@@ -4,11 +4,17 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
 import { useAuth } from "@/hooks/useAuth";
 import { formatEur, staticCall, staticEnvironment, type StaticCatalogItem, type StaticCatalogResponse } from "@/lib/staticCatalog";
 
 import { getTemplateBySlug } from "@/lib/templateIndex";
+
+function StaticPendingNotice() {
+  return <aside role="note" className="space-y-2 rounded-xl border border-border p-4">
+    <p className="font-semibold">Готовите файлове за покупка са в подготовка.</p>
+    <p className="text-sm text-muted-foreground">Проверяваме окончателните файлове и съответстващите им цени. Можете да използвате образците от <Link to="/catalog" className="underline">каталога</Link> или <Link to="/produkti" className="underline">услугите за работа с текст</Link>.</p>
+  </aside>;
+}
 
 type Consents = { terms: boolean; perf: boolean; loss: boolean };
 
@@ -53,7 +59,7 @@ function Item({ item, open }: { item: StaticCatalogItem; open: boolean }) {
           <Button onClick={buy} disabled={!all || busy} className="min-h-11">{busy ? "Пренасочваме…" : `Купете за ${formatEur(item.amount_cents)}`}</Button>
           {err && <p role="alert" className="text-sm text-destructive">{err}</p>}
         </div>
-      ) : <LaunchPurchaseBanner compact source="other" />}
+      ) : <StaticPendingNotice />}
     </article>
   );
 }
@@ -84,12 +90,12 @@ export default function StaticCatalogStore() {
       {state === "closed" && (
         <div className="space-y-4">
           {!user && !loading && <p className="text-muted-foreground"><Link to="/auth" className="underline">Влезте в профила си</Link>, за да видите наличните документи.</p>}
-          <LaunchPurchaseBanner source="other" />
+          <StaticPendingNotice />
         </div>
       )}
       {state === "error" && <p role="alert" className="text-destructive">Каталогът не може да се зареди в момента. Опитайте отново по-късно.</p>}
       {state === "ready" && data && (data.items.length === 0
-        ? <div className="space-y-4"><p className="text-muted-foreground">В момента няма документи, готови за продажба.</p><LaunchPurchaseBanner source="other" /></div>
+        ? <div className="space-y-4"><p className="text-muted-foreground">В момента няма документи, готови за продажба.</p><StaticPendingNotice /></div>
         : <div className="space-y-5">{data.items.map((i) => <Item key={i.id} item={i} open={data.checkout_open} />)}</div>)}
     </main>
   );

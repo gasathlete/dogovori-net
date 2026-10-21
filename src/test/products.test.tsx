@@ -3,7 +3,7 @@
  * allowlist на ?product=, персона логика и достъпност/reduced motion.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
@@ -147,22 +147,24 @@ describe("витрина — паритет между началната стр
     expect(
       screen.getByRole("link", { name: /Вижте подробно всеки продукт/ }),
     ).toHaveAttribute("href", "/produkti");
-    expect(screen.getAllByTestId("launch-purchase-banner")).toHaveLength(3);
+    expect(screen.queryAllByTestId("launch-purchase-banner")).toHaveLength(0);
     for (const p of ONE_TIME_PRODUCTS) {
       const card = screen.getByTestId(`catalog-product-${p.id}`);
       expect(within(card).getByRole("link", { name: "Вижте примерния резултат" })).toHaveAttribute("href", productPath(p));
     }
   });
 
-  it("заключената покупка в реалната начална витрина отваря заявка, без checkout", () => {
+  it("отворените продукти водят към правилния старт без заявка за бъдещо пускане", () => {
     const listener = vi.fn();
     window.addEventListener("dogovori:prelaunch-waitlist", listener);
     render(wrap(<ProductsSection />));
-    const card = screen.getByTestId("catalog-product-contract_check");
-    fireEvent.click(within(card).getByRole("button", { name: "Извести ме при пускане" }));
-    expect(listener).toHaveBeenCalledOnce();
-    expect((listener.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({ feature: "one_time_product" });
-    expect(within(card).queryByRole("link", { name: /Купете|Платете/ })).toBeNull();
+    for (const product of ONE_TIME_PRODUCTS) {
+      const card = screen.getByTestId(`catalog-product-${product.id}`);
+      const start = within(card).getByRole("link", { name: product.ctaLabel });
+      expect(start).toHaveAttribute("href", product.ctaHref);
+      expect(within(card).queryByRole("button", { name: "Извести ме при пускане" })).toBeNull();
+    }
+    expect(listener).not.toHaveBeenCalled();
     window.removeEventListener("dogovori:prelaunch-waitlist", listener);
   });
 

@@ -13,8 +13,8 @@ import { PrelaunchWaitlistDialog } from "@/components/prelaunch/PrelaunchWaitlis
 beforeEach(() => rpc.mockReset());
 
 describe("prelaunch флагове", () => {
-  it("отворени са само проверените функции; плащания, анализ на качен файл и непознато име — затворени", () => {
-    const proven = new Set<string>(["document_generation","document_review","assistant","blank_download"]);
+  it("проверените функции и еднократните продукти са отворени; абонаментите и непознатите функции остават затворени", () => {
+    const proven = new Set<string>(["document_generation","document_review","assistant","blank_download","one_time_product"]);
     for (const f of PRELAUNCH_FEATURES) expect(isFeatureAvailable(f)).toBe(proven.has(f));
     expect(isFeatureAvailable("x")).toBe(false);
   });
