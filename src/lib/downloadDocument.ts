@@ -8,6 +8,7 @@ import { ensurePlaceholdersReviewed } from "@/lib/placeholderGate";
 import { trackPlaceholderBlock } from "@/lib/metrics";
 import { getOpSessionId, getOpDocKey } from "@/lib/opSession";
 import { trackDownload } from "@/lib/docFunnel";
+import { invokeWithMarketingBonus } from "@/lib/marketingBonus";
 
 export type DownloadKind = "contract" | "template";
 export type DownloadFormat = "pdf" | "docx";
@@ -86,7 +87,7 @@ export async function downloadDocument(p: DownloadParams): Promise<DownloadResul
   // This typically saves 300–800ms on the first download because the
   // exporter chunk parse and font fetch are no longer waiting for the
   // edge response.
-    const invokePromise = supabase.functions.invoke("download-document", {
+    const invokePromise = invokeWithMarketingBonus<Record<string, any>>("download-document", {
       // Keep this operation bound to the session captured before confirmation.
       headers: { Authorization: `Bearer ${session.access_token}` },
       body: {

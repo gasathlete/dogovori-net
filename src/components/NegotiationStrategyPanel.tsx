@@ -1,3 +1,4 @@
+import { invokeWithMarketingBonus } from "@/lib/marketingBonus";
 import { useEffect, useState } from "react";
 import { Handshake, Loader2, Sparkles, Target, ShieldCheck, MessageSquareQuote, ListChecks, RefreshCw } from "@/icons";
 import { Button } from "@/components/ui/button";
@@ -67,7 +68,7 @@ export function NegotiationStrategyPanel({
     });
     const operationId = getOrCreateDocumentOperationId("negotiation_strategy", userKey, scope);
     try {
-      const { data, error } = await supabase.functions.invoke("negotiation-strategy", {
+      const { data, error } = await invokeWithMarketingBonus("negotiation-strategy", {
         body: { analysis_id: analysisId, force, operation_id: operationId },
       });
       const status = Number((error as { context?: { status?: number } } | null)?.context?.status ?? 0);

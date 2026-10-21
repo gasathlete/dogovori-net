@@ -37,12 +37,14 @@ export type DownloadQuotaRow = {
   templates_used: number | null;
   bonus_contracts: number | null;
   corrections_free_used_count: number | null;
+  marketing_bonus_legacy: boolean;
+  marketing_bonus_claimed_at: string | null;
   // Any other columns present on the row remain accessible via the raw shape.
   [key: string]: unknown;
 };
 
 const QUOTA_SELECT =
-  "plan, pro_until, monthly_total_used, pro_monthly_used, ai_messages_used, analysis_previews_used, bilingual_previews_used, corrections_free_used, free_signing_used, signup_at, plan_ops_cap, topup_ops_balance, contracts_used, templates_used, bonus_contracts, corrections_free_used_count";
+  "plan, pro_until, monthly_total_used, pro_monthly_used, ai_messages_used, analysis_previews_used, bilingual_previews_used, corrections_free_used, free_signing_used, signup_at, plan_ops_cap, topup_ops_balance, contracts_used, templates_used, bonus_contracts, corrections_free_used_count, marketing_bonus_legacy, marketing_bonus_claimed_at";
 
 export const quotaQueryKey = (userId: string) => ["download-quota", userId] as const;
 
@@ -84,7 +86,7 @@ export function useQuota() {
 
   const query = useQuery({
     queryKey: userId ? quotaQueryKey(userId) : ["download-quota", "anon"],
-    queryFn: () => fetchQuotaRow(userId!),
+    queryFn: () => userId ? fetchQuotaRow(userId) : Promise.resolve(null),
     enabled: !!userId,
     staleTime: 60_000,
     gcTime: 5 * 60_000,

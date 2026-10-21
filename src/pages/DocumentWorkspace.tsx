@@ -1,3 +1,4 @@
+import { invokeWithMarketingBonus } from "@/lib/marketingBonus";
 /**
  * DocumentWorkspace — split-view page that shows the parent contract on the
  * left and a linked document (appendix / annex / handover protocol / …) on
@@ -97,7 +98,7 @@ export default function DocumentWorkspacePage() {
         },
       });
       const operationId = getOrCreateDocumentOperationId("generate_linked_document", userKey, opScope);
-      const { data, error } = await supabase.functions.invoke(
+      const { data, error } = await invokeWithMarketingBonus(
         "generate-linked-document",
         {
           body: {

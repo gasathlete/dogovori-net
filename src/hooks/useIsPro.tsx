@@ -31,7 +31,7 @@ interface ProState {
 
 const DEFAULT_FREE_QUOTA: FreeQuota = {
   opsUsed: 0,
-  opsCap: 5,
+  opsCap: 2,
   aiMessagesUsed: 0,
   aiMessagesCap: 5,
   analysisPreviewsUsed: 0,
@@ -105,7 +105,7 @@ export function useIsPro(): ProState {
       // Free plan: 5 ops през първите 30 дни от регистрацията, после 2/мес.
       const signupTs = signupAt ? new Date(signupAt).getTime() : Date.now();
       const withinFirstMonth = Date.now() - signupTs < 30 * 24 * 60 * 60 * 1000;
-      opsCap = withinFirstMonth ? 5 : 2;
+      opsCap = q?.marketing_bonus_legacy && withinFirstMonth ? 5 : 2;
     }
 
     setState({
@@ -148,6 +148,12 @@ export function useIsPro(): ProState {
     return () => {
       cancelled = true;
     };
+  }, [refresh]);
+
+  useEffect(() => {
+    const reload = () => { void refresh(); };
+    window.addEventListener("dogovori:quota-refreshed", reload);
+    return () => window.removeEventListener("dogovori:quota-refreshed", reload);
   }, [refresh]);
 
   return { ...state, refresh };

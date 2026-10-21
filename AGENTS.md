@@ -1,4 +1,5 @@
 # Project architecture rules
+- Starter bonus eligibility is server-owned and historical legacy allowances count as claimed; atomic consent-triggered grants use the existing signup-minus-monthly delta, while user-initiated quota denials replay the identical request at most once after confirmed consent/grant.
 
 - All billing navigation validates exact application origins; CSV exports share formula-neutralizing cell escaping, and raw PostgREST OR values are quoted as literals — untrusted data must not become navigation, spreadsheet commands or query syntax.
 

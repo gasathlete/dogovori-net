@@ -1,3 +1,4 @@
+import { invokeWithMarketingBonus } from "@/lib/marketingBonus";
 import { ensureFeatureDisclaimer } from "@/lib/aiDisclaimerGate";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { writeSavedDocumentContent } from "@/lib/savedDocumentContent";
@@ -855,7 +856,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         releaseStableOpKey(acOpScope);
         releaseStableOpKey(acBatchScope);
       };
-      const { data, error } = await supabase.functions.invoke("apply-corrections", {
+      const { data, error } = await invokeWithMarketingBonus("apply-corrections", {
         body: {
           contract: result.contract,
           risk: result.risk,
@@ -1651,10 +1652,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
               <DocumentValueCard
                 documentTitle={result.contract?.title || name}
                 needsAuth={!user}
-                canDownload={
-                  !!user &&
-                  (isPro || isTeam || freeQuota.topupBalance > 0 || freeQuota.opsUsed < freeQuota.opsCap)
-                }
+                canDownload={!!user}
                 busy={exporting === "pdf"}
                 onDownload={() => handleExport("pdf")}
                 onRegister={() => goAuth({ action: "Запазване и сваляне на документа" })}

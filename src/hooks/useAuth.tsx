@@ -74,10 +74,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s);
       setLoading(false);
       if (event === "SIGNED_IN" && s) {
-        applyPostAuthRedirect();
-        // Записваме съгласията от регистрацията (вкл. маркетинговия отказ)
-        // сървърно при първия реален вход — само веднъж на браузър.
-        flushPendingConsents().catch(() => undefined);
+        // Leave the auth callback before awaiting SDK calls. Flush explicit
+        // signup evidence before navigation so a reload cannot lose the grant.
+        setTimeout(() => {
+          void flushPendingConsents().catch(() => undefined).finally(applyPostAuthRedirect);
+        }, 0);
       }
 
       // При изход нищо от започнатия документ не остава в браузъра: указателят
@@ -99,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       syncAssistantContextOwner(data.session?.user?.id ?? null);
       // Същото правило и когато сесията вече е налична при зареждане —
       // потребителят не бива да остава на празен екран с „залепнала" цел.
-      if (data.session) applyPostAuthRedirect();
+      if (data.session) void flushPendingConsents().catch(() => undefined).finally(applyPostAuthRedirect);
     });
     return () => sub.subscription.unsubscribe();
   }, []);

@@ -21,6 +21,7 @@ import { invokeEdgeFunction, type InvokeResult } from "@/lib/invokeEdgeFunction"
 import { getOpSessionId } from "@/lib/opSession";
 import { classifyGenerationError, type GenerationError } from "@/lib/generationErrors";
 import { canStartNewProcessing } from "@/lib/prelaunch";
+import { isInsufficientCredit, offerMarketingBonus } from "@/lib/marketingBonus";
 
 export type JobStatusValue = "running" | "done" | "completed" | "error" | "rejected";
 
@@ -45,6 +46,8 @@ export interface GenerationJobResult<T> extends InvokeResult<T> {
 }
 
 export interface GenerateJobOptions {
+  /** Internal: quota recovery is limited to one restart with the same key. */
+  bonusRecoveryAttempted?: boolean;
   onRetry?: (attempt: number, max: number) => void;
   /** Извиква се докато чакаме — за прогрес индикатор в UI. */
   onWaiting?: (elapsedMs: number) => void;
@@ -293,6 +296,9 @@ export async function generateContractJob<T>(
         data: resultBody ?? (poll.data.code ? { error: message, code: poll.data.code } : null),
         jobStatus: s,
       });
+      if (isInsufficientCredit(resultBody ?? { code: poll.data.code }, httpStatus) && !options.bonusRecoveryAttempted && await offerMarketingBonus()) {
+        return generateContractJob<T>(payload, { ...options, idempotencyKey: key, bonusRecoveryAttempted: true });
+      }
       // Отговорите с тяло (нужно потвърждение, квота, чувствителни данни) се
       // връщат непокътнати, за да ги обработи същата логика както преди.
       return {
