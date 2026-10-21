@@ -23,5 +23,14 @@ No text, assets or branding were copied.
 - The hero search now uses a real submit button (form action /catalog, name=q). Status and warning text come from CATALOG_REVIEW_STATUS. The "Вижте демонстрацията" button is back.
 - Browser checks: the hero button opened /catalog?q=пълномощно with the field filled and 12 matches; typing updates q; the quick search "услуги" fills the field; the "Наеми и имоти" card opens /paketi/naemi; the 360 px light theme and the mobile menu are readable, with no sideways scrolling.
 
-## Deferred
-Header regrouping, restyling the package/kit/product/catalog cards, reducing the space reserved for lower home sections, and the FAQ/footer. The product sample click and a separate build check were not run.
+## Third pass (final)
+- Header: a plain flex row instead of the three-column grid; menu links are 44 px tall with visible focus. Продукти/Планове stay side by side, and the mobile menu now shows "Каталог с шаблони" in its main list.
+- SectorPackages: a clean card with a 48 px thumbnail and icon, a 22 px title, 12 px stage labels, and the real availability counts and /paketi links.
+- LifeScenarios: 3/2/1 columns, 64 px thumbnails, 16 px titles, 12–14 px details and links, and motion only when the visitor allows it. "Show more" and "All kits" are kept.
+- HeroProductRail: the blurred glow is removed and the card style matches; prices, status and product links are unchanged.
+- HomeSections placeholder heights were not changed (no large gaps seen in screenshots).
+- Tests: type check `bunx tsgo --noEmit -p tsconfig.app.json` passed with no errors. Ran 5 test files (catalogQueryUrl, visualClarity, homeShell, products, mobileConversion); 3 checks in mobileConversion still expected the old link-based button and were updated to the form action. Final result: all pass.
+- Browser (localhost, /tmp/browser/r/f.py): dark and light at 1440/768/390/360 have no sideways scrolling (f_/p_/s_*.png). Частно лице and Фирма both keep the same H1, mission and "Намерете документ". Enter → /catalog?q=наем with the box filled and results shown; typing updates q; Back → /; Forward → /catalog?q=пълномощно with the box filled. Product card → /produkti/proverka-predi-podpis with the sample shown.
+
+## Not restyled
+FAQ, footer, inner catalog/detail pages, tools and admin. Core public home surfaces were restyled, not every screen. Preview only; not published.
