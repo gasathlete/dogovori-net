@@ -4,15 +4,32 @@ import { PartnerCarousel, partnerVisibleSlots } from "@/components/PartnerCarous
 
 let width = 320;
 let reduced = false;
+let intersectionChanged: ((entries: { isIntersecting: boolean }[]) => void) | undefined;
 const partners = Array.from({ length: 4 }, (_, i) => ({ id: String(i), name: `Partner ${i}`, logo_url: `/logo-${i}.png`, website_url: `https://example.org/${i}` }));
 beforeEach(() => {
   vi.useFakeTimers();
   vi.stubGlobal("matchMedia", () => ({ matches: reduced, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
-  vi.stubGlobal("ResizeObserver", class { constructor(private cb: Function) {} observe() { this.cb([{ contentRect: { width } }]); } disconnect() {} });
-  vi.stubGlobal("IntersectionObserver", class { constructor(private cb: Function) {} observe() { this.cb([{ isIntersecting: true }]); } disconnect() {} });
+  vi.stubGlobal("ResizeObserver", class { constructor(private cb: (entries: { contentRect: { width: number } }[]) => void) {} observe() { this.cb([{ contentRect: { width } }]); } disconnect() {} });
+  vi.stubGlobal("IntersectionObserver", class { constructor(private cb: (entries: { isIntersecting: boolean }[]) => void) { intersectionChanged = cb; } observe() { this.cb([{ isIntersecting: true }]); } disconnect() {} });
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); width = 320; reduced = false; });
 describe("partner carousel behavior", () => {
+  it("stops offscreen and hidden-document timers and cleans up on unmount", () => {
+    const view = render(<PartnerCarousel partners={partners} />);
+    const track = view.container.querySelector<HTMLElement>("[data-partner-track]");
+    const initial = track?.style.transform;
+    act(() => intersectionChanged?.([{ isIntersecting: false }]));
+    act(() => vi.advanceTimersByTime(7000));
+    expect(track?.style.transform).toBe(initial);
+    act(() => intersectionChanged?.([{ isIntersecting: true }]));
+    const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
+    fireEvent(document, new Event("visibilitychange"));
+    act(() => vi.advanceTimersByTime(7000));
+    expect(track?.style.transform).toBe(initial);
+    hidden.mockRestore();
+    view.unmount();
+    expect(vi.getTimerCount()).toBe(0);
+  });
   it("allocates two/three mobile slots and six desktop slots", () => {
     expect(partnerVisibleSlots(328)).toBe(2);
     expect(partnerVisibleSlots(358)).toBe(3);
