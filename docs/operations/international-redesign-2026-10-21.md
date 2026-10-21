@@ -34,3 +34,8 @@ No text, assets or branding were copied.
 
 ## Not restyled
 FAQ, footer, inner catalog/detail pages, tools and admin. Core public home surfaces were restyled, not every screen. Preview only; not published.
+
+## Privacy follow-up: no search text in analytics
+- New `src/lib/analyticsUrl.ts` removes the query and fragment from every analytics path and location. A same-site referrer keeps only its path; an outside referrer keeps only its domain.
+- Applied in `pageviewTracker.ts` (pageview and duration_update path and referrer) and in `analytics.ts`: `gaPageview` now uses a persistent `gtag("set", {page_location, page_path})` plus the event, and the initial GA `config` now passes a query-free page_location, page_path and page_referrer. utm_source is still read separately, as before. Consent rules are unchanged, the browser address and search results still keep ?q=, and existing records are untouched.
+- Regression test `src/test/analyticsNoSearchText.test.ts`: with analytics consent and a Bulgarian/PII-style test value in ?q=, the queued first-party payloads (pageview and duration) and all gtag arguments do not contain the value, its encoded form, or `q=`.
