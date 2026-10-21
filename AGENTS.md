@@ -9,9 +9,9 @@
 - Sector packages are curated browse-only compositions over canonical catalog templates; never duplicate legal document text or create a purchase path from browser-provided content.
 - Featured kit lifecycle metadata must reference every existing kit item exactly once; missing closing artifacts stay explicitly planned and unlinked.
 - Home must not import the full catalog (templateIndex/CATALOG); use declared metadata guarded by a test against the canonical catalog — keeps the home bundle small without silent count drift.
-- Below-fold home experiences reuse product previews and canonical calculator compute functions through lazy modules; demonstrations never submit input or substitute for workflow consent.
+- Below-fold demos lazily reuse canonical previews/calculators; never submit or replace consent.
 - Catalog and template review notices use one shared public-status constant/component without slug/category/acceptance inference; this keeps all browse surfaces consistent without changing approvals, paid rights or legal content.
-- Home search/task links and manual scroll-snap shelves use declared metadata; native hero tabs reuse canonical fictional previews without submission or customer-document styling.
+- Home links/shelves use metadata; tabs are fictional, never submit. Mobile guide uses canonical prices/status; nav replaces itself with product CTA and hides for cookies/keyboard/checkout. Product preparation is public; server actions require auth.
 - The header wordmark is pre-outlined SVG paths (src/lib/headerWordmark.ts) derived from an OFL font with its licence in public/licenses; never ship a web font or raster for it — avoids font flash and missing Cyrillic.
 - Public detail reading styles use the explicit editorial-detail/sample-document scope; preserve hidden sample panels and do not extend these layout rules to admin, editors or customer documents.
 - Ledgers that mean "already charged" (quota_session_charges, corrections_batch_charges) and signer rows are written only by SECURITY DEFINER / service-role code; clients never get INSERT/UPDATE on them — a client-written row would grant free or forged value.

@@ -27,6 +27,7 @@ vi.mock("@/lib/products", async () => {
 
 import ProductCheckout from "@/pages/ProductCheckout";
 import { RAW_FILE_INGRESS_ALLOWED } from "@/lib/privacyGate";
+import { PRODUCT_ACCEPTED_INPUT } from "@/lib/productSource";
 
 describe("купуване при затворена преграда", () => {
   it("показва обяснение вместо избор на файл", () => {
@@ -39,7 +40,7 @@ describe("купуване при затворена преграда", () => {
       </MemoryRouter>,
     );
     expect(screen.getByLabelText("Пълен текст на документа")).toBeInTheDocument();
-    expect(screen.getByTestId("product-paste")).toHaveTextContent("Файлове (PDF/DOCX) и снимки временно не се приемат.");
+    expect(screen.getByTestId("product-paste")).toHaveTextContent(PRODUCT_ACCEPTED_INPUT);
     expect(document.getElementById("product-file")).toBeNull();
   });
 });

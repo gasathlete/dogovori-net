@@ -44,6 +44,14 @@ afterEach(() => {
 });
 
 describe("AuthProvider — пренасочване", () => {
+  it("returns to the selected product preparation exactly once", async () => {
+    sessionValue = { user: { id: "u1" } };
+    sessionStorage.setItem("post_login_redirect", "/produkti/proverka-predi-podpis/start");
+    render(<AuthProvider><div /></AuthProvider>);
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/produkti/proverka-predi-podpis/start"));
+    expect(replace).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem("post_login_redirect")).toBeNull();
+  });
   it("waits for explicit signup consent persistence before redirect", async () => {
     sessionValue = { user: { id: "u1" } };
     let persisted: (() => void) | undefined;

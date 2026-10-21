@@ -357,7 +357,7 @@ const AnimatedRoutes = () => {
         <Route path="/produkti/moite-pokupki" element={<ProtectedRoute><MyPurchases /></ProtectedRoute>} />
         <Route
           path="/produkti/:slug/start"
-          element={<ProtectedRoute><ProductCheckout /></ProtectedRoute>}
+          element={<ProductCheckout />}
         />
         <Route path="/produkti/:slug" element={<ProductDetail />} />
         <Route path="/reset-password" element={<ResetPassword />} />
