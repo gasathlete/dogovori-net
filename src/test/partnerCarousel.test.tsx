@@ -40,6 +40,7 @@ describe("partner carousel behavior", () => {
     expect(track.style.transform).not.toBe(initial);
     expect(track.style.transition).toContain("650ms");
     fireEvent.transitionEnd(track);
+    expect(screen.getByRole("link", { name: "Partner 1" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Спри въртенето" }));
     const pausedPosition = track.style.transform;
     act(() => vi.advanceTimersByTime(7000));
@@ -69,7 +70,8 @@ describe("partner carousel behavior", () => {
     expect(track?.style.transform).toBe(initial);
     expect(screen.queryByRole("button", { name: "Спри въртенето" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Следващо лого" }));
-    expect(track?.style.transform).not.toBe(initial);
+    expect(screen.getByRole("link", { name: "Partner 1" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Partner 0" })).toBeNull();
     expect(track?.style.transition).toBe("none");
     expect(screen.getByRole("link", { name: "Partner 1" }).getAttribute("href")).toBe("https://example.org/1");
   });

@@ -14,6 +14,7 @@ export function PartnerCarousel({ partners }: { partners: PartnerLogo[] }) {
   const moving = useRef(false);
   const [width, setWidth] = useState(0);
   const [index, setIndex] = useState(0);
+  const [start, setStart] = useState(0);
   const [animate, setAnimate] = useState(true);
   const [paused, setPaused] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -46,13 +47,14 @@ export function PartnerCarousel({ partners }: { partners: PartnerLogo[] }) {
     };
   }, [partners.length]);
 
-  useEffect(() => { setIndex(0); setAnimate(false); moving.current = false; }, [slots, partners.length]);
+  useEffect(() => { setStart(0); setIndex(0); setAnimate(false); moving.current = false; }, [slots, partners.length]);
 
   function advance(direction: number) {
     if (!rotates || moving.current) return;
     setAnimate(!reduced);
     moving.current = !reduced;
-    setIndex(current => reduced ? (current + direction + partners.length) % partners.length : current + direction);
+    if (reduced) setStart(current => (current + direction + partners.length) % partners.length);
+    else setIndex(direction);
   }
 
   useEffect(() => {
@@ -64,9 +66,10 @@ export function PartnerCarousel({ partners }: { partners: PartnerLogo[] }) {
   // Transition-end is authoritative; timeout also releases the lock if motion is interrupted.
   function finish() {
     moving.current = false;
-    if (index < 0 || index >= partners.length) {
+    if (index !== 0) {
       setAnimate(false);
-      setIndex((index + partners.length) % partners.length);
+      setStart(current => (current + index + partners.length) % partners.length);
+      setIndex(0);
     }
   }
   useEffect(() => {
@@ -76,11 +79,12 @@ export function PartnerCarousel({ partners }: { partners: PartnerLogo[] }) {
   }, [index, partners.length]);
 
   if (!partners.length) return null;
+  // Rebase the ordered originals after each move: visible settled links are never clones.
+  const ordered = [...partners.slice(start), ...partners.slice(0, start)];
   const slides = rotates
-    ? [...partners.slice(-visible).map(p => ({ p, clone: true })), ...partners.map(p => ({ p, clone: false })), ...partners.slice(0, visible).map(p => ({ p, clone: true }))]
+    ? [...ordered.slice(-visible).map(p => ({ p, clone: true })), ...ordered.map(p => ({ p, clone: false })), ...ordered.slice(0, visible).map(p => ({ p, clone: true }))]
     : partners.map(p => ({ p, clone: false }));
   const offset = rotates ? (visible + index) * (tileWidth + 12) : 0;
-  const logicalIndex = (index + partners.length) % partners.length;
 
   return (
     <div className="mt-6 min-w-0" role="region" aria-label="Регистрирани фирми"
@@ -98,7 +102,7 @@ export function PartnerCarousel({ partners }: { partners: PartnerLogo[] }) {
           style={{ transform: `translateX(-${offset}px)`, transition: animate && !reduced ? "transform 650ms cubic-bezier(0.22, 0.61, 0.36, 1)" : "none" }}>
           {slides.map(({ p, clone }, position) => {
             const originalIndex = position - (rotates ? visible : 0);
-            const inView = !rotates || (originalIndex - logicalIndex + partners.length) % partners.length < visible;
+            const inView = !rotates || (originalIndex >= 0 && originalIndex < visible);
             const img = <img src={storageThumb(p.logo_url, 240, 216, { fit: "contain", quality: 62 })} alt={clone ? "" : p.name}
               loading="lazy" decoding="async" width={120} height={108} className="h-full w-full object-contain p-3" />;
             return <li key={`${p.id}-${position}`} aria-hidden={clone || !inView ? true : undefined}
