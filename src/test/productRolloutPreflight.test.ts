@@ -16,7 +16,7 @@ describe("network-silent product rollout preflight", () => {
 
   it.each([
     ["unsafe runtime flag", "supabase/functions/_shared/product-integration-config.ts", (s: string) => s.replace('env(key) === "true"', 'env(key) !== "false"'), "runtime fail-closed"],
-    ["disconnected runtime config", "supabase/functions/_shared/product-integration.ts", (s: string) => s.replaceAll('from "./product-integration-config.ts"', 'from "./wrong-config.ts"'), "runtime fail-closed"],
+    ["disconnected runtime config", "supabase/functions/_shared/product-integration.ts", (s: string) => s.split('from "./product-integration-config.ts"').join('from "./wrong-config.ts"'), "runtime fail-closed"],
     ["missing env declaration", "config/product-rollout-contract.json", (s: string) => s.replace('    "APP_BASE_URL",\n', ""), "allowlist"],
     ["wrong environment", "config/product-rollout-contract.json", (s: string) => s.replace('"sandbox", "live"', '"preview", "live"'), "environment separation"],
     ["wrong product ID", "config/product-rollout-contract.json", (s: string) => s.replace('"id": "contract_check"', '"id": "contract_scan"'), "product ID/price"],
