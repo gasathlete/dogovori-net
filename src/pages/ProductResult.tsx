@@ -320,10 +320,10 @@ export default function ProductResult() {
     }
     let cancelled = false;
     void buildPatch(phase.result, phase.purchase, state.decisions).then(local => {
-      if (!cancelled) setManifest(local);
+      if (!cancelled && local.output_hash.toLowerCase() === state.patch_output_hash?.toLowerCase()) setManifest(local);
     }).catch(() => { if (!cancelled) setManifest(null); });
     return () => { cancelled = true; };
-  }, [phase, state?.decisions, buildPatch]);
+  }, [phase, state?.decisions, state?.patch_output_hash, buildPatch]);
 
   /* ---------------------------- ръчен преглед ----------------------------- */
 
@@ -702,6 +702,7 @@ export default function ProductResult() {
       <CorrectionWorkspace
         corrections={result.payload.corrections}
         savedDecisions={state?.decisions ?? []}
+        savedCorrectedText={manifest?.corrected_text ?? null}
         onSave={saveSelection}
         onDecision={(decision, strategy) =>
           trackCorrectionSelected(result.product_id, strategy ?? "none", decision)

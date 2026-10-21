@@ -38,6 +38,7 @@ type LocalDecision = { decision: "accept" | "reject"; strategy: CorrectionStrate
 export function CorrectionWorkspace({
   corrections,
   savedDecisions,
+  savedCorrectedText = null,
   onSave,
   onDecision,
   onPreviewOpened,
@@ -45,6 +46,7 @@ export function CorrectionWorkspace({
 }: {
   corrections: readonly Correction[];
   savedDecisions: readonly CorrectionDecision[];
+  savedCorrectedText?: string | null;
   onSave: (decisions: readonly CorrectionDecision[]) => Promise<SaveOutcome>;
   onDecision?: (decision: "accept" | "reject", strategy: CorrectionStrategy | null) => void;
   onPreviewOpened?: () => void;
@@ -64,7 +66,8 @@ export function CorrectionWorkspace({
       next[saved.correction_id] = { decision: saved.decision, strategy: saved.strategy };
     }
     setDecisions(next);
-  }, [savedDecisions]);
+    setCorrectedText(savedCorrectedText);
+  }, [savedDecisions, savedCorrectedText]);
 
   const decidedCount = useMemo(
     () => corrections.filter((c) => decisions[c.id] !== undefined).length,
