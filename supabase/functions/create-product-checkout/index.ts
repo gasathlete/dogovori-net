@@ -8,7 +8,7 @@
  * сума, цена, адрес за връщане или пълнота на документа.
  */
 import { bindTrustedProductSource, storageDownloader } from "../_shared/product-source-binding.ts";
-import { publicProductLaunchAllowed } from "../_shared/product-launch-gate.ts";
+import { publicProductLaunchAllowed, type LaunchGateClient } from "../_shared/product-launch-gate.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createStripeClient } from "../_shared/stripe.ts";
 import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
@@ -158,7 +158,7 @@ Deno.serve(async (req) => {
     // от вече проверения JWT, никога от тялото.
     await assertEnvironmentAllowed(admin, environment, userId);
 
-    if (!(await publicProductLaunchAllowed(admin, environment))) {
+    if (!(await publicProductLaunchAllowed(admin as unknown as LaunchGateClient, environment))) {
       return fail("public_product_launch_closed", 503, corsHeaders);
     }
 
