@@ -234,9 +234,8 @@ describe("мобилни наслоявания и профил", () => {
 describe("мобилен хедър и меню", () => {
   const header = read("src/components/Header.tsx");
 
-  it("връща предишните пропорции на хедъра, без промяна на десктоп", () => {
-    expect(header).toContain("h-[68px] xl:h-16");
-    expect(header).toContain("h-16 xl:h-14");
+  it("мобилните пропорции на хедъра остават 68/64 px; десктопът има място за калиграфския знак", () => {
+    expect(header).toContain('scrolled ? "h-16" : "h-[68px] xl:h-[72px]"');
     expect(header).not.toContain("h-[58px]");
     expect(header).toContain("max-h-[calc(100dvh-68px)]");
   });
