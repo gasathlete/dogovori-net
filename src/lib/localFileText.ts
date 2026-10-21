@@ -40,5 +40,5 @@ export async function extractLocalFileText(
 
 export function truncationNotice(r: LocalFileText, maxChars: number): string | null {
   if (!r.truncated) return null;
-  return `Файлът съдържа ${r.totalChars.toLocaleString("bg-BG")} знака. В полето са първите ${maxChars.toLocaleString("bg-BG")} — само те ще бъдат обработени.`;
+  return `Файлът съдържа поне ${r.totalChars.toLocaleString("bg-BG")} знака. В полето са първите ${maxChars.toLocaleString("bg-BG")} — само те ще бъдат обработени.`;
 }

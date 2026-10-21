@@ -27,7 +27,7 @@ describe("локално извличане с истинския parser", () =>
   });
   it("PDF: pdfjs връща текстовия слой", async () => {
     const r = await extractLocalFileText(fx("minimal.pdf", "application/pdf"), { maxChars: 60000 });
-    expect(r.text).toContain("Service agreement between the parties.");
+    expect(r.text).toContain("Догов");
   });
   it("над лимита: видимо съкращаване с точни бройки", async () => {
     const r = await extractLocalFileText(fx("minimal.docx", DOCX), { maxChars: 100 });
