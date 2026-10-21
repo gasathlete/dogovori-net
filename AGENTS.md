@@ -18,3 +18,5 @@
 - Product ENV config is projected by a pure module; private service-written deployment observations run after serving starts with bounded tri-state probes, so operator evidence never blocks auth or conflates network failure with disabled configuration.
 - Strict readiness validates full paginated candidate rows through the same chunk verifier with request-only registered-source reuse; never cache legal permission across requests or cap candidate truth.
 - New LIVE product checkout requires the private service-controlled launch row on every request; missing/error means closed, sandbox retains staff authentication, and existing fulfillment never depends on this gate.
+- Existing product reversals bind authoritative Stripe environment/payment-intent/session to locked paid ledgers, never the owner's mutable staff role; revocation must not preserve refunded access.
+- Refinement models return allowlisted narrative patches; the server preserves source and evidence from the paid base and validates the merged result — avoids regenerating immutable evidence and oversized output.

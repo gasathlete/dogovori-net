@@ -22,14 +22,15 @@ export type PrelaunchFeature = (typeof PRELAUNCH_FEATURES)[number];
  * Отворени са само функциите с реална положителна MAIN проверка (20.10.2026):
  * генериране + ревизия на генериран документ, асистент (регистриран и анонимен),
  * бланка, анализ на поставен текст (document_review). Суровите файлове остават спрени.
- * Плащанията остават затворени.
+ * Еднократните продукти са подготвени за пускане; LIVE се контролира отделно на сървъра.
+ * Абонаментите остават затворени.
  */
 const AVAILABLE: Readonly<Record<PrelaunchFeature, boolean>> = Object.freeze({
   blank_download: true,
   document_generation: true,
   document_review: true,
   assistant: true,
-  one_time_product: false,
+  one_time_product: true,
   subscription: false,
 });
 

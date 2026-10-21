@@ -381,14 +381,16 @@ async function resolveProductSession(
         session?.id &&
         session?.mode === "payment" &&
         meta.environment === env &&
-        (session?.livemode === undefined || session.livemode === (env === "live")),
+        session.livemode === (env === "live") &&
+        stripeId(session.payment_intent) === paymentIntentId,
     );
   });
   if (matches.length !== 1) {
     console.log("product reversal ignored — exact checkout session not proven");
     return null;
   }
-  const meta = readProductSessionMetadata(matches[0].metadata as Any)!;
+  const meta = readProductSessionMetadata(matches[0].metadata as Any);
+  if (!meta) return null;
   return { sessionId: matches[0].id as string, userId: meta.userId };
 }
 
@@ -405,13 +407,9 @@ export async function handleProductReversal(
   const resolved = await resolveProductSession(d, object, env);
   if (!resolved) return;
 
-  // Charge and Dispute objects do not reliably carry the Session userId.
-  // Perform the sandbox staff gate only after the signed Stripe relationship
-  // resolves to the product Session metadata.
-  if (env === "sandbox" && !(await isStaffUser(d.db, resolved.userId))) {
-    console.log("sandbox product reversal ignored — non-staff owner");
-    return;
-  }
+  // Reversal is an existing financial obligation, not permission to buy.
+  // The service-only RPC locks and checks the immutable paid snapshot/owner.
+  // A later role removal or account disable must not preserve refunded access.
 
   const { data, error } = await d.db.rpc("record_product_payment_reversal", {
     p_session_id: resolved.sessionId,
@@ -801,11 +799,14 @@ export async function sandboxEntitlementAllowed(
 
 export async function dispatchEvent(
   d: WebhookDeps,
-  event: { type: string; id?: string; created?: number; data: { object: Any } },
+  event: { type: string; id?: string; created?: number; livemode?: boolean; data: { object: Any } },
   env: StripeEnv,
 ): Promise<void> {
-  // Reversal objects do not reliably contain metadata.userId. They resolve
-  // and enforce the sandbox staff gate inside the dedicated handler.
+  if (event.livemode !== undefined && event.livemode !== (env === "live")) {
+    throw new Error("webhook_environment_mismatch");
+  }
+  // Existing payment reversals resolve immutable provider and ledger bindings;
+  // only new sandbox purchases require the owner's current staff permission.
   if (event.type === "charge.refunded") {
     const charge = event.data.object;
     if (

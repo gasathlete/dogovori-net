@@ -529,8 +529,8 @@ Deno.test("full product refund records exact-session reversal and sends no email
   }), "sandbox");
 
   assertEquals(listCalls, [{ payment_intent: "pi_product", limit: 3 }]);
-  assertEquals(db.rpcCalls, ["is_staff", "record_product_payment_reversal"]);
-  assertEquals(db.rpcArgs[1].args, {
+  assertEquals(db.rpcCalls, ["record_product_payment_reversal"]);
+  assertEquals(db.rpcArgs[0].args, {
     p_session_id: "cs_product_reversal",
     p_environment: "sandbox",
     p_event_id: "evt_reversal",
@@ -610,14 +610,29 @@ Deno.test("dispute can resolve payment intent through its exact charge", async (
   assertEquals(db.rpcCalls.includes("record_product_payment_reversal"), true);
 });
 
-Deno.test("sandbox reversal for non-staff product owner performs no write", async () => {
-  const db = makeDb({ rpc: () => ({ data: false, error: null }) });
+Deno.test("sandbox reversal survives staff revocation or disabled owner", async () => {
+  const db = makeDb({ rpc: (fn) => ({ data: fn === "is_staff" ? false : { ok: true }, error: null }) });
   const { deps, emails } = makeReversalDeps(db);
   await dispatchEvent(deps, reversalEvent("charge.dispute.created", {
     payment_intent: "pi_product",
   }), "sandbox");
-  assertEquals(db.rpcCalls, ["is_staff"]);
+  assertEquals(db.rpcCalls, ["record_product_payment_reversal"]);
   assertEquals(emails.length, 0);
+});
+
+Deno.test("reversal rejects cross-environment signed event before any lookup", async () => {
+  const db = makeDb();
+  const { deps, listCalls } = makeReversalDeps(db);
+  await assertRejects(() => dispatchEvent(deps, { ...reversalEvent("charge.refunded", { amount: 299, amount_refunded: 299 }), livemode: true }, "sandbox"), Error, "webhook_environment_mismatch");
+  assertEquals(listCalls.length, 0);
+  assertEquals(db.rpcCalls.length, 0);
+});
+
+Deno.test("reversal refuses a session with a different payment intent", async () => {
+  const db = makeDb();
+  const { deps } = makeReversalDeps(db, [{ ...productSession, payment_intent: "pi_foreign" }]);
+  await dispatchEvent(deps, reversalEvent("charge.dispute.created", { payment_intent: "pi_product" }), "sandbox");
+  assertEquals(db.rpcCalls.length, 0);
 });
 
 Deno.test("reversal RPC error fails closed so Stripe retries", async () => {

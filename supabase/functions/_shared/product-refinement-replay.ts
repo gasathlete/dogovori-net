@@ -28,6 +28,20 @@ const DIGEST_RE = /^[0-9a-f]{64}$/;
 export const REFINEMENT_REPLAY_SELECT =
   "id, user_id, entitlement_id, product_id, status, base_result_digest, instruction_digest, idempotency_key, expected_refinement_version, refinement_version, result, result_canonical, result_digest";
 
+/** Owner read-back uses the same digest/source verifier as exact operation replay. */
+export async function loadSucceededRefinement(
+  db: RefinementReplayDbClient,
+  input: { userId: string; entitlementId: string; baseDigest: string; base: NegotiationPackageResult; binding: ProductSourceBinding },
+  deps: { canonical: (value: unknown) => string; sha256Hex: (value: string) => Promise<string> },
+): Promise<RefinementReplayLookup> {
+  const { data: row, error } = await db.from("product_result_refinements").select(REFINEMENT_REPLAY_SELECT)
+    .eq("user_id", input.userId).eq("entitlement_id", input.entitlementId).eq("status", "succeeded").maybeSingle();
+  if (error) return { kind: "unavailable" };
+  if (!row) return { kind: "none" };
+  if (typeof row.idempotency_key !== "string" || typeof row.instruction_digest !== "string" || !Number.isSafeInteger(row.expected_refinement_version)) return { kind: "invalid" };
+  return findSucceededRefinementReplay(db, { ...input, idempotencyKey: row.idempotency_key, expectedDigest: input.baseDigest, instructionDigest: row.instruction_digest, expectedVersion: row.expected_refinement_version }, deps);
+}
+
 export async function findSucceededRefinementReplay(
   db: RefinementReplayDbClient,
   input: {

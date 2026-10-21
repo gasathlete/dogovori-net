@@ -110,6 +110,7 @@ type Phase =
     }
   | {
       readonly kind: "failed";
+      readonly paused?: boolean;
       readonly productId: string;
       readonly entitlement: PaidEntitlementRow;
     }
@@ -157,6 +158,9 @@ export default function ProductResult() {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     attemptsRef.current = 0;
+    retriesRef.current = 0;
+    stageRef.current = null;
+    resumingRef.current = false;
 
     const tick = async () => {
       attemptsRef.current += 1;
@@ -196,7 +200,7 @@ export default function ProductResult() {
         resuming: resumingRef.current,
       });
       if (attemptsRef.current >= MAX_ATTEMPTS) {
-        setPhase({ kind: "failed", productId: row.product_id, entitlement: row });
+        setPhase({ kind: "failed", paused: true, productId: row.product_id, entitlement: row });
         return;
       }
 
@@ -206,8 +210,12 @@ export default function ProductResult() {
       if (cancelled) return;
       if (fulfil.ok === true) {
         resumingRef.current = false;
+        retriesRef.current = 0;
         const stage = (fulfil.data as { stage?: unknown }).stage;
-        if (isFulfillmentStage(stage)) stageRef.current = stage;
+        if (isFulfillmentStage(stage)) {
+          if (stage !== stageRef.current) attemptsRef.current = 0;
+          stageRef.current = stage;
+        }
         if (fulfil.data.status === "ready") stageRef.current = "ready";
       } else if (fulfil.failure.error === "failed_permanent") {
         setPhase({ kind: "failed", productId: row.product_id, entitlement: row });
@@ -217,7 +225,7 @@ export default function ProductResult() {
         retriesRef.current += 1;
         resumingRef.current = true;
         if (retriesRef.current > MAX_RETRYABLE) {
-          setPhase({ kind: "failed", productId: row.product_id, entitlement: row });
+          setPhase({ kind: "failed", paused: true, productId: row.product_id, entitlement: row });
           return;
         }
       }
@@ -311,6 +319,20 @@ export default function ProductResult() {
   );
 
   const [manifest, setManifest] = useState<ProductPatchManifest | null>(null);
+
+  // Rebuild downloads from the persisted server selection after a reload.
+  useEffect(() => {
+    if (phase.kind !== "ready" || !state?.decisions.length || phase.result.product_id === "contract_check") {
+      setManifest(null);
+      return;
+    }
+    let cancelled = false;
+    setManifest(null);
+    void buildPatch(phase.result, phase.purchase, state.decisions).then(local => {
+      if (!cancelled && local.output_hash.toLowerCase() === state.patch_output_hash?.toLowerCase()) setManifest(local);
+    }).catch(() => { if (!cancelled) setManifest(null); });
+    return () => { cancelled = true; };
+  }, [phase, state?.decisions, state?.patch_output_hash, buildPatch]);
 
   /* ---------------------------- ръчен преглед ----------------------------- */
 
@@ -561,13 +583,13 @@ export default function ProductResult() {
     const failedRow = phase.entitlement;
     return frame(
       <>
-        <h1 className="text-2xl font-semibold md:text-3xl">Не успяхме да завършим</h1>
+        <h1 className="text-2xl font-semibold md:text-3xl">{phase.paused ? "Обработката може да продължи" : "Не успяхме да завършим"}</h1>
         <p className="mt-3 text-muted-foreground">
-          Опитайте отново след малко. Ако проблемът остане, {CONTACT}
+          {phase.paused ? "Напредъкът е запазен. Можете да продължите без ново плащане." : <>Опитайте отново след малко. Ако проблемът остане, {CONTACT}</>}
         </p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <Button type="button" className="min-h-11" onClick={reload}>
-            Опитайте отново
+            {phase.paused ? "Продължете обработката" : "Опитайте отново"}
           </Button>
           {manual === null && (
             <Button
@@ -616,7 +638,9 @@ export default function ProductResult() {
     );
   }
 
-  const { purchase, result } = phase;
+  const { purchase } = phase;
+  const refined = state?.refined_result ? readPaidResult({ ...purchase.entitlement, result: state.refined_result }) : null;
+  const result = refined?.ok ? refined.result : phase.result;
   const row = purchase.entitlement;
   const title = result.payload.passport.title;
   // Успокоение „нищо не е намерено“ само при доказана проверка върху целия текст.
@@ -689,6 +713,7 @@ export default function ProductResult() {
       <CorrectionWorkspace
         corrections={result.payload.corrections}
         savedDecisions={state?.decisions ?? []}
+        savedCorrectedText={manifest?.corrected_text ?? null}
         onSave={saveSelection}
         onDecision={(decision, strategy) =>
           trackCorrectionSelected(result.product_id, strategy ?? "none", decision)
