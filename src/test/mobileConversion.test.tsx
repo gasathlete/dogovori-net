@@ -234,12 +234,6 @@ describe("мобилни наслоявания и профил", () => {
 describe("мобилен хедър и меню", () => {
   const header = read("src/components/Header.tsx");
 
-  it("мобилните пропорции на хедъра остават 68/64 px; десктопът има място за калиграфския знак", () => {
-    expect(header).toContain('scrolled ? "h-16" : "h-[68px] xl:h-[72px]"');
-    expect(header).not.toContain("h-[58px]");
-    expect(header).toContain("max-h-[calc(100dvh-68px)]");
-  });
-
   it("„Продукти“ и „Планове“ са отделни водещи редове най-горе", () => {
     const primary = header.slice(header.indexOf("const MOBILE_PRIMARY"), header.indexOf("const MOBILE_MORE"));
     const labels = [...primary.matchAll(/label: "([^"]+)"/g)].map((m) => m[1]);

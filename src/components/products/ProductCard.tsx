@@ -46,7 +46,7 @@ export function ProductCard({
         data-variant={variant}
         data-featured={featured ? "true" : undefined}
         className={
-          "group relative flex h-full flex-col gap-3 overflow-hidden rounded-2xl p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-gold/50 hover:shadow-elegant sm:p-5 " +
+          "brand-product group relative flex h-full flex-col gap-3 overflow-hidden rounded-2xl p-4 transition-colors duration-200 hover:border-gold/50 sm:p-5 " +
           (premium ? "bg-navy/[0.04] " : "bg-card/60 ") +
           (featured || premium
             ? "border-2 border-gold/45 shadow-elegant ring-1 ring-gold/15"

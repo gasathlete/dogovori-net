@@ -26,7 +26,7 @@ export function ProductsSection() {
   }, [inView]);
 
   return (
-    <section id="produkti" aria-labelledby="home-products-title" className="border-b border-border">
+    <section id="produkti" aria-labelledby="home-products-title" className="brand-plans-band border-b border-border">
       <div ref={ref} className="container grid gap-4 py-14 sm:py-20 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
         <div>
           <h2 id="home-products-title" className="font-serif text-3xl font-bold leading-tight sm:text-4xl">

@@ -9,6 +9,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAudience } from "@/hooks/useAudience";
 import { CATALOG_REVIEW_STATUS } from "@/lib/templateReviewStatus";
 import { AudienceToggle } from "@/components/funnel/AudienceToggle";
+import { BrandMark } from "@/components/BrandLogo";
+import { ProductOutputVisual } from "@/components/products/ProductOutputVisual";
+import { Button } from "@/components/ui/button";
 
 /** Бързи търсения — водят към реалното търсене в каталога (/catalog?q=…). */
 const QUICK_QUERIES = ["наем", "услуги", "пълномощно", "трудов договор"] as const;
@@ -45,10 +48,10 @@ export function Hero() {
   };
 
   return (
-    <section className="border-b border-border bg-background">
-      <div className="container grid w-full gap-12 py-12 sm:py-16 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] lg:gap-20 lg:py-20">
+    <section className="brand-hero border-b border-border bg-background">
+      <div className="container grid w-full gap-10 py-10 sm:py-14 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-12 lg:py-14">
         <div className="min-w-0 text-left">
-          <p className="text-sm text-muted-foreground">Образци и подготовка на документи · Тестов период</p>
+          <p className="flex items-center gap-3 text-sm text-muted-foreground"><BrandMark decorative className="h-10 w-12" /> Образци и подготовка на документи · Тестов период</p>
           <h1 className="mt-4 max-w-[16ch] font-serif text-[34px] font-bold leading-[1.1] text-foreground sm:text-[44px] lg:text-[56px]">
             {copy.heroHeadline.lead} {copy.heroHeadline.accent}{copy.heroHeadline.tail}
           </h1>
@@ -75,7 +78,7 @@ export function Hero() {
                   className="h-14 w-full rounded border border-foreground/40 bg-card pl-11 pr-4 text-base text-foreground placeholder:text-muted-foreground focus:border-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </div>
-              <button
+              <Button
                 type="submit"
                 data-testid="hero-primary-cta"
                 data-href="/catalog"
@@ -83,7 +86,7 @@ export function Hero() {
               >
                 Намерете документ
                 <ArrowRight className="h-[18px] w-[18px]" />
-              </button>
+              </Button>
             </div>
             <p className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
               <span className="text-muted-foreground">Често търсени:</span>
@@ -102,27 +105,31 @@ export function Hero() {
             <Link to="/analiz" {...prefetchHandlers("/analiz")} className="link-ink inline-flex min-h-11 items-center gap-1.5">
               <FileUp className="h-4 w-4" /> {isFeatureAvailable("document_review") ? "Проверете документ" : "Проверка · В подготовка"}
             </Link>
-            <button
+            <Button variant="link"
               type="button"
               onClick={() => {
                 trackFunnelEvent("home_demo_story_opened", { source: "hero" });
                 import("@/components/funnel/StartStoryOverlay").then((m) => m.openStartStory());
               }}
-              className="link-ink inline-flex min-h-11 items-center"
+              className="link-ink inline-flex min-h-11 items-center px-0"
             >
               Вижте демонстрацията
-            </button>
+            </Button>
           </div>
           <div className="mt-2"><AudienceToggle size="sm" /></div>
         </div>
 
         {/* Указател: реални адреси към пакети и търсене в каталога. */}
-        <nav aria-labelledby="hero-index-title" className="min-w-0 lg:border-l lg:border-border lg:pl-10">
+        <div className="min-w-0">
+          <div className="brand-document-stage">
+            <ProductOutputVisual productId="contract_check" detailed />
+          </div>
+        <nav aria-labelledby="hero-index-title" className="mt-7 min-w-0">
           <h2 id="hero-index-title" className="font-serif text-xl font-bold text-foreground">Започнете от задачата</h2>
-          <ol className="mt-4 border-t border-foreground/80">
+          <ol className="mt-3 grid border-t border-foreground/80 sm:grid-cols-2">
             {TASKS.map((t, i) => (
               <li key={t.title} className="border-b border-border">
-                <Link to={t.to} className="group grid min-h-11 grid-cols-[2rem_1fr] gap-x-2 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <Link to={t.to} className="group grid min-h-11 grid-cols-[1.5rem_1fr] gap-x-2 py-3 pr-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <span className="font-serif text-sm text-gold" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
                   <span>
                     <span className="block font-semibold text-foreground underline-offset-4 group-hover:underline">{t.title}</span>
@@ -136,6 +143,7 @@ export function Hero() {
             <span className="font-semibold text-foreground">{CATALOG_REVIEW_STATUS.badge}.</span> {CATALOG_REVIEW_STATUS.warning}
           </p>
         </nav>
+        </div>
       </div>
 
       <div className="container pb-12 lg:pb-16"><HeroProductRail /></div>
