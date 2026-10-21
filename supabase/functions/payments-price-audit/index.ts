@@ -13,6 +13,7 @@ import { buildCors } from "../_shared/cors.ts";
 import type { StripeEnv } from "../_shared/stripe.ts";
 import { readProductIntegrationConfig } from "../_shared/product-integration-config.ts";
 import { persistProductOperatorObservation } from "../_shared/product-operator-observation.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 /** Всички ключове, по които приложението отваря плащане. */
 const LOOKUP_KEYS = [
@@ -49,7 +50,6 @@ Deno.serve(async (req: Request) => {
     });
 
   try {
-    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.0");
     const url = Deno.env.get("SUPABASE_URL");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!url || !serviceKey) return json({ error: "audit_failed" }, 500);

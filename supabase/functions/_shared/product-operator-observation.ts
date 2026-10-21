@@ -2,7 +2,7 @@ import { readProductIntegrationConfig, type EnvReader } from "./product-integrat
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { isLegalKnowledgeBaseReady } from "./product-legal-basis.ts";
 
-export const PRODUCT_OPERATOR_BUILD = "product-operator-20261021-v2-9bc9fbd";
+export const PRODUCT_OPERATOR_BUILD = "product-operator-20261021-v3-9bc9fbd";
 export type OperatorProbe = { state: "ready" | "not_ready" | "unknown"; code?: "probe_timeout" | "probe_error" };
 
 /** Unlike a commerce gate, an operational failure is unknown, never false. */
@@ -48,6 +48,8 @@ export async function persistProductOperatorObservation(env: EnvReader): Promise
     return data?.ok === true && data?.migration === readProductIntegrationConfig(env).expectedMigration;
   });
   await write({ migration_probe: migration }, "PATCH");
+  let legalHttpStatus: number | undefined;
+  let legalFailure: "database_http_error" | "database_transport_error" | "probe_deadline" | undefined;
   const legal = await boundedOperatorProbe(async () => {
     const signal = AbortSignal.timeout(7000);
     let failed = false;
@@ -55,14 +57,15 @@ export async function persistProductOperatorObservation(env: EnvReader): Promise
       fetch: async (input, init) => {
         try {
           const response = await fetch(input, { ...init, signal });
-          if (!response.ok) failed = true;
+          if (!response.ok) { failed = true; legalHttpStatus = response.status; legalFailure = "database_http_error"; }
           return response;
-        } catch (error) { failed = true; throw error; }
+        } catch (error) { failed = true; legalFailure = signal.aborted ? "probe_deadline" : "database_transport_error"; throw error; }
       },
     } });
     const ready = await isLegalKnowledgeBaseReady(db as never);
     if (signal.aborted || failed) throw new Error("legal_probe_failed");
     return ready;
   });
-  await write({ legal_probe: legal }, "PATCH");
+  await write({ legal_probe: { ...legal, ...(legalFailure ? { detail_code: legalFailure } : {}),
+    ...(legalHttpStatus !== undefined ? { http_status: legalHttpStatus } : {}) } }, "PATCH");
 }
