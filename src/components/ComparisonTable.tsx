@@ -1,141 +1,25 @@
-import { cheapestPerOpLabel } from "@/lib/pricing";
-import { Check, X, Minus } from "@/icons";
+import { Link } from "react-router-dom";
+import { ONE_TIME_PRODUCTS, productPath, productPriceLabel } from "@/lib/products";
+import { Check, Minus } from "@/icons";
 
-type Cell = "yes" | "no" | "partial" | string;
-
-const ROWS: { label: string; us: Cell; lawyer: Cell; free: Cell }[] = [
-  { label: "Цена за документ", us: `от ${cheapestPerOpLabel()}`, lawyer: "150–400 €", free: "0 €" },
-  { label: "Време до готов документ", us: " 2-3 мин.", lawyer: "1–5 дни", free: "30–60 мин." },
-  { label: "Юридическа валидност (ЗЗД·ТЗ·ЗУТ)", us: "yes", lawyer: "yes", free: "partial" },
-  { label: "AI риск-анализ", us: "yes", lawyer: "partial", free: "no" },
-  { label: "Електронен подпис", us: "yes", lawyer: "partial", free: "no" },
-  { label: "Корекции и поддръжка", us: "yes", lawyer: "partial", free: "no" },
-];
-
-const COLUMNS: { key: "us" | "lawyer" | "free"; label: string; highlight?: boolean }[] = [
-  { key: "us", label: "Договори.нет", highlight: true },
-  { key: "lawyer", label: "Адвокат" },
-  { key: "free", label: "СТАРИ БЛАНКИ \nВ ГУГЪЛ" },
-];
-
-function Mark({ value }: { value: Cell }) {
-  if (value === "yes")
-    return (
-      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-emerald-500/45 bg-emerald-500/15 text-emerald-500">
-        <Check className="h-3.5 w-3.5 text-success" />
-      </span>
-    );
-  if (value === "no")
-    return (
-      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-red-500/45 bg-red-500/15 text-red-500">
-        <X className="h-3.5 w-3.5" />
-      </span>
-    );
-  if (value === "partial")
-    return (
-      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-border/60 bg-muted/30 text-muted-foreground">
-        <Minus className="h-3.5 w-3.5" />
-      </span>
-    );
-  return <span className="text-sm font-semibold text-foreground sm:text-[15px]">{value}</span>;
-}
+/** Compare our canonical outputs, never unsupported competitor/legal claims. */
+const ROWS = [
+  { label: "Подробен разбор с извадки", available: [true, true, true] },
+  { label: "Поправки в три варианта", available: [false, true, true] },
+  { label: "Поправен документ в DOCX и PDF", available: [false, true, true] },
+  { label: "План, срокове и две писма", available: [false, false, true] },
+  { label: "Едно допълнително прецизиране", available: [false, false, true] },
+] as const;
 
 export function ComparisonTable() {
   return (
-    <section className="container py-12 sm:py-16 md:py-20">
-      <div className="mx-auto mb-10 max-w-2xl text-center">
-        <div className="eyebrow mb-3 justify-center">
-          <span className="section-number font-serif text-base font-normal tracking-normal text-gold/60">09</span>
-          <span className="h-px w-6 bg-gold/40" />
-          Сравнение
-        </div>
-        <h2 className="font-serif text-3xl font-bold leading-tight text-balance sm:text-4xl md:text-5xl">
-          Договор<span className="text-accent-gradient stress-accent">и</span> твоята най-добра сделка днес !
-        </h2>
-        <p className="mt-3 text-sm text-muted-foreground sm:text-base">
-          Цена, скорост и сигурност в едно — без компромис със закона.
-        </p>
+    <section className="mt-12" aria-labelledby="product-comparison-heading">
+      <h3 id="product-comparison-heading" className="font-serif text-2xl font-bold">Кой резултат Ви е необходим?</h3>
+      <p className="mt-3 text-sm text-muted-foreground">Един документ, различен обхват. Цените са с ДДС; резултатите не заменят индивидуална правна консултация.</p>
+      <div className="mt-6 hidden sm:block">
+        <table className="w-full text-left text-sm"><caption className="sr-only">Сравнение на трите еднократни продукта</caption><thead><tr className="border-y border-border bg-secondary"><th scope="col" className="p-4">Получавате</th>{ONE_TIME_PRODUCTS.map((p) => <th key={p.id} scope="col" className="p-4"><Link className="link-ink font-serif text-lg" to={productPath(p)}>{p.shortName}</Link><span className="mt-1 block text-gold">{productPriceLabel(p.id)}</span></th>)}</tr></thead><tbody>{ROWS.map((row) => <tr key={row.label} className="border-b border-border"><th scope="row" className="p-4 font-medium">{row.label}</th>{row.available.map((yes, i) => <td key={i} className="p-4">{yes ? <><Check aria-hidden="true" className="size-5 text-gold" /><span className="sr-only">Включено</span></> : <><Minus aria-hidden="true" className="size-5 text-muted-foreground" /><span className="sr-only">Не е включено</span></>}</td>)}</tr>)}</tbody></table>
       </div>
-
-      {/* Mobile: stacked cards per criterion */}
-      <div className="mx-auto max-w-5xl space-y-3 sm:hidden">
-        {ROWS.map((r) => (
-          <div
-            key={r.label}
-            className="rounded-xl border border-border/60 bg-card/30 p-4"
-          >
-            <div className="mb-3 text-sm font-semibold text-foreground">{r.label}</div>
-            <ul className="space-y-2">
-              {COLUMNS.map((c) => (
-                <li
-                  key={c.key}
-                  className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 ${
-                    c.highlight
-                      ? "border border-gold/30 bg-gold/[0.06]"
-                      : "border border-border/40 bg-background/40"
-                  }`}
-                >
-                  <span
-                    className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${
-                      c.highlight ? "text-gold" : "text-muted-foreground"
-                    }`}
-                  >
-                    {c.label}
-                  </span>
-                  <Mark value={r[c.key]} />
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
-
-      {/* Tablet+ : full comparison table */}
-      <div className="mx-auto hidden max-w-5xl overflow-x-auto rounded-xl border border-border/60 sm:block">
-        <table className="w-full min-w-[640px] border-collapse text-left">
-          <thead>
-            <tr className="border-b border-border/60 bg-card/40">
-              <th className="sticky left-0 z-10 bg-card/80 px-4 py-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:px-6">
-                Критерий
-              </th>
-              <th className="bg-gold/10 px-4 py-4 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-gold sm:px-6">
-                Договори.нет
-              </th>
-              <th className="px-4 py-4 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:px-6">
-                Адвокат
-              </th>
-              <th className="px-4 py-4 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:px-6">
-                НЕПРОВЕРЕН DOC.
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {ROWS.map((r, i) => (
-              <tr
-                key={r.label}
-                className={i % 2 === 0 ? "bg-transparent" : "bg-card/20"}
-              >
-                <th
-                  scope="row"
-                  className="sticky left-0 z-10 bg-inherit px-4 py-4 text-sm font-medium text-foreground sm:px-6"
-                  style={{ backgroundColor: i % 2 === 0 ? "transparent" : undefined }}
-                >
-                  {r.label}
-                </th>
-                <td className="bg-gold/[0.04] px-4 py-4 text-center sm:px-6">
-                  <Mark value={r.us} />
-                </td>
-                <td className="px-4 py-4 text-center sm:px-6">
-                  <Mark value={r.lawyer} />
-                </td>
-                <td className="px-4 py-4 text-center sm:px-6">
-                  <Mark value={r.free} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <div className="mt-6 space-y-5 sm:hidden">{ONE_TIME_PRODUCTS.map((p, i) => <article key={p.id} className="border-t-2 border-gold pt-4"><h4 className="flex items-baseline justify-between gap-3 font-serif text-xl font-bold"><Link to={productPath(p)} className="link-ink">{p.shortName}</Link><span>{productPriceLabel(p.id)}</span></h4><ul className="mt-3 space-y-2">{ROWS.filter((r) => r.available[i]).map((r) => <li key={r.label} className="flex gap-3 text-sm"><Check aria-hidden="true" className="size-4 shrink-0 text-gold" />{r.label}</li>)}</ul></article>)}</div>
     </section>
   );
 }

@@ -1206,6 +1206,21 @@ html.light { --brand: 222 30% 14%; --brand-light: 222 30% 24%; --brand-dark: 222
 .brand-product { border-top: 3px solid hsl(var(--gold)); border-radius: 4px; }
 .brand-product-grid .brand-product:last-child { background: hsl(var(--secondary)); }
 .brand-plans-band { background: hsl(var(--secondary)); }
+.brand-platform-band {
+  --foreground: var(--brand-on-ink); --muted-foreground: var(--brand-on-ink-muted);
+  --card: 222 28% 18%; --background: 222 34% 14%;
+  --secondary: 222 24% 25%; --secondary-foreground: var(--brand-on-ink);
+  --primary: var(--brand-on-ink); --primary-foreground: var(--brand-ink);
+  --border: var(--brand-on-ink-border); --input: var(--brand-on-ink-border);
+  --gold: var(--brand-bronze); --ring: var(--brand-bronze);
+  background: hsl(var(--brand-ink)); color: hsl(var(--foreground));
+}
+.brand-platform-preview {
+  --foreground: var(--brand-paper-ink); --muted-foreground: var(--brand-paper-muted);
+  --background: var(--brand-paper); --border: var(--brand-paper-border);
+  --gold: var(--brand-paper-brass);
+  background: hsl(var(--brand-paper)); color: hsl(var(--foreground));
+}
 .brand-footer {
   --foreground: var(--brand-on-ink); --muted-foreground: var(--brand-on-ink-muted);
   --gold: var(--brand-bronze); --border: var(--brand-on-ink-border);

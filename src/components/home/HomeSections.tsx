@@ -16,6 +16,9 @@ const SocialProofStrip = lazy(() => import("@/components/SocialProofStrip").then
 const SectorPackages = lazy(() => import("@/components/home/SectorPackages").then((m) => ({ default: m.SectorPackages })));
 const LifeScenarios = lazy(() => import("@/components/LifeScenarios").then((m) => ({ default: m.LifeScenarios })));
 const FAQ = lazy(() => import("@/components/FAQ").then((m) => ({ default: m.FAQ })));
+const ProductExperience = lazy(() => import("@/components/home/ProductExperience").then((m) => ({ default: m.ProductExperience })));
+const PlatformExperience = lazy(() => import("@/components/home/PlatformExperience").then((m) => ({ default: m.PlatformExperience })));
+const ToolExperience = lazy(() => import("@/components/home/ToolExperience").then((m) => ({ default: m.ToolExperience })));
 
 export function HomeSections() {
   return (
@@ -39,6 +42,18 @@ export function HomeSections() {
         <Suspense fallback={<SectionSkeleton />}>
           <ProductsSection />
         </Suspense>
+      </LazyOnVisible>
+
+      <LazyOnVisible minHeight={[760, 600, 520]}>
+        <Suspense fallback={<SectionSkeleton />}><ProductExperience /></Suspense>
+      </LazyOnVisible>
+
+      <LazyOnVisible minHeight={[700, 640, 600]}>
+        <Suspense fallback={<SectionSkeleton />}><PlatformExperience /></Suspense>
+      </LazyOnVisible>
+
+      <LazyOnVisible minHeight={[640, 600, 520]}>
+        <Suspense fallback={<SectionSkeleton />}><ToolExperience /></Suspense>
       </LazyOnVisible>
 
       <LazyOnVisible minHeight={[760, 600, 520]}>
