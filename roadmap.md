@@ -1,5 +1,5 @@
 # Roadmap
-- [ ] Mobile guided selling: task chooser, product/auth/payment continuity and concrete friction fixes; preserve completed marketing bonus, focused tests and 360/390/430 QA, no publication.
+- [x] Mobile guided selling: task chooser, factual product/auth continuity, single mobile action bar, duplicate guard and persistent retry; bonus preserved. 113 tests/13 files, 360/390/430 and desktop public journey, simulated keyboard, automatic build OK. No purchases/publication; boundaries in mobile-guided-selling-2026-10-21.md.
 - [x] Consent-only starter bonus: MAIN migrations 0030–0032 applied; 79 focused tests and isolated PostgreSQL signup/claim/concurrency/wave/assistant assertions passed; authenticated MAIN status and desktop/390px mocked dialog checked, automatic build OK. Frontend not published; exact boundaries in marketing-starter-bonus-2026-10-21.md.
 
 - [x] Premium commerce homepage: ink/gold hero and fictional workflow tabs, manual package/kit shelves, compact products and comparison; 34 tests, automatic build OK, 1440/390 light/dark search/tab/keyboard/shelf checks. No publish; home-commerce-redesign-2026-10-21.md.
