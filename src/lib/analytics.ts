@@ -130,6 +130,7 @@ export function setCookiePrefs(p: Omit<CookiePrefs, "necessary" | "version" | "d
   };
   localStorage.setItem(PREFS_KEY, JSON.stringify(full));
   localStorage.setItem(LEGACY_KEY, full.analytics ? "granted" : "denied");
+  window.dispatchEvent(new Event("dogovori:cookie-preferences-changed"));
   applyConsentMode(full);
   if (full.analytics) initAnalytics();
 }

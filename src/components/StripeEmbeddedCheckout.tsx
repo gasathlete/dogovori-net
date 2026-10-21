@@ -4,7 +4,7 @@ import { AlertTriangle, RefreshCw, Lock, Check, Sparkles } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { getStripe, getStripeEnvironment } from "@/lib/stripe";
 import { supabase } from "@/integrations/supabase/client";
-import { trackCheckoutAbandoned, trackCheckoutFailed, trackCheckoutStarted } from "@/lib/metrics";
+import { trackCheckoutAbandoned, trackCheckoutFailed, trackCheckoutStarted, trackMetric } from "@/lib/metrics";
 import { categorizeCheckoutError, describePriceId } from "@/lib/checkoutAnalytics";
 import { checkoutValueNote, saveCheckoutIntent } from "@/lib/checkoutIntent";
 import { canStartNewProcessing, PRELAUNCH_LABELS } from "@/lib/prelaunch";
@@ -147,7 +147,7 @@ export function StripeEmbeddedCheckout({
             Не успяхме да отворим плащането
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Плащане не е извършено. Проверете връзката си и опитайте отново.
+            Проверете връзката си и опитайте отново. Ако вече сте потвърдили плащане, проверете покупките в профила си преди нов опит.
           </p>
         </div>
         <Button
@@ -155,6 +155,7 @@ export function StripeEmbeddedCheckout({
           variant="outline"
           className="gap-2"
           onClick={() => {
+            trackMetric("checkout_resume_clicked", { plan, billing, source: analyticsSource ?? "embedded" });
             trackedRef.current = false;
             setFailed(false);
             setAttempt((a) => a + 1);

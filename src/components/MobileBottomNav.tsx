@@ -9,6 +9,8 @@ import { useKeyboardOpen } from "@/hooks/useKeyboardOpen";
 import { getProductBySlug, ONE_TIME_PURCHASES_AVAILABLE, productPriceLabel, PRODUCT_EVENTS } from "@/lib/products";
 import { Button } from "@/components/ui/button";
 import { trackMetric } from "@/lib/metrics";
+import { useEffect, useState } from "react";
+import { getCookiePrefs } from "@/lib/analytics";
 
 const dogovaiIcon = "/dogovai-favicon.png";
 
@@ -50,11 +52,21 @@ export function MobileBottomNav() {
   const { count: unread } = useUnreadNotifications();
   const visible = useHideOnScroll(10);
   const keyboardOpen = useKeyboardOpen();
+  const [cookieChoicePending, setCookieChoicePending] = useState(() => getCookiePrefs() === null);
+  useEffect(() => {
+    const update = () => setCookieChoicePending(getCookiePrefs() === null);
+    window.addEventListener("dogovori:cookie-preferences-changed", update);
+    window.addEventListener("storage", update);
+    return () => {
+      window.removeEventListener("dogovori:cookie-preferences-changed", update);
+      window.removeEventListener("storage", update);
+    };
+  }, []);
 
   const path = location.pathname;
   const product = /^\/produkti\/[^/]+$/.test(path) ? getProductBySlug(path.split("/")[2]) : null;
   if (
-    keyboardOpen || path.startsWith("/admin") ||
+    cookieChoicePending || keyboardOpen || path.startsWith("/admin") ||
     (path.startsWith("/produkti/") && path.endsWith("/start")) ||
     path.startsWith("/sign/") ||
     path.startsWith("/signing/") ||
