@@ -9,13 +9,22 @@ export function partnerVisibleSlots(width: number): number {
   return width >= 900 ? 6 : width >= 600 ? 4 : width >= 340 ? 3 : 2;
 }
 
+const GAP = 12;
+const DURATION = 900;
+const DWELL = 3500;
+
+/**
+ * Stable track: [tail clones][originals][head clones] rendered once with stable keys.
+ * Only `pos` changes; at the boundary the track is silently normalized (transition off,
+ * same visual frame) so last→first is seamless and no image is remounted.
+ */
 export function PartnerCarousel({ partners }: { partners: PartnerLogo[] }) {
   const viewport = useRef<HTMLDivElement>(null);
+  const track = useRef<HTMLUListElement>(null);
   const moving = useRef(false);
   const [width, setWidth] = useState(0);
-  const [index, setIndex] = useState(0);
-  const [start, setStart] = useState(0);
-  const [animate, setAnimate] = useState(true);
+  const [pos, setPos] = useState(0);
+  const [animate, setAnimate] = useState(false);
   const [paused, setPaused] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -23,10 +32,11 @@ export function PartnerCarousel({ partners }: { partners: PartnerLogo[] }) {
   const [hidden, setHidden] = useState(document.hidden);
   const [reduced, setReduced] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const touchStart = useRef<number | null>(null);
+  const n = partners.length;
   const slots = partnerVisibleSlots(width);
-  const rotates = partners.length > slots;
-  const visible = Math.min(slots, partners.length);
-  const tileWidth = Math.max(0, (width - (slots - 1) * 12) / slots);
+  const rotates = n > slots;
+  const visible = Math.min(slots, n);
+  const tileWidth = Math.max(0, (width - (slots - 1) * GAP) / slots);
 
   useEffect(() => {
     const element = viewport.current;
@@ -45,51 +55,56 @@ export function PartnerCarousel({ partners }: { partners: PartnerLogo[] }) {
       media.removeEventListener("change", preference);
       document.removeEventListener("visibilitychange", visibility);
     };
-  }, [partners.length]);
+  }, [n]);
 
-  useEffect(() => { setStart(0); setIndex(0); setAnimate(false); moving.current = false; }, [slots, partners.length]);
+  useEffect(() => { setPos(0); setAnimate(false); moving.current = false; }, [slots, n]);
+
+  function normalize() {
+    moving.current = false;
+    setPos(current => {
+      if (current >= 0 && current < n) return current;
+      setAnimate(false);
+      return ((current % n) + n) % n;
+    });
+  }
 
   function advance(direction: number) {
     if (!rotates || moving.current) return;
-    setAnimate(!reduced);
-    moving.current = !reduced;
-    if (reduced) setStart(current => (current + direction + partners.length) % partners.length);
-    else setIndex(direction);
+    if (reduced) { setAnimate(false); setPos(current => ((current + direction) % n + n) % n); return; }
+    moving.current = true;
+    setAnimate(true);
+    setPos(current => current + direction);
   }
 
   useEffect(() => {
     if (!rotates || !onscreen || hidden || hovered || focused || paused || reduced) return;
-    const timer = window.setInterval(() => advance(1), 3500);
+    const timer = window.setInterval(() => advance(1), DWELL);
     return () => window.clearInterval(timer);
-  }, [rotates, onscreen, hidden, hovered, focused, paused, reduced, partners.length]);
+  }, [rotates, onscreen, hidden, hovered, focused, paused, reduced, n]);
 
-  // Transition-end is authoritative; timeout also releases the lock if motion is interrupted.
-  function finish() {
-    moving.current = false;
-    if (index !== 0) {
-      setAnimate(false);
-      setStart(current => (current + index + partners.length) % partners.length);
-      setIndex(0);
-    }
-  }
+  // Fallback if transitionend is lost (tab switch, interrupted motion).
   useEffect(() => {
     if (!moving.current) return;
-    const timer = window.setTimeout(finish, 720);
+    const timer = window.setTimeout(normalize, DURATION + 120);
     return () => window.clearTimeout(timer);
-  }, [index, partners.length]);
+  }, [pos]);
 
-  if (!partners.length) return null;
-  // Rebase the ordered originals after each move: visible settled links are never clones.
-  const ordered = [...partners.slice(start), ...partners.slice(0, start)];
+  if (!n) return null;
   const slides = rotates
-    ? [...ordered.slice(-visible).map(p => ({ p, clone: true })), ...ordered.map(p => ({ p, clone: false })), ...ordered.slice(0, visible).map(p => ({ p, clone: true }))]
-    : partners.map(p => ({ p, clone: false }));
-  const offset = rotates ? (visible + index) * (tileWidth + 12) : 0;
+    ? [
+        ...partners.slice(-visible).map((p, i) => ({ p, clone: true, key: `t${i}` })),
+        ...partners.map(p => ({ p, clone: false, key: p.id })),
+        ...partners.slice(0, visible).map((p, i) => ({ p, clone: true, key: `h${i}` })),
+      ]
+    : partners.map(p => ({ p, clone: false, key: p.id }));
+  const offset = rotates ? (visible + pos) * (tileWidth + GAP) : 0;
+  const current = ((pos % n) + n) % n;
 
   return (
-    <div className="mt-6 min-w-0" role="region" aria-label="Регистрирани фирми"
-      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-      onFocusCapture={() => setFocused(true)}
+    <div className="mt-6 min-w-0" role="region" aria-roledescription="карусел" aria-label="Регистрирани фирми"
+      onPointerEnter={event => { if (event.pointerType === "mouse") setHovered(true); }}
+      onPointerLeave={() => setHovered(false)}
+      onFocusCapture={event => { if ((event.target as HTMLElement).matches?.(":focus-visible")) setFocused(true); }}
       onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
       <div ref={viewport} className="overflow-hidden py-1" style={{ touchAction: "pan-y" }}
         onTouchStart={event => { touchStart.current = event.touches[0]?.clientX ?? null; }}
@@ -98,23 +113,29 @@ export function PartnerCarousel({ partners }: { partners: PartnerLogo[] }) {
           if (touchStart.current !== null && end !== undefined && Math.abs(end - touchStart.current) > 40) advance(end < touchStart.current ? 1 : -1);
           touchStart.current = null;
         }}>
-        <ul className="flex gap-3" data-partner-track="" onTransitionEnd={finish}
-          style={{ transform: `translateX(-${offset}px)`, transition: animate && !reduced ? "transform 650ms cubic-bezier(0.22, 0.61, 0.36, 1)" : "none" }}>
-          {slides.map(({ p, clone }, position) => {
+        <ul ref={track} className="flex gap-3" data-partner-track=""
+          onTransitionEnd={event => { if (event.target === event.currentTarget && event.propertyName === "transform") normalize(); }}
+          style={{ transform: `translate3d(-${offset}px,0,0)`, willChange: rotates ? "transform" : undefined,
+            transition: animate && !reduced ? `transform ${DURATION}ms cubic-bezier(0.45, 0, 0.25, 1)` : "none" }}>
+          {slides.map(({ p, clone, key }, position) => {
             const originalIndex = position - (rotates ? visible : 0);
-            const inView = !rotates || (originalIndex >= 0 && originalIndex < visible);
+            const inView = !rotates || (originalIndex >= current && originalIndex < current + visible);
+            const hide = clone || !inView;
             const img = <img src={storageThumb(p.logo_url, 240, 216, { fit: "contain", quality: 62 })} alt={clone ? "" : p.name}
-              loading="lazy" decoding="async" width={120} height={108} className="h-full w-full object-contain p-3" />;
-            return <li key={`${p.id}-${position}`} aria-hidden={clone || !inView ? true : undefined}
+              loading="eager" decoding="async" draggable={false} width={120} height={108} className="h-full w-full object-contain p-3" />;
+            return <li key={key} aria-hidden={hide ? true : undefined}
               className="h-24 shrink-0 rounded-sm border border-border bg-card sm:h-28" style={{ width: tileWidth }}>
               {p.website_url ? <a href={p.website_url} target="_blank" rel="noopener noreferrer nofollow" title={p.name}
-                tabIndex={clone || !inView ? -1 : 0} className="block h-full rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">{img}</a>
+                tabIndex={hide ? -1 : 0} className="block h-full rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">{img}</a>
                 : <span title={p.name} className="block h-full">{img}</span>}
             </li>;
           })}
         </ul>
       </div>
-      {rotates && <div className="mt-2 flex justify-end gap-1">
+      {rotates && <div className="mt-2 flex items-center justify-end gap-1">
+        <span className="mr-2 min-w-[3.5rem] text-right text-sm tabular-nums text-muted-foreground" aria-live="off" data-partner-position="">
+          {current + 1} / {n}
+        </span>
         <Button variant="ghost" size="icon" className="h-11 w-11" aria-label="Предишно лого" title="Предишно лого" onClick={() => advance(-1)}><ChevronLeft /></Button>
         {!reduced && <Button variant="ghost" size="icon" className="h-11 w-11" aria-label={paused ? "Продължи въртенето" : "Спри въртенето"} title={paused ? "Продължи въртенето" : "Спри въртенето"} aria-pressed={paused} onClick={() => setPaused(value => !value)}>{paused ? <Play /> : <Pause />}</Button>}
         <Button variant="ghost" size="icon" className="h-11 w-11" aria-label="Следващо лого" title="Следващо лого" onClick={() => advance(1)}><ChevronRight /></Button>

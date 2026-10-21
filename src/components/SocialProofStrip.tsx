@@ -27,9 +27,10 @@ async function fetchApprovedPartners(): Promise<Partner[]> {
  * Единствен източник на истината за броя регистрирани потребители.
  * При грешка или невалиден резултат хвърля — не връща измислена стойност.
  */
-async function fetchRegisteredUsers(): Promise<number> {
+export async function fetchRegisteredUsers(): Promise<number> {
   const { data, error } = await supabase.rpc("get_registered_users_count");
   if (error) throw error;
+  if (data === null || data === undefined || data === "") throw new Error("Празен брой регистрирани потребители");
   const n = typeof data === "number" ? data : Number(data);
   if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) {
     throw new Error("Невалиден брой регистрирани потребители");
@@ -37,23 +38,15 @@ async function fetchRegisteredUsers(): Promise<number> {
   return n;
 }
 
-/**
- * Точният проверен брой се показва директно след индикатора за зареждане —
- * без анимация от видима нула, за да не изглежда като по-малко потребители.
- */
 function ExactCount({ value, className }: { value: number; className?: string }) {
   return (
-    <span className={className}>
+    <span className={className} aria-label={`${value} регистрирани потребители`}>
       <span className="tabular-nums">{value.toLocaleString("bg-BG")}</span>
     </span>
   );
 }
 
-
-
-
 export function SocialProofStrip() {
-  // Public, near-static list. Cache aggressively — same data for every visitor.
   const { data: partners = [] } = useQuery({
     queryKey: ["public-partners"],
     queryFn: fetchApprovedPartners,
@@ -61,19 +54,18 @@ export function SocialProofStrip() {
     gcTime: 60 * 60_000,
   });
 
-  const {
-    data: registeredUsers,
-    isPending: usersPending,
-    isError: usersError,
-  } = useQuery({
+  const { data: registeredUsers, isPending: usersPending, isFetching, refetch } = useQuery({
     queryKey: ["public-registered-users-count"],
     queryFn: fetchRegisteredUsers,
-    retry: false,
+    retry: 2,
+    retryDelay: attempt => Math.min(1000 * 2 ** attempt, 4000),
     staleTime: 5 * 60_000,
     gcTime: 30 * 60_000,
   });
 
-  const hasUsers = !usersError && typeof registeredUsers === "number";
+  // Валидни кеширани данни остават видими и при временна грешка при опресняване.
+  const hasUsers = typeof registeredUsers === "number";
+  const usersUnavailable = !hasUsers && !usersPending;
 
   const catalogMetrics: { value: string; label: string }[] = [
     ...(TEMPLATES_COUNT > 0 ? [{ value: `${TEMPLATES_COUNT}`, label: "образеца в каталога" }] : []),
@@ -84,35 +76,39 @@ export function SocialProofStrip() {
     <section id="partners" aria-label="Партньори" className="border-b border-border bg-muted/50">
       <div className="container py-10 sm:py-12">
         <p className="max-w-[70ch] text-base leading-relaxed text-foreground/85">
-          {hasUsers ? (
-            <>
-              Използвана от <ExactCount value={registeredUsers as number} className="font-semibold text-foreground" /> регистрирани
-              фирми, специалисти на свободна практика, адвокати и счетоводители у нас и в чужбина.
-            </>
-          ) : (
-            <>Използвана от фирми, специалисти на свободна практика, адвокати и счетоводители у нас и в чужбина.</>
-          )}
-          {usersPending && <span className="sr-only"> Зарежда се</span>}
+          Използвана от фирми, специалисти на свободна практика, адвокати и счетоводители у нас и в чужбина.
         </p>
 
         <PartnerCarousel partners={partners} />
 
-        {(hasUsers || catalogMetrics.length > 0) && (
-          <dl className="mt-6 flex flex-wrap gap-x-10 gap-y-2 text-sm text-muted-foreground">
-            {hasUsers && (
-              <div className="flex items-baseline gap-2">
-                <dd className="font-serif text-xl text-foreground"><ExactCount value={registeredUsers as number} /></dd>
-                <dt>регистрирани потребители</dt>
-              </div>
-            )}
-            {catalogMetrics.map((m) => (
-              <div key={m.label} className="flex items-baseline gap-2">
-                <dd className="font-serif text-xl tabular-nums text-foreground">{m.value}</dd>
-                <dt>{m.label}</dt>
-              </div>
-            ))}
-          </dl>
-        )}
+        <dl className="mt-6 flex flex-wrap gap-x-10 gap-y-2 text-sm text-muted-foreground">
+          <div className="flex min-h-8 items-baseline gap-2" data-users-metric="">
+            <dd className="min-w-[3ch] font-serif text-xl text-foreground">
+              {hasUsers ? <ExactCount value={registeredUsers} />
+                : usersPending ? <span aria-hidden="true" className="inline-block h-5 w-10 animate-pulse rounded-sm bg-muted align-middle" />
+                : <span aria-hidden="true">—</span>}
+            </dd>
+            <dt>
+              регистрирани потребители
+              {usersPending && <span className="sr-only"> Зарежда се</span>}
+              {usersUnavailable && (
+                <>
+                  <span className="sr-only"> — броят не е наличен в момента</span>
+                  <button type="button" onClick={() => refetch()} disabled={isFetching}
+                    className="ml-2 inline-flex min-h-11 items-center underline underline-offset-4 hover:text-foreground disabled:opacity-60">
+                    {isFetching ? "Зарежда се…" : "Опитайте отново"}
+                  </button>
+                </>
+              )}
+            </dt>
+          </div>
+          {catalogMetrics.map((m) => (
+            <div key={m.label} className="flex min-h-8 items-baseline gap-2">
+              <dd className="font-serif text-xl tabular-nums text-foreground">{m.value}</dd>
+              <dt>{m.label}</dt>
+            </div>
+          ))}
+        </dl>
       </div>
     </section>
   );
