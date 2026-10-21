@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Security flow review 21.10: partial verified remediation deployed/tested, exact inventory in security-flow-review report; public chat200, commerce unchanged.
+- [ ] Security full closure: complete DScan/ignored history unavailable; upstream braces/sprintf-js unpatched, hosting CSP/anti-framing not served; MCP/CSV await coordinated publication and remaining invitation/EXECUTE/runtime checks not complete.
+
 - [x] Release package 06:06 + final06:40: genuine refunds reconciled; improve/premium/refinement/export and exact owner UI reload proved; LIVE catalog/webhook/token revalidated; one-time iframe gate fixed/tested; final fixture refunded/disabled, audits retained. ROOT coordinates CI/opening/publication; no new owner permission needed.
 
 - [x] Paid runtime 21.10 boundary/check proof: LIVE default-closed service row deployed/503 verified; genuine check TEST webhook→ready→browser PDF→identical replay proven. Fixture disabled, staff revoked; LIVE/public stay closed.

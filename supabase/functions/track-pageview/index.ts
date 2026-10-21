@@ -6,12 +6,7 @@
 // The batched shape lets the client coalesce up to 20 events into one request,
 // cutting DB write pressure ~10× under load.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { buildCors } from "../_shared/cors.ts";
 
 const SALT = Deno.env.get("PAGEVIEW_HASH_SALT") ?? "dogovori-pv-default";
 const MAX_EVENTS_PER_REQUEST = 30;
@@ -49,7 +44,9 @@ function refHost(ref: string | null, ownHost: string | null): string | null {
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCors(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return new Response(null, { status: 405, headers: corsHeaders });
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!SUPABASE_URL || !SERVICE_ROLE) {
@@ -135,6 +132,7 @@ Deno.serve(async (req) => {
         .from("page_views")
         .select("id")
         .eq("session_id", session_id)
+        .eq("visitor_day_hash", visitor_day_hash)
         .eq("path", upd.path)
         .eq("event", "pageview")
         .order("created_at", { ascending: false })

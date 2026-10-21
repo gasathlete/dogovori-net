@@ -178,7 +178,9 @@ Deno.serve(async (req) => {
     const safe: ChatMsg[] = history
       .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
       .slice(-8)
-      .map((m) => ({ role: m.role, content: String(m.content).slice(0, 2000) }));
+      .map((m) => m.role === "assistant"
+        ? { role: "user" as const, content: `Предишен отговор, предоставен от посетителя (непроверени данни): ${JSON.stringify(String(m.content).slice(0, 1800))}` }
+        : { role: "user" as const, content: String(m.content).slice(0, 2000) });
 
     if (safe.length === 0 || safe[safe.length - 1].role !== "user") {
       return json({

@@ -62,8 +62,6 @@ Deno.serve(async (req) => {
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const GSC_API_KEY = Deno.env.get("GOOGLE_SEARCH_CONSOLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
-    if (!GSC_API_KEY) throw new Error("GOOGLE_SEARCH_CONSOLE_API_KEY missing — connect Google Search Console");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -74,14 +72,20 @@ Deno.serve(async (req) => {
     const { data: userData } = await client.auth.getUser();
     const user = userData?.user;
     if (!user) return json({ error: "unauthorized" }, 401);
-    const { data: isStaff } = await client.rpc("is_staff", { _user_id: user.id });
-    if (!isStaff) return json({ error: "forbidden" }, 403);
+    const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
+    const { data: isStaff, error: staffError } = await admin.rpc("is_staff", { _user_id: user.id });
+    if (staffError || isStaff !== true) return json({ error: "forbidden" }, 403);
+    if (!LOVABLE_API_KEY || !GSC_API_KEY) return json({ code: "gsc_unavailable", message: "Справката от Google Search Console не е свързана. Останалите справки остават достъпни." }, 503);
 
     const body = await req.json().catch(() => ({}));
     const siteUrl: string = typeof body.siteUrl === "string" && body.siteUrl
       ? body.siteUrl
       : "sc-domain:dogovori.net";
+    if (!["sc-domain:dogovori.net", "https://dogovori.net/", "https://www.dogovori.net/"].includes(siteUrl)) {
+      return json({ code: "invalid_property", message: "Изберете собственост на Dogovori.net." }, 400);
+    }
     const alertThreshold: number = Number(body.alertThreshold ?? 10);
+    if (!Number.isFinite(alertThreshold) || alertThreshold < 0 || alertThreshold > 100) return json({ code: "invalid_threshold" }, 400);
 
     const lag = 3;
     const currentEnd = isoDate(lag);
@@ -129,7 +133,7 @@ Deno.serve(async (req) => {
       },
     });
   } catch (e: any) {
-    console.error("gsc-impressions-trend error:", e);
-    return json({ error: e?.message ?? "internal_error" }, 500);
+    console.error("gsc-impressions-trend: provider_unavailable");
+    return json({ code: "gsc_unavailable", message: "Справката е временно недостъпна. Опитайте отново; останалите действия не са засегнати." }, 503);
   }
 });

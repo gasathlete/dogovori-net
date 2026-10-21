@@ -19,13 +19,14 @@ import { buildCors } from "../_shared/cors.ts";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { getCorrelationId, correlationHeaders } from "../_shared/correlation.ts";
 import { redactDetail, redactForLog, redactStack } from "../_shared/redact.ts";
+import { isExactServiceRoleToken } from "../_shared/service-token.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
 
 function admin() {
   return createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
-    auth: { persistSession: false },
+    auth: { persistSession: false, autoRefreshToken: false },
   });
 }
 
@@ -636,24 +637,18 @@ Deno.serve(async (req) => {
 
     // Достъп: планировчик (cron secret / service_role / apikey tick) или служител (ръчно).
     if (!isCron) {
-      const anonClient = createClient(SUPABASE_URL, ANON_KEY);
-      const { data: claims } = await anonClient.auth.getClaims(token);
-      const role = (claims?.claims as { role?: string } | undefined)?.role;
-      if (role === "service_role") {
+      if (isExactServiceRoleToken(token, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))) {
         trigger = "tick";
       } else {
         const { data: userData } = await createClient(SUPABASE_URL, ANON_KEY, {
           global: { headers: { Authorization: `Bearer ${token}` } },
+          auth: { persistSession: false, autoRefreshToken: false },
         }).auth.getUser();
         const uid = userData?.user?.id;
         if (uid) {
           const { data: isStaff } = await sb.rpc("is_staff", { _user_id: uid });
           if (!isStaff) return json({ error: "forbidden" }, 403);
           if (mode !== "schedule") trigger = "manual";
-        } else if (trigger === "tick") {
-          // pg_cron се автентикира с apikey — допустим е само планираният режим
-          // (идемпотентен: изпълнява се само в рамките на дневния слот).
-          mode = "run";
         } else {
 
           return json({ error: "unauthorized" }, 401);

@@ -324,9 +324,10 @@ export async function execSearchTemplates(
   // If FTS errored or returned nothing, fall back to ilike on each token.
   if (error || !data || data.length === 0) {
     const tokens = q.split(/\s+/).filter((t) => t.length >= 3).slice(0, 5);
+    const literal = (value: string) => JSON.stringify(`%${value.replace(/[%*_]/g, " ")}%`);
     const ors = tokens.length
-      ? tokens.flatMap((tok) => [`name.ilike.%${tok}%`, `purpose.ilike.%${tok}%`]).join(",")
-      : `name.ilike.%${q}%,purpose.ilike.%${q}%`;
+      ? tokens.flatMap((tok) => [`name.ilike.${literal(tok)}`, `purpose.ilike.${literal(tok)}`]).join(",")
+      : `name.ilike.${literal(q)},purpose.ilike.${literal(q)}`;
     const { data: fb } = await admin
       .from("template_search_index")
       .select("slug, name, purpose, category_title, document_type")

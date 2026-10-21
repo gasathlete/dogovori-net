@@ -63,6 +63,7 @@ async function buildSignedPdf(opts: {
 serve(async (req) => {
   const corsHeaders = buildCors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method !== "POST") return new Response(null, { status: 405, headers: corsHeaders });
 
   try {
     const body = await req.json().catch(() => ({}));
@@ -82,6 +83,11 @@ serve(async (req) => {
     };
     const method: "drawn" | "uploaded" | "qes" =
       signature_method === "uploaded" || signature_method === "qes" ? signature_method : "drawn";
+    // Uploading a file is not provider-verified QES evidence. D-Trust integration
+    // is required; reject this unsupported capability before any durable write.
+    if (method === "qes") return new Response(JSON.stringify({
+      code: "qes_provider_unavailable", message: "Квалифицираното подписване чрез D-Trust още не е достъпно. Документът не е подписан; можете да го свалите.",
+    }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     // SECURITY: only allow PNG/JPEG raster signatures. Reject SVG (XSS via inline
     // <script>/<foreignObject>) and other vector/exotic formats.
@@ -112,13 +118,6 @@ serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    if (method === "qes" && (!qes_file_base64 || qes_file_base64.length > 22_000_000)) {
-      return new Response(JSON.stringify({ error: "invalid_qes_file" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
 
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -205,30 +204,8 @@ serve(async (req) => {
       }
     }
 
-    // Upload QES file to private bucket if provided.
-    let qesPath: string | null = null;
-    let qesSize: number | null = null;
-    if (method === "qes" && qes_file_base64) {
-      try {
-        const bytes = Uint8Array.from(atob(qes_file_base64), (c) => c.charCodeAt(0));
-        qesSize = bytes.byteLength;
-        const safeName = (qes_file_name || "signature.bin").replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 80);
-        qesPath = `${link.owner_id}/qes/${link.id}-${Date.now()}-${safeName}`;
-        const { error: upQesErr } = await admin.storage
-          .from("qes-signatures")
-          .upload(qesPath, bytes, {
-            contentType: qes_file_mime || "application/octet-stream",
-            upsert: false,
-          });
-        if (upQesErr) {
-          console.error("qes upload failed", upQesErr);
-          qesPath = null;
-          qesSize = null;
-        }
-      } catch (err) {
-        console.error("qes decode failed", err);
-      }
-    }
+    const qesPath: string | null = null;
+    const qesSize: number | null = null;
 
     const { data: updatedRows, error: upErr } = await admin
       .from("shared_links")

@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { type StripeEnv, createStripeClient } from "../_shared/stripe.ts";
 import { resolveOrCreateCustomer } from "../_shared/customer.ts";
 import { buildCors } from "../_shared/cors.ts";
+import { requireAppReturnUrl } from "../_shared/return-destination.ts";
 import { isNewProcessingOpen, newProcessingClosedResponse } from "../_shared/new-processing-gate.ts";
 import {
   SandboxForbiddenError,
@@ -66,7 +67,7 @@ Deno.serve(async (req) => {
 
     if (!doc_key || typeof doc_key !== "string" || doc_key.length > 200)
       throw new Error("Invalid doc_key");
-    if (!return_url || typeof return_url !== "string") throw new Error("return_url required");
+    requireAppReturnUrl(return_url);
     if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
     // Sandbox (test) плащания пишат в общите entitlement таблици — само staff.
         // is_staff EXECUTE е отнет от authenticated: проверката минава със

@@ -9,6 +9,7 @@ import {
   sandboxForbiddenResponse,
 } from "../_shared/sandbox-guard.ts";
 import { mustSucceed } from "../_shared/db-guard.ts";
+import { requireAppReturnUrl } from "../_shared/return-destination.ts";
 
 
 Deno.serve(async (req) => {
@@ -51,7 +52,7 @@ Deno.serve(async (req) => {
     if (!name || name.length < 2 || name.length > 100) throw new Error("Invalid team name");
     if (!Number.isInteger(seats) || seats < 3 || seats > 100) throw new Error("Seats must be 3–100");
     if (billing && billing !== "yearly") throw new Error("Екип е само годишен абонамент");
-    if (!returnUrl) throw new Error("returnUrl required");
+    requireAppReturnUrl(returnUrl);
     // Окръжението се валидира ПРЕДИ каквато и да е DB заявка, която го ползва.
     if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
 

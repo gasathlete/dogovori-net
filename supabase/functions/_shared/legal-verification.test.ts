@@ -26,8 +26,25 @@ import {
 } from "./legal-verification.fixture.ts";
 import { retrieveLegalContext } from "./legal-rag.ts";
 import { createProductLegalBasisPort, isLegalKnowledgeBaseReady } from "./product-legal-basis.ts";
+import { LEGAL_SOURCE_REGISTRY } from "./legal-source-registry.ts";
 
 const deps = { registry: APPROVED_REGISTRY, now: FIXED_NOW };
+
+Deno.test("Registry Agency laws resolve uniquely and retain strict verification", async () => {
+  for (const key of ["bg_registryagency_pdpa", "bg_registryagency_zzd", "bg_registryagency_gpk"]) {
+    const entry = LEGAL_SOURCE_REGISTRY.find(e => e.sourceKey === key);
+    assert(entry);
+    const url = entry.origin + entry.entryPath;
+    assertEquals(LEGAL_SOURCE_REGISTRY.filter(e => isApprovedUrl(url, e)).map(e => e.sourceKey), [key]);
+    const db = fixtureDb({ ...READY_ROWS,
+      source: { ...READY_ROWS.source, official_url: url },
+      registry: { ...READY_ROWS.registry, source_key: key, origin: entry.origin, jurisdiction: entry.jurisdiction, parser_version: entry.parserVersion },
+      run: { ...READY_ROWS.run, source_key: key },
+      snapshot: { ...READY_ROWS.snapshot, source_key: key, canonical_url: url, parser_version: entry.parserVersion },
+    });
+    assert((await verifyLegalChunk(db, CHUNK_ID, { now: FIXED_NOW })).ok, key);
+  }
+});
 
 function rows(patch: FixtureRows): FixtureRows {
   return { ...READY_ROWS, ...patch };

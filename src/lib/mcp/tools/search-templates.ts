@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { defineTool, type ToolContext } from "@lovable.dev/mcp-js";
 import { z } from "zod";
+import { postgrestSubstring } from "../../postgrestLiteral";
 
 function supabaseForUser(ctx: ToolContext) {
   return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
@@ -26,7 +27,7 @@ export default defineTool({
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
   handler: async ({ query, limit }, ctx) => {
     const supabase = supabaseForUser(ctx);
-    const like = `%${query}%`;
+    const like = postgrestSubstring(query);
     const { data, error } = await supabase
       .from("template_search_index")
       .select("slug, name, category_title, purpose, document_type, bilingual, has_dynamic_wizard")
