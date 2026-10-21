@@ -1,5 +1,5 @@
 # Roadmap
-- [ ] Consent-only starter bonus: atomic historical one-time eligibility, signup and shared insufficient-operation recovery, focused tests and deployment evidence.
+- [x] Consent-only starter bonus: MAIN migrations 0030–0032 applied; 79 focused tests and isolated PostgreSQL signup/claim/concurrency/wave/assistant assertions passed; authenticated MAIN status and desktop/390px mocked dialog checked, automatic build OK. Frontend not published; exact boundaries in marketing-starter-bonus-2026-10-21.md.
 
 - [x] Premium commerce homepage: ink/gold hero and fictional workflow tabs, manual package/kit shelves, compact products and comparison; 34 tests, automatic build OK, 1440/390 light/dark search/tab/keyboard/shelf checks. No publish; home-commerce-redesign-2026-10-21.md.
 
