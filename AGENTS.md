@@ -8,8 +8,8 @@
 
 - Sector packages are curated browse-only compositions over canonical catalog templates; never duplicate legal document text or create a purchase path from browser-provided content.
 - Featured kit lifecycle metadata must reference every existing kit item exactly once; missing closing artifacts stay explicitly planned and unlinked.
-- Home must not import the full catalog (templateIndex/CATALOG); use declared metadata guarded by a test against the canonical catalog — keeps the home bundle small without silent count drift.
-- Below-fold demos lazily reuse canonical previews/calculators; never submit or replace consent.
+- Home excludes full catalog imports; test declared metadata against canonical counts to prevent drift.
+- Lazy demos reuse canonical previews/calculators; never submit or replace consent. Partner tracks preserve query data, hide clones from focus/ARIA and pause for visibility/focus/motion preferences.
 - Catalog and template review notices use one shared public-status constant/component without slug/category/acceptance inference; this keeps all browse surfaces consistent without changing approvals, paid rights or legal content.
 - Home links/shelves use metadata; tabs are fictional, never submit. Mobile guide uses canonical prices/status; nav replaces itself with product CTA and hides for cookies/keyboard/checkout. Product preparation is public; server actions require auth.
 - The header wordmark is pre-outlined SVG paths (src/lib/headerWordmark.ts) derived from an OFL font with its licence in public/licenses; never ship a web font or raster for it — avoids font flash and missing Cyrillic.

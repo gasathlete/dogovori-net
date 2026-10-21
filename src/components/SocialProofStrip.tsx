@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 // Леки константи вместо целия CATALOG/SECTORS (~1 MB JSON) — виж src/data/catalogCounts.ts
 import { TEMPLATES_COUNT, SECTORS_COUNT } from "@/data/catalogCounts";
-import { storageThumb } from "@/lib/imageThumb";
+import { PartnerCarousel } from "@/components/PartnerCarousel";
 
 
 type Partner = { id: string; name: string; logo_url: string; website_url?: string | null };
@@ -95,34 +95,7 @@ export function SocialProofStrip() {
           {usersPending && <span className="sr-only"> Зарежда се</span>}
         </p>
 
-        {partners.length > 0 && (
-          <ul className="mt-6 flex flex-wrap gap-3" aria-label="Регистрирани фирми">
-            {partners.map((p) => {
-              const img = (
-                <img
-                  src={storageThumb(p.logo_url, 240, 216, { fit: "cover", quality: 62 })}
-                  alt={p.name}
-                  loading="lazy"
-                  decoding="async"
-                  width={120}
-                  height={108}
-                  className="h-[72px] w-20 rounded-sm border border-border bg-card object-cover sm:h-[108px] sm:w-[120px]"
-                />
-              );
-              return (
-                <li key={p.id}>
-                  {p.website_url ? (
-                    <a href={p.website_url} target="_blank" rel="noopener noreferrer nofollow" title={p.name} className="block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                      {img}
-                    </a>
-                  ) : (
-                    <span title={p.name} className="block">{img}</span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
+        <PartnerCarousel partners={partners} />
 
         {(hasUsers || catalogMetrics.length > 0) && (
           <dl className="mt-6 flex flex-wrap gap-x-10 gap-y-2 text-sm text-muted-foreground">
