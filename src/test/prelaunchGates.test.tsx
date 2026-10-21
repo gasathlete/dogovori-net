@@ -39,30 +39,18 @@ beforeEach(() => {
 
 describe("нова обработка ≠ запазено право", () => {
   it("абонат не получава нова AI обработка/покупка; не-AI право се запазва", () => {
-    for (const f of ["subscription"]) {
-      expect(canStartNewProcessing(f)).toBe(false);
-      expect(canUseFeature(f, { hasActiveEntitlement: true })).toBe(false);
-    }
     expect(canUseFeature("blank_download", { hasActiveEntitlement: true })).toBe(true);
     // Отворени след реална MAIN проверка — еднакво за всички, без изключение за абонати.
-    for (const f of ["assistant", "document_generation", "document_review", "one_time_product"]) {
+    for (const f of ["assistant", "document_generation", "document_review", "one_time_product", "subscription"]) {
       expect(canStartNewProcessing(f)).toBe(true);
       expect(canUseFeature(f, { hasActiveEntitlement: false })).toBe(true);
     }
   });
 });
 
-describe("ново плащане в предварителен режим", () => {
-  it("не създава Stripe сесия, не отчита checkout_started и отваря заявката", () => {
-    const opened = vi.fn();
-    window.addEventListener(PRELAUNCH_WAITLIST_EVENT, opened);
-    render(<StripeEmbeddedCheckout priceId="pro_monthly" returnUrl="https://dogovori.net/x" />);
-    expect(screen.getByTestId("checkout-prelaunch")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Предварителна заявка" }));
-    expect(invoke).not.toHaveBeenCalled();
-    expect(names()).not.toContain("checkout_started");
-    expect(opened).toHaveBeenCalledTimes(1);
-    window.removeEventListener(PRELAUNCH_WAITLIST_EVENT, opened);
+describe("абонаментите са отворени", () => {
+  it("проверката е отворена за нова покупка", () => {
+    expect(canStartNewProcessing("subscription")).toBe(true);
   });
 });
 

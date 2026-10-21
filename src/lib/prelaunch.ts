@@ -23,7 +23,7 @@ export type PrelaunchFeature = (typeof PRELAUNCH_FEATURES)[number];
  * генериране + ревизия на генериран документ, асистент (регистриран и анонимен),
  * бланка, анализ на поставен текст (document_review). Суровите файлове остават спрени.
  * Еднократните продукти са подготвени за пускане; LIVE се контролира отделно на сървъра.
- * Абонаментите остават затворени.
+ * Абонаментите: проверен Stripe TEST checkout → подписан webhook → активен ред (21.10.2026).
  */
 const AVAILABLE: Readonly<Record<PrelaunchFeature, boolean>> = Object.freeze({
   blank_download: true,
@@ -31,7 +31,7 @@ const AVAILABLE: Readonly<Record<PrelaunchFeature, boolean>> = Object.freeze({
   document_review: true,
   assistant: true,
   one_time_product: true,
-  subscription: false,
+  subscription: true,
 });
 
 export function isPrelaunchFeature(value: unknown): value is PrelaunchFeature {
@@ -150,7 +150,7 @@ export const PRELAUNCH_LABELS = {
 export const PRELAUNCH_BLOCKERS: Readonly<Record<PrelaunchFeature, readonly string[]>> = Object.freeze({
   blank_download: ["Сегашният път за нова бланка използва AI; отделната доставка на готови файлове още няма регистриран окончателен приет файл и съответстваща цена."],
   document_generation: ["Окончателната конфигурация на доставчика, защитата на данните и проверката от начало до край не са потвърдени."],
-  document_review: ["Обработваме поставения от Вас текст. Личните идентификатори заменете с [ЕГН] или [IBAN] преди изпращане. Качването на PDF/DOCX файлове временно не е налично."],
+  document_review: ["Обработваме поставения от Вас текст. Личните идентификатори заменете с [ЕГН] или [IBAN] преди изпращане. PDF и Word (.docx) файлове се четат в браузъра Ви, без да се качват; сканирани документи не се разпознават."],
   assistant: ["Окончателната конфигурация на доставчика, защитата на данните и проверката от начало до край не са потвърдени."],
   one_time_product: ["Новата обработка и окончателните условия за пускане не са потвърдени. За готовите файлове липсват регистрирани точни приети версии и съответстващи цени."],
   subscription: ["Окончателните условия за абонамент и проверката на целия абонаментен път не са потвърдени."],

@@ -137,34 +137,18 @@ export function UploadContractDialog({
 
   // Файлът не напуска устройството: текстът се извлича локално и попада в полето
   // „Текст“, където човекът го преглежда преди изпращане по текстовия вход.
+  const [truncNote, setTruncNote] = useState<string | null>(null);
   const onLocalFile = async (f: File | null) => {
     if (!f) return;
-    const { validateUploadedFile, detectFileKind } = await import("@/lib/fileValidation");
-    const kind = detectFileKind(f);
-    if (kind !== "pdf" && kind !== "docx") {
-      toast.error("Поддържаме само PDF или DOCX файлове.");
-      return;
-    }
-    const v = await validateUploadedFile(f, kind, MAX_FILE_BYTES);
-    if (!v.ok) {
-      toast.error(v.error ?? "Невалиден файл.");
-      return;
-    }
     setBusy(true);
     try {
-      const extracted = (await extractTextFromFile(f, kind, (p) => setPhase(p))).trim();
-      if (extracted.length < 80) {
-        toast.error("Не успяхме да извлечем достатъчно текст от файла. Поставете текста ръчно.");
-        return;
-      }
-      setPasted(extracted.slice(0, LOCAL_FILE_MAX_CHARS));
+      const { extractLocalFileText, truncationNotice } = await import("@/lib/localFileText");
+      const r = await extractLocalFileText(f, { maxChars: LOCAL_FILE_MAX_CHARS, onPhase: setPhase });
+      setPasted(r.text);
+      setTruncNote(truncationNotice(r, LOCAL_FILE_MAX_CHARS));
       if (!title) setTitle(f.name.replace(/\.[^.]+$/, ""));
       setTab("paste");
-      toast.success("Текстът е извлечен на Вашето устройство.", {
-        description: extracted.length > LOCAL_FILE_MAX_CHARS
-          ? `Текстът е по-дълъг от ${LOCAL_FILE_MAX_CHARS} знака и е съкратен. Проверете края му.`
-          : "Прегледайте го и заменете личните данни преди изпращане.",
-      });
+      toast.success("Текстът е извлечен на Вашето устройство.", { description: "Прегледайте го и заменете личните данни преди изпращане." });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Файлът не можа да бъде прочетен.");
     } finally {
@@ -495,6 +479,7 @@ export function UploadContractDialog({
               value={pasted}
               onChange={(e) => setPasted(e.target.value)}
             />
+            {truncNote && <p role="status" className="mt-2 text-xs font-medium text-foreground">{truncNote}</p>}
             <p className="mt-2 text-xs text-muted-foreground">
               Не изпращайте ЕГН, IBAN, номер на банкова сметка или на лична карта. Попълнете ги
               на Вашето устройство, след като получите документа.

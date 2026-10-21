@@ -1,3 +1,4 @@
+import { PRODUCT_MAX_SOURCE_CHARS } from "@/lib/productSource";
 import { ensureFeatureDisclaimer } from "@/lib/aiDisclaimerGate";
 /**
  * Купуване на един еднократен продукт за един документ.
@@ -104,6 +105,7 @@ export default function ProductCheckout() {
   const [pasted, setPasted] = useState("");
   const [prepared, setPrepared] = useState<PreparedProductDocument | null>(null);
   const [phase, setPhase] = useState("");
+  const [localNote, setLocalNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const [role, setRole] = useState("");
@@ -246,6 +248,28 @@ export default function ProductCheckout() {
       toast.error(
         e instanceof ProductUploadError ? e.message : PRODUCT_PERSIST_FAILED_MESSAGE,
       );
+    } finally {
+      setPhase("");
+      setBusy(false);
+    }
+  };
+
+  // Платеният резултат изисква пълен документ: над лимита НЕ съкращаваме.
+  const onLocalFile = async (f: File | null) => {
+    if (!f) return;
+    setBusy(true);
+    try {
+      const { extractLocalFileText } = await import("@/lib/localFileText");
+      const r = await extractLocalFileText(f, { maxChars: PRODUCT_MAX_SOURCE_CHARS, onPhase: setPhase });
+      if (r.truncated) {
+        setLocalNote(`Файлът съдържа ${r.totalChars.toLocaleString("bg-BG")} знака, а лимитът е ${PRODUCT_MAX_SOURCE_CHARS.toLocaleString("bg-BG")}. Не обработваме непълен документ — съкратете текста сами.`);
+        return;
+      }
+      setPasted(r.text);
+      if (!title) setTitle(f.name.replace(/\.[^.]+$/, ""));
+      setLocalNote("Текстът е извлечен на Вашето устройство. Прегледайте го и заменете ЕГН и IBAN преди да продължите.");
+    } catch (e) {
+      setLocalNote(e instanceof Error ? e.message : "Файлът не можа да бъде прочетен.");
     } finally {
       setPhase("");
       setBusy(false);
@@ -535,6 +559,14 @@ export default function ProductCheckout() {
                       <Label htmlFor="product-paste-title">Заглавие (по избор)</Label>
                       <Input id="product-paste-title" value={title} onChange={(e) => setTitle(e.target.value)}
                         placeholder="Например: Договор за наем — офис" className="min-h-11" />
+                    </div>
+                    <div>
+                      <Label htmlFor="product-local-file">Или изберете PDF или Word (.docx) файл</Label>
+                      <Input id="product-local-file" type="file" disabled={busy} className="min-h-11"
+                        accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        onChange={(e) => { void onLocalFile(e.target.files?.[0] ?? null); e.target.value = ""; }} />
+                      <p className="mt-1 text-xs text-muted-foreground">Текстът се чете в браузъра Ви, файлът не се качва. Сканирани документи не се разпознават.</p>
+                      {localNote && <p role="status" className="mt-1 text-xs font-medium text-foreground">{localNote}</p>}
                     </div>
                     <div>
                       <Label htmlFor="product-paste-text">Пълен текст на документа</Label>
