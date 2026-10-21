@@ -110,7 +110,7 @@ export default function Analyze() {
         {
           icon: FileUp,
           title: "Текст без качване на файл",
-          body: "Приемаме поставен текст. Качването на PDF, Word и сканирани документи временно не е налично.",
+          body: "Приемаме поставен текст или PDF/Word файл, чийто текст се чете в браузъра Ви, без файлът да се качва. Сканирани документи не се разпознават.",
         },
       ];
 
@@ -173,7 +173,7 @@ export default function Analyze() {
               <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
                 Безплатният профил включва {FREE_OFFER_RULE}. Поставете текста в профила си.
                 Заменете личните идентификатори с [ЕГН] или [IBAN] преди изпращане.
-                Качването на PDF, Word и сканирани документи временно не е налично.
+                PDF и Word (.docx) файлове се четат в браузъра Ви, без да се качват. Сканирани документи не се разпознават.
               </p>
               <div className="mt-5 flex flex-col gap-2 sm:flex-row">
                 <button type="button" disabled={loading}
