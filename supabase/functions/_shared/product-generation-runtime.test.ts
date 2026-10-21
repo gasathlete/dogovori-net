@@ -64,6 +64,19 @@ Deno.test("generation gateway is unreachable until zero retention is verified", 
   assertEquals(calls, 0);
 });
 
+Deno.test("nested synthesis evidence anchors literal quotes and rejects nonexistent quotes", async () => {
+  const artifacts = [{ stage: "passport" as const, version: 1 as const, cursorKey: "passport:0", digest: "a".repeat(64), payload: { passport: { title: "Договор", document_type: "Договор", parties: [], governing_law: null, signature_state: null } } }];
+  let excerpt = "Срокът е 20 дни.";
+  const model: ProductModelPort = { invoke: async () => ({ output: { executive_summary: "Обобщение", priority_summary: [], termination: { summary: "Срок", spans: [{ start: 0, end: 1, excerpt }] }, disputes: { summary: "Няма извод.", spans: [] }, absence_checks: [], missing_protections: [], questions: [] }, inputTokens: 1, outputTokens: 1, elapsedMs: 1 }) };
+  const runtime = new ProductGenerationRuntime(model, legal);
+  const input = state({ artifacts, cursor: { stage: "synthesis", batch_index: 0, chunk_index: 0 } });
+  const result = await runtime.runStep(input);
+  assertEquals(result.result?.payload.termination.spans[0].excerpt, "Срокът е 20 дни.");
+  assertEquals(result.result?.payload.termination.spans[0].end, Array.from(source).length);
+  excerpt = "Несъществуваща клауза";
+  await assertRejects(() => runtime.runStep(input), ProductGenerationError);
+});
+
 Deno.test("special-category source cannot reach the generation gateway", async () => {
   let calls = 0;
   const blocked = `${source}\nДиагноза и медицинско досие.`;

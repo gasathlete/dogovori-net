@@ -232,6 +232,17 @@ async function validateCandidate(
   if (candidate.legal_basis !== undefined) {
     out.legal_basis = await validatedLegalBases(candidate.legal_basis, legal);
   }
+  // Nested synthesis sections carry the same exact evidence contract as review
+  // items; re-anchor only a uniquely matching literal excerpt, never a paraphrase.
+  for (const [key, value] of Object.entries(out)) {
+    if (key === "span" || key === "spans" || key === "legal_basis") continue;
+    if (Array.isArray(value)) {
+      out[key] = await Promise.all(value.map((item) => item && typeof item === "object" && !Array.isArray(item)
+        ? validateCandidate(item as Candidate, source, legal) : item));
+    } else if (value && typeof value === "object") {
+      out[key] = await validateCandidate(value as Candidate, source, legal);
+    }
+  }
   return out;
 }
 
