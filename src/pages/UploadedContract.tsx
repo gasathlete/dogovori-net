@@ -1,3 +1,4 @@
+import { invokeWithMarketingBonus } from "@/lib/marketingBonus";
 import { ensureFeatureDisclaimer } from "@/lib/aiDisclaimerGate";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -190,7 +191,7 @@ export default function UploadedContractPage() {
     const analyzePayloadScope = await opaqueOpScope("analyze_contract", { uploadedContractId: id, userConfirmed });
     const opScope = `op:${analyzePayloadScope}`;
     const operationId = getStableOpKey(opScope);
-    const { data, error } = await supabase.functions.invoke("analyze-contract", {
+    const { data, error } = await invokeWithMarketingBonus("analyze-contract", {
       body: { uploadedContractId: id, userConfirmed, operation_id: operationId },
     });
     busyRef.current = false;
@@ -307,7 +308,7 @@ export default function UploadedContractPage() {
       },
     });
     const operationId = getOrCreateDocumentOperationId("correct_uploaded", userKey, opScopeKey);
-    const { data, error } = await supabase.functions.invoke("correct-uploaded", {
+    const { data, error } = await invokeWithMarketingBonus("correct-uploaded", {
       body: {
         uploadedContractId: id,
         analysisId: payload.analysisId,

@@ -327,7 +327,7 @@ function SubscriptionTab({ quota, isPro }: { quota: Quota | null; isPro: boolean
                 : (() => {
                     const signupAt = (quota as any)?.signup_at ? new Date((quota as any).signup_at).getTime() : null;
                     const withinFirstMonth = !!signupAt && Date.now() - signupAt < 30 * 24 * 60 * 60 * 1000;
-                    const cap = withinFirstMonth ? 5 : 2;
+                    const cap = (quota as { marketing_bonus_legacy?: boolean } | null)?.marketing_bonus_legacy && withinFirstMonth ? 5 : 2;
                     const used = (quota as any)?.monthly_total_used ?? 0;
                     const corrFree = (quota as any)?.corrections_free_used
                       ? "Безплатната вълна авто-корекции вече е използвана."

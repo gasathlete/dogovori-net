@@ -2007,6 +2007,8 @@ export type Database = {
           corrections_free_used_count: number
           features_reset_at: string
           free_signing_used: boolean
+          marketing_bonus_claimed_at: string | null
+          marketing_bonus_legacy: boolean
           monthly_contracts_used: number
           monthly_reset_at: string
           monthly_templates_used: number
@@ -2034,6 +2036,8 @@ export type Database = {
           corrections_free_used_count?: number
           features_reset_at?: string
           free_signing_used?: boolean
+          marketing_bonus_claimed_at?: string | null
+          marketing_bonus_legacy?: boolean
           monthly_contracts_used?: number
           monthly_reset_at?: string
           monthly_templates_used?: number
@@ -2061,6 +2065,8 @@ export type Database = {
           corrections_free_used_count?: number
           features_reset_at?: string
           free_signing_used?: boolean
+          marketing_bonus_claimed_at?: string | null
+          marketing_bonus_legacy?: boolean
           monthly_contracts_used?: number
           monthly_reset_at?: string
           monthly_templates_used?: number
@@ -7264,6 +7270,8 @@ export type Database = {
           corrections_free_used_count: number
           features_reset_at: string
           free_signing_used: boolean
+          marketing_bonus_claimed_at: string | null
+          marketing_bonus_legacy: boolean
           monthly_contracts_used: number
           monthly_reset_at: string
           monthly_templates_used: number
@@ -7769,6 +7777,10 @@ export type Database = {
         Returns: Json
       }
       check_compliance_reminders: { Args: never; Returns: Json }
+      claim_marketing_bonus: {
+        Args: { _accept: boolean; _event_id: string; _version: string }
+        Returns: Json
+      }
       claim_product_job: {
         Args: {
           p_budget_hard_cost_micro_usd: number
@@ -8038,6 +8050,7 @@ export type Database = {
         }
         Returns: Json
       }
+      marketing_bonus_status: { Args: never; Returns: Json }
       match_legal_chunks:
         | {
             Args: {

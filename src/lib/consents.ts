@@ -2,11 +2,12 @@
 // Document versions are bumped whenever a policy text materially changes.
 
 import { supabase } from "@/integrations/supabase/client";
+import { refreshBonusBalance } from "@/lib/marketingBonus";
 
 export const CONSENT_VERSIONS = {
   terms: "2026-05-16",
   privacy: "2026-05-16",
-  marketing: "2026-06-02",
+  marketing: "2026-10-21",
   operational_notifications: "2026-09-15",
   ai_disclaimer: "2026-10-21",
   cookies: "2026-05-16",
@@ -75,6 +76,7 @@ export async function recordConsents(
         ignoreDuplicates: true,
       });
     if (error) return { ok: false as const, reason: error.message, eventId };
+    if (records.some((r) => r.consent_type === "marketing" && r.granted)) await refreshBonusBalance(user.id);
     return { ok: true as const, eventId };
   } catch (e) {
     return { ok: false as const, reason: String(e) };

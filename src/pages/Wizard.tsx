@@ -1,3 +1,4 @@
+import { invokeWithMarketingBonus } from "@/lib/marketingBonus";
 import { ensureFeatureDisclaimer } from "@/lib/aiDisclaimerGate";
 import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, useParams, useSearchParams, Link } from "react-router-dom";
@@ -1254,7 +1255,7 @@ export default function WizardPage() {
     setSaving(true);
     try {
       const finalTitle = (customTitle || result.contract.title).trim() || result.contract.title;
-      const { data, error } = await supabase.functions.invoke("save-document", {
+      const { data, error } = await invokeWithMarketingBonus("save-document", {
         body: {
           kind: "contract",
           title: finalTitle,
@@ -1339,7 +1340,7 @@ export default function WizardPage() {
       // сървърът връща същия документ, вместо да таксува втори път.
       const opScope = `download_blank:${sector.id}:${docName ?? sector.contractName}:${bilingualMode ? "bi" : "bg"}`;
       const operationId = getStableOpKey(opScope);
-      const { data, error } = await supabase.functions.invoke("download-blank", {
+      const { data, error } = await invokeWithMarketingBonus("download-blank", {
         body: {
           sector_id: sector.id,
           sector_title: sector.title,

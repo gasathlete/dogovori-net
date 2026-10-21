@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Consent-only starter bonus: atomic historical one-time eligibility, signup and shared insufficient-operation recovery, focused tests and deployment evidence.
 
 - [x] Premium commerce homepage: ink/gold hero and fictional workflow tabs, manual package/kit shelves, compact products and comparison; 34 tests, automatic build OK, 1440/390 light/dark search/tab/keyboard/shelf checks. No publish; home-commerce-redesign-2026-10-21.md.
 

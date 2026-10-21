@@ -9,6 +9,7 @@
  * message never reaches the UI.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { invokeWithMarketingBonus } from "@/lib/marketingBonus";
 import { FunctionsHttpError, FunctionsRelayError, FunctionsFetchError } from "@supabase/supabase-js";
 
 export interface InvokeResult<T = unknown> {
@@ -91,7 +92,7 @@ async function invokeOnce<T = unknown>(
 
   const correlationId = options.headers?.["x-correlation-id"] || newCorrelationId();
   try {
-    const { data, error } = await supabase.functions.invoke<T>(name, {
+    const { data, error } = await invokeWithMarketingBonus<T>(name, {
       ...options,
       headers: { ...(options.headers ?? {}), "x-correlation-id": correlationId },
     });

@@ -186,7 +186,7 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
             : (() => {
                 const signupAt = (quota as any)?.signup_at ? new Date((quota as any).signup_at).getTime() : null;
                 const withinFirstMonth = !!signupAt && Date.now() - signupAt < 30 * 24 * 60 * 60 * 1000;
-                const cap = withinFirstMonth ? 5 : 2;
+                const cap = (quota as { marketing_bonus_legacy?: boolean } | null)?.marketing_bonus_legacy && withinFirstMonth ? 5 : 2;
                 const used = (quota as any)?.monthly_total_used ?? 0;
                 const resetIso = (quota as any)?.monthly_reset_at as string | null | undefined;
                 const reset = resetIso ? new Date(resetIso) : null;
@@ -199,9 +199,9 @@ function Dashboard({ quota, isPro, docs, uploadedCount, correctionsCount, analys
       />
       <Card
         title="Закупени операции"
-        value={`${(quota as any)?.bonus_contracts ?? 0}`}
+        value={`${(quota as any)?.topup_ops_balance ?? 0}`}
         icon={<Crown className="h-5 w-5 text-gold" />}
-        sub={((quota as any)?.bonus_contracts ?? 0) > 0 ? "Налични за всеки тип · не изтичат" : "Купете +5 допълнителни операции"}
+        sub={((quota as any)?.topup_ops_balance ?? 0) > 0 ? "Налични за всеки тип · не изтичат" : "Купете +5 допълнителни операции"}
         onClick={() => navigate("/account?tab=subscription&checkout=five_operations")}
       />
       <Card

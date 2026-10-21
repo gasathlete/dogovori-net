@@ -209,7 +209,7 @@ export const FREE_OPS_SIGNUP_DAYS = 30;
  * безплатният план се маркетира — така обещанието не се разминава с реалното
  * право (`free_ops_cap`).
  */
-export const FREE_OFFER_RULE = `${FREE_OPS_ON_SIGNUP} действия по документи през първите ${FREE_OPS_SIGNUP_DAYS} дни, след това ${FREE_OPS_PER_MONTH} месечно`;
+export const FREE_OFFER_RULE = `${FREE_OPS_PER_MONTH} действия месечно; с изрично съгласие за имейл маркетинг — еднократно още ${FREE_OPS_ON_SIGNUP - FREE_OPS_PER_MONTH} действия`;
 
 /**
  * Компактен вариант за CTA-та, които стартират анонимно: старт без регистрация,

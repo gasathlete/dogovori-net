@@ -1,3 +1,4 @@
+import { invokeWithMarketingBonus } from "@/lib/marketingBonus";
 import { ensureFeatureDisclaimer } from "@/lib/aiDisclaimerGate";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -70,7 +71,7 @@ export function UploadContractDialog({
       const analyzePayloadScope = await opaqueOpScope("analyze_contract", { uploadedContractId: contractId });
       const opScope = `op:${analyzePayloadScope}`;
       const operationId = getStableOpKey(opScope);
-      const { data, error } = await supabase.functions.invoke("analyze-contract", {
+      const { data, error } = await invokeWithMarketingBonus("analyze-contract", {
         body: { uploadedContractId: contractId, operation_id: operationId },
       });
       const gate = await import("@/lib/legalGateClient");
@@ -274,7 +275,7 @@ export function UploadContractDialog({
       // Контролиран сървърен вход: собственикът идва от сесията, текстът минава
       // сървърната преграда преди запис. Идентичността е обвързана с текста.
       const intakeId = getStableOpKey(`intake:${await sha256Hex(`${title.trim()}\u0000${text}`)}`);
-      const intakeRes = await supabase.functions.invoke("uploaded-text-intake", {
+      const intakeRes = await invokeWithMarketingBonus("uploaded-text-intake", {
         body: {
           action: "create",
           id: intakeId,
@@ -305,7 +306,7 @@ export function UploadContractDialog({
       const analyzePayloadScope = await opaqueOpScope("analyze_contract", { uploadedContractId: newId });
       const opScope = `op:${analyzePayloadScope}`;
       const operationId = getStableOpKey(opScope);
-      const { data: aData, error: aErr } = await supabase.functions.invoke("analyze-contract", {
+      const { data: aData, error: aErr } = await invokeWithMarketingBonus("analyze-contract", {
         body: { uploadedContractId: newId, operation_id: operationId },
       });
       setAnalyzing(false);

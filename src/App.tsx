@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { MarketingBonusDialog } from "@/components/MarketingBonusDialog";
 import { lazyRetry } from "@/lib/lazyRetry";
 
 // Every lazy boundary goes through lazyRetry so a failed dynamic import
@@ -471,6 +472,7 @@ const App = () => (
       <BrowserRouter>
         <ScrollToTop />
         <AuthProvider>
+          <MarketingBonusDialog />
           <OnboardingProvider>
           <Suspense fallback={null}>
             <AuthGateModal />

@@ -211,6 +211,13 @@
       "when": 1792568714452,
       "tag": "0029_security_review_service_review_and_search_path",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1792602048591,
+      "tag": "0030_marketing_starter_bonus",
+      "breakpoints": true
     }
   ]
 }

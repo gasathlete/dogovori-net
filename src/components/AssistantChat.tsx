@@ -1,3 +1,4 @@
+import { fetchWithMarketingBonus } from "@/lib/marketingBonus";
 import { ensureFeatureDisclaimer } from "@/lib/aiDisclaimerGate";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
@@ -683,7 +684,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
 
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistant-chat`;
     try {
-      const resp = await fetch(url, {
+      const resp = await fetchWithMarketingBonus(url, {
         method: "POST",
         signal: controller.signal,
         headers: {
