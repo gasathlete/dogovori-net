@@ -112,7 +112,8 @@ export function StripeEmbeddedCheckout({
   // Предварителен режим: ново плащане не е отворено. Не монтираме Stripe,
   // следователно не се създава сесия и не се отчита „стартиран checkout“.
   // Управлението на съществуващ абонамент (портал) не минава оттук.
-  if (!canStartNewProcessing("subscription")) {
+  const checkoutFeature = analyticsSource === "product_checkout" ? "one_time_product" : "subscription";
+  if (!canStartNewProcessing(checkoutFeature)) {
     return (
       <div
         data-testid="checkout-prelaunch"
@@ -125,7 +126,7 @@ export function StripeEmbeddedCheckout({
           type="button"
           variant="outline"
           className="min-h-11"
-          onClick={() => openPrelaunchWaitlist("subscription", { source: "checkout" })}
+          onClick={() => openPrelaunchWaitlist(checkoutFeature, { source: "checkout" })}
         >
           {PRELAUNCH_LABELS.cta}
         </Button>
