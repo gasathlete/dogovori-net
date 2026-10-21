@@ -32,7 +32,10 @@ function reply(id: string, accepted: boolean) {
  * Accept → original action continues; cancel → action stops, no backend call.
  */
 export function AIDisclaimerModal() {
-  const [req, setReq] = useState<DisclaimerRequestDetail | null>(null);
+  // Sequential queue: concurrent requests for different features are shown one
+  // after another; none is overwritten or left pending.
+  const [queue, setQueue] = useState<DisclaimerRequestDetail[]>([]);
+  const req = queue[0] ?? null;
   const [checked, setChecked] = useState(false);
   const handled = useRef(new Set<string>());
 
@@ -45,8 +48,7 @@ export function AIDisclaimerModal() {
         reply(d.id, true);
         return;
       }
-      setChecked(false);
-      setReq(d);
+      setQueue((q) => [...q, d]);
     };
     const listener = (e: Event) => onRequest((e as CustomEvent).detail);
     window.addEventListener("ai-disclaimer:request", listener);
@@ -58,7 +60,8 @@ export function AIDisclaimerModal() {
     if (!req || !checked) return;
     const feature: DisclaimerFeature = req.feature;
     reply(req.id, true);
-    setReq(null);
+    setChecked(false);
+    setQueue((q) => q.slice(1));
     // Audit only for signed-in users; minimal metadata, no document content.
     void supabase.auth.getSession().then(({ data }) => {
       if (!data.session) return;
@@ -73,7 +76,8 @@ export function AIDisclaimerModal() {
   const cancel = useCallback(() => {
     if (!req) return;
     reply(req.id, false);
-    setReq(null);
+    setChecked(false);
+    setQueue((q) => q.slice(1));
   }, [req]);
 
   const info = req ? DISCLAIMER_LIMITS[req.feature] : null;
