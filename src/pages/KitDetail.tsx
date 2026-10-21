@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import * as Icons from "@/icons";
-import { ArrowRight, FileText, Package, Sparkles } from "@/icons";
+import { ArrowRight, FileText, Package } from "@/icons";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
@@ -60,7 +60,7 @@ export default function KitDetailPage() {
         ]}
       />
       <Header />
-      <main className="bg-background">
+      <main className="editorial-detail bg-background">
         <section className="border-b border-border/40">
           <div className="container py-12">
             <nav className="mb-6 flex items-center gap-2 text-xs text-muted-foreground">
@@ -70,17 +70,13 @@ export default function KitDetailPage() {
             </nav>
             <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
               <div className="flex gap-4">
-                <div className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-gold/30 bg-gold/10 text-gold sm:inline-flex">
+                <div className="hidden shrink-0 items-center justify-center pt-1 text-muted-foreground sm:inline-flex">
                   <Icon className="h-7 w-7" strokeWidth={1.6} />
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/80">
+                  <p className="text-sm font-semibold text-muted-foreground">
                     {kit.groupLabel}
-                    {kit.featured && (
-                      <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-[9px] text-gold">
-                        <Sparkles className="h-2.5 w-2.5" /> ТОП
-                      </span>
-                    )}
+
                   </p>
                   <h1 className="mt-1 font-serif text-3xl font-bold leading-[1.1] text-balance md:text-4xl">
                     {kit.title}
@@ -95,9 +91,9 @@ export default function KitDetailPage() {
               </div>
             </div>
             {task?.preparationPath && (
-              <div className="mt-7 flex flex-col gap-3 rounded-xl border border-gold/40 bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mt-7 flex flex-col gap-4 border-y border-border py-6 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/80">Какво искате да направите?</p>
+                  <p className="text-sm font-semibold text-muted-foreground">Какво искате да направите?</p>
                   <p className="mt-1 font-serif text-lg font-bold">{task.label}</p>
                   <p className="mt-1 text-sm text-muted-foreground">Отговорете на няколко въпроса и вижте кои документи са приложими.</p>
                 </div>
@@ -113,22 +109,22 @@ export default function KitDetailPage() {
         <section className="container py-10">
           <h2 className="font-serif text-2xl font-bold">Документите в реда на ситуацията</h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">Разгледайте всеки наличен документ. Конкретният случай може да изисква различен обхват или допълнителен правен преглед.</p>
-          <div className="mt-7 grid gap-8 lg:grid-cols-3">
+          <div className="mt-8 space-y-10">
             {sections.map(({ stage, items }, index) => (
               <KitSection key={stage.id} label={`${String(index + 1).padStart(2, "0")} · ${stage.label}`} items={items} plannedItem={stage.plannedItem} templatesIndex={templatesIndex} />
             ))}
           </div>
 
           {KIT_GUIDES[kit.id] && (
-            <dl className="mt-10 grid gap-4 rounded-xl border border-border/60 bg-card/60 p-6 sm:grid-cols-2">
-              <div><dt className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/80">Какво ми трябва?</dt><dd className="mt-1 text-sm text-muted-foreground">{KIT_GUIDES[kit.id].whatYouNeed}</dd></div>
-              <div><dt className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/80">Какво следва?</dt><dd className="mt-1 text-sm text-muted-foreground">{KIT_GUIDES[kit.id].nextStep}</dd></div>
+            <dl className="mt-12 grid gap-8 border-y border-border py-6 sm:grid-cols-2">
+              <div><dt className="text-sm font-semibold text-muted-foreground">Какво ми трябва?</dt><dd className="mt-1 text-sm text-muted-foreground">{KIT_GUIDES[kit.id].whatYouNeed}</dd></div>
+              <div><dt className="text-sm font-semibold text-muted-foreground">Какво следва?</dt><dd className="mt-1 text-sm text-muted-foreground">{KIT_GUIDES[kit.id].nextStep}</dd></div>
             </dl>
           )}
 
           <RelatedSectorPackages packages={getSectorPackagesForKit(kit.id)} />
 
-          <div className="mt-12 rounded-xl border border-gold/20 bg-gold/5 p-6">
+          <div className="mt-12 border-t border-border py-6">
             <h2 className="flex items-center gap-2 font-serif text-lg font-bold text-foreground">
               <Package className="h-5 w-5 text-gold" /> Какво е налично сега
             </h2>
@@ -151,11 +147,11 @@ function KitSection({
 }) {
   if (items.length === 0 && !plannedItem) return null;
   return (
-    <div>
-      <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/80">
+    <section className="grid gap-4 lg:grid-cols-[220px_1fr]">
+      <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
         {label} ({items.length})
-      </h2>
-      <ul className="space-y-2">
+      </h3>
+      <ul className="divide-y divide-border">
         {items.map((it) => {
           const t = templatesIndex.get(it.docName);
           const inner = (
@@ -166,7 +162,7 @@ function KitSection({
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-medium text-foreground">{it.docName}</span>
                     {it.optional && (
-                      <span className="rounded-full border border-border/60 bg-card/60 px-2 py-0.5 text-[9px] uppercase tracking-wider text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         по избор
                       </span>
                     )}
@@ -182,12 +178,12 @@ function KitSection({
               {t ? (
                 <Link
                   to={`/shablon/${t.slug}`}
-                  className="group flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-card/40 px-3 py-3 transition-colors hover:border-gold/40 hover:bg-card/70"
+                  className="group flex min-h-11 items-center justify-between gap-3 py-4 hover:underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
                 >
                   {inner}
                 </Link>
               ) : (
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-card/40 px-3 py-3 opacity-70">
+                <div className="flex items-center justify-between gap-3 py-4">
                   {inner}
                 </div>
               )}
@@ -196,17 +192,17 @@ function KitSection({
         })}
         {plannedItem && (
           <li>
-            <div className="flex items-start gap-3 rounded-lg border border-dashed border-border/60 bg-card/25 px-3 py-3">
+            <div className="flex items-start gap-3 py-4">
               <Package className="mt-0.5 h-4 w-4 shrink-0 text-gold/70" />
               <div>
                 <p className="text-sm font-medium text-foreground">{plannedItem}</p>
-                <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Планирано</p>
+                <p className="mt-1 text-xs font-medium text-muted-foreground">Планирано</p>
               </div>
             </div>
           </li>
         )}
       </ul>
-    </div>
+    </section>
   );
 }
 

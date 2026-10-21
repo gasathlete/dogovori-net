@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Logo } from "./Logo";
+import { HeaderWordmark } from "./HeaderWordmark";
 import { ONE_TIME_PRODUCTS, productPath } from "@/lib/products";
 import { CATALOG_DOCUMENT_COUNT } from "@/lib/catalogStats";
 import { CATALOG_REVIEW_STATUS } from "@/lib/templateReviewStatus";
@@ -74,11 +74,11 @@ export function SeoFooter() {
 
 
   return (
-    <footer className="border-t border-border/60 bg-navy-light/40 pt-12">
+    <footer className="border-t border-border bg-background pt-12 pb-16 lg:pb-0">
       <div className="container">
-        <div className="grid gap-10 md:grid-cols-5">
-          <div className="md:col-span-1">
-            <Logo />
+        <div className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <div className="sm:col-span-2 lg:col-span-1">
+            <Link to="/" aria-label="Договори.нет — начало" className="inline-flex min-h-11 items-center"><HeaderWordmark /></Link>
             <p className="mt-3 max-w-xs text-xs leading-relaxed text-muted-foreground">
               Помощ в ежедневната бюрокрация за хората и малкия и средния бизнес. {CATALOG_DOCUMENT_COUNT} образеца за лични въпроси, работа и бизнес.
             </p>
@@ -89,9 +89,9 @@ export function SeoFooter() {
               href="https://im-development.imot.bg"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold"
+              className="mt-4 inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground transition-colors hover:text-gold"
             >
-              Powered by <span className="whitespace-nowrap font-semibold text-gold/90">IM Development</span>
+              От <span className="whitespace-nowrap font-semibold text-gold/90">IM Development</span>
             </a>
           </div>
 
@@ -100,13 +100,13 @@ export function SeoFooter() {
             if (links.length === 0) return null;
             return (
               <div key={block.title}>
-                <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gold">
+                <h3 className="mb-3 text-sm font-semibold text-foreground">
                   {block.title}
                 </h3>
-                <ul className="space-y-2 text-xs text-muted-foreground">
+                <ul className="space-y-1 text-sm text-muted-foreground">
                   {links.map((l) => (
                     <li key={l.slug}>
-                      <Link to={`/shablon/${l.slug}`} className="transition-colors hover:text-gold">
+                      <Link to={`/shablon/${l.slug}`} className="inline-flex min-h-11 items-center leading-relaxed hover:underline underline-offset-4">
                         {l.anchor}
                       </Link>
                     </li>
@@ -117,32 +117,32 @@ export function SeoFooter() {
           })}
 
           <div>
-            <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gold">Продукти</h3>
-            <ul className="space-y-2 text-xs text-muted-foreground">
+            <h3 className="mb-3 text-sm font-semibold text-foreground">Продукти</h3>
+            <ul className="space-y-1 text-sm text-muted-foreground">
               {ONE_TIME_PRODUCTS.map((p) => (
                 <li key={p.id}>
-                  <Link to={productPath(p)} className="transition-colors hover:text-gold">
+                  <Link to={productPath(p)} className="inline-flex min-h-11 items-center leading-relaxed hover:underline underline-offset-4">
                     {p.name}
                   </Link>
                 </li>
               ))}
               <li>
-                <Link to="/paketi" className="transition-colors hover:text-gold">
+                <Link to="/paketi" className="inline-flex min-h-11 items-center leading-relaxed hover:underline underline-offset-4">
                   Пакети по сектор
                 </Link>
               </li>
               <li>
-                <Link to="/komplekti" className="transition-colors hover:text-gold">
+                <Link to="/komplekti" className="inline-flex min-h-11 items-center leading-relaxed hover:underline underline-offset-4">
                   Комплекти по ситуация
                 </Link>
               </li>
               <li>
-                <Link to="/produkti" className="transition-colors hover:text-gold">
+                <Link to="/produkti" className="inline-flex min-h-11 items-center leading-relaxed hover:underline underline-offset-4">
                   Всички продукти
                 </Link>
               </li>
               <li>
-                <Link to="/plans" className="transition-colors hover:text-gold">
+                <Link to="/plans" className="inline-flex min-h-11 items-center leading-relaxed hover:underline underline-offset-4">
                   Планове
                 </Link>
               </li>
@@ -150,11 +150,11 @@ export function SeoFooter() {
           </div>
 
           <div>
-            <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gold">Категории</h3>
-            <ul className="space-y-2 text-xs text-muted-foreground">
+            <h3 className="mb-3 text-sm font-semibold text-foreground">Категории</h3>
+            <ul className="space-y-1 text-sm text-muted-foreground">
               {FOOTER_CATEGORIES.map((cat) => (
                 <li key={cat.id}>
-                  <Link to={`/kategoria/${cat.id}`} className="transition-colors hover:text-gold">
+                  <Link to={`/kategoria/${cat.id}`} className="inline-flex min-h-11 items-center leading-relaxed hover:underline underline-offset-4">
                     {cat.title}
                   </Link>
                 </li>

@@ -104,7 +104,7 @@ export default function ProductDetail() {
         jsonLd={buildJsonLd(product)}
       />
       <Header />
-      <main className="route-fade min-h-dvh pb-20">
+      <main className="editorial-detail route-fade min-h-dvh pb-20">
         <section className="container pt-6 sm:pt-10">
           <nav aria-label="Път до страницата" className="text-[12px] text-muted-foreground">
             <Link to="/" className="hover:text-gold">
@@ -118,7 +118,7 @@ export default function ProductDetail() {
             </Link>
           </nav>
 
-          <div className="mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:items-start">
+          <div className="mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,540px)] lg:items-start">
             <div className="min-w-0">
               <h1 className="font-serif text-[32px] font-bold leading-[1.12] tracking-tight [text-wrap:balance] sm:text-4xl">
                 {product.page.h1}
@@ -127,9 +127,9 @@ export default function ProductDetail() {
                 {product.page.intro}
               </p>
 
-              <div className="mt-5 inline-flex flex-col gap-1 rounded-xl border border-gold/25 bg-gold/[0.07] px-3.5 py-2.5">
+              <div className="mt-6 flex max-w-xl flex-col gap-2 border-y border-border py-5">
                 <ProductPrice id={product.id} size="lg" showLabel />
-                <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                <span className="text-sm text-muted-foreground">
                   еднократно · без абонамент
                 </span>
               </div>
@@ -161,7 +161,7 @@ export default function ProductDetail() {
                 )}
                 <Link
                   to="/produkti"
-                  className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border/70 px-5 text-[14px] font-semibold text-foreground/85 hover:border-gold/40"
+                  className="link-ink inline-flex min-h-[44px] items-center text-sm font-medium"
                 >
                   Вижте другите продукти
                 </Link>
@@ -197,7 +197,7 @@ export default function ProductDetail() {
             </div>
 
             <div className="min-w-0">
-              <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              <p className="mb-3 text-sm font-medium text-muted-foreground">
                 Как изглежда резултатът
               </p>
               <ProductResultPreview productId={product.id} size="full" />
@@ -205,20 +205,20 @@ export default function ProductDetail() {
           </div>
         </section>
 
-        <section className="container mt-10" aria-labelledby="product-steps">
+        <section className="container mt-12 sm:mt-16" aria-labelledby="product-steps">
           <h2
             id="product-steps"
             className="font-serif text-[20px] font-bold tracking-tight sm:text-2xl"
           >
             Три стъпки
           </h2>
-          <ol className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-2">
+          <ol className="mt-4 grid gap-4 sm:grid-cols-3">
             {product.page.steps.map((step, i) => (
               <li
                 key={step}
-                className="flex items-center gap-2 rounded-full border border-border/70 bg-card/50 px-3 py-1.5 text-[13.5px] leading-snug"
+                className="flex items-start gap-3 border-t border-border py-4 text-sm leading-relaxed"
               >
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-gold/40 bg-gold/10 font-serif text-[12px] font-bold text-gold">
+                <span className="shrink-0 font-serif text-lg text-muted-foreground">
                   {i + 1}
                 </span>
                 {step}
@@ -227,7 +227,7 @@ export default function ProductDetail() {
           </ol>
         </section>
 
-        <section className="container mt-10 grid gap-6 sm:grid-cols-2" aria-labelledby="product-scope">
+        <section className="container mt-12 sm:mt-16 grid gap-6 sm:grid-cols-2" aria-labelledby="product-scope">
           <div>
             <h2
               id="product-scope"
@@ -263,7 +263,7 @@ export default function ProductDetail() {
           Подробният състав на резултата. Съдържанието е монтирано в DOM и на
           телефон, и на десктоп — само визуално е групирано по раздели.
         */}
-        <section className="container mt-10" aria-labelledby="product-result">
+        <section className="container mt-12 sm:mt-16" aria-labelledby="product-result">
           <h2
             id="product-result"
             className="font-serif text-[20px] font-bold tracking-tight sm:text-2xl"
@@ -274,7 +274,7 @@ export default function ProductDetail() {
             {product.page.resultSections.map((section) => (
               <div
                 key={section.heading}
-                className="rounded-xl border border-border/70 bg-card/50 p-4"
+                className="border-t border-border py-5"
               >
                 <h3 className="text-[14.5px] font-semibold">{section.heading}</h3>
                 <ul className="mt-2 space-y-1.5">
@@ -298,7 +298,7 @@ export default function ProductDetail() {
           <ReviewerContentHub className="mt-14" />
         )}
 
-        <section className="container mt-10" aria-labelledby="product-faq">
+        <section className="container mt-12 sm:mt-16" aria-labelledby="product-faq">
           <h2
             id="product-faq"
             className="font-serif text-[20px] font-bold tracking-tight sm:text-2xl"
@@ -307,7 +307,7 @@ export default function ProductDetail() {
           </h2>
           <dl className="mt-4 space-y-4">
             {product.page.faq.map((item) => (
-              <div key={item.q} className="rounded-xl border border-border/70 bg-card/50 p-4">
+              <div key={item.q} className="border-t border-border py-5">
                 <dt className="text-[14.5px] font-semibold">{item.q}</dt>
                 <dd className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
                   {item.a}
@@ -317,7 +317,7 @@ export default function ProductDetail() {
           </dl>
         </section>
 
-        <section className="container mt-10" aria-labelledby="product-related">
+        <section className="container mt-12 sm:mt-16" aria-labelledby="product-related">
           <h2
             id="product-related"
             className="font-serif text-[20px] font-bold tracking-tight sm:text-2xl"
@@ -329,7 +329,7 @@ export default function ProductDetail() {
               <li key={p.id}>
                 <Link
                   to={productPath(p)}
-                  className="flex min-h-[56px] items-center justify-between gap-3 rounded-xl border border-border/70 bg-card/50 px-4 py-3 hover:border-gold/40"
+                  className="flex min-h-[56px] items-center justify-between gap-5 border-t border-border py-4 hover:underline underline-offset-4"
                 >
                   <span className="text-[14px] font-semibold">{p.name}</span>
                   <span className="font-serif text-[15px] font-bold tabular-nums text-gold">
