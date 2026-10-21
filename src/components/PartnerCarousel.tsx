@@ -32,6 +32,7 @@ export function PartnerCarousel({ partners }: { partners: PartnerLogo[] }) {
   const [hidden, setHidden] = useState(document.hidden);
   const [reduced, setReduced] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const touchStart = useRef<number | null>(null);
+  const pointerFocus = useRef(false);
   const n = partners.length;
   const slots = partnerVisibleSlots(width);
   const rotates = n > slots;
@@ -104,7 +105,8 @@ export function PartnerCarousel({ partners }: { partners: PartnerLogo[] }) {
     <div className="mt-6 min-w-0" role="region" aria-roledescription="карусел" aria-label="Регистрирани фирми"
       onPointerEnter={event => { if (event.pointerType === "mouse") setHovered(true); }}
       onPointerLeave={() => setHovered(false)}
-      onFocusCapture={event => { if ((event.target as HTMLElement).matches?.(":focus-visible")) setFocused(true); }}
+      onPointerDownCapture={() => { pointerFocus.current = true; window.setTimeout(() => { pointerFocus.current = false; }, 0); }}
+      onFocusCapture={() => { if (!pointerFocus.current) setFocused(true); }}
       onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
       <div ref={viewport} className="overflow-hidden py-1" style={{ touchAction: "pan-y" }}
         onTouchStart={event => { touchStart.current = event.touches[0]?.clientX ?? null; }}
