@@ -51,7 +51,7 @@ Deno.test("synthesis with no validated findings explicitly forbids invented prio
   } };
   await new ProductGenerationRuntime(model, legal).runStep(state({
     binding: { ...binding, source_kind: "owner_text" },
-    artifacts: [{ stage: "passport", version: 1, payload: { passport: { title: "Договор", document_type: "Договор", parties: [], governing_law: null, signature_state: null } } }, { stage: "review", version: 1, payload: [] }],
+    artifacts: [{ stage: "passport", version: 1, cursorKey: "passport:0", digest: "a".repeat(64), payload: { passport: { title: "Договор", document_type: "Договор", parties: [], governing_law: null, signature_state: null } } }, { stage: "review", version: 1, cursorKey: "review:0", digest: "b".repeat(64), payload: [] }],
     cursor: { stage: "synthesis", batch_index: 0, chunk_index: 0 },
   }));
   assert(contract.includes("priority_summary задължително е []"));
