@@ -43,6 +43,10 @@ export function ProductsSection() {
               Всички планове <ArrowRight className="size-4" />
             </Link>
           </div>
+          <dl className="mt-6 space-y-4 border-t border-border pt-5">
+            <div><dt className="font-semibold">За конкретен документ</dt><dd className="mt-1 text-sm leading-relaxed text-muted-foreground">Изберете проверка, поправка или пакет за преговори. Без задължителен абонамент.</dd></div>
+            <div><dt className="font-semibold">За редовна работа</dt><dd className="mt-1 text-sm leading-relaxed text-muted-foreground">Изготвяне, анализ, сваляне и работа с асистента в рамките на избрания план.</dd></div>
+          </dl>
         </div>
 
         <table className="w-full border-t border-foreground/80 text-left text-sm">
@@ -57,7 +61,7 @@ export function ProductsSection() {
           <tbody>
             {PLAN_IDS.map((id) => (
               <tr key={id} className="border-b border-border">
-                <th scope="row" className="py-4 pr-4 font-serif text-lg font-bold text-foreground">{PRICING_PLANS[id].name}</th>
+                <th scope="row" className="py-4 pr-4 font-serif text-lg font-bold text-foreground"><Link to="/plans" className="link-ink inline-flex min-h-11 items-center">{PRICING_PLANS[id].name}</Link></th>
                 <td className="py-4 pr-4 text-muted-foreground">{opsLabel(id)}</td>
                 <td className="py-4 text-right font-semibold tabular-nums text-foreground">{monthlyLabel(id)}</td>
               </tr>

@@ -23,11 +23,11 @@ export function PlatformExperience() {
     if (focus) refs.current[value]?.focus();
   };
   return (
-    <section className="brand-platform-band border-y border-border py-14 sm:py-20" aria-labelledby="platform-experience-title">
+    <section className="brand-platform-band border-y border-border py-10 sm:py-16" aria-labelledby="platform-experience-title">
       <div className="container">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div><p className="text-sm text-muted-foreground">От задачата до документа</p><h2 id="platform-experience-title" className="mt-3 font-serif text-3xl font-bold sm:text-4xl">Повече от каталог с образци</h2></div>
-          <BrandLockup />
+          <div className="hidden lg:block"><BrandLockup /></div>
         </div>
         <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,.8fr)_minmax(0,1.2fr)]">
           <div>
@@ -38,7 +38,7 @@ export function PlatformExperience() {
             }}>
               {WORKFLOWS.map((item, i) => <Button key={item.title} ref={(el) => { refs.current[i] = el; }} id={`workflow-tab-${i}`} role="tab" aria-selected={index === i} aria-controls="workflow-panel" tabIndex={index === i ? 0 : -1} variant={index === i ? "secondary" : "outline"} onClick={() => select(i)} className="h-auto min-h-14 justify-start whitespace-normal text-left"><item.Icon aria-hidden="true" />{item.title}</Button>)}
             </div>
-            <div className="mt-6 flex gap-2"><Button variant="outline" size="icon" className="size-11" aria-label="Предишна функция" onClick={() => select(index - 1)}><ArrowLeft /></Button><Button variant="outline" size="icon" className="size-11" aria-label="Следваща функция" onClick={() => select(index + 1)}><ArrowRight /></Button></div>
+            <div className="mt-4 flex gap-2"><Button variant="outline" size="icon" className="size-11" aria-label="Предишна функция" onClick={() => select(index - 1)}><ArrowLeft /></Button><Button variant="outline" size="icon" className="size-11" aria-label="Следваща функция" onClick={() => select(index + 1)}><ArrowRight /></Button></div>
             <div id="workflow-panel" role="tabpanel" aria-labelledby={`workflow-tab-${index}`} className="mt-6">
               <h3 className="font-serif text-2xl font-bold">{active.title}</h3><p className="mt-3 text-base leading-relaxed text-muted-foreground">{active.description}</p>
               <Button asChild className="mt-5 h-auto min-h-11 whitespace-normal"><Link to={active.to}>{active.action}<ArrowRight /></Link></Button>
