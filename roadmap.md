@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Focused branded conversion pass: existing mark/calligraphy, native example, product presentation, shared public shell; desktop/390px browser and focused checks, no publish.
+
 - [x] Editorial finishing 21.10 11:10: product/package/kit detail and footer, 60 focused tests and six local browser combinations verified; no publish or performance improvement claim.
 - [ ] Editorial production lab comparison: needs an exposed current production artifact/preview; sandbox has no dist or Lighthouse and manual builds/typechecks are forbidden by the harness instructions.
 
