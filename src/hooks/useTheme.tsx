@@ -7,13 +7,13 @@ type Ctx = { theme: Theme; setTheme: (t: Theme) => void; toggle: () => void };
 const ThemeCtx = createContext<Ctx | null>(null);
 
 function readInitial(): Theme {
-  if (typeof window === "undefined") return "dark";
+  if (typeof window === "undefined") return "light";
   try {
     const v = localStorage.getItem(STORAGE_KEY);
     if (v === "light" || v === "dark") return v;
   } catch {}
-  // Default to dark; OS preference is ignored until the user explicitly picks a theme.
-  return "dark";
+  // New visitors get the light paper theme; an explicit saved choice always wins.
+  return "light";
 }
 
 function apply(theme: Theme) {
@@ -40,7 +40,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [theme, userChose]);
 
-  // OS theme changes are intentionally not followed — dark is the default.
+  // OS theme changes are intentionally not followed — light is the default.
 
   const setTheme = useCallback((t: Theme) => { setUserChose(true); setThemeState(t); }, []);
   const toggle = useCallback(() => { setUserChose(true); setThemeState((p) => (p === "dark" ? "light" : "dark")); }, []);
@@ -52,7 +52,7 @@ export function useTheme(): Ctx {
   const ctx = useContext(ThemeCtx);
   if (!ctx) {
     // Fallback (e.g. used before provider mounts) — no-op writer.
-    return { theme: "dark", setTheme: () => {}, toggle: () => {} };
+    return { theme: "light", setTheme: () => {}, toggle: () => {} };
   }
   return ctx;
 }

@@ -18,7 +18,7 @@ describe("Hero — едно основно действие към безпла�
   const src = read("src/components/Hero.tsx");
 
   it("основният CTA е реален Link към /catalog и за анонимни, и за влезли", () => {
-    expect(src).toContain('to="/catalog"');
+    expect(src).toContain('action="/catalog"');
     expect(src).toContain("Намерете документ");
     expect(src).toContain('trackFunnelEvent("home_primary_cta_clicked"');
     expect(src).toContain('destination: "/catalog"');

@@ -16,29 +16,19 @@ import {
 
 export function HeroProductRail() {
   return (
-    <section
-      aria-labelledby="hero-product-rail-title"
-      data-testid="hero-product-rail"
-      className="mx-auto mt-8 w-full max-w-5xl"
-    >
-      <div className="px-0.5 text-center">
-        <h2
-          id="hero-product-rail-title"
-          className="text-[13px] font-semibold uppercase tracking-[0.2em] text-gold/80"
-        >
+    <section aria-labelledby="hero-product-rail-title" data-testid="hero-product-rail" className="w-full">
+      <div className="flex flex-col gap-1 border-b border-foreground/80 pb-3 sm:flex-row sm:items-baseline sm:justify-between">
+        <h2 id="hero-product-rail-title" className="font-serif text-xl font-bold text-foreground">
           Еднократни продукти
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           {ONE_TIME_SCOPE_NOTE} Покупките още не са активни. Разгледайте примерите.
         </p>
       </div>
 
-      <ul className="mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible">
+      <ul>
         {ONE_TIME_PRODUCTS.map((product) => (
-          <li
-            key={product.id}
-            className="w-[80%] shrink-0 snap-start sm:w-auto sm:min-w-0 sm:shrink"
-          >
+          <li key={product.id} className="border-b border-border">
             <Link
               to={productPath(product)}
               data-product-id={product.id}
@@ -49,31 +39,15 @@ export function HeroProductRail() {
                   variant: "rail",
                 })
               }
-              className="group relative flex min-h-[168px] flex-col justify-between gap-3 overflow-hidden rounded-xl border border-border bg-card px-5 py-5 text-left transition-colors hover:border-gold focus-visible:border-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold aria-[current=page]:border-gold motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:min-h-[188px] sm:px-6"
+              className="group grid min-h-11 gap-x-6 gap-y-2 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center"
             >
-              {/* Златен акцент като при рекламния банер */}
-              <span
-                aria-hidden="true"
-                className="absolute inset-x-0 top-0 h-0.5 bg-gold/70"
-              />
-
-              <span className="flex min-w-0 flex-col gap-2">
-                <span className="text-[16px] font-bold leading-snug text-foreground sm:text-[17px]">
-                  {product.name}
-                </span>
-                <span className="text-[13.5px] leading-relaxed text-muted-foreground">
-                  {product.shortOutcome}
-                </span>
+              <span className="min-w-0">
+                <span className="block font-semibold text-foreground underline-offset-4 group-hover:underline">{product.name}</span>
+                <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">{product.shortOutcome}</span>
               </span>
-
-              <span className="flex items-end justify-between gap-2">
-                <ProductPrice id={product.id} size="md" />
-                <span
-                  aria-hidden="true"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gold/40 bg-gold/10 text-gold transition-all duration-300 group-hover:translate-x-0.5 group-hover:bg-gold group-hover:text-primary-foreground motion-reduce:transition-none"
-                >
-                  <ArrowRight className="size-5" />
-                </span>
+              <ProductPrice id={product.id} size="sm" />
+              <span className="hidden items-center gap-1 text-sm font-semibold text-foreground sm:inline-flex">
+                Примерен резултат <ArrowRight className="size-4" aria-hidden="true" />
               </span>
             </Link>
           </li>

@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { ArrowRight, Compass, ChevronDown } from "@/icons";
+import { ArrowRight, ChevronDown } from "@/icons";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { LIFE_SCENARIOS } from "@/data/lifeScenarios";
 import { getKit } from "@/data/documentKits";
-import { Button } from "@/components/ui/button";
 import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
 import rentOutImage from "@/assets/scenarios/sc-rent-out.jpg";
 import buySellRealEstateImage from "@/assets/scenarios/sc-buy-sell-re.jpg";
@@ -62,88 +61,50 @@ export function LifeScenarios() {
   const hiddenCount = remaining.length;
 
   return (
-    <section
-      id="scenarios"
-      aria-labelledby="scenarios-heading"
-      className="container py-12 sm:py-16 md:py-20"
-    >
-      <div className="mb-8 max-w-2xl md:mb-10">
-        <div className="eyebrow mb-3">
-          <span className="h-px w-6 bg-gold/40" />
-          <Compass className="h-3 w-3" />
-          Готови комплекти
+    <section id="scenarios" aria-labelledby="scenarios-heading" className="border-b border-border">
+      <div className="container py-14 sm:py-20">
+        <div className="max-w-2xl">
+          <h2 id="scenarios-heading" className="font-serif text-3xl font-bold leading-tight sm:text-4xl">
+            Комплекти за конкретна ситуация
+          </h2>
+          <p className="mt-3 max-w-[56ch] text-base leading-relaxed text-muted-foreground">
+            Следвайте подредените етапи и разгледайте наличните документи. Обхватът зависи от конкретния случай.
+          </p>
         </div>
-        <h2
-          id="scenarios-heading"
-          className="font-serif text-2xl font-bold leading-[1.15] text-balance sm:text-3xl md:text-4xl lg:text-[40px]"
-        >
-          Комплекти за конкретна ситуация
-        </h2>
-        <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-          Следвайте подредените етапи и разгледайте наличните документи. Обхватът зависи от конкретния случай.
-        </p>
-      </div>
 
-      <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3">
-        {visible.map((s) => {
-          const kit = s.kitId ? getKit(s.kitId) : undefined;
-          const to = s.href ?? (kit ? `/komplekti/${kit.id}` : "/komplekti");
-           const meta = kit ? `${kit.items.length} документа в каталога` : "Всички комплекти";
-          return (
-            <li key={s.id} className="card-contain">
-              <Link
-                to={to}
-                className="group flex h-full flex-row items-start gap-4 overflow-hidden p-4 rounded-xl border border-border bg-card transition-colors hover:border-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
-              >
-                <span className="relative block size-16 shrink-0 overflow-hidden rounded-lg bg-muted">
-                  <img
-                    src={SCENARIO_IMAGE[s.id]}
-                    alt={`${s.label} — комплект документи`}
-                    loading="lazy"
-                    width={64}
-                    height={64}
-                    className="h-full w-full object-cover"
-                  />
-                </span>
-                <span className="flex flex-1 flex-col gap-1 min-w-0">
-                  <span className="text-base font-semibold leading-snug text-foreground break-words">
-                    {s.label}
+        <ul className="mt-8 grid border-t border-foreground/80 md:grid-cols-2 md:gap-x-12">
+          {visible.map((s) => {
+            const kit = s.kitId ? getKit(s.kitId) : undefined;
+            const to = s.href ?? (kit ? `/komplekti/${kit.id}` : "/komplekti");
+            const meta = kit ? `${kit.items.length} документа в каталога` : "Всички комплекти";
+            return (
+              <li key={s.id} className="border-b border-border">
+                <Link to={to} className="group flex min-h-11 items-center gap-4 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <img src={SCENARIO_IMAGE[s.id]} alt="" loading="lazy" width={56} height={56} className="size-14 shrink-0 rounded-sm object-cover" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold leading-snug text-foreground underline-offset-4 group-hover:underline">{s.label}</span>
+                    <span className="mt-0.5 block text-sm text-muted-foreground">{meta}</span>
                   </span>
-                  <span className="text-xs font-semibold text-gold">
-                    {meta}
-                  </span>
-                  <span className="mt-auto inline-flex items-center gap-1 pt-2 text-sm font-semibold text-gold">
-                    Вижте комплекта
-                    <ArrowRight
-                      className="h-3.5 w-3.5 shrink-0 motion-safe:transition-transform motion-safe:group-hover:translate-x-0.5"
-                      aria-hidden="true"
-                    />
-                  </span>
-                </span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+                  <ArrowRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
 
-      <LaunchPurchaseBanner className="mt-6" source="kit_catalog" productId="kit_catalog" />
+        <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-2">
+          {hiddenCount > 0 && (
+            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="link-ink inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold">
+              {expanded ? "Покажете по-малко" : `Още ${hiddenCount} ситуации`}
+              <ChevronDown className={`h-4 w-4 ${expanded ? "rotate-180" : ""}`} />
+            </button>
+          )}
+          <Link to="/komplekti" className="link-ink inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold">
+            Всички комплекти <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
 
-      <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-        {hiddenCount > 0 && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setExpanded((v) => !v)}
-            className="min-h-11 border-gold/40 bg-gold/10 text-xs font-semibold text-gold hover:bg-gold/20"
-            aria-expanded={expanded}
-          >
-            {expanded ? "Виж по-малко" : `Виж още ${hiddenCount} ситуации`}
-            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
-          </Button>
-        )}
-        <Link to="/komplekti" className="btn-ghost-gold normal-case tracking-normal">
-          Преглед на всички комплекти <ArrowRight className="h-4 w-4" />
-        </Link>
+        <LaunchPurchaseBanner className="mt-6" source="kit_catalog" productId="kit_catalog" />
       </div>
     </section>
   );

@@ -1,5 +1,4 @@
-import * as Icons from "@/icons";
-import { ArrowRight, FileText } from "@/icons";
+import { ArrowRight } from "@/icons";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
 import { getDeclaredSectorPackageAvailability, SECTOR_PACKAGES } from "@/data/sectorPackages";
@@ -15,52 +14,45 @@ const IMAGES = { rentals: rentImage, services: servicesImage, digital: digitalIm
 
 export function SectorPackages() {
   return (
-    <section id="paketi" aria-labelledby="sector-packages-heading" className="border-b border-border/40 bg-card/20">
-      <div className="container py-12 sm:py-16 md:py-20">
-        <div className="max-w-2xl">
-          <div className="eyebrow mb-3"><span className="h-px w-8 bg-gold/40" />Пакети по сектор</div>
-          <h2 id="sector-packages-heading" className="font-serif text-3xl font-bold leading-tight sm:text-4xl">
-            Документите за целия работен цикъл
-          </h2>
-          <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-            Подредени по етапи за повтарящата се работа във Вашия сектор. Съдържанието и примерите остават видими.
-          </p>
-        </div>
+    <section id="paketi" aria-labelledby="sector-packages-heading" className="border-b border-border">
+      <div className="container py-14 sm:py-20">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
+          <div>
+            <h2 id="sector-packages-heading" className="font-serif text-3xl font-bold leading-tight sm:text-4xl">
+              Пакети по сектори
+            </h2>
+            <p className="mt-3 max-w-[46ch] text-base leading-relaxed text-muted-foreground">
+              Документите за целия работен цикъл, подредени по етапи. Съдържанието и примерите остават видими.
+            </p>
+            <Link to="/paketi" className="link-ink mt-4 inline-flex min-h-11 items-center gap-2 text-sm font-semibold">
+              Всички пакети <ArrowRight className="size-4" />
+            </Link>
+          </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
-          {SECTOR_PACKAGES.map((item) => {
-            const Icon = Icons[item.icon];
-            const availability = getDeclaredSectorPackageAvailability(item);
-            return (
-              <article key={item.id} className="group overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-gold focus-within:border-gold">
-                <div className="flex h-full flex-col p-5 sm:p-6">
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <div className="flex items-center gap-3">
-                      <img src={IMAGES[item.image]} alt="" loading="lazy" decoding="async" width={48} height={48} className="size-12 shrink-0 rounded-lg object-cover" />
-                      <span className="inline-flex size-9 items-center justify-center rounded-lg border border-gold/35 text-gold"><Icon className="size-5" /></span>
-                    </div>
-                    <p className="mt-4 text-xs font-semibold uppercase tracking-[0.12em] text-gold">{availability.available} налични · {availability.planned} планирани</p>
-                    <h3 className="mt-2 font-serif text-[22px] font-bold leading-tight text-foreground">{item.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.outcome}</p>
-                    <div className="mt-4 flex flex-wrap gap-1.5" aria-label="Етапи">
-                      {[...new Set(item.documents.map((document) => document.stage.replace(/^\d+ · /, "")))].map((stage) => (
-                        <span key={stage} className="inline-flex items-center gap-1 rounded-full border border-border/60 px-2.5 py-1 text-xs text-foreground/80"><FileText className="size-3 text-gold" />{stage}</span>
-                      ))}
-                    </div>
-                    <Link to={`/paketi/${item.slug}`} className="mt-auto inline-flex min-h-11 items-center gap-2 self-start pt-4 text-sm font-semibold text-gold hover:text-gold-light">
-                      Разгледайте пакета <ArrowRight className="size-4" />
-                    </Link>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
+          <ul className="border-t border-foreground/80">
+            {SECTOR_PACKAGES.map((item) => {
+              const availability = getDeclaredSectorPackageAvailability(item);
+              const stages = [...new Set(item.documents.map((document) => document.stage.replace(/^\d+ · /, "")))];
+              return (
+                <li key={item.id} className="border-b border-border">
+                  <Link to={`/paketi/${item.slug}`} className="group grid gap-4 py-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[88px_minmax(0,1fr)]">
+                    <img src={IMAGES[item.image]} alt="" loading="lazy" decoding="async" width={88} height={88} className="hidden size-[88px] rounded-sm object-cover sm:block" />
+                    <span className="min-w-0">
+                      <span className="block font-serif text-[22px] font-bold leading-tight text-foreground underline-offset-4 group-hover:underline">{item.title}</span>
+                      <span className="mt-2 block text-sm leading-relaxed text-muted-foreground">{item.outcome}</span>
+                      <span className="mt-3 block text-sm text-foreground/80">
+                        <span className="font-semibold">Етапи:</span> {stages.join(" · ")}
+                      </span>
+                      <span className="mt-1 block text-sm text-muted-foreground">{availability.available} налични · {availability.planned} планирани</span>
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         </div>
-        <LaunchPurchaseBanner className="mt-6" source="package_catalog" productId="package_catalog" />
-        <div className="mt-5 text-center"><Link to="/paketi" className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-gold">Всички пакети <ArrowRight className="size-4" /></Link></div>
+        <LaunchPurchaseBanner className="mt-8" source="package_catalog" productId="package_catalog" />
       </div>
     </section>
   );
 }
-
-export default SectorPackages;

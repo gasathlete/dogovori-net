@@ -11,12 +11,12 @@
           if (t === "light" || t === "dark") {
             c = t;
           } else {
-            c = (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) ? "light" : "dark";
+            c = "light"; // нови посетители: светла хартия; изричният избор се пази
           }
           document.documentElement.classList.remove("light", "dark");
           document.documentElement.classList.add(c);
         } catch (e) {
-          document.documentElement.classList.add("dark");
+          document.documentElement.classList.add("light");
         }
       })();
     </script>

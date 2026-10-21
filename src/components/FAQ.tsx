@@ -14,51 +14,44 @@ export { FAQ_ITEMS, buildFaqJsonLd };
 
 export function FAQ() {
   return (
-    <section id="faq" className="container py-12 sm:py-16 md:py-20">
-      <div className="mx-auto mb-10 max-w-2xl text-center">
-        <div className="eyebrow mb-3 justify-center">
-          <span className="section-number font-serif text-base font-normal tracking-normal text-gold/60">11</span>
-          <span className="h-px w-6 bg-gold/40" />
-          Често задавани въпроси
-        </div>
-        <h2 className="font-serif text-3xl font-bold leading-tight text-balance sm:text-4xl md:text-5xl">
-          Вашите въпроси ?
-        </h2>
+    <section id="faq" className="container py-14 sm:py-20">
+      <div className="mb-8 max-w-2xl">
+        <h2 className="font-serif text-3xl font-bold leading-tight sm:text-4xl">Често задавани въпроси</h2>
       </div>
 
-      <div className="mx-auto max-w-3xl space-y-8">
+      <div className="max-w-3xl space-y-10">
         {/* Как работи системата — част от FAQ, не отделна секция */}
         <div id="process">
-          <h3 className="mb-3 text-center font-serif text-lg font-bold text-foreground sm:text-xl">
+          <h3 className="mb-3 font-serif text-lg font-bold text-foreground sm:text-xl">
             Как работи системата — 6 стъпки
           </h3>
-          <Accordion type="single" collapsible className="space-y-2">
+          <Accordion type="single" collapsible className="border-t border-foreground/80">
             {PROCESS_STEPS.map((step, i) => {
               const Icon = step.icon;
               return (
                 <AccordionItem
                   key={step.n}
                   value={`step-${i}`}
-                  className="rounded-lg border border-border/60 bg-card/40 px-4 sm:px-6"
+                  className="border-b border-border"
                 >
                   <AccordionTrigger className="text-left hover:no-underline">
                     <span className="flex items-center gap-3">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gold/30 bg-gold/10">
+                      <span className="hidden">
                         <Icon className="h-3.5 w-3.5 text-gold" strokeWidth={1.8} />
                       </span>
                       <span className="text-sm font-semibold sm:text-[15px]">
-                        <span className="mr-2 font-serif text-xs uppercase tracking-[0.18em] text-gold/70">
+                        <span className="mr-2 font-serif text-sm text-gold">
                           Стъпка {step.n}
                         </span>
                         {step.title}
                       </span>
                     </span>
                   </AccordionTrigger>
-                  <AccordionContent className="max-w-prose pl-11 text-sm leading-relaxed text-muted-foreground">
+                  <AccordionContent className="max-w-prose text-sm leading-relaxed text-muted-foreground">
                     <p>{step.text}</p>
-                    <p className="mt-2 rounded-md border border-gold/20 bg-gold/5 p-3 text-xs leading-relaxed">
-                      <span className="font-semibold uppercase tracking-[0.16em] text-gold/80">
-                        Под капака:{" "}
+                    <p className="mt-2 border-l-2 border-border pl-3 text-sm leading-relaxed">
+                      <span className="font-semibold text-foreground">
+                        Подробно:{" "}
                       </span>
                       {step.detail}
                     </p>
@@ -69,12 +62,12 @@ export function FAQ() {
           </Accordion>
         </div>
 
-        <Accordion type="single" collapsible className="space-y-2">
+        <Accordion type="single" collapsible className="border-t border-foreground/80">
           {FAQ_ITEMS.map((item, i) => (
             <AccordionItem
               key={i}
               value={`item-${i}`}
-              className="rounded-lg border border-border/60 bg-card/40 px-4 sm:px-6"
+              className="border-b border-border"
             >
               <AccordionTrigger className="text-left text-sm font-semibold hover:no-underline sm:text-[15px]">
                 {item.q}
