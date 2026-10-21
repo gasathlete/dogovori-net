@@ -202,7 +202,7 @@ export async function handleSubscriptionUpdated(d: WebhookDeps, subscription: An
         price_id: priceId,
         current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : null,
         current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
-        cancel_at_period_end: subscription.cancel_at_period_end || false,
+        cancel_at_period_end: Boolean(subscription.cancel_at_period_end || subscription.cancel_at),
         updated_at: new Date().toISOString(),
       })
       .eq("stripe_subscription_id", subscription.id)

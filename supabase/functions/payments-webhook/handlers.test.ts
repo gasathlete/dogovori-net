@@ -654,3 +654,13 @@ Deno.test("reversal RPC error fails closed so Stripe retries", async () => {
   );
   assertEquals(emails.length, 0);
 });
+
+Deno.test("portal cancel via cancel_at keeps access and records cancel_at_period_end", async () => {
+  const db = makeDb();
+  await handleSubscriptionUpdated(makeDeps(db), { ...activeSub, cancel_at_period_end: false, cancel_at: 1795089755 }, "live");
+  const upd = db.calls.find((c) => c.table === "subscriptions" && c.op === "update");
+  // deno-lint-ignore no-explicit-any
+  const row = upd?.args?.[0] as any;
+  assertEquals(row.cancel_at_period_end, true);
+  assertEquals(row.status, activeSub.status);
+});

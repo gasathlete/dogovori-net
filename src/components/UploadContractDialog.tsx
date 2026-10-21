@@ -132,7 +132,7 @@ export function UploadContractDialog({
 
   const reset = () => {
     setFile(null); setPasted(""); setTitle(""); setFolderId("none"); setContactId("none");
-    setBusy(false); setPhase(""); setTab("pdf"); setAnalyzing(false); setTip("");
+    setBusy(false); setPhase(""); setTab(RAW_FILE_INGRESS_ALLOWED ? "pdf" : "paste"); setTruncNote(null); setAnalyzing(false); setTip("");
   };
 
   // Файлът не напуска устройството: текстът се извлича локално и попада в полето
