@@ -312,6 +312,19 @@ export default function ProductResult() {
 
   const [manifest, setManifest] = useState<ProductPatchManifest | null>(null);
 
+  // Rebuild downloads from the persisted server selection after a reload.
+  useEffect(() => {
+    if (phase.kind !== "ready" || !state?.decisions.length || phase.result.product_id === "contract_check") {
+      setManifest(null);
+      return;
+    }
+    let cancelled = false;
+    void buildPatch(phase.result, phase.purchase, state.decisions).then(local => {
+      if (!cancelled) setManifest(local);
+    }).catch(() => { if (!cancelled) setManifest(null); });
+    return () => { cancelled = true; };
+  }, [phase, state?.decisions, buildPatch]);
+
   /* ---------------------------- ръчен преглед ----------------------------- */
 
   type ManualSource =

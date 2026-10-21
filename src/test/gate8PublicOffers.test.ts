@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { isFeatureAvailable } from "@/lib/prelaunch";
 import { readFileSync } from "node:fs";
 import {
   ONE_TIME_PRODUCTS,
@@ -15,7 +16,9 @@ describe("Gate 8 — публични оферти преди пускане", (
       "3,99 €",
       "7,99 €",
     ]);
-    expect(ONE_TIME_PURCHASES_AVAILABLE).toBe(false);
+    expect(ONE_TIME_PURCHASES_AVAILABLE).toBe(true);
+    expect(isFeatureAvailable("one_time_product")).toBe(true);
+    expect(isFeatureAvailable("subscription")).toBe(false);
   });
 
   it("разграничава безплатните действия от платената подробна проверка", () => {
