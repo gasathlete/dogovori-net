@@ -1265,3 +1265,76 @@ html.dark .brand-platform-preview {
 @media (prefers-reduced-motion: reduce) {
   .brand-header, .brand-product { transition: none; }
 }
+
+/* Commerce home: ink stage, tangible paper and image-led browsing. */
+:root {
+  --commerce-gold: 39 53% 65%;
+  --commerce-gold-hover: 39 58% 73%;
+  --commerce-ink-soft: 222 29% 19%;
+  --commerce-paper: 40 33% 95%;
+}
+.commerce-hero {
+  --background: var(--brand-ink); --foreground: var(--brand-on-ink);
+  --card: var(--commerce-ink-soft); --card-foreground: var(--brand-on-ink);
+  --muted-foreground: var(--brand-on-ink-muted); --border: var(--brand-on-ink-border);
+  --input: var(--brand-on-ink-border); --gold: var(--commerce-gold);
+  --primary: var(--commerce-gold); --primary-foreground: var(--brand-paper-ink);
+  --secondary: var(--commerce-ink-soft); --secondary-foreground: var(--brand-on-ink);
+  --accent: var(--commerce-ink-soft); --accent-foreground: var(--brand-on-ink);
+  --ring: var(--commerce-gold);
+  background: hsl(var(--background)); color: hsl(var(--foreground));
+}
+.commerce-hero .btn-gold, .header-catalog-action {
+  background: hsl(var(--commerce-gold)); color: hsl(var(--brand-paper-ink));
+  border-color: hsl(var(--commerce-gold)); box-shadow: none;
+}
+.commerce-hero .btn-gold:hover, .header-catalog-action:hover { background: hsl(var(--commerce-gold-hover)); }
+.hero-offer-band { background: hsl(var(--commerce-ink-soft)); }
+.hero-commerce-product { border-top: 2px solid hsl(var(--gold)); }
+.hero-commerce-product .brand-product { border: none; }
+.commerce-workflow { padding: 0 0 0 24px; border-left: 1px solid hsl(var(--border)); }
+.workflow-tabs [data-state=active] { background: hsl(var(--commerce-gold)); color: hsl(var(--brand-paper-ink)); }
+.workflow-paper {
+  --background: var(--brand-paper); --foreground: var(--brand-paper-ink);
+  --card: var(--brand-paper); --card-foreground: var(--brand-paper-ink);
+  --muted-foreground: var(--brand-paper-muted); --border: var(--brand-paper-border);
+  --gold: var(--brand-paper-brass); --ring: var(--brand-paper-brass);
+  --secondary: var(--commerce-paper); --secondary-foreground: var(--brand-paper-ink);
+  background: hsl(var(--brand-paper)); color: hsl(var(--foreground));
+  padding: 24px 28px; border-radius: 3px; box-shadow: var(--shadow-document);
+  border-top: 4px solid hsl(var(--commerce-gold));
+}
+.workflow-page-content { height: 324px; padding-top: 16px; margin-top: 0; }
+.workflow-lines { display: grid; gap: 9px; }
+.workflow-lines span { display: block; height: 1px; background: hsl(var(--border)); }
+.workflow-lines span:last-child { width: 65%; }
+.browse-shelf {
+  display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 40px) / 3);
+  gap: 20px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 2px;
+  padding: 2px 2px 16px; scrollbar-width: thin; scrollbar-color: hsl(var(--gold)) transparent;
+}
+.browse-shelf:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
+.browse-item { min-width: 0; scroll-snap-align: start; border: 1px solid hsl(var(--border)); background: hsl(var(--card)); color: hsl(var(--foreground)); border-radius: 4px; overflow: hidden; }
+.browse-image { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; }
+.browse-item a { transition: background-color .15s; }
+.browse-item a:hover { background-color: hsl(var(--secondary)); }
+.commerce-packages h2, .commerce-experience h2 { max-width: 23ch; }
+.commerce-experience { border-top: 3px solid hsl(var(--gold)); }
+@media (min-width: 1440px) { .brand-header .brand-lockup-wordmark { width: 248px; height: 50px; } }
+@media (max-width: 1023px) {
+  .commerce-workflow { padding-left: 0; border-left: none; max-width: 560px; width: 100%; }
+  .browse-shelf { grid-auto-columns: calc((100% - 20px) / 2); }
+}
+@media (max-width: 639px) {
+  .commerce-hero h1 { max-width: 16ch; }
+  .commerce-hero .hero-search-row input { height: 52px; }
+  .commerce-workflow { margin-top: 8px; }
+  .workflow-paper { padding: 18px; }
+  .workflow-page-content { height: 340px; }
+  .browse-shelf { grid-auto-columns: 86%; gap: 16px; }
+  .hero-commerce-products { display: grid; grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 88%; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 12px; }
+  .hero-commerce-product { scroll-snap-align: start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .browse-item a, .commerce-hero *, .workflow-tabs * { transition: none; scroll-behavior: auto; }
+}
