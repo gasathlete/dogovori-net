@@ -456,6 +456,7 @@ const AnimatedRoutes = () => {
 };
 
 import { ThemeProvider } from "@/hooks/useTheme";
+import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 
 const App = () => (
   <ThemeProvider>
@@ -481,9 +482,11 @@ const App = () => (
             <UnfilledPlaceholdersModal />
           </Suspense>
           <DeferredOverlays />
+          <ChunkErrorBoundary>
           <Suspense fallback={<RouteFallback />}>
             <AnimatedRoutes />
           </Suspense>
+          </ChunkErrorBoundary>
           </OnboardingProvider>
         </AuthProvider>
       </BrowserRouter>
