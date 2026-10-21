@@ -35,12 +35,12 @@ export function SectorPackages() {
               const stages = [...new Set(item.documents.map((document) => document.stage.replace(/^\d+ · /, "")))];
               return (
                 <li key={item.id} className="border-b border-border">
-                  <Link to={`/paketi/${item.slug}`} className="group grid gap-4 py-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[88px_minmax(0,1fr)]">
-                    <img src={IMAGES[item.image]} alt="" loading="lazy" decoding="async" width={88} height={88} className="hidden size-[88px] rounded-sm object-cover sm:block" />
+                  <Link to={`/paketi/${item.slug}`} className="group grid grid-cols-[64px_minmax(0,1fr)] gap-4 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[88px_minmax(0,1fr)]">
+                    <img src={IMAGES[item.image]} alt="" loading="lazy" decoding="async" width={88} height={88} className="size-16 rounded-sm object-cover sm:size-[88px]" />
                     <span className="min-w-0">
                       <span className="block font-serif text-[22px] font-bold leading-tight text-foreground underline-offset-4 group-hover:underline">{item.title}</span>
                       <span className="mt-2 block text-sm leading-relaxed text-muted-foreground">{item.outcome}</span>
-                      <span className="mt-3 block text-sm text-foreground/80">
+                      <span className="mt-3 hidden text-sm text-foreground/80 sm:block">
                         <span className="font-semibold">Етапи:</span> {stages.join(" · ")}
                       </span>
                       <span className="mt-1 block text-sm text-muted-foreground">{availability.available} налични · {availability.planned} планирани</span>
