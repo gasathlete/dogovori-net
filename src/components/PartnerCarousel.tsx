@@ -114,7 +114,7 @@ export function PartnerCarousel({ partners }: { partners: PartnerLogo[] }) {
           touchStart.current = null;
         }}>
         <ul ref={track} className="flex gap-3" data-partner-track=""
-          onTransitionEnd={event => { if (event.target === event.currentTarget && event.propertyName === "transform") normalize(); }}
+          onTransitionEnd={event => { if (event.target === event.currentTarget) normalize(); }}
           style={{ transform: `translate3d(-${offset}px,0,0)`, willChange: rotates ? "transform" : undefined,
             transition: animate && !reduced ? `transform ${DURATION}ms cubic-bezier(0.45, 0, 0.25, 1)` : "none" }}>
           {slides.map(({ p, clone, key }, position) => {
