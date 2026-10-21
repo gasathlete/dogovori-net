@@ -74,7 +74,7 @@ describe("подробната проверка", () => {
     expect(screen.getByText(new RegExp(finding.span.excerpt.slice(0, 20)))).toBeInTheDocument();
   });
 
-  it("успокоява за целия документ само когато проверката го покрива", () => {
+  it("уточнява покритието без да отрича липсващите защити", () => {
     const empty = {
       ...CONTRACT_CHECK_FIXTURE,
       payload: { ...CONTRACT_CHECK_FIXTURE.payload, findings: [], priority_summary: [] },
@@ -83,7 +83,8 @@ describe("подробната проверка", () => {
     expect(screen.getByText("Няма находки за показване.")).toBeInTheDocument();
     unmount();
     render(<ReviewResult result={empty} wholeDocumentCovered />);
-    expect(screen.getByText(/обхвана целия документ/)).toBeInTheDocument();
+    expect(screen.getByText(/обхвана целия предоставен текст/)).toBeInTheDocument();
+    expect(screen.getByText(/вижте също липсващите защити/)).toBeInTheDocument();
   });
 
   it("не използва забранени фрази", () => {
