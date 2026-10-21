@@ -63,7 +63,7 @@ describe("hero — безплатното начало е водещо", () => {
   const hero = read("src/components/Hero.tsx");
 
   it("основният CTA е „Намерете документ“ към /catalog", () => {
-    expect(hero).toContain('to="/catalog"');
+    expect(hero).toContain('action="/catalog"');
     expect(hero).toContain("Намерете документ");
     expect(hero).not.toContain("Изберете какво Ви трябва");
   });
@@ -72,7 +72,7 @@ describe("hero — безплатното начало е водещо", () => {
     expect(hero.indexOf("Намерете документ")).toBeLessThan(
       hero.indexOf("<HeroProductRail />"),
     );
-    expect(hero).toMatch(/min-h-\[60px\]/);
+    expect(hero).toMatch(/min-h-14/);
   });
 
   it("не обещава неограничено безплатно ползване", () => {
@@ -293,7 +293,7 @@ describe("hero копие и продуктови карти", () => {
 
   it("основното действие е каталогът, а второстепенните са реални пътища с честен статус", () => {
     expect(hero).toContain("Намерете документ");
-    expect(hero).toContain('to="/catalog"');
+    expect(hero).toContain('action="/catalog"');
     expect(hero).toContain('to="/build"');
     expect(hero).toContain("Изготвяне · В подготовка");
     expect(hero).toContain('to="/analiz"');
