@@ -121,3 +121,15 @@ describe("UploadContractDialog: локален PDF/DOCX и дисклеймър 
     expect(h.invoke.mock.calls[0][0]).toBe("uploaded-text-intake");
   });
 });
+
+describe("UploadContractDialog повторно отваряне", () => {
+  it("след затваряне се отваря в наличния таб за поставяне/локален файл", async () => {
+    render(<MemoryRouter><UploadContractDialog folders={[]} contacts={[]} onUploaded={() => undefined} /></MemoryRouter>);
+    fireEvent.click(screen.getByRole("button", { name: /Добави договор/ }));
+    expect(await screen.findByPlaceholderText(/Поставете пълния текст/)).toBeInTheDocument();
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
+    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    fireEvent.click(screen.getByRole("button", { name: /Добави договор/ }));
+    expect(await screen.findByPlaceholderText(/Поставете пълния текст/)).toBeInTheDocument();
+  });
+});
