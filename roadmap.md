@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] Operator visibility 21.10: private deployed config record, bounded migration/legal probes, actual provider/privacy evidence, focused tests; commerce stays closed. Stop for ROOT review before Stripe E2E.
+- [x] Operator visibility 21.10: private runtime marker/config and migration-ready record proved; 24 focused tests, observer check, lock preserved. Commerce closed; stopped for ROOT review. Evidence in launch-continuation report.
+- [ ] Commercial evidence 21.10: strict legal probe hit deadline; workspace request-content retention toggle/region evidence unavailable. ROOT review required before separate Stripe TEST E2E; no LIVE opening from ENV flags.
 
 - [x] Final narrow saved-content pass 20.10: deployed controlled handler, 4 pure/23 focused tests, real owner helper create/replay/concurrency/revision/negative checks, applied canonical payload boundary, proved client denial/server save/trusted restore/metadata and UI title save; no frontend publish. Evidence in functional-unlocked-test report. ROOT CI/publication and migration receipt reconciliation remain ROOT release actions.
 
