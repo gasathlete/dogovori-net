@@ -1,3 +1,4 @@
+import { ensureFeatureDisclaimer } from "@/lib/aiDisclaimerGate";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
@@ -176,6 +177,7 @@ export default function UploadedContractPage() {
 
   const runAnalyze = async (userConfirmed: boolean) => {
     if (!id || hasUnsavedChanges) return;
+    try { await ensureFeatureDisclaimer("analysis"); } catch { return; }
     const startedIdentity = { docId: id, userId: user?.id ?? null };
     const scopeAtStart = scopeRef.current;
     const token = ++analyzeTokenRef.current;

@@ -1,3 +1,4 @@
+import { ensureFeatureDisclaimer } from "@/lib/aiDisclaimerGate";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { writeSavedDocumentContent } from "@/lib/savedDocumentContent";
 import { useActivationDraft } from "@/hooks/useActivationDraft";
@@ -519,6 +520,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
       openPrelaunchWaitlist("document_generation", { source: "wizard" });
       return;
     }
+    try { await ensureFeatureDisclaimer("generation"); } catch { return; }
     const docDef = getDocumentType(documentType);
     if (!name.trim()) { toast.error("Въведете заглавие на документа"); return; }
     if (!categoryId) { toast.error("Изберете категория"); return; }

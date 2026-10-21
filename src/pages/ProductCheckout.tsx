@@ -1,3 +1,4 @@
+import { ensureFeatureDisclaimer } from "@/lib/aiDisclaimerGate";
 /**
  * Купуване на един еднократен продукт за един документ.
  *
@@ -226,6 +227,7 @@ export default function ProductCheckout() {
 
   const handlePrepare = async () => {
     if (!user || !file) return;
+    try { await ensureFeatureDisclaimer("product"); } catch { return; }
     setBusy(true);
     try {
       const result = await prepareProductDocument({
@@ -252,6 +254,7 @@ export default function ProductCheckout() {
 
   const handlePreparePasted = async () => {
     if (!user) return;
+    try { await ensureFeatureDisclaimer("product"); } catch { return; }
     setBusy(true);
     try {
       const uid = user.id;
