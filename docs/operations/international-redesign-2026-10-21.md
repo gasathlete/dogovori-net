@@ -18,5 +18,10 @@ No text, assets or branding were copied.
 - HTML "Примерен документ · Демонстрация" panel with "В преработка" and the exact warning.
 - Removed the pen poster/video backdrop and its index.html preload (no orphan preload).
 
+## Second pass
+- Catalog now reads ?q= from the web address, fills the search box from it, follows back/forward and keeps the other filters (`withCatalogQuery`, test `src/test/catalogQueryUrl.test.ts`).
+- The hero search now uses a real submit button (form action /catalog, name=q). Status and warning text come from CATALOG_REVIEW_STATUS. The "Вижте демонстрацията" button is back.
+- Browser checks: the hero button opened /catalog?q=пълномощно with the field filled and 12 matches; typing updates q; the quick search "услуги" fills the field; the "Наеми и имоти" card opens /paketi/naemi; the 360 px light theme and the mobile menu are readable, with no sideways scrolling.
+
 ## Deferred
-Header restyle, sector package/kit card restyle, products section, catalog cards, FAQ/footer and section-height reduction.
+Header regrouping, restyling the package/kit/product/catalog cards, reducing the space reserved for lower home sections, and the FAQ/footer. The product sample click and a separate build check were not run.
