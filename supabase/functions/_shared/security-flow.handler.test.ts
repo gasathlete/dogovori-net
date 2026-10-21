@@ -22,3 +22,15 @@ Deno.test("unverified bearer plus tick never reaches privileged QA writes", asyn
     assertEquals(response.status, 401);
   } finally { globalThis.fetch = original; }
 });
+Deno.test("billing destinations preserve app navigation and reject external redirects", async () => {
+  const { requireAppReturnUrl } = await import("./return-destination.ts");
+  for (const origin of ["https://dogovori.net", "https://www.dogovori.net", "https://dogovori-net.lovable.app", "http://localhost:8080"]) {
+    const url = `${origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}`;
+    assertEquals(requireAppReturnUrl(url), url);
+  }
+  for (const value of ["https://evil.test/r", "https://dogovori.net.evil.test/r", "https://evil@dogovori.net/r", "javascript:alert(1)", "//dogovori.net/r", "https://dogovori.net:444/r"]) {
+    let denied = false;
+    try { requireAppReturnUrl(value); } catch { denied = true; }
+    assertEquals(denied, true);
+  }
+});
