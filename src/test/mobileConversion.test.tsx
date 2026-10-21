@@ -123,7 +123,7 @@ describe("ранен продуктов ред в hero-а", () => {
     const src = read("src/components/products/HeroProductRail.tsx");
     expect(src).not.toMatch(/setInterval|setTimeout|autoplay|Dialog/);
     expect(src.toLowerCase()).not.toMatch(/остават само|последен шанс/);
-    expect(src).toContain("min-h-[168px]");
+    expect(src).not.toMatch(/snap-x|overflow-x-auto/);
   });
 
   it("е вграден в hero-а, а не в отделен мобилен екран", () => {
@@ -150,15 +150,6 @@ describe("възстановена обща композиция на начал
     expect(home.indexOf("<Hero />")).toBeLessThan(home.indexOf("<SocialProofStrip />"));
   });
 
-  it("продуктите са преди Топ шаблоните и другите възможности", () => {
-    expect(home.indexOf("<ProductsSection />")).toBeLessThan(
-      home.indexOf("<FeaturedBlanks />"),
-    );
-    expect(home.indexOf("<ProductsSection />")).toBeLessThan(
-      home.indexOf("<PlatformCapabilities />"),
-    );
-  });
-
   it("метаданните и JSON-LD не зависят от размера на екрана", () => {
     expect(index).toContain("buildFaqJsonLd()");
     expect(index).toContain("itemList ? [itemList, buildFaqJsonLd()] : [buildFaqJsonLd()]");
@@ -167,24 +158,12 @@ describe("възстановена обща композиция на начал
     expect(seo).not.toContain("isMobile");
   });
 
-  it("дългата подредба остава пълна", () => {
-    for (const c of [
-      "Hero",
-      "SocialProofStrip",
-      "ProductsSection",
-      "FeaturedBlanks",
-      "PlatformCapabilities",
-      "BrandedDocumentShowcase",
-      "LifeScenarios",
-      "Testimonials",
-      "PainSolution",
-      "ComparisonTable",
-      "ComplianceSection",
-      "DogovaryAIShowcase",
-      "FAQ",
-      "CTABand",
-    ]) {
-      expect(home).toContain(c);
+  it("кратката редакционна подредба е пълна и без реклама/затваряща лента", () => {
+    for (const c of ["Hero", "SocialProofStrip", "SectorPackages", "LifeScenarios", "ProductsSection", "DogovaryAIShowcase", "FAQ", "SeoFooter"]) {
+      expect(home).toContain(`<${c}`);
+    }
+    for (const removed of ["AdSpotlight", "CTABand", "BackdropSection", "Testimonials", "ComparisonTable"]) {
+      expect(home).not.toContain(removed);
     }
   });
 });
@@ -255,9 +234,8 @@ describe("мобилни наслоявания и профил", () => {
 describe("мобилен хедър и меню", () => {
   const header = read("src/components/Header.tsx");
 
-  it("връща предишните пропорции на хедъра, без промяна на десктоп", () => {
-    expect(header).toContain("h-[68px] xl:h-16");
-    expect(header).toContain("h-16 xl:h-14");
+  it("мобилните пропорции на хедъра остават 68/64 px; десктопът има място за калиграфския знак", () => {
+    expect(header).toContain('scrolled ? "h-16" : "h-[68px] xl:h-[72px]"');
     expect(header).not.toContain("h-[58px]");
     expect(header).toContain("max-h-[calc(100dvh-68px)]");
   });

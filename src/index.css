@@ -1022,3 +1022,149 @@ svg.lucide[stroke-width="2"]:not(.icon-native-stroke) {
     animation: none !important;
   }
 }
+
+/* =====================================================================
+   EDITORIAL BRAND 2026-10-21 — warm paper + deep ink, flat surfaces.
+   Unlayered on purpose: these tokens and resets win over older layered
+   rules and utilities. Brass (--gold) is for small punctuation only.
+   ===================================================================== */
+:root {
+  /* Dark: flat deep ink, ivory text */
+  --background: 222 24% 9%;
+  --foreground: 40 28% 92%;
+  --card: 222 20% 12%;
+  --card-foreground: 40 28% 92%;
+  --popover: 222 20% 12%;
+  --popover-foreground: 40 28% 92%;
+  --primary: 40 28% 92%;
+  --primary-foreground: 222 24% 9%;
+  --secondary: 222 16% 16%;
+  --secondary-foreground: 40 28% 92%;
+  --muted: 222 16% 14%;
+  --muted-foreground: 38 12% 70%;
+  --accent: 222 16% 18%;
+  --accent-foreground: 40 28% 92%;
+  --border: 222 12% 24%;
+  --input: 222 12% 26%;
+  --ring: 40 50% 64%;
+  --radius: 0.25rem;
+  --gold: 40 46% 64%;
+  --gold-light: 40 50% 72%;
+  --gold-dark: 38 40% 50%;
+  --surface-1: 222 22% 10%;
+  --surface-2: 222 20% 12%;
+  --surface-3: 222 16% 15%;
+  --hairline: 222 12% 24%;
+  --gradient-hero: linear-gradient(hsl(var(--background)), hsl(var(--background)));
+  --gradient-gold: linear-gradient(hsl(var(--primary)), hsl(var(--primary)));
+  --gradient-card: linear-gradient(hsl(var(--card)), hsl(var(--card)));
+  --gradient-radial: none;
+  --gradient-fine-noise: none;
+  --shadow-gold: none;
+  --shadow-elegant: none;
+  --shadow-soft: 0 1px 2px hsl(0 0% 0% / 0.2);
+  --shadow-inset-line: none;
+}
+html.light {
+  /* Light: warm ivory paper, deep ink text, ink actions */
+  --background: 40 33% 95%;
+  --foreground: 222 30% 12%;
+  --card: 40 40% 98%;
+  --card-foreground: 222 30% 12%;
+  --popover: 40 40% 98%;
+  --popover-foreground: 222 30% 12%;
+  --primary: 222 30% 14%;
+  --primary-foreground: 40 33% 96%;
+  --secondary: 38 22% 90%;
+  --secondary-foreground: 222 30% 12%;
+  --muted: 38 24% 91%;
+  --muted-foreground: 30 10% 32%;
+  --accent: 38 22% 88%;
+  --accent-foreground: 222 30% 12%;
+  --border: 35 16% 78%;
+  --input: 35 16% 72%;
+  --ring: 222 30% 14%;
+  /* Brass: 31% lightness keeps ≥4.5:1 on ivory for small text */
+  --gold: 36 52% 31%;
+  --gold-light: 36 52% 38%;
+  --gold-dark: 36 55% 24%;
+  --surface-1: 40 33% 95%;
+  --surface-2: 40 40% 98%;
+  --surface-3: 38 22% 90%;
+  --hairline: 35 16% 78%;
+  --gradient-hero: linear-gradient(hsl(var(--background)), hsl(var(--background)));
+  --gradient-gold: linear-gradient(hsl(var(--primary)), hsl(var(--primary)));
+  --gradient-card: linear-gradient(hsl(var(--card)), hsl(var(--card)));
+  --gradient-radial: none;
+  --gradient-fine-noise: none;
+  --shadow-gold: none;
+  --shadow-elegant: none;
+  --shadow-soft: 0 1px 2px hsl(30 20% 20% / 0.08);
+  --shadow-inset-line: none;
+}
+html.light body { background-image: none; }
+html.light body::before { display: none; }
+
+/* Modest functional corners instead of large rounded panels */
+.rounded-xl, .rounded-2xl, .rounded-3xl { border-radius: 6px; }
+.rounded-lg { border-radius: 4px; }
+
+/* Labels: normal case, readable, no letter-spaced gold pills */
+.eyebrow {
+  display: inline-flex; align-items: center; gap: .5rem;
+  font-size: .875rem; font-weight: 500; letter-spacing: 0; text-transform: none;
+  color: hsl(var(--muted-foreground));
+}
+.eyebrow > .h-px, .section-number { display: none; }
+
+/* One solid ink action */
+.btn-gold, .btn-gold-inverse {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  border-radius: 4px; padding: .75rem 1.5rem; border: 1px solid hsl(var(--foreground));
+  background: hsl(var(--foreground)); color: hsl(var(--background));
+  font-weight: 600; letter-spacing: 0; text-transform: none; box-shadow: none;
+  transition: background-color .15s, color .15s;
+}
+.btn-gold:hover, .btn-gold-inverse:hover { background: hsl(var(--foreground) / 0.86); box-shadow: none; transform: none; }
+.btn-gold:focus-visible, .btn-gold-inverse:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.btn-ghost-gold {
+  border-radius: 4px; border: 1px solid hsl(var(--foreground) / 0.5); background: transparent;
+  color: hsl(var(--foreground)); text-transform: none; letter-spacing: 0;
+}
+.btn-ghost-gold:hover { background: hsl(var(--foreground) / 0.06); border-color: hsl(var(--foreground)); }
+
+/* Underlined ink links */
+.link-ink { color: hsl(var(--foreground)); text-decoration: underline; text-decoration-color: hsl(var(--foreground) / 0.35); text-underline-offset: 4px; text-decoration-thickness: 1px; }
+.link-ink:hover { text-decoration-color: hsl(var(--foreground)); }
+.link-ink:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; border-radius: 2px; }
+
+/* No gradient text, glows, glass or choreography */
+.gold-gradient-text, .text-accent-gradient { background: none; -webkit-text-fill-color: currentColor; color: hsl(var(--foreground)); }
+.text-accent-gradient::before { display: none; }
+.gold-divider, .hairline-x { background: hsl(var(--border)); }
+.shadow-elegant, .shadow-gold, .shadow-brand, .shadow-glow { box-shadow: none; }
+.backdrop-blur-sm, .backdrop-blur, .backdrop-blur-md, .backdrop-blur-xl { backdrop-filter: none; -webkit-backdrop-filter: none; }
+.bg-gradient-hero, .bg-gradient-radial, .bg-fine-grid { background-image: none; }
+.btn-sheen::after, .gold-shimmer, .shimmer-bar::after { display: none; animation: none; }
+.scroll-stagger > *, .anim-rise { opacity: 1 !important; transform: none !important; animation: none !important; transition: none !important; }
+.surface-elevated, .card-premium { background: hsl(var(--card)); box-shadow: none; }
+.corner-ticks::before, .corner-ticks::after { display: none; }
+
+/* Headings: serif, left-aligned rhythm */
+h1, h2, h3 { letter-spacing: -0.01em; }
+
+/* Ink-filled surfaces carry paper-coloured text */
+.bg-gradient-gold, .bg-gradient-gold.text-navy, .bg-gradient-gold .text-navy { color: hsl(var(--primary-foreground)); }
+html.light .bg-gold.text-navy, html.light .bg-gold .text-navy { color: hsl(var(--primary-foreground)); }
+
+/* Decorative blobs, auras and dotted textures are removed site-wide */
+.absolute.blur-3xl, .absolute.blur-2xl, .fixed.blur-3xl { display: none; }
+[class*="bg-[radial-gradient"] { background-image: none !important; }
+.animate-ping { display: none; }
+section[class*="bg-gradient-to-"], header[class*="bg-gradient-to-"], main[class*="bg-gradient-to-"] { background-image: none; }
+.proof-band::before, .proof-band::after { display: none; }
+
+/* Emerald plan accent folds into ink; brass stays the only accent */
+:root { --brand: 40 28% 92%; --brand-light: 40 28% 85%; --brand-dark: 40 28% 92%; --gradient-brand: linear-gradient(hsl(var(--primary)), hsl(var(--primary))); --shadow-brand: none; }
+html.light { --brand: 222 30% 14%; --brand-light: 222 30% 24%; --brand-dark: 222 30% 14%; --gradient-brand: linear-gradient(hsl(var(--primary)), hsl(var(--primary))); --shadow-brand: none; }
+.bg-brand, .bg-gradient-brand { color: hsl(var(--primary-foreground)); }

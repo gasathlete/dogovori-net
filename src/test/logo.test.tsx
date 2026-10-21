@@ -44,3 +44,13 @@ describe("Logo", () => {
     );
   });
 });
+
+import { HeaderWordmark } from "@/components/HeaderWordmark";
+import { HEADER_WORDMARK_PATHS } from "@/lib/headerWordmark";
+describe("HeaderWordmark", () => {
+  it("носи точния кирилски надпис и по един контур за всеки знак", () => {
+    const { getByRole } = render(<HeaderWordmark />);
+    expect(getByRole("img", { name: "Договори.нет" })).toBeInTheDocument();
+    expect(HEADER_WORDMARK_PATHS).toHaveLength("Договори.нет".length);
+  });
+});

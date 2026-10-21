@@ -129,43 +129,15 @@ describe("allowlist на ?product=", () => {
 describe("витрина — паритет между началната страница и /produkti", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("началната секция носи точното заглавие и витрината с трите продукта", () => {
+  it("началната секция „Продукти и планове“ показва плановете с реалните цени", () => {
     render(wrap(<ProductsSection />));
-    expect(
-      screen.getByRole("heading", { name: "Разгледайте нашите услуги" }),
-    ).toBeInTheDocument();
-    for (const p of ONE_TIME_PRODUCTS) {
-      expect(screen.getByTestId(`catalog-product-${p.id}`)).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: p.name })).toHaveAttribute(
-        "href",
-        productPath(p),
-      );
-    }
-    expect(
-      screen.getByTestId(`product-price-${ONE_TIME_PRODUCTS[0].id}`),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: /Вижте подробно всеки продукт/ }),
-    ).toHaveAttribute("href", "/produkti");
+    expect(screen.getByRole("heading", { name: "Продукти и планове" })).toBeInTheDocument();
+    expect(screen.getByRole("rowheader", { name: "Професионалист" })).toBeInTheDocument();
+    expect(screen.getByText(/12,90/)).toBeInTheDocument();
+    expect(screen.getByText(/19,90/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Еднократни продукти/ })).toHaveAttribute("href", "/produkti");
+    expect(screen.getByRole("link", { name: /Всички планове/ })).toHaveAttribute("href", "/plans");
     expect(screen.queryAllByTestId("launch-purchase-banner")).toHaveLength(0);
-    for (const p of ONE_TIME_PRODUCTS) {
-      const card = screen.getByTestId(`catalog-product-${p.id}`);
-      expect(within(card).getByRole("link", { name: "Вижте примерния резултат" })).toHaveAttribute("href", productPath(p));
-    }
-  });
-
-  it("отворените продукти водят към правилния старт без заявка за бъдещо пускане", () => {
-    const listener = vi.fn();
-    window.addEventListener("dogovori:prelaunch-waitlist", listener);
-    render(wrap(<ProductsSection />));
-    for (const product of ONE_TIME_PRODUCTS) {
-      const card = screen.getByTestId(`catalog-product-${product.id}`);
-      const start = within(card).getByRole("link", { name: product.ctaLabel });
-      expect(start).toHaveAttribute("href", product.ctaHref);
-      expect(within(card).queryByRole("button", { name: "Извести ме при пускане" })).toBeNull();
-    }
-    expect(listener).not.toHaveBeenCalled();
-    window.removeEventListener("dogovori:prelaunch-waitlist", listener);
   });
 
   it("CTA-тата сочат към самостоятелните продуктови страници", () => {

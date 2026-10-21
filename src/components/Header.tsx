@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Menu, X, User as UserIcon, LogIn, ChevronDown } from "@/icons";
-import { Logo } from "./Logo";
+import { HeaderWordmark } from "./HeaderWordmark";
 import { TEST_PERIOD_LABEL } from "@/lib/prelaunch";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -85,7 +85,7 @@ export function Header() {
       className={cn(
         "sticky top-0 z-40 transition-all duration-300",
         scrolled
-          ? "bg-background xl:bg-background/97 xl:supports-[backdrop-filter]:bg-background/88 xl:backdrop-blur-xl border-b border-gold/15 shadow-soft"
+          ? "border-b border-border bg-background"
           : "border-b border-border/40 bg-background",
       )}
     >
@@ -94,7 +94,7 @@ export function Header() {
           // Възстановени пропорции на предишния мобилен хедър (68px, 64px при
           // скрол); десктоп височините остават непроменени.
           "container flex items-center justify-between gap-3 transition-[height] duration-300 xl:gap-6",
-          scrolled ? "h-16 xl:h-14" : "h-[68px] xl:h-16",
+          scrolled ? "h-16" : "h-[68px] xl:h-[72px]",
         )}
       >
         {/* Zone 1 — Brand */}
@@ -102,13 +102,14 @@ export function Header() {
           <Link
             to="/"
             onClick={() => setOpen(false)}
-            className="flex min-w-0 items-center"
+            className="flex min-w-0 items-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Договори.нет — начало"
           >
-            <Logo compact className="max-[359px]:h-8 max-[359px]:w-[161px]" />
+            <HeaderWordmark className="max-[359px]:h-9 max-[359px]:w-[178px]" />
           </Link>
           <span
             data-testid="test-period-badge"
-            className="ml-2 hidden shrink-0 rounded-full border border-gold/40 px-2 py-0.5 text-[11px] font-medium leading-4 text-gold sm:inline-flex"
+            className="ml-3 hidden shrink-0 border-l border-border pl-3 text-xs leading-4 text-muted-foreground sm:inline-flex"
           >
             {TEST_PERIOD_LABEL}
           </span>
@@ -129,8 +130,8 @@ export function Header() {
                 {...prefetchHandlers(n.to)}
                 className={cn(
                   "relative inline-flex min-h-11 items-center whitespace-nowrap rounded-md px-2.5 text-[14px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold",
-                  "after:absolute after:inset-x-2.5 after:bottom-1 after:h-0.5 after:rounded-full after:bg-gold after:transition-opacity",
-                  active ? "text-gold after:opacity-100" : "text-foreground/75 hover:text-gold after:opacity-0",
+                  "after:absolute after:inset-x-2.5 after:bottom-2 after:h-px after:bg-foreground after:transition-opacity",
+                  active ? "text-foreground after:opacity-100" : "text-foreground/75 hover:text-foreground after:opacity-0 hover:after:opacity-60",
                 )}
               >
                 {n.label}

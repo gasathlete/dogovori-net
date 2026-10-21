@@ -49,9 +49,9 @@ describe("йерархия на началната страница", () => {
     expect(hero).toContain("HeroProductRail");
   });
 
-  it("редът е доверие → пакети → комплекти → продукти → DogovaryAI → брандиране", () => {
+  it("редът е доверие → пакети → комплекти → продукти → DogovaryAI → въпроси", () => {
     const src = read("src/components/home/HomeSections.tsx");
-    const order = ["SocialProofStrip />", "SectorPackages />", "LifeScenarios />", "ProductsSection />", "DogovaryAIShowcase />", "BrandedDocumentShowcase />"];
+    const order = ["SocialProofStrip />", "SectorPackages />", "LifeScenarios />", "ProductsSection />", "DogovaryAIShowcase />", "FAQ />"];
     const positions = order.map((token) => src.indexOf(token));
     expect(positions.every((p) => p > 0)).toBe(true);
     expect([...positions].sort((a, b) => a - b)).toEqual(positions);

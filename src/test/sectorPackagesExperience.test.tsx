@@ -20,9 +20,9 @@ function route(path: string, pattern: string, element: React.ReactNode) {
 }
 
 describe("пакети и комплекти в предварителен режим", () => {
-  it("подредбата на началната страница е доказателство → пакети → комплекти → продукти → реклама", async () => {
+  it("подредбата на началната страница е доказателство → пакети → комплекти → продукти → DogovaryAI", async () => {
     const source = await import("node:fs").then(({ readFileSync }) => readFileSync("src/components/home/HomeSections.tsx", "utf8"));
-    const positions = ["<SocialProofStrip", "<SectorPackages", "<LifeScenarios", "<ProductsSection", "<AdSpotlight"].map((token) => source.indexOf(token));
+    const positions = ["<SocialProofStrip", "<SectorPackages", "<LifeScenarios", "<ProductsSection", "<DogovaryAIShowcase"].map((token) => source.indexOf(token));
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
     expect(source.match(/<LifeScenarios/g)).toHaveLength(1);
