@@ -47,13 +47,14 @@ const json = (b: unknown, s = 200) =>
 
 // Само-четящи проби, позволени при OFF: способност на схемата, правна база, профил.
 const READ_RPCS = ["/rpc/product_rollout_capability", "/rpc/is_staff"];
-function install(calls: Call[], entOwner = USER_ID) {
+function install(calls: Call[], entOwner = USER_ID, liveEnabled = true) {
   const orig = globalThis.fetch;
   globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     const method = (init?.method ?? (input instanceof Request ? input.method : "GET")).toUpperCase();
     calls.push({ method, url });
     if (url.includes("/auth/v1/user")) return json({ id: USER_ID, aud: "authenticated", email: "t@example.test" });
+    if (url.includes("/rest/v1/product_launch_control") && method === "GET") return json([{ live_enabled: liveEnabled }]);
     if (url.includes("/rest/v1/product_entitlements") && method === "GET") {
       return json([{ id: ENT_ID, user_id: entOwner, product_id: "contract_check", status: "ready" }]);
     }
@@ -132,6 +133,23 @@ for (const [name, path, body] of [
     } finally { restore(); }
   });
 }
+
+T("create-product-checkout: closed LIVE launch overrides enabled integration without payment or writes", async () => {
+  const h = await load("../create-product-checkout/index.ts");
+  for (const key of Object.keys(BODY_FLAGS)) Deno.env.set(key, "true");
+  const calls: Call[] = [];
+  const restore = install(calls, USER_ID, false);
+  try {
+    const res = await h(post(CHECKOUT));
+    assertEquals(res.status, 503);
+    assertEquals((await res.json()).error, "public_product_launch_closed");
+    assertEquals(calls.filter(mutation), []);
+    assert(!calls.some((call) => call.url.includes("/rest/v1/uploaded_contracts")));
+  } finally {
+    restore();
+    for (const key of Object.keys(BODY_FLAGS)) Deno.env.delete(key);
+  }
+});
 
 // ------------------------------------------------ fulfill-product
 T("fulfill-product: флаг в тялото → 400 invalid_body, без четене/запис", async () => {
