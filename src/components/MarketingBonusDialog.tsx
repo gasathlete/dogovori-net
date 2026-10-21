@@ -14,16 +14,19 @@ export function MarketingBonusDialog() {
   const [offers, setOffers] = useState<BonusOffer[]>([]);
   const queue = useRef<BonusOffer[]>([]);
   const [checked, setChecked] = useState(false);
+  const [verifiedOffer, setVerifiedOffer] = useState<BonusOffer | null>(null);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
   const [error, setError] = useState("");
   const eventId = useRef(crypto.randomUUID());
   const active = offers[0];
-  const finish = (proceed: boolean) => {
+  const finish = (proceed: boolean, expected?: BonusOffer) => {
+    if (expected && queue.current[0] !== expected) return;
     const [offer, ...remaining] = queue.current;
     queue.current = remaining;
     setOffers(remaining);
     setChecked(false);
+    setVerifiedOffer(null);
     setError("");
     eventId.current = crypto.randomUUID();
     offer?.resolve(proceed);
@@ -49,12 +52,14 @@ export function MarketingBonusDialog() {
     if (!active) return;
     let current = true;
     void Promise.resolve(supabase.rpc("marketing_bonus_status")).then(({ data, error: failure }) => {
-      if (current && (failure || (data as { eligible?: boolean } | null)?.eligible !== true)) finish(false);
-    }).catch(() => { if (current) finish(false); });
+      if (!current) return;
+      if (failure || (data as { eligible?: boolean } | null)?.eligible !== true) finish(false, active);
+      else setVerifiedOffer(active);
+    }).catch(() => { if (current) finish(false, active); });
     return () => { current = false; };
   }, [active]);
   const claim = async () => {
-    if (!checked || !active || busyRef.current || user?.id !== active.userId) return;
+    if (!checked || !active || verifiedOffer !== active || busyRef.current || user?.id !== active.userId) return;
     busyRef.current = true;
     setBusy(true);
     try {
@@ -66,7 +71,7 @@ export function MarketingBonusDialog() {
         return;
       }
       await refreshBonusBalance(active.userId);
-      finish(true);
+      finish(true, active);
     } catch {
       setError("Няма потвърждение от сървъра. Опитайте отново.");
     } finally { busyRef.current = false; setBusy(false); }
@@ -78,11 +83,11 @@ export function MarketingBonusDialog() {
         <DialogDescription>Можете еднократно да получите още {active?.bonusOps} операции със съгласие за имейл маркетинг. Регистрацията и платените възможности не изискват това съгласие.</DialogDescription>
       </DialogHeader>
       <div className="flex items-start gap-3">
-        <Checkbox id="marketing-bonus-consent" checked={checked} disabled={busy} onCheckedChange={(value) => setChecked(value === true)} />
+        <Checkbox id="marketing-bonus-consent" checked={checked} disabled={busy || verifiedOffer !== active} onCheckedChange={(value) => setChecked(value === true)} />
         <Label htmlFor="marketing-bonus-consent" className="leading-relaxed">Искам да получавам имейл съобщения за новости, бонуси и награди. Мога да оттегля съгласието от профила си, без да загубя получените операции.</Label>
       </div>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-      <Button disabled={!checked || busy} onClick={() => { void claim(); }}>Получете бонуса и продължете</Button>
+      <Button disabled={!checked || busy || verifiedOffer !== active} onClick={() => { void claim(); }}>Получете бонуса и продължете</Button>
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" disabled={busy} onClick={() => finish(false)}>Не сега</Button>
         <Button variant="outline" asChild disabled={busy}><Link to="/plans" onClick={(event) => { if (busyRef.current) event.preventDefault(); else finish(false); }}>Платени планове</Link></Button>

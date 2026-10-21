@@ -23,6 +23,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 const mount = () => render(<MemoryRouter><MarketingBonusDialog /></MemoryRouter>);
 async function accept() {
   await screen.findByRole("checkbox");
+  await waitFor(() => expect(screen.getByRole("checkbox")).not.toBeDisabled());
   fireEvent.click(screen.getByRole("checkbox"));
   fireEvent.click(screen.getByRole("button", { name: "Получете бонуса и продължете" }));
 }
