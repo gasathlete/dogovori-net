@@ -1,7 +1,11 @@
 # Roadmap
 
+- [x] Runtime legal readiness 21.10: request-only row reuse,47 tests, deployed v5 ready marker,10 HTTP200 queries/979ms. ROOT copy and canonical lock preserved; commerce closed.
+- [ ] Content logging confirmation: actual project AI app context read/write absent from exposed tools; project editor must disable/confirm in Cloud→AI/project settings.
+- [ ] Synthetic product checkout: stage team must sync/deploy legal fixes and provide supported stage fixture session; cross-project snapshot is read-only, current auth-session cannot target stage. No owner consent/payment fabricated.
+
 - [x] Operator visibility 21.10: private runtime marker/config and migration-ready record proved; 24 focused tests, observer check, lock preserved. Commerce closed; stopped for ROOT review. Evidence in launch-continuation report.
-- [ ] Commercial evidence 21.10: strict legal probe hit deadline; workspace request-content retention toggle/region evidence unavailable. ROOT review required before separate Stripe TEST E2E; no LIVE opening from ENV flags.
+- [ ] Commercial evidence 21.10: strict legal deadline resolved (v5 ready); project request-content setting and genuine Stripe TEST E2E remain open. Region gate only for existing per-user policy; no blanket Enterprise requirement. ROOT review before LIVE.
 
 - [x] Final narrow saved-content pass 20.10: deployed controlled handler, 4 pure/23 focused tests, real owner helper create/replay/concurrency/revision/negative checks, applied canonical payload boundary, proved client denial/server save/trusted restore/metadata and UI title save; no frontend publish. Evidence in functional-unlocked-test report. ROOT CI/publication and migration receipt reconciliation remain ROOT release actions.
 
