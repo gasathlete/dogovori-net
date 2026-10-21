@@ -1182,6 +1182,9 @@ html.light { --brand: 222 30% 14%; --brand-light: 222 30% 24%; --brand-dark: 222
   --brand-ink: 222 34% 14%;
   --brand-paper: 40 40% 98%;
   --brand-paper-ink: 222 30% 12%;
+  --brand-paper-muted: 30 10% 32%;
+  --brand-paper-border: 35 16% 78%;
+  --brand-paper-brass: 36 52% 31%;
   --brand-bronze: 39 42% 68%;
   --brand-on-ink: 40 28% 92%;
   --brand-on-ink-muted: 38 16% 76%;
@@ -1196,9 +1199,9 @@ html.light { --brand: 222 30% 14%; --brand-light: 222 30% 24%; --brand-dark: 222
 .brand-hero { border-top: 1px solid hsl(var(--gold) / .25); }
 .brand-document-stage { background: hsl(var(--brand-ink)); padding: 28px; border-left: 3px solid hsl(var(--gold)); }
 .brand-document { margin: 0; padding: 18px; background: hsl(var(--brand-paper)); color: hsl(var(--brand-paper-ink)); border: 1px solid hsl(var(--border)); border-radius: 3px; }
-.brand-document .text-muted-foreground { color: hsl(30 10% 32%); }
-.brand-document .text-gold { color: hsl(36 52% 31%); }
-.brand-document .border-border, .brand-document .border-border\/60 { border-color: hsl(35 16% 78%); }
+.brand-document .text-muted-foreground { color: hsl(var(--brand-paper-muted)); }
+.brand-document .text-gold { color: hsl(var(--brand-paper-brass)); }
+.brand-document .border-border, .brand-document .border-border\/60 { border-color: hsl(var(--brand-paper-border)); }
 .brand-document-detailed { padding: 24px; box-shadow: var(--shadow-document); }
 .brand-product { border-top: 3px solid hsl(var(--gold)); border-radius: 4px; }
 .brand-product-grid .brand-product:last-child { background: hsl(var(--secondary)); }
