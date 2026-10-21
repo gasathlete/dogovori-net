@@ -1218,6 +1218,8 @@ html.light { --brand: 222 30% 14%; --brand-light: 222 30% 24%; --brand-dark: 222
   .brand-lockup { gap: 6px; }
   .brand-lockup .brand-lockup-mark { width: 38px; height: 34px; }
   .brand-lockup .brand-lockup-wordmark { width: 190px; height: 39px; }
+  .brand-header .brand-lockup .brand-lockup-wordmark { width: 170px; height: 35px; }
+  .brand-header .brand-lockup .brand-lockup-mark { width: 32px; height: 30px; }
   .brand-document-stage { padding: 18px; }
   .brand-document-detailed { padding: 18px; }
 }
