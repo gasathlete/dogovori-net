@@ -143,7 +143,7 @@ export function Header() {
 
         {/* Zone 3 — Utility (helpers + account), separated by a hairline */}
         <div className="flex items-center justify-end gap-2 justify-self-end">
-          <Button asChild className="header-catalog-action hidden min-h-11 px-4 text-sm xl:inline-flex"><Link to="/catalog">Намерете документ</Link></Button>
+          <Button asChild className="header-catalog-action hidden min-h-11 px-4 text-sm 2xl:inline-flex"><Link to="/catalog">Намерете документ</Link></Button>
           {/* Helpers subgroup */}
           <div className="hidden items-center gap-1 xl:flex">
             <ThemeToggle />

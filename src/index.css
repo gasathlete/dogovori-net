@@ -1289,6 +1289,9 @@ html.dark .brand-platform-preview {
   border-color: hsl(var(--commerce-gold)); box-shadow: none;
 }
 .commerce-hero .btn-gold:hover, .header-catalog-action:hover { background: hsl(var(--commerce-gold-hover)); }
+.commerce-hero input[type=search] { background: hsl(var(--commerce-ink-soft)); background-image: none; color: hsl(var(--brand-on-ink)); }
+.commerce-hero input[type=search]::placeholder { color: hsl(var(--brand-on-ink-muted)); }
+.brand-header nav[aria-label="Основна навигация"] { gap: 6px; }
 .hero-offer-band { background: hsl(var(--commerce-ink-soft)); }
 .hero-commerce-product { border-top: 2px solid hsl(var(--gold)); }
 .hero-commerce-product .brand-product { border: none; }
