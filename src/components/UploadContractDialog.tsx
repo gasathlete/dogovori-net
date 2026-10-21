@@ -25,6 +25,8 @@ import {
   RAW_FILE_BLOCKED_MESSAGE,
   RAW_FILE_BLOCKED_TITLE,
   RAW_FILE_INGRESS_ALLOWED,
+  LOCAL_FILE_EXTRACTION_NOTE,
+  LOCAL_FILE_MAX_CHARS,
   CLIENT_RAW_TEXT_WRITE_ALLOWED,
   CLIENT_RAW_TEXT_WRITE_BLOCKED_MESSAGE,
   assertNoRestrictedIdentifiers,
@@ -131,6 +133,44 @@ export function UploadContractDialog({
   const reset = () => {
     setFile(null); setPasted(""); setTitle(""); setFolderId("none"); setContactId("none");
     setBusy(false); setPhase(""); setTab("pdf"); setAnalyzing(false); setTip("");
+  };
+
+  // Файлът не напуска устройството: текстът се извлича локално и попада в полето
+  // „Текст“, където човекът го преглежда преди изпращане по текстовия вход.
+  const onLocalFile = async (f: File | null) => {
+    if (!f) return;
+    const { validateUploadedFile, detectFileKind } = await import("@/lib/fileValidation");
+    const kind = detectFileKind(f);
+    if (kind !== "pdf" && kind !== "docx") {
+      toast.error("Поддържаме само PDF или DOCX файлове.");
+      return;
+    }
+    const v = await validateUploadedFile(f, kind, MAX_FILE_BYTES);
+    if (!v.ok) {
+      toast.error(v.error ?? "Невалиден файл.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const extracted = (await extractTextFromFile(f, kind, (p) => setPhase(p))).trim();
+      if (extracted.length < 80) {
+        toast.error("Не успяхме да извлечем достатъчно текст от файла. Поставете текста ръчно.");
+        return;
+      }
+      setPasted(extracted.slice(0, LOCAL_FILE_MAX_CHARS));
+      if (!title) setTitle(f.name.replace(/\.[^.]+$/, ""));
+      setTab("paste");
+      toast.success("Текстът е извлечен на Вашето устройство.", {
+        description: extracted.length > LOCAL_FILE_MAX_CHARS
+          ? `Текстът е по-дълъг от ${LOCAL_FILE_MAX_CHARS} знака и е съкратен. Проверете края му.`
+          : "Прегледайте го и заменете личните данни преди изпращане.",
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Файлът не можа да бъде прочетен.");
+    } finally {
+      setPhase("");
+      setBusy(false);
+    }
   };
 
   const onFileChange = async (f: File | null) => {
@@ -408,12 +448,12 @@ export function UploadContractDialog({
           </LegalDisclaimer>
         ) : (
           <div
-            data-testid="upload-file-blocked"
+            data-testid="upload-file-local"
             role="note"
-            className="mt-1 rounded-lg border border-gold/40 bg-gold/5 p-4 text-sm"
+            className="mt-1 rounded-md border border-border p-4 text-sm"
           >
-            <p className="font-semibold">{RAW_FILE_BLOCKED_TITLE}</p>
-            <p className="mt-2 text-muted-foreground">{RAW_FILE_BLOCKED_MESSAGE}</p>
+            <p className="font-semibold">PDF и Word файлове се четат на Вашето устройство</p>
+            <p className="mt-2 text-muted-foreground">{LOCAL_FILE_EXTRACTION_NOTE}</p>
           </div>
         )}
 
@@ -437,6 +477,18 @@ export function UploadContractDialog({
             </>
           )}
           <TabsContent value="paste" className="mt-3">
+            {!RAW_FILE_INGRESS_ALLOWED && (
+              <div className="mb-3">
+                <Label htmlFor="upload-local-file">Изберете PDF или Word (.docx) файл</Label>
+                <Input
+                  id="upload-local-file"
+                  type="file"
+                  accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  disabled={busy}
+                  onChange={(e) => { void onLocalFile(e.target.files?.[0] ?? null); e.target.value = ""; }}
+                />
+              </div>
+            )}
             <Textarea
               rows={8}
               placeholder="Поставете пълния текст на договора тук. Заменете личните данни с [ЕГН], [IBAN], [номер на лична карта]…"
