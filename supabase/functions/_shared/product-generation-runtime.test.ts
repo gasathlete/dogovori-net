@@ -43,11 +43,49 @@ function state(overrides: Partial<ProductGenerationState> = {}): ProductGenerati
 
 const legal: ProductLegalBasisPort = { resolve: async () => null };
 
+Deno.test("passport repeated literal party names use the existing first-match anchor", async () => {
+  const text = `${source}\nВъзложител Възложител`;
+  const model: ProductModelPort = { invoke: async () => ({ output: { passport: { title: "Договор", document_type: "Договор", parties: [{ role: "Възложител", name: "Възложител", span: { start: 0, end: 1, excerpt: "Възложител" } }], governing_law: null, signature_state: null } }, inputTokens: 1, outputTokens: 1, elapsedMs: 1 }) };
+  const result = await new ProductGenerationRuntime(model, legal).runStep(state({ sourceText: text, binding: { ...binding, char_count: Array.from(text).length } }));
+  const payload = result.artifact.payload as { passport: { parties: { span: { start: number; end: number; excerpt: string } }[] } };
+  const start = Array.from(text.slice(0, text.indexOf("Възложител"))).length;
+  assertEquals(payload.passport.parties[0].span.start, start);
+  assertEquals(payload.passport.parties[0].span.end, start + Array.from("Възложител").length);
+  assertEquals(payload.passport.parties[0].span.excerpt, "Възложител");
+});
+
+Deno.test("synthesis with no validated findings explicitly forbids invented priority ids", async () => {
+  let contract = "";
+  const model: ProductModelPort = { invoke: async (request) => {
+    contract = JSON.stringify(request.payload);
+    return { output: { executive_summary: "Обобщение", priority_summary: [], termination: { summary: "Няма извод.", spans: [] }, disputes: { summary: "Няма извод.", spans: [] }, absence_checks: [], missing_protections: [], questions: [] }, inputTokens: 1, outputTokens: 1, elapsedMs: 1 };
+  } };
+  await new ProductGenerationRuntime(model, legal).runStep(state({
+    binding: { ...binding, source_kind: "owner_text" },
+    artifacts: [{ stage: "passport", version: 1, cursorKey: "passport:0", digest: "a".repeat(64), payload: { passport: { title: "Договор", document_type: "Договор", parties: [], governing_law: null, signature_state: null } } }, { stage: "review", version: 1, cursorKey: "review:0", digest: "b".repeat(64), payload: [] }],
+    cursor: { stage: "synthesis", batch_index: 0, chunk_index: 0 },
+  }));
+  assert(contract.includes("priority_summary задължително е []"));
+});
+
 Deno.test("generation gateway is unreachable until zero retention is verified", async () => {
   let calls = 0;
   const model: ProductModelPort = { invoke: async () => { calls += 1; return { output: {}, inputTokens: 1, outputTokens: 1, elapsedMs: 1 }; } };
   await assertRejects(() => new ProductGenerationRuntime(model, legal).runStep(state({ zeroRetentionVerified: false })), ProductGenerationError, "zero_retention_unverified");
   assertEquals(calls, 0);
+});
+
+Deno.test("nested synthesis evidence anchors literal quotes and rejects nonexistent quotes", async () => {
+  const artifacts = [{ stage: "passport" as const, version: 1 as const, cursorKey: "passport:0", digest: "a".repeat(64), payload: { passport: { title: "Договор", document_type: "Договор", parties: [], governing_law: null, signature_state: null } } }];
+  let excerpt = "Срокът е 20 дни.";
+  const model: ProductModelPort = { invoke: async () => ({ output: { executive_summary: "Обобщение", priority_summary: [], termination: { summary: "Срок", spans: [{ start: 0, end: 1, excerpt }] }, disputes: { summary: "Няма извод.", spans: [] }, absence_checks: [], missing_protections: [], questions: [] }, inputTokens: 1, outputTokens: 1, elapsedMs: 1 }) };
+  const runtime = new ProductGenerationRuntime(model, legal);
+  const input = state({ artifacts, cursor: { stage: "synthesis", batch_index: 0, chunk_index: 0 } });
+  const result = await runtime.runStep(input);
+  assertEquals(result.result?.payload.termination.spans[0].excerpt, "Срокът е 20 дни.");
+  assertEquals(result.result?.payload.termination.spans[0].end, Array.from(source).length);
+  excerpt = "Несъществуваща клауза";
+  await assertRejects(() => runtime.runStep(input), ProductGenerationError);
 });
 
 Deno.test("special-category source cannot reach the generation gateway", async () => {

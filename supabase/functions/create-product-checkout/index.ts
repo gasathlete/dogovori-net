@@ -8,6 +8,7 @@
  * сума, цена, адрес за връщане или пълнота на документа.
  */
 import { bindTrustedProductSource, storageDownloader } from "../_shared/product-source-binding.ts";
+import { publicProductLaunchAllowed } from "../_shared/product-launch-gate.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createStripeClient } from "../_shared/stripe.ts";
 import { restrictedIdentifierBlock } from "../_shared/text-identifier-gate.ts";
@@ -156,6 +157,10 @@ Deno.serve(async (req) => {
     // service-role клиент (без препратен потребителски Authorization) и userId
     // от вече проверения JWT, никога от тялото.
     await assertEnvironmentAllowed(admin, environment, userId);
+
+    if (!(await publicProductLaunchAllowed(admin, environment))) {
+      return fail("public_product_launch_closed", 503, corsHeaders);
+    }
 
     // Сървърен кран ПРЕДИ всяко Stripe извикване и преди всеки запис: продава се
     // само това, което може да бъде изпълнено. Затова тук влизат и условията на

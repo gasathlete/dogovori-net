@@ -94,6 +94,15 @@ Deno.test("валидаторът приема пълен резултат по 
   assert(res.ok, JSON.stringify(res));
 });
 
+Deno.test("owner_text result preserves its distinct exact source binding", () => {
+  const value = clone();
+  value.source.source_kind = "owner_text";
+  const checked = validateProductResult(value);
+  assert(checked.ok);
+  value.source.source_kind = "browser_claim";
+  assertFalse(validateProductResult(value).ok);
+});
+
 Deno.test("валидаторът е дълбок: чупи се на едно поле навътре", () => {
   const bad = clone();
   bad.payload.findings[0].span.excerpt = "измислено";

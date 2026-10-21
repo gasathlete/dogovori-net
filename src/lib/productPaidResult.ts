@@ -176,7 +176,7 @@ export function bindingFromEntitlement(row: PaidEntitlementRow): ProductSourceBi
     !row.source_updated_at ||
     typeof row.source_char_count !== "number" ||
     row.source_char_unit !== PRODUCT_SOURCE_CHAR_UNIT ||
-    (row.source_kind !== "pdf" && row.source_kind !== "docx")
+    (row.source_kind !== "pdf" && row.source_kind !== "docx" && row.source_kind !== "owner_text")
   ) {
     return null;
   }

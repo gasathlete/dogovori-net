@@ -26,7 +26,7 @@ import type {
 import type { AppliedCorrection } from "../../supabase/functions/_shared/product-patch";
 
 export const NOT_LEGAL_ADVICE =
-  "Този документ е автоматично изготвен анализ по Вашия текст. Не е правен съвет и не заменя консултация с адвокат.";
+  "Този документ е автоматично изготвен анализ по Вашия текст. Не е правен съвет и не заменя консултация с адвокат. Проверете внимателно преди подписване.";
 
 /** Безопасно име на файл: без пътища, кавички и служебни знаци. */
 export function safeFileName(title: string, suffix: string, ext: string): string {
@@ -113,7 +113,7 @@ async function createPdf(title: string, subtitle: string): Promise<Pdf> {
         doc.setFont("DejaVu", "normal");
         doc.setFontSize(8);
         doc.setTextColor(130);
-        doc.text(NOT_LEGAL_ADVICE, M, ph - M + 14, { maxWidth });
+        doc.text(NOT_LEGAL_ADVICE, M, ph - M + 10, { maxWidth: maxWidth - 40 });
         doc.text(`${p} / ${pages}`, pw - M, ph - M + 14, { align: "right" });
       }
       return doc.output("blob");

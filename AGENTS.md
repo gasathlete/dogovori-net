@@ -17,3 +17,4 @@
 - Paid product sources of kind owner_text are trusted only via service-only product_text_attestations receipts written by uploaded-text-intake for the exact text hash+revision; file sources stay closed until the independent bridge is enabled — never relabel pasted text as file extraction.
 - Product ENV config is projected by a pure module; private service-written deployment observations run after serving starts with bounded tri-state probes, so operator evidence never blocks auth or conflates network failure with disabled configuration.
 - Strict readiness validates full paginated candidate rows through the same chunk verifier with request-only registered-source reuse; never cache legal permission across requests or cap candidate truth.
+- New LIVE product checkout requires the private service-controlled launch row on every request; missing/error means closed, sandbox retains staff authentication, and existing fulfillment never depends on this gate.

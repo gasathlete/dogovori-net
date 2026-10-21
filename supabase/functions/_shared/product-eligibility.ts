@@ -40,7 +40,7 @@ export type EligibilityCode =
 const MESSAGES: Readonly<Record<EligibilityCode, string>> = Object.freeze({
   unsupported_product: "Този продукт не е достъпен.",
   source_not_usable:
-    "Не можем да прочетем целия документ. Приемаме PDF с четим текст или DOCX файл.",
+    "Не можем да проверим целия предоставен текст. Поставете пълния текст на документа.",
   source_too_long: `Документът е по-дълъг от ${PRODUCT_MAX_SOURCE_CHARS} знака. Изпратете по-кратък документ или отделна част.`,
   content_not_allowed: "Не обработваме документи с такова съдържание.",
   processing_not_allowed:
@@ -114,7 +114,7 @@ export function evaluateProductEligibility(input: EligibilityInput): Eligibility
   // 1) Източникът трябва да е ЦЯЛ, четим и в каноничната мерна единица.
   if (source.extractionStatus !== "full") return reject("source_not_usable");
   if (source.charUnit !== PRODUCT_SOURCE_CHAR_UNIT) return reject("source_not_usable");
-  if (source.sourceKind !== "pdf" && source.sourceKind !== "docx") {
+  if (source.sourceKind !== "pdf" && source.sourceKind !== "docx" && source.sourceKind !== "owner_text") {
     return reject("source_not_usable");
   }
   const measured = countProductSourceChars(source.text);

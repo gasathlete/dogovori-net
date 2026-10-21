@@ -41,6 +41,7 @@ import {
   productOperationScope,
 } from "@/lib/productOperationKey";
 import {
+  NOT_LEGAL_ADVICE,
   buildChangeReportPdf,
   buildCorrectedDocx,
   buildCorrectedPdf,
@@ -714,6 +715,9 @@ export default function ProductResult() {
       <p className="text-sm text-muted-foreground">
         {isOneTimeProductId(row.product_id) ? getProduct(row.product_id).name : "Продукт"} ·{" "}
         {priceBg(row.amount_cents)}, еднократно
+      </p>
+      <p role="note" className="mt-3 rounded-lg border border-gold/30 bg-gold/5 p-3 text-sm text-muted-foreground">
+        {NOT_LEGAL_ADVICE}
       </p>
       <div className="mt-4">
         {isProductResult(result, "negotiation_package") ? (
