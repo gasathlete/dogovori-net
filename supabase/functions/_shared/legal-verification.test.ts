@@ -559,6 +559,7 @@ Deno.test("действащ документ НЕ прави действащ в
     );
     assertFalse(res.ok, name);
     assertEquals(res.ok === false ? res.reason : "", "chunk_not_authoritative_today", name);
+    assertFalse(await isStrictLegalKnowledgeBaseReady(fixtureDb(rows({ chunk: { ...READY_ROWS.chunk, content } })), deps), name);
   }
 
   // Действащият откъс минава и носи честен клас на действие.

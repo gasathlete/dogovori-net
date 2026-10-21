@@ -2,7 +2,7 @@ import { readProductIntegrationConfig, type EnvReader } from "./product-integrat
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { isLegalKnowledgeBaseReady } from "./product-legal-basis.ts";
 
-export const PRODUCT_OPERATOR_BUILD = "product-operator-20261021-v4-960e116";
+export const PRODUCT_OPERATOR_BUILD = "product-operator-20261021-v5-960e116";
 export type OperatorProbe = { state: "ready" | "not_ready" | "unknown"; code?: "probe_timeout" | "probe_error" };
 
 /** Unlike a commerce gate, an operational failure is unknown, never false. */
