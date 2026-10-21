@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 let sessionValue: { user: { id: string } } | null = null;
 const listeners: Array<(event: string, s: unknown) => void> = [];
+const consent = vi.hoisted(() => ({ flush: vi.fn() }));
+vi.mock("@/lib/consents", () => ({ flushPendingConsents: consent.flush }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: {
@@ -28,6 +30,7 @@ const realLocation = window.location;
 beforeEach(() => {
   listeners.length = 0;
   replace.mockReset();
+  consent.flush.mockReset().mockResolvedValue(undefined);
   sessionStorage.clear();
   localStorage.clear();
   Object.defineProperty(window, "location", {
@@ -41,6 +44,17 @@ afterEach(() => {
 });
 
 describe("AuthProvider — пренасочване", () => {
+  it("waits for explicit signup consent persistence before redirect", async () => {
+    sessionValue = { user: { id: "u1" } };
+    let persisted: (() => void) | undefined;
+    consent.flush.mockReturnValue(new Promise<void>((resolve) => { persisted = resolve; }));
+    sessionStorage.setItem("post_login_redirect", "/catalog");
+    render(<AuthProvider><div /></AuthProvider>);
+    await waitFor(() => expect(consent.flush).toHaveBeenCalledTimes(1));
+    expect(replace).not.toHaveBeenCalled();
+    persisted?.();
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/catalog"));
+  });
   it("честит целта и когато сесията идва от първоначалното четене", async () => {
     sessionValue = { user: { id: "u1" } };
     sessionStorage.setItem("post_login_redirect", "/wizard/it?doc=nda");
