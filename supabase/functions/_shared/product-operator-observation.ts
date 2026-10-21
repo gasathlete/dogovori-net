@@ -1,6 +1,8 @@
 import { readProductIntegrationConfig, type EnvReader } from "./product-integration-config.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { isLegalKnowledgeBaseReady } from "./product-legal-basis.ts";
 
-export const PRODUCT_OPERATOR_BUILD = "product-operator-20261021-v1-9bc9fbd";
+export const PRODUCT_OPERATOR_BUILD = "product-operator-20261021-v2-9bc9fbd";
 export type OperatorProbe = { state: "ready" | "not_ready" | "unknown"; code?: "probe_timeout" | "probe_error" };
 
 /** Unlike a commerce gate, an operational failure is unknown, never false. */
@@ -47,9 +49,6 @@ export async function persistProductOperatorObservation(env: EnvReader): Promise
   });
   await write({ migration_probe: migration }, "PATCH");
   const legal = await boundedOperatorProbe(async () => {
-    const [{ createClient }, { isLegalKnowledgeBaseReady }] = await Promise.all([
-      import("https://esm.sh/@supabase/supabase-js@2.45.0"), import("./product-legal-basis.ts"),
-    ]);
     const signal = AbortSignal.timeout(7000);
     let failed = false;
     const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: {
