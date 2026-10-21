@@ -3,6 +3,7 @@
 // Reduces the DB write rate ~10× under normal browsing (single HTTP request
 // carrying up to 20 events instead of one request per SPA route change).
 import { gaPageview, getCategoryConsent } from "@/lib/analytics";
+import { analyticsPath, analyticsReferrer } from "@/lib/analyticsUrl";
 
 const SESSION_KEY = "pv-session-id";
 const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-pageview`;
@@ -80,15 +81,16 @@ function flushDuration(beacon = false) {
   if (beacon) void flush(true);
 }
 
-export function trackPageview(path: string) {
+export function trackPageview(rawPath: string) {
   flushDuration(false);
+  const path = analyticsPath(rawPath);
   currentPath = path;
   currentStart = Date.now();
   const utm = new URLSearchParams(window.location.search).get("utm_source");
   enqueue({
     event: "pageview",
     path,
-    referrer: document.referrer || null,
+    referrer: analyticsReferrer(document.referrer, window.location.origin),
     utm_source: utm,
   });
   gaPageview(path);

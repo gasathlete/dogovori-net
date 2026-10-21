@@ -1,3 +1,4 @@
+import { analyticsLocation, analyticsPath, analyticsReferrer } from "@/lib/analyticsUrl";
 // Google Analytics 4 wrapper with GDPR-friendly Consent Mode v2.
 // GA is only loaded and allowed to store data AFTER the user grants the
 // "analytics" cookie category via the cookie banner (CJEU Planet49 compliant).
@@ -60,13 +61,17 @@ export function trackUpgradeCompleted(plan: string, billing: string) {
   trackEvent("upgrade_completed", { plan, billing });
 }
 
-export function gaPageview(path: string) {
+export function gaPageview(rawPath: string) {
   if (typeof window === "undefined") return;
   try {
     if (!getCategoryConsent("analytics")) return;
+    const path = analyticsPath(rawPath);
+    const page_location = analyticsLocation(window.location.origin, path);
+    // "set" persists, so automatic GA events also use the query-free location.
+    window.gtag?.("set", { page_location, page_path: path });
     window.gtag?.("event", "page_view", {
       page_path: path,
-      page_location: window.location.origin + path,
+      page_location,
       page_title: document.title,
     });
   } catch {
@@ -217,6 +222,9 @@ export function initAnalytics() {
   window.gtag?.("config", GA_MEASUREMENT_ID, {
     anonymize_ip: true,
     send_page_view: true,
+    page_location: analyticsLocation(window.location.origin, window.location.pathname),
+    page_path: analyticsPath(window.location.pathname),
+    page_referrer: analyticsReferrer(document.referrer, window.location.origin) ?? "",
     transport_type: "beacon",
   });
 }
