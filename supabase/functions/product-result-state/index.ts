@@ -32,6 +32,8 @@ import {
 } from "../_shared/product-patch.ts";
 import { MAX_REFINEMENTS } from "../_shared/product-result-contract.ts";
 import type { CorrectionPayload } from "../_shared/product-result-contract.ts";
+import type { NegotiationPackageResult } from "../_shared/product-result-contract.ts";
+import { loadSucceededRefinement } from "../_shared/product-refinement-replay.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** Точна Stripe сесия за връщане след плащане. Без „последната поръчка“. */
@@ -171,11 +173,16 @@ Deno.serve(async (req) => {
       const succeeded = history.filter(
         (item) => (item as Record<string, unknown>)?.status === "succeeded",
       ).length;
+      const refined = access.spec.id === "negotiation_package"
+        ? await loadSucceededRefinement(admin, { userId, entitlementId, baseDigest: resultDigest, base: access.result as NegotiationPackageResult, binding: access.binding }, { canonical, sha256Hex })
+        : { kind: "none" as const };
+      if (!["none", "replay"].includes(refined.kind)) return fail("internal", 500, headers, cid);
       return json(
         {
           status: "ready",
           product_id: access.spec.id,
           result_digest: resultDigest,
+          refined_result: refined.kind === "replay" ? refined.result : null,
           selection_version: row.selection_version ?? 0,
           decisions: row.decisions ?? [],
           patch_output_hash: row.patch_output_hash ?? null,
@@ -184,7 +191,7 @@ Deno.serve(async (req) => {
             access.spec.id === "negotiation_package"
               ? {
                 included: MAX_REFINEMENTS,
-                used: succeeded,
+                used: refined.kind === "replay" ? 1 : succeeded,
                 current: row.refinement ?? null,
               }
               : null,

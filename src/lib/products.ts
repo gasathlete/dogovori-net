@@ -92,10 +92,10 @@ export const ONE_TIME_TERMS =
 export const ONE_TIME_SCOPE_NOTE = "За един документ. Без абонамент.";
 
 /**
- * Публичният frontend остава fail-closed до изричното пускане на покупките.
- * Това не замества сървърните PRODUCT_* флагове, които остават авторитетни.
+ * Prepared release UI; new LIVE checkout still requires the private server launch row.
+ * Publishing and enabling that row remain separate owner-controlled actions.
  */
-export const ONE_TIME_PURCHASES_AVAILABLE = false;
+export const ONE_TIME_PURCHASES_AVAILABLE = true;
 
 /** Истинното публично състояние преди официалното пускане. */
 export const ONE_TIME_PRELAUNCH_MESSAGE =

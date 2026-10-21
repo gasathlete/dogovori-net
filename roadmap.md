@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Release package 06:06: reconcile genuine refunds independent of roles; retest improve/negotiation/export/refinement; inspect LIVE catalog/webhook/token; prepare unified frontend without publishing or opening LIVE.
+
 - [x] Paid runtime 21.10 boundary/check proof: LIVE default-closed service row deployed/503 verified; genuine check TEST webhook→ready→browser PDF→identical replay proven. Fixture disabled, staff revoked; LIVE/public stay closed.
 - [ ] Paid release review: correct immutable paid sandbox reversal handling/redeliver genuine historical refunds; two improve failures fixed but latest changes await genuine paid retest; negotiation/refinement/DOCX/mobile untested. ROOT review and project AI app-context confirmation required before opening.
 
@@ -57,3 +59,5 @@
 - [x] Positioning 20.10: catalog-first home, contextual feature statuses, original warnings (five-only scope superseded by owner whole-catalog correction), regenerated shell; 62 focused tests and desktop/mobile browser checks passed. No deployment/publication. See docs/operations/positioning-beta-2026-10-20.md.
 
 - [x] Owner correction 20.10 09:13: uniform whole-catalog review status on catalog/category/sector/template/static-store surfaces; browsing and paid rights unchanged; 1 focused test + catalog/category/sector/template/static-store browser checks passed; harness build OK; no publish.
+- [x] Paid release: role-independent refunds, genuine improve/PDF/DOCX and premium/refinement tests; LIVE catalog/events/token verified; unified frontend prepared without publishing.
+- [ ] ROOT release: authenticated UI readback after final refined-result fix, full CI/review, then coordinated LIVE row and publish; waits on next authorized TEST fixture/release review.

@@ -110,12 +110,9 @@ describe("продуктови страници — първи изглед и �
       expect(screen.getByTestId(`product-price-${p.id}`)).toHaveTextContent(
         productPriceLabel(p.id),
       );
-      expect(ONE_TIME_PURCHASES_AVAILABLE).toBe(false);
-      expect(screen.queryByRole("link", { name: new RegExp(p.ctaLabel) })).toBeNull();
-      expect(screen.getByTestId("product-prelaunch-status")).toHaveTextContent(
-        "Покупките предстоят",
-      );
-      expect(screen.getByText(ONE_TIME_PRELAUNCH_MESSAGE)).toBeInTheDocument();
+      expect(ONE_TIME_PURCHASES_AVAILABLE).toBe(true);
+      expect(screen.getAllByRole("link", { name: new RegExp(p.ctaLabel) }).length).toBeGreaterThan(0);
+      expect(screen.queryByTestId("product-prelaunch-status")).toBeNull();
       const limits = screen.getByTestId("product-limits");
       expect(limits.textContent).toContain("PDF");
       expect(limits.textContent).toContain(

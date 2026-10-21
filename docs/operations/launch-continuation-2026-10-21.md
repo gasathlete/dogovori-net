@@ -1,5 +1,8 @@
 # Продължение — 21.10.2026
 
+## Current release package supersedes earlier unresolved refund/improve status
+See `paid-text-launch-2026-10-21.md` for genuine improve selection/DOCX/PDF, premium delivery/refinement, all seven reconciled TEST refunds, fixture cleanup and actual LIVE prices/token/events. Public LIVE row remains false; frontend opening prepared but not published. Final refined-result owner-readback fix deployed and retained-row integrity verified; authenticated UI after that late change still needs isolated TEST proof before ROOT opening. Historical uncertain refinement audit retained,not erased.
+
 ## Genuine MAIN Stripe TEST work package — 05:42–06:01 UTC
 
 - LIVE server boundary applied through `0028_private_product_launch_control.sql`: service-only row `public_products`, `live_enabled=false`, RLS, revoked anon/authenticated access. Checkout re-reads the control for LIVE; sandbox still requires normal staff authentication. Real owner-text LIVE request returned HTTP503 `public_product_launch_closed`; sandbox returned200. Existing fulfillment/core flags/keys unchanged. No public frontend opening or publication.

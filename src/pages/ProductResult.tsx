@@ -312,6 +312,19 @@ export default function ProductResult() {
 
   const [manifest, setManifest] = useState<ProductPatchManifest | null>(null);
 
+  // Rebuild downloads from the persisted server selection after a reload.
+  useEffect(() => {
+    if (phase.kind !== "ready" || !state?.decisions.length || phase.result.product_id === "contract_check") {
+      setManifest(null);
+      return;
+    }
+    let cancelled = false;
+    void buildPatch(phase.result, phase.purchase, state.decisions).then(local => {
+      if (!cancelled && local.output_hash.toLowerCase() === state.patch_output_hash?.toLowerCase()) setManifest(local);
+    }).catch(() => { if (!cancelled) setManifest(null); });
+    return () => { cancelled = true; };
+  }, [phase, state?.decisions, state?.patch_output_hash, buildPatch]);
+
   /* ---------------------------- ръчен преглед ----------------------------- */
 
   type ManualSource =
@@ -616,7 +629,9 @@ export default function ProductResult() {
     );
   }
 
-  const { purchase, result } = phase;
+  const { purchase } = phase;
+  const refined = state?.refined_result ? readPaidResult({ ...purchase.entitlement, result: state.refined_result }) : null;
+  const result = refined?.ok ? refined.result : phase.result;
   const row = purchase.entitlement;
   const title = result.payload.passport.title;
   // Успокоение „нищо не е намерено“ само при доказана проверка върху целия текст.
@@ -689,6 +704,7 @@ export default function ProductResult() {
       <CorrectionWorkspace
         corrections={result.payload.corrections}
         savedDecisions={state?.decisions ?? []}
+        savedCorrectedText={manifest?.corrected_text ?? null}
         onSave={saveSelection}
         onDecision={(decision, strategy) =>
           trackCorrectionSelected(result.product_id, strategy ?? "none", decision)
