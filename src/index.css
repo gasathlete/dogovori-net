@@ -1163,3 +1163,8 @@ html.light .bg-gold.text-navy, html.light .bg-gold .text-navy { color: hsl(var(-
 .animate-ping { display: none; }
 section[class*="bg-gradient-to-"], header[class*="bg-gradient-to-"], main[class*="bg-gradient-to-"] { background-image: none; }
 .proof-band::before, .proof-band::after { display: none; }
+
+/* Emerald plan accent folds into ink; brass stays the only accent */
+:root { --brand: 40 28% 92%; --brand-light: 40 28% 85%; --brand-dark: 40 28% 92%; --gradient-brand: linear-gradient(hsl(var(--primary)), hsl(var(--primary))); --shadow-brand: none; }
+html.light { --brand: 222 30% 14%; --brand-light: 222 30% 24%; --brand-dark: 222 30% 14%; --gradient-brand: linear-gradient(hsl(var(--primary)), hsl(var(--primary))); --shadow-brand: none; }
+.bg-brand, .bg-gradient-brand { color: hsl(var(--primary-foreground)); }
