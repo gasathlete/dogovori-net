@@ -47,11 +47,9 @@ Deno.test("passport repeated literal party names use the existing first-match an
   const text = `${source}\nВъзложител Възложител`;
   const model: ProductModelPort = { invoke: async () => ({ output: { passport: { title: "Договор", document_type: "Договор", parties: [{ role: "Възложител", name: "Възложител", span: { start: 0, end: 1, excerpt: "Възложител" } }], governing_law: null, signature_state: null } }, inputTokens: 1, outputTokens: 1, elapsedMs: 1 }) };
   const result = await new ProductGenerationRuntime(model, legal).runStep(state({ sourceText: text, binding: { ...binding, char_count: Array.from(text).length } }));
-  const payload = result.artifact.payload as { passport: { parties: { span: { start: number; end: number } }[] } };
-  expectAnchor: {
-    const start = Array.from(text.slice(0, text.indexOf("Възложител"))).length;
-    assertEquals(payload.passport.parties[0].span, { start, end: start + 10, excerpt: "Възложител" });
-  }
+  const payload = result.artifact.payload as { passport: { parties: { span: { start: number; end: number; excerpt: string } }[] } };
+  const start = Array.from(text.slice(0, text.indexOf("Възложител"))).length;
+  assertEquals(payload.passport.parties[0].span, { start, end: start + Array.from("Възложител").length, excerpt: "Възложител" });
 });
 
 Deno.test("synthesis with no validated findings explicitly forbids invented priority ids", async () => {
