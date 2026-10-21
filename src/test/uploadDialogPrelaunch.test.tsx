@@ -26,6 +26,11 @@ vi.mock("@/lib/extractContractText", () => ({
   sha256Hex: vi.fn(async () => "0".repeat(64)),
 }));
 
+vi.mock("@/lib/fileValidation", () => ({
+  detectFileKind: () => "docx",
+  validateUploadedFile: async () => ({ ok: true }),
+}));
+
 import { UploadContractDialog } from "@/components/UploadContractDialog";
 import { PRELAUNCH_WAITLIST_EVENT } from "@/lib/prelaunchWaitlist";
 import { UploadStepError, uploadFailureReason } from "@/lib/uploadFailureReason";
@@ -67,5 +72,52 @@ describe("uploadFailureReason", () => {
     expect(uploadFailureReason(new Error("duplicate key for Иван Петров dogovor.pdf"))).toBe("unknown");
     expect(uploadFailureReason(new Error("Failed to fetch"))).toBe("network");
     expect(uploadFailureReason("ivan@example.test")).toBe("unknown");
+  });
+});
+
+describe("UploadContractDialog: локален PDF/DOCX и дисклеймър без предварително приемане", () => {
+  const open = async () => {
+    render(<MemoryRouter><UploadContractDialog folders={[]} contacts={[]} onUploaded={() => undefined} /></MemoryRouter>);
+    fireEvent.click(screen.getByRole("button", { name: /Добави договор/ }));
+    return screen.findByPlaceholderText(/Поставете пълния текст/);
+  };
+
+  it("DOCX се чете локално в полето „Текст“, без качване и без backend", async () => {
+    vi.mocked(extract.extractTextFromFile).mockResolvedValue("Локално извлечен синтетичен текст. ".repeat(5));
+    const area = await open();
+    // Минимален валиден DOCX (ZIP) подпис.
+    const f = new File([new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0, 0, 0, 0])], "d.docx", {
+      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    });
+    await act(async () => { fireEvent.change(screen.getByLabelText(/Изберете PDF или Word/), { target: { files: [f] } }); });
+    expect((area as HTMLTextAreaElement).value).toContain("Локално извлечен");
+    expect(h.upload).not.toHaveBeenCalled();
+    expect(h.invoke).not.toHaveBeenCalled();
+  });
+
+  it("Отказ в дисклеймъра спира преди backend; приемане продължава със същия текст", async () => {
+    sessionStorage.clear();
+    h.invoke.mockImplementation(async (fn: string) =>
+      fn === "uploaded-text-intake"
+        ? { data: { contract: { id: "11111111-1111-4111-8111-111111111111" } }, error: null }
+        : { data: { analysis: { id: "a" } }, error: null });
+    const area = await open();
+    fireEvent.change(area, { target: { value: "Синтетичен текст ".repeat(10) } });
+    fireEvent.change(screen.getByPlaceholderText(/напр\. Договор/), { target: { value: "Синтетично" } });
+    const answer = (accepted: boolean) => {
+      const l = (e: Event) => {
+        window.removeEventListener("ai-disclaimer:request", l);
+        const { id } = (e as CustomEvent).detail;
+        setTimeout(() => window.dispatchEvent(new CustomEvent("ai-disclaimer:resolved", { detail: { id, accepted } })), 0);
+      };
+      window.addEventListener("ai-disclaimer:request", l);
+    };
+    answer(false);
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Качи и анализирай" })); await new Promise((r) => setTimeout(r, 20)); });
+    expect(h.invoke).not.toHaveBeenCalled();
+    expect((area as HTMLTextAreaElement).value).toContain("Синтетичен текст");
+    answer(true);
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Качи и анализирай" })); await new Promise((r) => setTimeout(r, 50)); });
+    expect(h.invoke.mock.calls[0][0]).toBe("uploaded-text-intake");
   });
 });
