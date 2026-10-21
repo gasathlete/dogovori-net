@@ -863,6 +863,10 @@ export class ProductGenerationRuntime {
       }
       assertStageShape(schemaStage, hydrated);
       const aligned = realignSpans(hydrated, redaction.map, state.sourceText);
+      if (schemaStage === "passport" && aligned && typeof aligned === "object" && !Array.isArray(aligned)) {
+        const wrapper = aligned as Candidate;
+        wrapper.passport = anchorPassportParties(wrapper.passport, state.sourceText);
+      }
       if (Array.isArray(aligned)) {
         return await Promise.all(aligned.map((item) => validateCandidate(item as Candidate, state.sourceText, this.legal)));
       }
