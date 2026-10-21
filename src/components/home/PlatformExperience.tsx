@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { BrandLockup } from "@/components/BrandLockup";
 import { ArrowLeft, ArrowRight, FileText, Search, Folder, Palette } from "@/icons";
-import { ProductOutputVisual } from "@/components/products/ProductOutputVisual";
 import { CATALOG_REVIEW_STATUS } from "@/lib/templateReviewStatus";
 
 const WORKFLOWS = [
