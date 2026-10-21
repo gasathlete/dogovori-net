@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] Security flow review 21.10: inventory all native/deep/linter/dependency findings, fix verified paths, deploy and retest; report incomplete scans and upstream blockers without changing public commerce.
+- [x] Security flow review 21.10: partial verified remediation deployed/tested, exact inventory in security-flow-review report; public chat200, commerce unchanged.
+- [ ] Security full closure: complete DScan/ignored history unavailable; upstream braces/sprintf-js unpatched, hosting CSP/anti-framing not served; MCP/CSV await coordinated publication and remaining invitation/EXECUTE/runtime checks not complete.
 
 - [x] Release package 06:06 + final06:40: genuine refunds reconciled; improve/premium/refinement/export and exact owner UI reload proved; LIVE catalog/webhook/token revalidated; one-time iframe gate fixed/tested; final fixture refunded/disabled, audits retained. ROOT coordinates CI/opening/publication; no new owner permission needed.
 
