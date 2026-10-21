@@ -4365,6 +4365,24 @@ export type Database = {
           },
         ]
       }
+      product_launch_control: {
+        Row: {
+          id: string
+          live_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          live_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          live_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       product_operator_observations: {
         Row: {
           build_marker: string

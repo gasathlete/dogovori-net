@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Paid runtime 21.10: service-only default-closed LIVE gate, genuine synthetic MAIN sandbox checkout/payment/webhook/delivery; preserve rights and core, report exact blockers and keep LIVE closed.
+
 - [x] Runtime legal readiness 21.10: request-only row reuse,47 tests, deployed v5 ready marker,10 HTTP200 queries/979ms. ROOT copy and canonical lock preserved; commerce closed.
 - [ ] Content logging confirmation: actual project AI app context read/write absent from exposed tools; project editor must disable/confirm in Cloud→AI/project settings.
 - [ ] Synthetic product checkout: stage team must sync/deploy legal fixes and provide supported stage fixture session; cross-project snapshot is read-only, current auth-session cannot target stage. No owner consent/payment fabricated.
