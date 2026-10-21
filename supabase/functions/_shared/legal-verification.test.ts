@@ -59,6 +59,25 @@ Deno.test("a fully approved and fresh injected chain is accepted", async () => {
   assertEquals(chunk.chunk.citation_label, "чл. 79, ал. 1 ЗЗД");
 });
 
+Deno.test("readiness reuses exact current rows across late-page candidates, not global permission", async () => {
+  const noise = Array.from({ length: 401 }, (_, i) => ({ ...READY_ROWS.chunk, id: `noise-${i}`, content: "" }));
+  const db = fixtureDb(rows({ chunks: [...noise, READY_ROWS.chunk as Record<string, unknown>] }));
+  assert(await isStrictLegalKnowledgeBaseReady(db, deps));
+  assertEquals(db.calls.legal_sources, 1);
+  assertEquals(db.calls.legal_documents, 1);
+  assertEquals(db.calls.legal_chunks, 3);
+  assertEquals(db.calls.legal_source_registry, 1);
+  assertEquals(db.calls.legal_ingestion_runs, 1);
+  assertEquals(db.calls.legal_source_snapshots, 1);
+  assertFalse(await isStrictLegalKnowledgeBaseReady(fixtureDb(rows({ registry: { ...READY_ROWS.registry, freshness_state: "quarantined" } })), deps));
+});
+
+Deno.test("seeded readiness still rejects tampered checksum and wrong chunk ownership", async () => {
+  assertFalse(await isStrictLegalKnowledgeBaseReady(fixtureDb(rows({ document: { ...READY_ROWS.document, checksum: "b".repeat(64) } })), deps));
+  assertFalse(await isStrictLegalKnowledgeBaseReady(fixtureDb(rows({ chunk: { ...READY_ROWS.chunk, source_id: "foreign" } })), deps));
+  assertFalse(await isStrictLegalKnowledgeBaseReady(fixtureDb(rows({ run: { ...READY_ROWS.run, outcome: "failed" } })), deps));
+});
+
 Deno.test("registry gates: disabled, unapproved, watch-only, mismatch, stale, failed run, no snapshot", async () => {
   const cases: Array<[string, FixtureRows, Parameters<typeof verifyRegisteredSource>[2]]> = [
     ["disabled code entry", READY_ROWS, {

@@ -2,7 +2,7 @@ import { readProductIntegrationConfig, type EnvReader } from "./product-integrat
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { isLegalKnowledgeBaseReady } from "./product-legal-basis.ts";
 
-export const PRODUCT_OPERATOR_BUILD = "product-operator-20261021-v3-9bc9fbd";
+export const PRODUCT_OPERATOR_BUILD = "product-operator-20261021-v4-960e116";
 export type OperatorProbe = { state: "ready" | "not_ready" | "unknown"; code?: "probe_timeout" | "probe_error" };
 
 /** Unlike a commerce gate, an operational failure is unknown, never false. */
@@ -50,16 +50,22 @@ export async function persistProductOperatorObservation(env: EnvReader): Promise
   await write({ migration_probe: migration }, "PATCH");
   let legalHttpStatus: number | undefined;
   let legalFailure: "database_http_error" | "database_transport_error" | "probe_deadline" | undefined;
+  const queryTimings: Array<{ operation: string; duration_ms: number; status: number | "transport_error" }> = [];
   const legal = await boundedOperatorProbe(async () => {
     const signal = AbortSignal.timeout(7000);
     let failed = false;
     const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: {
       fetch: async (input, init) => {
+        const start = performance.now();
+        const requestUrl = new URL(input instanceof Request ? input.url : String(input));
+        const table = requestUrl.pathname.split("/").pop() ?? "unknown";
+        const operation = ["legal_sources", "legal_documents", "legal_chunks", "legal_source_registry", "legal_ingestion_runs", "legal_source_snapshots"].includes(table) ? table : "other";
         try {
           const response = await fetch(input, { ...init, signal });
+          queryTimings.push({ operation, duration_ms: Math.round(performance.now() - start), status: response.status });
           if (!response.ok) { failed = true; legalHttpStatus = response.status; legalFailure = "database_http_error"; }
           return response;
-        } catch (error) { failed = true; legalFailure = signal.aborted ? "probe_deadline" : "database_transport_error"; throw error; }
+        } catch (error) { queryTimings.push({ operation, duration_ms: Math.round(performance.now() - start), status: "transport_error" }); failed = true; legalFailure = signal.aborted ? "probe_deadline" : "database_transport_error"; throw error; }
       },
     } });
     const ready = await isLegalKnowledgeBaseReady(db as never);
@@ -67,5 +73,6 @@ export async function persistProductOperatorObservation(env: EnvReader): Promise
     return ready;
   });
   await write({ legal_probe: { ...legal, ...(legalFailure ? { detail_code: legalFailure } : {}),
+    query_timings: queryTimings,
     ...(legalHttpStatus !== undefined ? { http_status: legalHttpStatus } : {}) } }, "PATCH");
 }
