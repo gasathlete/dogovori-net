@@ -100,6 +100,13 @@ ${JSON.stringify(data.payload, null, 2)}`
 import { createClient as createClient3 } from "npm:@supabase/supabase-js@^2.105.3";
 import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.20.1";
 import { z as z3 } from "npm:zod@^3.25.76";
+
+// src/lib/postgrestLiteral.ts
+function postgrestSubstring(value) {
+  return JSON.stringify(`%${value.replace(/[%*_]/g, " ")}%`);
+}
+
+// src/lib/mcp/tools/list-my-contacts.ts
 function supabaseForUser3(ctx) {
   return createClient3(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
     global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
@@ -122,7 +129,7 @@ var list_my_contacts_default = defineTool3({
     const supabase = supabaseForUser3(ctx);
     let query = supabase.from("contacts").select("id, type, name, eik, vat_number, email, phone, address, updated_at").eq("user_id", ctx.getUserId()).is("deleted_at", null).order("updated_at", { ascending: false }).limit(limit);
     if (search) {
-      const like = `%${search}%`;
+      const like = postgrestSubstring(search);
       query = query.or(`name.ilike.${like},eik.ilike.${like},email.ilike.${like}`);
     }
     const { data, error } = await query;
@@ -165,7 +172,7 @@ var search_templates_default = defineTool4({
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
   handler: async ({ query, limit }, ctx) => {
     const supabase = supabaseForUser4(ctx);
-    const like = `%${query}%`;
+    const like = postgrestSubstring(query);
     const { data, error } = await supabase.from("template_search_index").select("slug, name, category_title, purpose, document_type, bilingual, has_dynamic_wizard").or(`name.ilike.${like},purpose.ilike.${like},category_title.ilike.${like}`).limit(limit);
     if (error) {
       return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
