@@ -59,3 +59,5 @@
 - [x] Positioning 20.10: catalog-first home, contextual feature statuses, original warnings (five-only scope superseded by owner whole-catalog correction), regenerated shell; 62 focused tests and desktop/mobile browser checks passed. No deployment/publication. See docs/operations/positioning-beta-2026-10-20.md.
 
 - [x] Owner correction 20.10 09:13: uniform whole-catalog review status on catalog/category/sector/template/static-store surfaces; browsing and paid rights unchanged; 1 focused test + catalog/category/sector/template/static-store browser checks passed; harness build OK; no publish.
+- [x] Paid release: role-independent refunds, genuine improve/PDF/DOCX and premium/refinement tests; LIVE catalog/events/token verified; unified frontend prepared without publishing.
+- [ ] ROOT release: authenticated UI readback after final refined-result fix, full CI/review, then coordinated LIVE row and publish; waits on next authorized TEST fixture/release review.
