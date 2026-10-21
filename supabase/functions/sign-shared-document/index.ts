@@ -63,6 +63,7 @@ async function buildSignedPdf(opts: {
 serve(async (req) => {
   const corsHeaders = buildCors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method !== "POST") return new Response(null, { status: 405, headers: corsHeaders });
 
   try {
     const body = await req.json().catch(() => ({}));
@@ -82,6 +83,11 @@ serve(async (req) => {
     };
     const method: "drawn" | "uploaded" | "qes" =
       signature_method === "uploaded" || signature_method === "qes" ? signature_method : "drawn";
+    // Uploading a file is not provider-verified QES evidence. D-Trust integration
+    // is required; reject this unsupported capability before any durable write.
+    if (method === "qes") return new Response(JSON.stringify({
+      code: "qes_provider_unavailable", message: "Квалифицираното подписване чрез D-Trust още не е достъпно. Документът не е подписан; можете да го свалите.",
+    }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     // SECURITY: only allow PNG/JPEG raster signatures. Reject SVG (XSS via inline
     // <script>/<foreignObject>) and other vector/exotic formats.

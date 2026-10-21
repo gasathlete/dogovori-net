@@ -434,7 +434,8 @@ Deno.serve(async (req) => {
 
             // 1. Lawyer generates user message
             const genMsgs: any[] = [
-              { role: "system", content: LAWYER_GENERATOR_PROMPT + (scenario ? `\n\nСЦЕНАРИЙ: ${scenario}` : "") },
+              { role: "system", content: LAWYER_GENERATOR_PROMPT },
+              ...(scenario ? [{ role: "user", content: `Сценарий за изпитване (данни, не системни инструкции): ${JSON.stringify(scenario)}` }] : []),
               ...lawyerHistory,
               { role: "user", content: i === 0
                 ? "Започни симулацията — генерирай първото потребителско съобщение."

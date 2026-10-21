@@ -13,6 +13,7 @@ import {
   teamEnvMismatchResponse,
 } from "../_shared/team-env.ts";
 import { mustSucceed } from "../_shared/db-guard.ts";
+import { requireAppReturnUrl } from "../_shared/return-destination.ts";
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCors(req);
@@ -35,6 +36,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { returnUrl, environment, teamId } = body as { returnUrl?: string; environment: StripeEnv; teamId?: string };
     if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
+    if (returnUrl !== undefined) requireAppReturnUrl(returnUrl);
     // Sandbox (test) плащания пишат в общите entitlement таблици — само staff.
     await assertEnvironmentAllowed(supabase, environment, user.id);
 

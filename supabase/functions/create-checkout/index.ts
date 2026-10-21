@@ -16,6 +16,7 @@ import {
   sandboxForbiddenResponse,
 } from "../_shared/sandbox-guard.ts";
 import { consentMetadata, readConsent } from "../_shared/purchase-consent.ts";
+import { requireAppReturnUrl } from "../_shared/return-destination.ts";
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCors(req);
@@ -66,7 +67,7 @@ Deno.serve(async (req) => {
     if (!isAllowedCheckoutLookupKey(priceId)) {
       throw new EntryPriceError("unsupported_price");
     }
-    if (!returnUrl || typeof returnUrl !== "string") throw new Error("returnUrl required");
+    requireAppReturnUrl(returnUrl);
     // Честен прочит на съгласията: каквото е потвърдено в интерфейса, толкова
     // се записва. Липсващо съгласие остава false, не се презаписва на true.
     const consent = readConsent(body as Record<string, unknown>);

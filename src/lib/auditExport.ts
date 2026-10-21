@@ -1,5 +1,6 @@
 // Utilities for exporting audit log entries to CSV or PDF.
 import { jsPDF } from "jspdf";
+import { escapeCell } from "./csv";
 
 export type AuditExportRow = {
   created_at: string;
@@ -9,12 +10,7 @@ export type AuditExportRow = {
   metadata?: any;
 };
 
-function csvCell(v: string): string {
-  if (v == null) return "";
-  const s = String(v);
-  if (/[",\n;]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-}
+const csvCell = escapeCell;
 
 export function exportAuditCsv(rows: AuditExportRow[], filename = "audit-log.csv") {
   const header = ["Време", "Действащо лице", "Действие", "Обект", "Метаданни"];

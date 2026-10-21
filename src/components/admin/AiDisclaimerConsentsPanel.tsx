@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { escapeCell } from "@/lib/csv";
 
 interface ConsentRow {
   user_id: string;
@@ -60,9 +61,7 @@ export function AiDisclaimerConsentsPanel() {
       ...filtered.map((r) =>
         header
           .map((k) => {
-            const v = (r as any)[k] ?? "";
-            const s = String(v).replace(/"/g, '""');
-            return `"${s}"`;
+            return escapeCell(r[k as keyof ConsentRow]);
           })
           .join(","),
       ),

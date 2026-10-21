@@ -1,8 +1,9 @@
 // Lightweight CSV export — no external deps.
 
-function escapeCell(value: unknown): string {
+export function escapeCell(value: unknown): string {
   if (value === null || value === undefined) return "";
-  const s = typeof value === "string" ? value : String(value);
+  const raw = typeof value === "string" ? value : String(value);
+  const s = /^[\s\u0000-\u001f]*[=+@-]/.test(raw) ? "'" + raw : raw;
   if (/[",\n\r;]/.test(s)) {
     return `"${s.replace(/"/g, '""')}"`;
   }

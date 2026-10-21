@@ -1,5 +1,7 @@
 # Project architecture rules
 
+- All billing navigation validates exact application origins; CSV exports share formula-neutralizing cell escaping, and raw PostgREST OR values are quoted as literals — untrusted data must not become navigation, spreadsheet commands or query syntax.
+
 - Edge Stripe runtime and type imports use the same pinned npm SDK version; retain the shared gateway transport and API version to avoid CDN declaration-fetch failures without changing payment semantics.
 - Generate the canonical Bun lock with the exact CI Bun version and verify a frozen install; preserve lock schema and scoped compatibility overrides rather than weakening CI checks.
 
