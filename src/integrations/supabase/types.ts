@@ -4820,7 +4820,15 @@ export type Database = {
           uploaded_contract_id?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "product_text_attestations_document_fk"
+            columns: ["uploaded_contract_id"]
+            isOneToOne: false
+            referencedRelation: "uploaded_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
