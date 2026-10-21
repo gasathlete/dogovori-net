@@ -83,7 +83,7 @@ describe("подробната проверка", () => {
     expect(screen.getByText("Няма находки за показване.")).toBeInTheDocument();
     unmount();
     render(<ReviewResult result={empty} wholeDocumentCovered />);
-    expect(screen.getByText(/обхвана целия документ/)).toBeInTheDocument();
+    expect(screen.getByText(/обхвана целия предоставен текст/)).toBeInTheDocument();
   });
 
   it("не използва забранени фрази", () => {
