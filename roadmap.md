@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Rich platform homepage: restore product carousel and truthful comparisons; interactive existing calculators and workflow previews; focused tests and desktop/mobile interactions, no publish.
+- [x] Rich platform homepage: restored product carousel and truthful comparison, interactive canonical calculators and workflow/branding previews; 32 focused tests, automatic build/typecheck OK, desktop/390px interactions verified. No publish; rich-platform-home-2026-10-21.md.
 
 - [x] Focused branded conversion pass: existing mark/calligraphy, native example, product presentation and shared public shell; 62 focused tests, automatic build/typecheck OK, desktop/390px browser verified. No publish; report branded-conversion-design-2026-10-21.md.
 
