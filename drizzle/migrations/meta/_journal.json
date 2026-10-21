@@ -225,6 +225,13 @@
       "when": 1792602430423,
       "tag": "0031_marketing_bonus_claim_proof",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1792602660838,
+      "tag": "0032_marketing_bonus_wave_cap",
+      "breakpoints": true
     }
   ]
 }
