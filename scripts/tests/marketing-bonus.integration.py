@@ -118,4 +118,22 @@ for source in ["free", "pro"]:
     sql(f"SELECT public.assistant_turn_cancel('{op}','{chat}','replay')")
     assert balance(chat) == 3
 print("PASS free/pro assistant consumes one bonus and cancelled replay restores once")
+wave = new_user()
+sql(f"UPDATE public.download_quota SET monthly_total_used=2 WHERE user_id='{wave}'")
+batch = str(uuid.uuid4())
+denied = json.loads(sql(f"SELECT public.charge_corrections_wave('{wave}','{batch}',1)"))
+assert denied["ok"] is False and denied["reason"] == "insufficient_quota", denied
+assert claim(wave)["granted"] is True
+assert json.loads(sql(f"SELECT public.charge_corrections_wave('{wave}','{batch}',1)"))["ok"] is True
+assert balance(wave) == 2
+sql(f"SELECT public.charge_corrections_wave('{wave}','{batch}',1)")
+assert balance(wave) == 2
+op = str(uuid.uuid4())
+sql("SET request.jwt.claim.role='service_role'")
+reserve = f"SET request.jwt.claim.role='service_role';SELECT public.quota_wave_reserve('{op}','{wave}','analysis','test',null,null,null,'{'b'*64}',1,300)"
+assert json.loads(sql(reserve))["status"] == "reserved"
+assert balance(wave) == 1
+sql(reserve)
+assert balance(wave) == 1
+print("PASS exhausted correction/wave claims and replays use one authoritative bonus pool")
 print("ALL isolated server integration assertions passed")
