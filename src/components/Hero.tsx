@@ -8,9 +8,9 @@ import { HeroProductRail } from "@/components/products/HeroProductRail";
 import { useAuth } from "@/hooks/useAuth";
 import { useAudience } from "@/hooks/useAudience";
 import { CATALOG_REVIEW_STATUS } from "@/lib/templateReviewStatus";
-import { AudienceToggle } from "@/components/funnel/AudienceToggle";
+
 import { BrandMark } from "@/components/BrandLogo";
-import { ProductOutputVisual } from "@/components/products/ProductOutputVisual";
+import { DocumentWorkflowStage } from "@/components/home/DocumentWorkflowStage";
 import { Button } from "@/components/ui/button";
 
 /** Бързи търсения — водят към реалното търсене в каталога (/catalog?q=…). */
@@ -48,14 +48,14 @@ export function Hero() {
   };
 
   return (
-    <section className="brand-hero border-b border-border bg-background">
-      <div className="container grid w-full gap-10 py-10 sm:py-14 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-12 lg:py-14">
+    <section className="brand-hero commerce-hero border-b border-border">
+      <div className="container grid w-full gap-8 py-9 sm:py-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,.9fr)] lg:items-center lg:gap-16 lg:py-14">
         <div className="min-w-0 text-left">
-          <p className="flex items-center gap-3 text-sm text-muted-foreground"><BrandMark decorative className="h-10 w-12" /> Образци и подготовка на документи · Тестов период</p>
-          <h1 className="mt-4 max-w-[16ch] font-serif text-[34px] font-bold leading-[1.1] text-foreground sm:text-[44px] lg:text-[56px]">
+          <p className="flex items-center gap-3 text-sm text-muted-foreground"><BrandMark decorative className="h-10 w-12" /> За хората и бизнеса · Тестов период</p>
+          <h1 className="mt-4 max-w-[17ch] font-serif text-[38px] font-bold leading-[1.08] text-foreground sm:text-[52px] lg:text-[64px]">
             {copy.heroHeadline.lead} {copy.heroHeadline.accent}{copy.heroHeadline.tail}
           </h1>
-          <p className="mt-5 max-w-[52ch] text-base leading-relaxed text-foreground/80 sm:text-lg">
+          <p className="mt-5 max-w-[48ch] text-base leading-relaxed text-muted-foreground sm:text-lg">
             {copy.heroSub}
           </p>
 
@@ -63,7 +63,7 @@ export function Hero() {
             <label htmlFor="hero-search" className="mb-2 block text-sm font-semibold text-foreground">
               Какъв документ търсите?
             </label>
-            <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="hero-search-row flex flex-col gap-2">
               <div className="relative flex-1">
                 <Search className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <input
@@ -88,8 +88,8 @@ export function Hero() {
                 <ArrowRight className="h-[18px] w-[18px]" />
               </Button>
             </div>
-            <p className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
-              <span className="text-muted-foreground">Често търсени:</span>
+            <p className="mt-2 flex flex-wrap items-baseline gap-x-4 text-sm">
+              <span className="text-muted-foreground">Например:</span>
               {QUICK_QUERIES.map((q) => (
                 <Link key={q} to={catalogHref(q)} className="link-ink inline-flex min-h-11 items-center">
                   {q}
@@ -105,48 +105,20 @@ export function Hero() {
             <Link to="/analiz" {...prefetchHandlers("/analiz")} className="link-ink inline-flex min-h-11 items-center gap-1.5">
               <FileUp className="h-4 w-4" /> {isFeatureAvailable("document_review") ? "Проверете документ" : "Проверка · В подготовка"}
             </Link>
-            <Button variant="link"
-              type="button"
-              onClick={() => {
-                trackFunnelEvent("home_demo_story_opened", { source: "hero" });
-                import("@/components/funnel/StartStoryOverlay").then((m) => m.openStartStory());
-              }}
-              className="link-ink inline-flex min-h-11 items-center px-0"
-            >
-              Вижте демонстрацията
-            </Button>
+            <Button variant="link" type="button" onClick={() => {
+              trackFunnelEvent("home_demo_story_opened", { source: "hero" });
+              document.getElementById("hero-workflow")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "center" });
+            }} className="link-ink min-h-11 px-0">Вижте как работи <ArrowRight className="size-4" /></Button>
           </div>
-          <div className="mt-2"><AudienceToggle size="sm" /></div>
+          <nav aria-label="Бързи задачи" className="mt-6 grid grid-cols-2 gap-x-5 border-t border-border pt-3">
+            {TASKS.map((task) => <Link key={task.to} to={task.to} className="flex min-h-11 items-center justify-between gap-2 text-sm text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring">{task.title}<ArrowRight className="size-3 shrink-0 text-gold" /></Link>)}
+          </nav>
         </div>
 
-        {/* Указател: реални адреси към пакети и търсене в каталога. */}
-        <div className="min-w-0">
-          <div className="brand-document-stage">
-            <ProductOutputVisual productId="contract_check" detailed />
-          </div>
-        <nav aria-labelledby="hero-index-title" className="mt-7 min-w-0">
-          <h2 id="hero-index-title" className="font-serif text-xl font-bold text-foreground">Започнете от задачата</h2>
-          <ol className="mt-3 grid border-t border-foreground/80 sm:grid-cols-2">
-            {TASKS.map((t, i) => (
-              <li key={t.title} className="border-b border-border">
-                <Link to={t.to} className="group grid min-h-11 grid-cols-[1.5rem_1fr] gap-x-2 py-3 pr-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <span className="font-serif text-sm text-gold" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
-                  <span>
-                    <span className="block font-semibold text-foreground underline-offset-4 group-hover:underline">{t.title}</span>
-                    <span className="mt-0.5 block text-sm text-muted-foreground">{t.text}</span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ol>
-          <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-            <span className="font-semibold text-foreground">{CATALOG_REVIEW_STATUS.badge}.</span> {CATALOG_REVIEW_STATUS.warning}
-          </p>
-        </nav>
-        </div>
+        <DocumentWorkflowStage />
       </div>
 
-      <div className="container pb-12 lg:pb-16"><HeroProductRail /></div>
+      <div className="hero-offer-band border-t border-border"><div className="container py-6 sm:py-8"><HeroProductRail /><p className="mt-4 text-xs leading-relaxed text-muted-foreground">{CATALOG_REVIEW_STATUS.notice}</p></div></div>
     </section>
   );
 }
