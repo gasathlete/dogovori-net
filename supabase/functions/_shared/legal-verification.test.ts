@@ -25,9 +25,28 @@ import {
   SOURCE_ID,
 } from "./legal-verification.fixture.ts";
 import { retrieveLegalContext } from "./legal-rag.ts";
+import { LEGAL_SOURCE_REGISTRY } from "./legal-source-registry.ts";
 import { createProductLegalBasisPort, isLegalKnowledgeBaseReady } from "./product-legal-basis.ts";
 
 const deps = { registry: APPROVED_REGISTRY, now: FIXED_NOW };
+
+Deno.test("Registry Agency law files resolve uniquely to their own source, not the PDPA directory", async () => {
+  for (const key of ["bg_registryagency_pdpa", "bg_registryagency_zzd", "bg_registryagency_gpk"]) {
+    const entry = LEGAL_SOURCE_REGISTRY.find(e => e.sourceKey === key);
+    assert(entry);
+    const url = entry.origin + entry.entryPath;
+    assertEquals(LEGAL_SOURCE_REGISTRY.filter(e => isApprovedUrl(url, e)).map(e => e.sourceKey), [key]);
+    const fixture = fixtureDb(rows({
+      source: { ...READY_ROWS.source, official_url: url },
+      registry: { ...READY_ROWS.registry, source_key: key, origin: entry.origin, jurisdiction: entry.jurisdiction, parser_version: entry.parserVersion },
+      run: { ...READY_ROWS.run, source_key: key },
+      snapshot: { ...READY_ROWS.snapshot, source_key: key, canonical_url: url, parser_version: entry.parserVersion },
+    }));
+    const verified = await verifyLegalChunk(fixture, CHUNK_ID, { now: FIXED_NOW });
+    assert(verified.ok, key);
+    assertEquals(verified.chunk.source_key, key);
+  }
+});
 
 function rows(patch: FixtureRows): FixtureRows {
   return { ...READY_ROWS, ...patch };
