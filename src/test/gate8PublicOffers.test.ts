@@ -18,7 +18,7 @@ describe("Gate 8 — публични оферти преди пускане", (
     ]);
     expect(ONE_TIME_PURCHASES_AVAILABLE).toBe(true);
     expect(isFeatureAvailable("one_time_product")).toBe(true);
-    expect(isFeatureAvailable("subscription")).toBe(false);
+    expect(isFeatureAvailable("subscription")).toBe(true); // Stripe TEST checkout→webhook проверен 21.10.2026
   });
 
   it("разграничава безплатните действия от платената подробна проверка", () => {
