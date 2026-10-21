@@ -10,7 +10,6 @@
  */
 import { useEffect, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ONE_TIME_PURCHASES_AVAILABLE } from "@/lib/products";
 import { FileUp, ShieldCheck, Sparkles, Lock } from "@/icons";
 import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
