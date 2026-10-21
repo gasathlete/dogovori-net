@@ -49,7 +49,9 @@ Deno.test("passport repeated literal party names use the existing first-match an
   const result = await new ProductGenerationRuntime(model, legal).runStep(state({ sourceText: text, binding: { ...binding, char_count: Array.from(text).length } }));
   const payload = result.artifact.payload as { passport: { parties: { span: { start: number; end: number; excerpt: string } }[] } };
   const start = Array.from(text.slice(0, text.indexOf("Възложител"))).length;
-  assertEquals(payload.passport.parties[0].span, { start, end: start + Array.from("Възложител").length, excerpt: "Възложител" });
+  assertEquals(payload.passport.parties[0].span.start, start);
+  assertEquals(payload.passport.parties[0].span.end, start + Array.from("Възложител").length);
+  assertEquals(payload.passport.parties[0].span.excerpt, "Възложител");
 });
 
 Deno.test("synthesis with no validated findings explicitly forbids invented priority ids", async () => {
