@@ -145,7 +145,7 @@ export function ReviewerContentHub({ className }: { className?: string }) {
           Създайте безплатен профил и запазете резултата
         </p>
         <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-          Безплатният профил пази качените документи, намерените клаузи и
+          Безплатният профил пази запазените документи, намерените клаузи и
           историята на проверките на едно място.
         </p>
         <Button
