@@ -115,7 +115,7 @@ describe("ранен продуктов ред в hero-а", () => {
     }
     // Обхватът се казва веднъж — за целия ред, не на всяка карта.
     expect(screen.getAllByText(/За един документ\. Без абонамент\./)).toHaveLength(1);
-    expect(screen.getByText(/Покупките още не са активни\./)).toBeInTheDocument();
+    expect(screen.queryByText(/Покупките още не са активни/)).toBeNull();
     expect(screen.getByRole("heading", { name: "Еднократни продукти" })).toBeInTheDocument();
   });
 
