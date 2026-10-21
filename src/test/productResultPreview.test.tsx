@@ -125,6 +125,12 @@ describe("пълен пакет за преговори", () => {
 
     await userEvent.click(tabs[1]);
     expect(tabs[1]).toHaveAttribute("aria-selected", "true");
+    expect(screen.getAllByRole("tabpanel")).toHaveLength(1);
+    expect(screen.getByRole("tabpanel")).toHaveAccessibleName("Действия и срокове");
+    await userEvent.click(tabs[2]);
+    expect(screen.getAllByRole("tabpanel")).toHaveLength(1);
+    expect(screen.getByRole("tabpanel")).toHaveAccessibleName("Писма");
+    await userEvent.click(tabs[1]);
     expect(screen.getByText("Разговор по трите високи находки")).toBeInTheDocument();
 
     const preview = screen.getByTestId("product-result-preview");

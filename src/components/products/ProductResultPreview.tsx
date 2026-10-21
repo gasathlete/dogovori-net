@@ -9,7 +9,8 @@
  * запазен или платен.
  */
 import { useId, useRef, useState } from "react";
-import { FileText, ListChecks, MessageSquareQuote } from "lucide-react";
+import { FileText, ListChecks, MessageSquareQuote } from "@/icons";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { OneTimeProductId } from "@/lib/products";
 import {
@@ -54,12 +55,12 @@ function Frame({
     <figure
       data-testid="product-result-preview"
       className={cn(
-        "overflow-hidden rounded-2xl border border-border bg-card text-left shadow-sm",
+        "sample-document border-y border-border bg-card text-left",
         className,
       )}
     >
-      <figcaption className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border bg-muted/50 px-4 py-2.5">
-        <span className="rounded-full border border-gold/40 bg-gold/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-gold">
+      <figcaption className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border px-4 py-4">
+        <span className="text-sm font-semibold text-foreground">
           {PREVIEW_TITLE}
         </span>
         <span className="text-[11px] text-muted-foreground">{PREVIEW_NOTE}</span>
@@ -74,9 +75,9 @@ function Frame({
 function DocHeader({ size }: { size: Size }) {
   return (
     <div className="mb-4 flex items-start gap-2.5 border-b border-dashed border-border pb-3">
-      <FileText className="mt-0.5 size-4 shrink-0 text-navy" aria-hidden="true" />
+      <FileText className="mt-0.5 size-4 shrink-0 text-foreground" aria-hidden="true" />
       <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-foreground">
+        <p className="text-sm font-semibold text-foreground">
           {SAMPLE_DOC.title}
         </p>
         <p className="text-[12px] leading-snug text-muted-foreground">
@@ -109,7 +110,7 @@ function SeverityChart() {
 
   return (
     <div className="mt-3" data-testid="check-severity-chart">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <p className="text-[11px] font-semibold  text-muted-foreground">
         {CHECK_SEVERITY_CAPTION} · {total} общо
       </p>
       <div
@@ -137,7 +138,7 @@ function CheckPreview({ size }: { size: Size }) {
   return (
     <>
       <DocHeader size={size} />
-      <h4 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <h4 className="text-[13px] font-semibold  text-muted-foreground">
         Заключение
       </h4>
       <p className="mt-1 text-sm leading-relaxed text-foreground">
@@ -150,7 +151,7 @@ function CheckPreview({ size }: { size: Size }) {
           <li
             key={s.label}
             className={cn(
-              "rounded-full border px-2 py-0.5 text-[12px] font-medium tabular-nums",
+              "rounded-sm border px-2 py-0.5 text-[12px] font-medium tabular-nums",
               SEVERITY_TONE[s.label],
             )}
           >
@@ -163,12 +164,12 @@ function CheckPreview({ size }: { size: Size }) {
         {findings.map((f) => (
           <li
             key={f.title}
-            className="rounded-xl border border-border bg-background p-3"
+            className="border-t border-border py-4"
           >
             <div className="flex flex-wrap items-center gap-2">
               <span
                 className={cn(
-                  "rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                  "rounded-sm border px-2 py-0.5 text-[11px] font-semibold",
                   SEVERITY_TONE[f.severity],
                 )}
               >
@@ -187,7 +188,7 @@ function CheckPreview({ size }: { size: Size }) {
             <blockquote className="mt-1 border-l-2 border-gold/50 pl-2.5 text-[13px] italic leading-relaxed text-muted-foreground">
               {f.excerpt}
             </blockquote>
-            <p className="mt-2 text-[13px] leading-relaxed text-navy">
+            <p className="mt-2 text-[13px] leading-relaxed text-foreground">
               <span className="font-semibold">Следваща стъпка: </span>
               {f.nextStep}
             </p>
@@ -196,8 +197,8 @@ function CheckPreview({ size }: { size: Size }) {
       </ol>
 
       {size === "full" && (
-        <div className="mt-4 rounded-xl border border-border bg-background p-3">
-          <h4 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="mt-4 border-t border-border py-4">
+          <h4 className="text-[13px] font-semibold  text-muted-foreground">
             Пари, срокове и задължения
           </h4>
           <dl className="mt-2 grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
@@ -268,7 +269,7 @@ function ImprovePreview({ size }: { size: Size }) {
 
       <div className="mt-2 grid gap-3 sm:grid-cols-2" data-testid="improve-redline">
         <div className="rounded-xl border-l-2 border-destructive/50 border-border bg-destructive/[0.05] p-3">
-          <h4 className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <h4 className="flex items-center gap-1.5 text-[12px] font-semibold  text-muted-foreground">
             <span className="rounded-sm bg-destructive/15 px-1 text-destructive">−</span>
             Преди
           </h4>
@@ -277,7 +278,7 @@ function ImprovePreview({ size }: { size: Size }) {
           </p>
         </div>
         <div className="rounded-xl border-l-2 border-gold/60 border-gold/40 bg-gold/[0.07] p-3">
-          <h4 className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-gold">
+          <h4 className="flex items-center gap-1.5 text-[12px] font-semibold  text-gold">
             <span className="rounded-sm bg-gold/20 px-1">+</span>
             След
           </h4>
@@ -304,8 +305,9 @@ function ImprovePreview({ size }: { size: Size }) {
           className="mt-2 flex flex-wrap gap-2"
         >
           {IMPROVE_STRATEGIES.map((s) => (
-            <button
+            <Button
               key={s.id}
+              variant="outline"
               type="button"
               role="radio"
               ref={roving.register(s.id)}
@@ -313,14 +315,14 @@ function ImprovePreview({ size }: { size: Size }) {
               tabIndex={s.id === active ? 0 : -1}
               onClick={() => setActive(s.id)}
               className={cn(
-                "min-h-11 rounded-full border px-4 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "h-auto min-h-11 whitespace-normal rounded-sm border px-4 py-2 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 s.id === active
-                  ? "border-gold bg-gold/15 text-gold"
+                  ? "border-foreground bg-secondary text-foreground"
                   : "border-border bg-background text-muted-foreground hover:text-foreground",
               )}
             >
               {s.label}
-            </button>
+            </Button>
           ))}
         </div>
         {IMPROVE_STRATEGIES.map((s) => (
@@ -376,7 +378,7 @@ function PackagePreview({ size }: { size: Size }) {
         className="flex flex-wrap gap-2"
       >
         {PACKAGE_TABS.map((t) => (
-          <button
+          <Button
             key={t.id}
             type="button"
             role="tab"
@@ -387,14 +389,14 @@ function PackagePreview({ size }: { size: Size }) {
             tabIndex={t.id === active ? 0 : -1}
             onClick={() => setActive(t.id)}
             className={cn(
-              "min-h-11 rounded-full border px-4 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "h-auto min-h-11 whitespace-normal rounded-sm border px-4 py-2 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               t.id === active
-                ? "border-gold bg-gold/15 text-gold"
+                ? "border-foreground bg-secondary text-foreground"
                 : "border-border bg-background text-muted-foreground hover:text-foreground",
             )}
           >
             {t.label}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -408,9 +410,9 @@ function PackagePreview({ size }: { size: Size }) {
         {PACKAGE_PLAN.map((block) => (
           <div
             key={block.heading}
-            className="rounded-xl border border-border bg-background p-3"
+            className="border-t border-border py-4"
           >
-            <h4 className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <h4 className="text-[12px] font-semibold  text-muted-foreground">
               {block.heading}
             </h4>
             <ul className="mt-1.5 space-y-1">
@@ -438,7 +440,7 @@ function PackagePreview({ size }: { size: Size }) {
           {PACKAGE_ACTIONS.map((a) => (
             <li
               key={a.action}
-              className="relative rounded-xl border border-border bg-background p-3"
+              className="relative border-t border-border py-4"
             >
               <span
                 aria-hidden="true"
@@ -468,9 +470,9 @@ function PackagePreview({ size }: { size: Size }) {
         {PACKAGE_LETTERS.map((l) => (
           <div
             key={l.tone}
-            className="rounded-xl border border-border bg-background p-3"
+            className="border-t border-border py-4"
           >
-            <p className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="flex items-center gap-2 text-[12px] font-semibold  text-muted-foreground">
               <MessageSquareQuote className="size-3.5 text-gold" aria-hidden="true" />
               {l.tone}
             </p>
@@ -488,7 +490,7 @@ function PackagePreview({ size }: { size: Size }) {
         {PACKAGE_FINAL.map((f) => (
           <li
             key={f}
-            className="flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/[0.06] px-2.5 py-1 text-[12px] text-foreground"
+            className="flex items-center gap-1.5 py-1 text-[12px] text-foreground"
           >
             <ListChecks className="size-3.5 shrink-0 text-gold" aria-hidden="true" />
             {f}

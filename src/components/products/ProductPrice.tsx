@@ -44,7 +44,7 @@ export function ProductPrice({
       <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <span
           className={cn(
-            "font-serif font-bold tabular-nums text-gold",
+            "font-serif font-bold tabular-nums text-foreground",
             CURRENT[size],
           )}
         >
@@ -59,7 +59,7 @@ export function ProductPrice({
         {discount && (
           <span
             data-testid={`product-discount-${id}`}
-            className="rounded-full border border-gold/40 bg-gold/[0.1] px-2 py-0.5 text-[12px] font-semibold tabular-nums text-gold"
+            className="text-[12px] font-medium tabular-nums text-muted-foreground"
           >
             {discount}
           </span>

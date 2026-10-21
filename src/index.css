@@ -1151,7 +1151,7 @@ html.light body::before { display: none; }
 .corner-ticks::before, .corner-ticks::after { display: none; }
 
 /* Headings: serif, left-aligned rhythm */
-h1, h2, h3 { letter-spacing: -0.01em; }
+h1, h2, h3 { letter-spacing: 0; }
 
 /* Ink-filled surfaces carry paper-coloured text */
 .bg-gradient-gold, .bg-gradient-gold.text-navy, .bg-gradient-gold .text-navy { color: hsl(var(--primary-foreground)); }
@@ -1168,3 +1168,11 @@ section[class*="bg-gradient-to-"], header[class*="bg-gradient-to-"], main[class*
 :root { --brand: 40 28% 92%; --brand-light: 40 28% 85%; --brand-dark: 40 28% 92%; --gradient-brand: linear-gradient(hsl(var(--primary)), hsl(var(--primary))); --shadow-brand: none; }
 html.light { --brand: 222 30% 14%; --brand-light: 222 30% 24%; --brand-dark: 222 30% 14%; --gradient-brand: linear-gradient(hsl(var(--primary)), hsl(var(--primary))); --shadow-brand: none; }
 .bg-brand, .bg-gradient-brand { color: hsl(var(--primary-foreground)); }
+
+/* Public detail reading rhythm; no editor/admin/document-rendering selectors. */
+.editorial-detail > .container, .editorial-detail > section > .container { max-width: 1160px; }
+.editorial-detail p, .editorial-detail dd { max-width: 68ch; }
+.editorial-detail .sample-document p { max-width: 60ch; }
+.editorial-detail .sample-document { line-height: 1.65; }
+.editorial-detail .sample-document blockquote { margin-block: .75rem; }
+.sample-document [hidden] { display: none !important; }

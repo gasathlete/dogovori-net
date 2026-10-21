@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Editorial finishing 21.10 11:10: product/package/kit detail and footer, focused tests and local browser verification; production lab comparison blocked by missing production artifact and harness-only build access.
+
 - [ ] Lawyer account: momcho99@gmail.com not present; supported Add user action required in More → Users, no native account-creation capability exposed here. Do not store supplied password in code, reports or memory.
 - [ ] Lawyer permissions: prior-approval workflow required before unrestricted admin grant; current admin role can apply live edits and grant roles directly. Build owner-only approval and notification plus isolated free TEST access, not fabricated paid rights or global feature opening.
 
