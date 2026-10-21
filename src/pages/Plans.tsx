@@ -234,13 +234,9 @@ export default function Plans() {
           <AnalysisRecommendationBanner />
 
           <PlansAuroraHero kicker="Планове и цени" className="mt-3">
-            <div className="relative mx-auto max-w-3xl text-center">
-              <h1 className="font-serif text-4xl leading-[1.1] tracking-tight text-foreground sm:text-5xl md:text-6xl">
-                Платете според начина,
-                <br />
-                <span className="bg-gradient-to-r from-brand-dark via-brand to-brand-light bg-clip-text text-transparent">
-                  по който работите
-                </span>
+            <div className="max-w-3xl">
+              <h1 className="font-serif text-4xl font-bold leading-[1.1] text-foreground sm:text-5xl">
+                Платете според начина, по който работите
               </h1>
               <p className="mt-3 text-sm text-muted-foreground whitespace-pre-line sm:text-base">
                 Еднократно — когато нуждата е един конкретен документ.
@@ -251,7 +247,7 @@ export default function Plans() {
 
 
 
-            <div className="mt-6 flex flex-col items-center gap-3 sm:mt-8">
+            <div className="mt-6 flex flex-col items-start gap-3">
               <AudienceToggle size="sm" />
             </div>
 
