@@ -15,3 +15,4 @@
 
 - Generated saved-document JSON is persisted by saved-document-content; client raw payload writes stay disabled. Owner/revision binding and metadata ownership checks apply before service-role writes.
 - Paid product sources of kind owner_text are trusted only via service-only product_text_attestations receipts written by uploaded-text-intake for the exact text hash+revision; file sources stay closed until the independent bridge is enabled — never relabel pasted text as file extraction.
+- Product ENV config is projected by a pure module; private service-written deployment observations run after serving starts with bounded tri-state probes, so operator evidence never blocks auth or conflates network failure with disabled configuration.
