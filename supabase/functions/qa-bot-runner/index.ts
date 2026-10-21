@@ -642,6 +642,7 @@ Deno.serve(async (req) => {
       } else {
         const { data: userData } = await createClient(SUPABASE_URL, ANON_KEY, {
           global: { headers: { Authorization: `Bearer ${token}` } },
+          auth: { persistSession: false, autoRefreshToken: false },
         }).auth.getUser();
         const uid = userData?.user?.id;
         if (uid) {

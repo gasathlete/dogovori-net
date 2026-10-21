@@ -119,13 +119,6 @@ serve(async (req) => {
       });
     }
 
-    if (method === "qes" && (!qes_file_base64 || qes_file_base64.length > 22_000_000)) {
-      return new Response(JSON.stringify({ error: "invalid_qes_file" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -211,30 +204,8 @@ serve(async (req) => {
       }
     }
 
-    // Upload QES file to private bucket if provided.
-    let qesPath: string | null = null;
-    let qesSize: number | null = null;
-    if (method === "qes" && qes_file_base64) {
-      try {
-        const bytes = Uint8Array.from(atob(qes_file_base64), (c) => c.charCodeAt(0));
-        qesSize = bytes.byteLength;
-        const safeName = (qes_file_name || "signature.bin").replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 80);
-        qesPath = `${link.owner_id}/qes/${link.id}-${Date.now()}-${safeName}`;
-        const { error: upQesErr } = await admin.storage
-          .from("qes-signatures")
-          .upload(qesPath, bytes, {
-            contentType: qes_file_mime || "application/octet-stream",
-            upsert: false,
-          });
-        if (upQesErr) {
-          console.error("qes upload failed", upQesErr);
-          qesPath = null;
-          qesSize = null;
-        }
-      } catch (err) {
-        console.error("qes decode failed", err);
-      }
-    }
+    const qesPath: string | null = null;
+    const qesSize: number | null = null;
 
     const { data: updatedRows, error: upErr } = await admin
       .from("shared_links")

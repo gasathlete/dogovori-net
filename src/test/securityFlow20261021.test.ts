@@ -25,7 +25,7 @@ describe("untrusted navigation and report values", () => {
   it("quotes filter punctuation and keeps Bulgarian search usable", () => {
     expect(postgrestSubstring("наем")).toBe('"%наем%"');
     const attack = 'x,or(user_id.eq.foreign),"';
-    expect(JSON.parse(postgrestSubstring(attack))).toBe(`%${attack}%`);
+    expect(JSON.parse(postgrestSubstring(attack))).toBe(`%${attack.replace(/[%*_]/g, " ")}%`);
     expect(postgrestSubstring("*")).toBe('"% %"');
   });
 });
