@@ -21,7 +21,7 @@ import { invokeEdgeFunction, type InvokeResult } from "@/lib/invokeEdgeFunction"
 import { getOpSessionId } from "@/lib/opSession";
 import { classifyGenerationError, type GenerationError } from "@/lib/generationErrors";
 import { canStartNewProcessing } from "@/lib/prelaunch";
-import { offerMarketingBonus } from "@/lib/marketingBonus";
+import { isInsufficientCredit, offerMarketingBonus } from "@/lib/marketingBonus";
 
 export type JobStatusValue = "running" | "done" | "completed" | "error" | "rejected";
 
@@ -296,7 +296,7 @@ export async function generateContractJob<T>(
         data: resultBody ?? (poll.data.code ? { error: message, code: poll.data.code } : null),
         jobStatus: s,
       });
-      if (generationError.code === "quota_exceeded" && !options.bonusRecoveryAttempted && await offerMarketingBonus()) {
+      if (isInsufficientCredit(resultBody ?? { code: poll.data.code }, httpStatus) && !options.bonusRecoveryAttempted && await offerMarketingBonus()) {
         return generateContractJob<T>(payload, { ...options, idempotencyKey: key, bonusRecoveryAttempted: true });
       }
       // Отговорите с тяло (нужно потвърждение, квота, чувствителни данни) се

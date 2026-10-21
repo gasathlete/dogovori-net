@@ -11,13 +11,13 @@ export interface BonusOffer {
 const CREDIT_CODES = new Set([
   "quota_exceeded", "insufficient_quota", "pro_limit_reached", "plan_limit_reached",
   "ai_free_limit_reached", "ai_plan_limit_reached",
-  "limit_reached", "monthly_limit_reached",
+  "limit_reached", "monthly_limit_reached", "ocr_quota_exceeded",
 ]);
 const OPERATION_ENDPOINTS = new Set([
   "generate-contract", "build-custom-contract", "review-contract", "refine-contract",
   "apply-corrections", "correct-uploaded", "analyze-contract", "download-document",
   "download-blank", "save-document", "saved-document-content", "generate-linked-document",
-  "negotiation-strategy", "generate-job",
+  "negotiation-strategy", "generate-job", "ocr-contract",
 ]);
 export function isInsufficientCredit(data: unknown, status?: number): boolean {
   if (!data || typeof data !== "object") return false;

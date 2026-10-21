@@ -195,13 +195,13 @@ export function cheapestPerOpLabel(): string {
 export const FREE_OPS_PER_MONTH = PRICING_PLANS.free.opsPerMonth ?? 2;
 
 /**
- * Бонус при регистрация: през първите 30 дни безплатният план дава 5 операции
- * (сървърна истина: `public.free_ops_cap` / `public.consume_quota`), след което
- * се връща към `FREE_OPS_PER_MONTH`.
+ * Configured initial total; the difference from the regular allowance is
+ * granted once only after explicit marketing consent. Historical allowance
+ * windows remain intact for legacy accounts.
  */
 export const FREE_OPS_ON_SIGNUP = 5;
 
-/** Прозорецът в дни, през който важи бонусът при регистрация. */
+/** Historical first-month allowance window (legacy accounts only). */
 export const FREE_OPS_SIGNUP_DAYS = 30;
 
 /**

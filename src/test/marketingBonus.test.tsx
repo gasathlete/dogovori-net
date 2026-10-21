@@ -42,7 +42,7 @@ describe("one-time consent recovery", () => {
     fireEvent.click(screen.getByRole("button", { name: "Не сега" })); await second;
     expect(mocks.invoke).toHaveBeenCalledTimes(2);
   });
-  it.each(["generate-contract", "build-custom-contract", "review-contract", "refine-contract", "apply-corrections", "correct-uploaded", "analyze-contract", "download-document", "download-blank", "save-document", "saved-document-content", "generate-linked-document", "negotiation-strategy", "generate-job"])("%s replays identical inputs once only after confirmed grant and refresh", async (name) => {
+  it.each(["generate-contract", "build-custom-contract", "review-contract", "refine-contract", "apply-corrections", "correct-uploaded", "analyze-contract", "download-document", "download-blank", "save-document", "saved-document-content", "generate-linked-document", "negotiation-strategy", "generate-job", "ocr-contract"])("%s replays identical inputs once only after confirmed grant and refresh", async (name) => {
     mount();
     mocks.invoke.mockResolvedValueOnce(denied).mockResolvedValueOnce({ data: { ok: true }, error: null });
     const options = { body: { action: "start", operation_id: "stable", text: "unchanged input" } };

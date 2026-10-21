@@ -3,6 +3,7 @@
 // DOCX -> mammoth.
 
 import { supabase } from "@/integrations/supabase/client";
+import { invokeWithMarketingBonus } from "@/lib/marketingBonus";
 import {
   clearDocumentOperation,
   documentOperationScope,
@@ -202,7 +203,7 @@ async function extractPdf(file: File, onProgress?: ExtractProgress): Promise<str
   });
   const operationId = getOrCreateDocumentOperationId("ocr_contract", userKey, scope);
 
-  const { data, error } = await supabase.functions.invoke("ocr-contract", {
+  const { data, error } = await invokeWithMarketingBonus("ocr-contract", {
     body: { images, operation_id: operationId },
   });
   if (error) {
