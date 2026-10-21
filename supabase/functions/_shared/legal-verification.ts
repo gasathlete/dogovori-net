@@ -366,7 +366,7 @@ async function verifyChunkCandidate(
       .maybeSingle();
     if (docRes.error) return { ok: false, reason: "db_error" };
     const doc = docRes.data as Record<string, unknown> | null;
-    if (!doc || doc.source_id !== sourceId) return { ok: false, reason: "document_invalid" };
+    if (!doc || doc.id !== documentId || doc.source_id !== sourceId) return { ok: false, reason: "document_invalid" };
     const version = str(doc.version);
     if (!version) return { ok: false, reason: "document_invalid" };
     const docChecksum = str(doc.checksum);
@@ -401,7 +401,7 @@ async function verifyChunkCandidate(
       .maybeSingle();
     if (srcRes.error) return { ok: false, reason: "db_error" };
     const src = srcRes.data as Record<string, unknown> | null;
-    if (!src) return { ok: false, reason: "legacy_source_missing" };
+    if (!src || src.id !== sourceId) return { ok: false, reason: "legacy_source_missing" };
     if (src.active !== true) return { ok: false, reason: "legacy_source_untrusted" };
     const officialUrl = str(src.official_url);
     const currentVersion = str(src.current_version);

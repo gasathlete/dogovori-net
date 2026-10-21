@@ -75,6 +75,7 @@ Deno.test("readiness reuses exact current rows across late-page candidates, not 
 Deno.test("seeded readiness still rejects tampered checksum and wrong chunk ownership", async () => {
   assertFalse(await isStrictLegalKnowledgeBaseReady(fixtureDb(rows({ document: { ...READY_ROWS.document, checksum: "b".repeat(64) } })), deps));
   assertFalse(await isStrictLegalKnowledgeBaseReady(fixtureDb(rows({ chunk: { ...READY_ROWS.chunk, source_id: "foreign" } })), deps));
+  assertFalse(await isStrictLegalKnowledgeBaseReady(fixtureDb(rows({ document: { ...READY_ROWS.document, id: "foreign" } })), deps));
   assertFalse(await isStrictLegalKnowledgeBaseReady(fixtureDb(rows({ run: { ...READY_ROWS.run, outcome: "failed" } })), deps));
 });
 
