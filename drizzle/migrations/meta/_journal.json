@@ -218,6 +218,13 @@
       "when": 1792602048591,
       "tag": "0030_marketing_starter_bonus",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1792602430423,
+      "tag": "0031_marketing_bonus_claim_proof",
+      "breakpoints": true
     }
   ]
 }
