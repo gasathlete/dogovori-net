@@ -629,7 +629,9 @@ export default function ProductResult() {
     );
   }
 
-  const { purchase, result } = phase;
+  const { purchase } = phase;
+  const refined = state?.refined_result ? readPaidResult({ ...purchase.entitlement, result: state.refined_result }) : null;
+  const result = refined?.ok ? refined.result : phase.result;
   const row = purchase.entitlement;
   const title = result.payload.passport.title;
   // Успокоение „нищо не е намерено“ само при доказана проверка върху целия текст.

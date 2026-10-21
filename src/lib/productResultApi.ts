@@ -28,6 +28,7 @@ export interface ProductResultStateResponse {
   readonly status: "ready";
   readonly product_id: string;
   readonly result_digest: string;
+  readonly refined_result?: unknown;
   readonly selection_version: number;
   readonly decisions: readonly CorrectionDecision[];
   readonly patch_output_hash: string | null;
