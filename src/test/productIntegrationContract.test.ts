@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { readProductIntegrationConfig } from "../../supabase/functions/_shared/product-integration-config";
 
 const read = (path: string) => readFileSync(path, "utf8");
 
@@ -56,10 +57,12 @@ describe("правното основание е сървърен факт", () 
 
 describe("конфигурацията е затворена по подразбиране", () => {
   it("флаг се приема само при точен низ true", () => {
-    expect(INTEGRATION).toContain('return env(key) === "true"');
-    expect(INTEGRATION).toContain("PRODUCT_CHECKOUT_ENABLED");
-    expect(INTEGRATION).toContain("PRODUCT_AI_FULFILLMENT_ENABLED");
-    expect(INTEGRATION).toContain("PRODUCT_AI_ZERO_RETENTION_VERIFIED");
+    for (const value of [undefined, "", "false", "TRUE", "1", " true", "true"]) {
+      const config = readProductIntegrationConfig(() => value);
+      expect(config.checkoutEnabled).toBe(value === "true");
+      expect(config.fulfillmentEnabled).toBe(value === "true");
+      expect(config.zeroRetentionVerified).toBe(value === "true");
+    }
   });
 
   it("не изнася тайни, цени или вътрешни идентификатори в отчета за готовност", () => {

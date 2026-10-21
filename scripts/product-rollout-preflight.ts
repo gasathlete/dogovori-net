@@ -239,7 +239,9 @@ export function validateProductRollout(source: RolloutSource): string[] {
     if (!includesAll(sql, [`product_id = '${product.id}'`, `expected_amount_cents = ${product.amountCents}`, `stripe_price_lookup_key = '${product.lookupKey}'`])) fail(`SQL product parity mismatch: ${product.id}`);
   }
   const integration = source.read("supabase/functions/_shared/product-integration.ts");
-  if (!includesAll(integration, [contract.expectedMigration, contract.schemaCapability.rpc, 'env(key) === "true"'])) fail("runtime fail-closed integration contract mismatch");
+  const integrationConfig = source.read("supabase/functions/_shared/product-integration-config.ts");
+  if (!includesAll(integration, [contract.schemaCapability.rpc, 'from "./product-integration-config.ts"']) ||
+      !includesAll(integrationConfig, [contract.expectedMigration, 'env(key) === "true"'])) fail("runtime fail-closed integration contract mismatch");
   const checkout = source.read("supabase/functions/create-product-checkout/index.ts");
   const stripeCreateAt = checkout.indexOf("stripe.checkout.sessions.create");
   for (const marker of ["productPrepaymentBlockers", "requireProductPrice", "assertEnvironmentAllowed"]) {

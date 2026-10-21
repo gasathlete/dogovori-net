@@ -321,7 +321,7 @@ describe("hero копие и продуктови карти", () => {
 
   it("трите стъпки са компактни и без обещание за време", () => {
     const strip = read("src/components/products/StepsStrip.tsx");
-    for (const label of ["Избирате", "Качвате", "Получавате"]) {
+    for (const label of ["Избирате", "Поставяте текст", "Получавате"]) {
       expect(strip).toContain(label);
     }
     expect(strip.toLowerCase()).not.toMatch(/минут|секунд|часа/);
