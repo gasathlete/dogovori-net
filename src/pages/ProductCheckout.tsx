@@ -105,6 +105,7 @@ export default function ProductCheckout() {
   const [pasted, setPasted] = useState("");
   const [prepared, setPrepared] = useState<PreparedProductDocument | null>(null);
   const [phase, setPhase] = useState("");
+  const [localNote, setLocalNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const [role, setRole] = useState("");
@@ -253,7 +254,6 @@ export default function ProductCheckout() {
     }
   };
 
-  const [localNote, setLocalNote] = useState<string | null>(null);
   // Платеният резултат изисква пълен документ: над лимита НЕ съкращаваме.
   const onLocalFile = async (f: File | null) => {
     if (!f) return;
