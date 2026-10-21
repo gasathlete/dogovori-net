@@ -1,5 +1,4 @@
 import { useState } from "react";
-import * as Icons from "@/icons";
 import { ArrowRight, Compass, ChevronDown } from "@/icons";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { LIFE_SCENARIOS } from "@/data/lifeScenarios";
@@ -87,7 +86,6 @@ export function LifeScenarios() {
 
       <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3">
         {visible.map((s) => {
-          const Icon = (Icons as any)[s.icon] ?? Icons.FileText;
           const kit = s.kitId ? getKit(s.kitId) : undefined;
           const to = s.href ?? (kit ? `/komplekti/${kit.id}` : "/komplekti");
            const meta = kit ? `${kit.items.length} документа в каталога` : "Всички комплекти";
