@@ -8,7 +8,7 @@ export const CONSENT_VERSIONS = {
   privacy: "2026-05-16",
   marketing: "2026-06-02",
   operational_notifications: "2026-09-15",
-  ai_disclaimer: "2026-05-16",
+  ai_disclaimer: "2026-10-21",
   cookies: "2026-05-16",
   age_18: "2026-05-16",
 } as const;

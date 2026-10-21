@@ -1,109 +1,116 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bird, X } from "@/icons";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { recordConsents } from "@/lib/consents";
-import { hasAIDisclaimerSession, setAIDisclaimerSession } from "@/lib/aiDisclaimerGate";
+import {
+  DISCLAIMER_BODY,
+  DISCLAIMER_LIMITS,
+  DISCLAIMER_VERSION,
+  hasFeatureDisclaimer,
+  type DisclaimerFeature,
+  type DisclaimerRequestDetail,
+} from "@/lib/aiDisclaimerGate";
 import { drainBufferedEvents } from "@/lib/bufferedEvents";
 import { getOpSessionId } from "@/lib/opSession";
+import { supabase } from "@/integrations/supabase/client";
+
+function reply(id: string, accepted: boolean) {
+  window.dispatchEvent(new CustomEvent("ai-disclaimer:resolved", { detail: { id, accepted } }));
+}
 
 /**
- * Global session-scoped AI disclaimer.
- * - Opens when any download flow dispatches "ai-disclaimer:request"
- *   (see lib/aiDisclaimerGate).
- * - On accept, sets session flag and replies with "ai-disclaimer:resolved"
- *   so the download can proceed.
- * - Once accepted in a session, never reopens until a new browser session.
+ * Global pre-start disclaimer. Explicit, not pre-checked acceptance.
+ * Accept → original action continues; cancel → action stops, no backend call.
  */
 export function AIDisclaimerModal() {
-  const [open, setOpen] = useState(false);
+  const [req, setReq] = useState<DisclaimerRequestDetail | null>(null);
+  const [checked, setChecked] = useState(false);
+  const handled = useRef(new Set<string>());
 
   useEffect(() => {
-    const onRequest = () => {
-      if (hasAIDisclaimerSession()) {
-        window.dispatchEvent(
-          new CustomEvent("ai-disclaimer:resolved", { detail: { accepted: true } }),
-        );
+    const onRequest = (raw: unknown) => {
+      const d = raw as DisclaimerRequestDetail | undefined;
+      if (!d?.id || !d.feature || handled.current.has(d.id)) return;
+      handled.current.add(d.id);
+      if (hasFeatureDisclaimer(d.feature)) {
+        reply(d.id, true);
         return;
       }
-      setOpen(true);
+      setChecked(false);
+      setReq(d);
     };
-    window.addEventListener("ai-disclaimer:request", onRequest);
-    // Replay any request events that fired before this listener mounted
-    // (e.g. a fast click on "Свали" while the modal chunk was still loading).
-    drainBufferedEvents("ai-disclaimer:request", () => onRequest());
-    return () => window.removeEventListener("ai-disclaimer:request", onRequest);
+    const listener = (e: Event) => onRequest((e as CustomEvent).detail);
+    window.addEventListener("ai-disclaimer:request", listener);
+    drainBufferedEvents("ai-disclaimer:request", onRequest);
+    return () => window.removeEventListener("ai-disclaimer:request", listener);
   }, []);
 
-  const accept = () => {
-    setAIDisclaimerSession();
-    setOpen(false);
-    window.dispatchEvent(
-      new CustomEvent("ai-disclaimer:resolved", { detail: { accepted: true } }),
-    );
-    recordConsents([{
-      consent_type: "ai_disclaimer",
-      granted: true,
-      metadata: {
-        session_id: getOpSessionId(),
-        accepted_at: new Date().toISOString(),
-        path: typeof window !== "undefined" ? window.location.pathname : null,
-      },
-    }]).catch(() => undefined);
-  };
+  const accept = useCallback(() => {
+    if (!req || !checked) return;
+    const feature: DisclaimerFeature = req.feature;
+    reply(req.id, true);
+    setReq(null);
+    // Audit only for signed-in users; minimal metadata, no document content.
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) return;
+      return recordConsents([{
+        consent_type: "ai_disclaimer",
+        granted: true,
+        metadata: { feature, disclaimer_version: DISCLAIMER_VERSION, session_id: getOpSessionId() },
+      }]);
+    }).catch(() => undefined);
+  }, [req, checked]);
 
-  const cancel = () => {
-    setOpen(false);
-    window.dispatchEvent(
-      new CustomEvent("ai-disclaimer:resolved", { detail: { accepted: false } }),
-    );
-  };
+  const cancel = useCallback(() => {
+    if (!req) return;
+    reply(req.id, false);
+    setReq(null);
+  }, [req]);
 
-  if (!open) return null;
+  const info = req ? DISCLAIMER_LIMITS[req.feature] : null;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Информация за изкуствен интелект"
-      className="fixed bottom-4 right-4 z-50 w-[min(360px,calc(100vw-2rem))] animate-in fade-in slide-in-from-bottom-4"
-    >
-      <div className="relative rounded-lg border border-gold/30 bg-card/95 p-4 shadow-soft backdrop-blur-md">
-        <button
-          type="button"
-          onClick={cancel}
-          aria-label="Затвори"
-          className="absolute right-2 top-2 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-
-        <div className="mb-2 flex items-center gap-2 text-[10px] uppercase tracking-wider text-gold">
-          <Bird className="h-3 w-3" /> Информация за изкуствен интелект
-        </div>
-
-        <p className="pr-4 text-xs leading-relaxed text-foreground/90">
-          Документите са образци, генерирани от изкуствен интелект, моделиран по
-          българското законодателство, и <strong>не представляват правен съвет</strong>.
-          Преди подписване проверете данните и при значими сделки се консултирайте с
-          адвокат или нотариус. Отговорността за използването е на потребителя.{" "}
-          <Link to="/terms" className="text-gold underline-offset-2 hover:underline">
-            Условия
-          </Link>
-          .
-        </p>
-
-        <button
-          type="button"
-          onClick={accept}
-          className="mt-3 flex w-full items-center gap-2 rounded-md border border-gold/40 bg-background/40 p-2 text-left transition-colors hover:bg-background/70"
-        >
-          <Checkbox checked={false} className="pointer-events-none mt-0.5" tabIndex={-1} />
-          <span className="text-[11px] leading-snug text-foreground">
-            Разбирам и приемам — продължи към изтегляне.
-          </span>
-        </button>
-      </div>
-    </div>
+    <Dialog open={!!req} onOpenChange={(o) => { if (!o) cancel(); }}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        {info && (
+          <>
+            <DialogHeader>
+              <DialogTitle>{info.title}</DialogTitle>
+              <DialogDescription className="text-foreground/90">{DISCLAIMER_BODY}</DialogDescription>
+            </DialogHeader>
+            <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted-foreground">
+              {info.limits.map((l) => <li key={l}>{l}</li>)}
+            </ul>
+            <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-md border border-border p-3">
+              <Checkbox
+                checked={checked}
+                onCheckedChange={(v) => setChecked(v === true)}
+                aria-label="Прочетох и разбирам горната информация"
+                className="mt-0.5"
+              />
+              <span className="text-sm text-foreground">
+                Прочетох и разбирам горната информация и{" "}
+                <Link to="/terms" target="_blank" className="underline underline-offset-2">Условията</Link>.
+              </span>
+            </label>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button type="button" variant="outline" className="min-h-11" onClick={cancel}>Отказ</Button>
+              <Button type="button" className="min-h-11" disabled={!checked} onClick={accept}>
+                Разбрах и продължавам
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

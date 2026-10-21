@@ -26,3 +26,11 @@ if (!("ResizeObserver" in globalThis)) {
   (globalThis as unknown as { ResizeObserver: typeof ResizeObserver }).ResizeObserver =
     TestResizeObserver as unknown as typeof ResizeObserver;
 }
+
+// Pre-start disclaimers are covered by featureDisclaimerGate.test.ts; other
+// suites test the flows after acceptance, so accept them for this session.
+import { beforeEach as __beforeEachDisclaimer } from "vitest";
+import { DISCLAIMER_FEATURES, setFeatureDisclaimer } from "@/lib/aiDisclaimerGate";
+__beforeEachDisclaimer(() => {
+  if (typeof window !== "undefined") DISCLAIMER_FEATURES.forEach((f) => setFeatureDisclaimer(f));
+});

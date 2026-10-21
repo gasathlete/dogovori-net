@@ -1,3 +1,4 @@
+import { ensureFeatureDisclaimer } from "@/lib/aiDisclaimerGate";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileUp, FileText, ClipboardPaste, Loader2 } from "@/icons";
@@ -195,6 +196,7 @@ export function UploadContractDialog({
   };
 
   const submit = async (skipAnalysis = false) => {
+    try { await ensureFeatureDisclaimer("analysis"); } catch { return; }
     // Преградите са ПРЕДИ четене на файл, хеш, сесия и запис в базата.
     if (!skipAnalysis && !canStartNewProcessing("document_review")) {
       openPrelaunchWaitlist("document_review", { source: "analyze" });

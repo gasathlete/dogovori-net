@@ -1,3 +1,4 @@
+import { ensureFeatureDisclaimer } from "@/lib/aiDisclaimerGate";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { X, Send, Loader2, Sparkles, FileText, Scale, ExternalLink, Maximize2, MessageSquare } from "@/icons";
@@ -341,6 +342,7 @@ function AnonChat({ resetKey }: { resetKey: number }) {
   const sendText = async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || busy || typing || limitReached) return;
+    try { await ensureFeatureDisclaimer("assistant"); } catch { return; }
     const next: AnonMsg[] = [...messages, { role: "user", content: trimmed }];
     setMessages(next);
     setFollowups([]);

@@ -1,3 +1,4 @@
+import { ensureFeatureDisclaimer } from "@/lib/aiDisclaimerGate";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
@@ -601,6 +602,7 @@ export function AssistantChat({ compact = false, embedded = false, threadId: thr
 
   const sendMessage = async (text: string) => {
     if (!text.trim()) return;
+    try { await ensureFeatureDisclaimer("assistant"); } catch { return; }
     // СИНХРОННА защита: `streaming` е състояние и се вижда едва след повторен
     // render, затова двойно щракване или Enter+клик можеха да влязат два пъти в
     // тази функция преди изграждането на ключа на хода. Реф-а се вдига веднага.

@@ -1,3 +1,4 @@
+import { ensureFeatureDisclaimer } from "@/lib/aiDisclaimerGate";
 import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, useParams, useSearchParams, Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Loader2, Bird, FileDown, FileText, Save, User, Download, ShieldCheck, Search, FileSearch, Check, AlertCircle, RefreshCcw } from "@/icons";
@@ -37,7 +38,6 @@ import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { getCourtById } from "@/data/arbitrationCourts";
 import { CorrectionsPanel, type CorrectionsSelection } from "@/components/wizard/CorrectionsPanel";
 import { ensureAIDisclaimerAccepted } from "@/lib/aiDisclaimerGate";
-import { recordConsents } from "@/lib/consents";
 import { getQuestionGraph } from "@/data/questionGraphs/dogovor-za-naem-na-zhilishte";
 import { adaptGraphToWizardQuestions } from "@/data/questionGraphs/adapter";
 import { parseExtraPartyTypes } from "@/components/wizard/liveDraft/clauseBuilders";
@@ -478,6 +478,7 @@ export default function WizardPage() {
       openPrelaunchWaitlist("document_generation");
       return;
     }
+    try { await ensureFeatureDisclaimer("generation"); } catch { return; }
     // Anonymous visitors may generate a read-only preview (server enforces a
     // 1/24h taste limit). Login is required only for save/export/signing.
     //
@@ -647,8 +648,6 @@ export default function WizardPage() {
         trackReviewResult(issues === 0, issues, { doc_key: docKey, source: "wizard" });
       }
 
-      // Trigger AI disclaimer once per session on first document creation.
-      ensureAIDisclaimerAccepted().catch(() => {});
       showReadyToast();
       // Резултатът започва отгоре — без хаотично „мятане" по средата на екрана.
       requestAnimationFrame(() => {
@@ -1404,7 +1403,6 @@ export default function WizardPage() {
     } catch {
       return; // user dismissed disclaimer
     }
-    recordConsents([{ consent_type: "ai_disclaimer", granted: true }]).catch(() => undefined);
     await runBlankDownload();
   };
 
@@ -1431,8 +1429,7 @@ export default function WizardPage() {
       } catch {
         return;
       }
-      recordConsents([{ consent_type: "ai_disclaimer", granted: true }]).catch(() => undefined);
-      await runBlankDownload();
+        await runBlankDownload();
       setTimeout(() => {
         navigate(returnTo, { replace: true });
       }, 1500);
