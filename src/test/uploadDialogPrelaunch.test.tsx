@@ -26,6 +26,11 @@ vi.mock("@/lib/extractContractText", () => ({
   sha256Hex: vi.fn(async () => "0".repeat(64)),
 }));
 
+vi.mock("@/lib/fileValidation", () => ({
+  detectFileKind: () => "docx",
+  validateUploadedFile: async () => ({ ok: true }),
+}));
+
 import { UploadContractDialog } from "@/components/UploadContractDialog";
 import { PRELAUNCH_WAITLIST_EVENT } from "@/lib/prelaunchWaitlist";
 import { UploadStepError, uploadFailureReason } from "@/lib/uploadFailureReason";
