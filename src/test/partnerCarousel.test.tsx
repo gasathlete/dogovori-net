@@ -55,24 +55,24 @@ describe("partner carousel behavior", () => {
     const initial = track.style.transform;
     act(() => vi.advanceTimersByTime(3500));
     expect(track.style.transform).not.toBe(initial);
-    expect(track.style.transition).toContain("650ms");
-    fireEvent.transitionEnd(track);
+    expect(track.style.transition).toContain("900ms");
+    fireEvent.transitionEnd(track, { propertyName: "transform" });
     expect(screen.getByRole("link", { name: "Partner 1" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Спри въртенето" }));
     const pausedPosition = track.style.transform;
     act(() => vi.advanceTimersByTime(7000));
     expect(track.style.transform).toBe(pausedPosition);
     fireEvent.click(screen.getByRole("button", { name: "Продължи въртенето" }));
-    fireEvent.mouseEnter(screen.getByRole("region"));
+    fireEvent.pointerEnter(screen.getByRole("region"), { pointerType: "mouse" });
     act(() => vi.advanceTimersByTime(3500));
     expect(track.style.transform).toBe(pausedPosition);
-    fireEvent.mouseLeave(screen.getByRole("region"));
+    fireEvent.pointerLeave(screen.getByRole("region"));
     fireEvent.focus(screen.getByRole("button", { name: "Следващо лого" }));
     act(() => vi.advanceTimersByTime(3500));
     expect(track.style.transform).toBe(pausedPosition);
     for (let i = 0; i < 3; i++) {
       fireEvent.click(screen.getByRole("button", { name: "Следващо лого" }));
-      fireEvent.transitionEnd(track);
+      fireEvent.transitionEnd(track, { propertyName: "transform" });
     }
     expect(track.style.transform).toBe(initial);
     expect(track.style.transition).toBe("none");
@@ -91,5 +91,24 @@ describe("partner carousel behavior", () => {
     expect(screen.queryByRole("link", { name: "Partner 0" })).toBeNull();
     expect(track?.style.transition).toBe("none");
     expect(screen.getByRole("link", { name: "Partner 1" }).getAttribute("href")).toBe("https://example.org/1");
+  });
+});describe("partner carousel stability", () => {
+  it("keeps image nodes across a full wrap, ignores bubbled transitions and touch does not pause", () => {
+    const { container } = render(<PartnerCarousel partners={partners} />);
+    const track = container.querySelector<HTMLElement>("[data-partner-track]")!;
+    const imgs = [...container.querySelectorAll("img")];
+    const pos = () => container.querySelector("[data-partner-position]")?.textContent?.replace(/\s/g, "");
+    const region = screen.getByRole("region");
+    const touchEnter = new Event("pointerover", { bubbles: true }); Object.defineProperty(touchEnter, "pointerType", { value: "touch" });
+    act(() => { region.dispatchEvent(touchEnter); });
+    fireEvent.touchStart(region.firstElementChild!, { touches: [{ clientX: 10 }] }); fireEvent.touchEnd(region.firstElementChild!, { changedTouches: [{ clientX: 12 }] });
+    for (let i = 1; i <= 4; i++) {
+      act(() => vi.advanceTimersByTime(3500));
+      fireEvent.transitionEnd(track.querySelector("img")!);
+      fireEvent.transitionEnd(track, { propertyName: "transform" });
+      expect(pos()).toBe(`${(i % 4) + 1}/4`);
+    }
+    expect([...container.querySelectorAll("img")].every((img, i) => img === imgs[i])).toBe(true);
+    expect(track.style.transition).toBe("none");
   });
 });

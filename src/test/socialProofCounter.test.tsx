@@ -65,25 +65,24 @@ describe("SocialProofStrip — брой регистрирани потреби�
     expect(document.body.textContent).not.toContain("100");
   });
 
-  it("при RPC грешка скрива само user metric-а и не измисля число", async () => {
+  it("при RPC грешка запазва реда, не измисля число и предлага повторен опит", async () => {
     rpcMock.mockResolvedValue({ data: null, error: { message: "boom" } });
     renderStrip();
-    await waitFor(() =>
-      expect(document.body.textContent).toContain(
-        "Използвана от фирми, специалисти на свободна практика",
-      ),
-    );
-    expect(screen.queryByText("регистрирани потребители")).toBeNull();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Опитайте отново" })).toBeTruthy(), { timeout: 9000 });
+    expect(screen.getByText(/регистрирани потребители/)).toBeTruthy();
+    expect(screen.queryByLabelText(/^\d+ регистрирани потребители$/)).toBeNull();
     expect(document.body.textContent).toContain("образеца в каталога");
-  });
+    rpcMock.mockResolvedValue({ data: 306, error: null });
+    screen.getByRole("button", { name: "Опитайте отново" }).click();
+    await waitFor(() => expect(screen.getByLabelText("306 регистрирани потребители")).toBeTruthy());
+  }, 15000);
 
-  it("при невалиден резултат също не показва брой", async () => {
-    rpcMock.mockResolvedValue({ data: "не-число", error: null });
+  it("null резултат не се показва като 0", async () => {
+    rpcMock.mockResolvedValue({ data: null, error: null });
     renderStrip();
-    await waitFor(() =>
-      expect(screen.queryByText("регистрирани потребители")).toBeNull(),
-    );
-  });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Опитайте отново" })).toBeTruthy(), { timeout: 9000 });
+    expect(screen.queryByLabelText("0 регистрирани потребители")).toBeNull();
+  }, 15000);
 
   it("докато зарежда не показва фалшива цифра", async () => {
     rpcMock.mockReturnValue(new Promise(() => {}));
