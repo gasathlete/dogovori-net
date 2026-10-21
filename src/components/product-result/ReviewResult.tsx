@@ -176,7 +176,7 @@ export function ReviewResult({
         {p.findings.length === 0 ? (
           <Card className="p-4 text-sm text-muted-foreground">
             {wholeDocumentCovered
-              ? "Проверката обхвана целия документ и не откри проблеми в него."
+              ? "Проверката обхвана целия предоставен текст. Няма находки в тази секция; вижте също липсващите защити и въпросите преди подпис."
               : "Няма находки за показване."}
           </Card>
         ) : (

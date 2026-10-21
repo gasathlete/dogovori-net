@@ -1,8 +1,11 @@
 # Roadmap
 
+- [x] Paid runtime 21.10 boundary/check proof: LIVE default-closed service row deployed/503 verified; genuine check TEST webhook→ready→browser PDF→identical replay proven. Fixture disabled, staff revoked; LIVE/public stay closed.
+- [ ] Paid release review: correct immutable paid sandbox reversal handling/redeliver genuine historical refunds; two improve failures fixed but latest changes await genuine paid retest; negotiation/refinement/DOCX/mobile untested. ROOT review and project AI app-context confirmation required before opening.
+
 - [x] Runtime legal readiness 21.10: request-only row reuse,47 tests, deployed v5 ready marker,10 HTTP200 queries/979ms. ROOT copy and canonical lock preserved; commerce closed.
 - [ ] Content logging confirmation: actual project AI app context read/write absent from exposed tools; project editor must disable/confirm in Cloud→AI/project settings.
-- [ ] Synthetic product checkout: stage team must sync/deploy legal fixes and provide supported stage fixture session; cross-project snapshot is read-only, current auth-session cannot target stage. No owner consent/payment fabricated.
+- [x] Synthetic product checkout: MAIN normal synthetic auth fixture supplied its own TEST consents; genuine embedded card payment completed without impersonating the owner. Staging no longer blocks this proof.
 
 - [x] Operator visibility 21.10: private runtime marker/config and migration-ready record proved; 24 focused tests, observer check, lock preserved. Commerce closed; stopped for ROOT review. Evidence in launch-continuation report.
 - [ ] Commercial evidence 21.10: strict legal deadline resolved (v5 ready); project request-content setting and genuine Stripe TEST E2E remain open. Region gate only for existing per-user policy; no blanket Enterprise requirement. ROOT review before LIVE.
