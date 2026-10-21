@@ -9,7 +9,8 @@
  * файлове), а не общите възможности на безплатната проверка.
  */
 import { useEffect, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ONE_TIME_PURCHASES_AVAILABLE } from "@/lib/products";
 import { FileUp, ShieldCheck, Sparkles, Lock } from "@/icons";
 import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
@@ -186,7 +187,7 @@ export default function Analyze() {
                   Вход в профила
                 </button>}
               </div>
-              <p className="mt-3 text-[13px] text-muted-foreground">Подробната платена проверка още не приема документи или плащания.</p>
+              {ONE_TIME_PURCHASES_AVAILABLE && <p className="mt-3 text-[13px] text-muted-foreground">Нужна Ви е подробна проверка? <Link to="/produkti/proverka-predi-podpis/start" className="font-semibold underline underline-offset-2">Подробна проверка преди подпис</Link></p>}
             </div>
           ) : (
           <div className="mt-4 rounded-2xl border border-gold/30 bg-card/70 p-5 shadow-elegant sm:p-6">
