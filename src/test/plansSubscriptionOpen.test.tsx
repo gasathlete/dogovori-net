@@ -11,7 +11,7 @@ vi.mock("@/lib/prelaunch", async (orig) => {
 });
 const plan = (id: string, name: string, price: number) => ({
   id, name, tagline: "", price_monthly_eur: price, price_yearly_eur: price * 10, price_per_seat_yearly_eur: null,
-  min_seats: null, monthly_ops: 50, highlighted: false, sort_order: 1, cta_label: "", active: true,
+  min_seats: null, monthly_ops: 50, highlighted: false, features: [], highlight: false, sort_order: 1, cta_label: "", active: true,
 });
 vi.mock("@/hooks/usePlans", () => ({
   usePlans: () => ({
