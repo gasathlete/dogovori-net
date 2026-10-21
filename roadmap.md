@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Runtime legal readiness 21.10: eliminate repeated chain reads, private query timings, focused provenance tests and deployed ready marker; check supported content logging setting and isolated synthetic checkout fixture. Public commerce stays closed.
+
 - [x] Operator visibility 21.10: private runtime marker/config and migration-ready record proved; 24 focused tests, observer check, lock preserved. Commerce closed; stopped for ROOT review. Evidence in launch-continuation report.
 - [ ] Commercial evidence 21.10: strict legal probe hit deadline; workspace request-content retention toggle/region evidence unavailable. ROOT review required before separate Stripe TEST E2E; no LIVE opening from ENV flags.
 

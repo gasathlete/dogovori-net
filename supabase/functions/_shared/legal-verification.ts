@@ -104,6 +104,8 @@ export interface StrictLegalDb {
 }
 
 export interface VerifierDeps {
+  /** Private operation metadata only; never row content or identifiers. */
+  readonly onOperation?: (event: { operation: string; duration_ms: number; status: "ok" | "error" }) => void;
   /** По подразбиране винаги code-owned регистърът. Инжектира се само в тестове. */
   readonly registry?: readonly LegalSourceEntry[];
   readonly now?: () => number;
@@ -328,11 +330,20 @@ export async function verifyLegalChunk(
   chunkId: string,
   deps: VerifierDeps = {},
 ): Promise<ChunkVerification> {
+  return verifyChunkCandidate(db, chunkId, deps);
+}
+
+/** Seeds are current request reads, never client input or cross-request cache. */
+async function verifyChunkCandidate(
+  db: StrictLegalDb, chunkId: string, deps: VerifierDeps,
+  seed?: { chunk: Record<string, unknown>; document: Record<string, unknown>;
+    source: Record<string, unknown>; registered: SourceVerification },
+): Promise<ChunkVerification> {
   const d = resolveDeps(deps);
   if (!str(chunkId)) return { ok: false, reason: "chunk_invalid" };
 
   try {
-    const chunkRes = await db
+    const chunkRes = seed ? { data: seed.chunk, error: null } : await db
       .from("legal_chunks")
       .select("id, source_id, document_id, citation_label, content, article_no, paragraph_no")
       .eq("id", chunkId)
@@ -348,7 +359,7 @@ export async function verifyLegalChunk(
       return { ok: false, reason: "chunk_invalid" };
     }
 
-    const docRes = await db
+    const docRes = seed ? { data: seed.document, error: null } : await db
       .from("legal_documents")
       .select("id, source_id, version, effective_from, effective_to, checksum")
       .eq("id", documentId)
@@ -381,7 +392,7 @@ export async function verifyLegalChunk(
     }
 
 
-    const srcRes = await db
+    const srcRes = seed ? { data: seed.source, error: null } : await db
       .from("legal_sources")
       .select(
         "id, active, official_url, current_version, last_indexed_at, short_code, title, jurisdiction",
@@ -405,7 +416,7 @@ export async function verifyLegalChunk(
     const entry = d.registry.find((e) => isApprovedUrl(officialUrl, e)) ?? null;
     if (!entry) return { ok: false, reason: "legacy_source_untrusted" };
 
-    const verified = await verifyRegisteredSource(db, entry.sourceKey, deps);
+    const verified = seed?.registered ?? await verifyRegisteredSource(db, entry.sourceKey, deps);
     if (!verified.ok) return { ok: false, reason: verified.reason };
 
     // Индексираният документ трябва да е ТОЧНО приетата снимка на официалния
@@ -504,7 +515,7 @@ async function forEachPage(
   for (let page = 0; page < MAX_PAGES_GUARD; page++) {
     const from = page * pageSize;
     const res = await build(from, from + pageSize - 1);
-    if (res.error || !Array.isArray(res.data)) return false;
+    if (res.error || !Array.isArray(res.data)) throw new Error("legal_readiness_query_failed");
     const rows = res.data as Array<Record<string, unknown>>;
     for (const row of rows) {
       if (await visit(row)) return true;
@@ -524,18 +535,32 @@ export async function isStrictLegalKnowledgeBaseReady(
   if (usable.length === 0) return false;
 
   const d = resolveDeps(deps);
+  // Freeze time for this request and retain no state after it completes.
+  const requestDeps = { ...deps, now: () => d.now };
+  const registered = new Map<string, SourceVerification>();
+  const timed = async (operation: string, run: () => Promise<StrictResult>): Promise<StrictResult> => {
+    const start = performance.now();
+    try {
+      const result = await run();
+      deps.onOperation?.({ operation, duration_ms: Math.round(performance.now() - start), status: result.error ? "error" : "ok" });
+      return result;
+    } catch (error) {
+      deps.onOperation?.({ operation, duration_ms: Math.round(performance.now() - start), status: "error" });
+      throw error;
+    }
+  };
   try {
     // Всички активни легаси източници — до изчерпване на страниците.
     return await forEachPage(
       (from, to) =>
-        db
+        timed("legal_sources.page", () => db
           .from("legal_sources")
           .select(
             "id, active, official_url, current_version, last_indexed_at, short_code, title, jurisdiction",
           )
           .eq("active", true)
           .order("id", { ascending: true })
-          .range(from, to),
+          .range(from, to)),
       READINESS_PAGE_SIZE,
       async (row) => {
         const officialUrl = str(row.official_url);
@@ -543,40 +568,56 @@ export async function isStrictLegalKnowledgeBaseReady(
         if (!officialUrl || !currentVersion) return false;
         const entry = usable.find((e) => isApprovedUrl(officialUrl, e));
         if (!entry) return false;
+        if (!isRecent(row.last_indexed_at, d.now, d.legacyMaxAge)) return false;
+        let verifiedSource = registered.get(entry.sourceKey);
+        if (!verifiedSource) {
+          const start = performance.now();
+          verifiedSource = await verifyRegisteredSource(db, entry.sourceKey, requestDeps);
+          deps.onOperation?.({ operation: "registered_source.chain", duration_ms: Math.round(performance.now() - start), status: !verifiedSource.ok && verifiedSource.reason === "db_error" ? "error" : "ok" });
+          registered.set(entry.sourceKey, verifiedSource);
+        }
+        if (!verifiedSource.ok) {
+          if (verifiedSource.reason === "db_error") throw new Error("legal_readiness_query_failed");
+          return false;
+        }
+        const acceptedSource = verifiedSource;
 
         // САМО документи с версия, равна на current_version, и в сила сега —
         // но БЕЗ таван: всички такива документи, страница по страница.
         return await forEachPage(
           (from, to) =>
-            db
+            timed("legal_documents.page", () => db
               .from("legal_documents")
-              .select("id, source_id, version, effective_from, effective_to")
+              .select("id, source_id, version, effective_from, effective_to, checksum")
               .eq("source_id", row.id)
               .eq("version", currentVersion)
               .order("id", { ascending: true })
-              .range(from, to),
+              .range(from, to)),
           READINESS_PAGE_SIZE,
           async (doc) => {
             const documentId = str(doc.id);
             if (!documentId) return false;
             if (doc.source_id !== row.id) return false;
             if (!isInForce(doc.effective_from, doc.effective_to, d.now)) return false;
+            const checksum = str(doc.checksum);
+            if (!checksum || !CHECKSUM_RE.test(checksum) || checksum.toLowerCase() !== acceptedSource.source.snapshot.checksum) return false;
 
             // Всички чънкове на точно този документ: невалиден по-ранен чънк
             // не скрива валиден по-късен, независимо колко са.
             return await forEachPage(
               (from, to) =>
-                db
+                timed("legal_chunks.page", () => db
                   .from("legal_chunks")
-                  .select("id")
+                  .select("id, source_id, document_id, citation_label, content, article_no, paragraph_no")
                   .eq("document_id", documentId)
                   .order("id", { ascending: true })
-                  .range(from, to),
+                  .range(from, to)),
               READINESS_CHUNK_PAGE_SIZE,
               async (chunk) => {
                 const chunkId = str(chunk.id);
                 if (!chunkId) return false;
-                const verified = await verifyLegalChunk(db, chunkId, deps);
+                const verified = await verifyChunkCandidate(db, chunkId, requestDeps,
+                  { chunk, document: doc, source: row, registered: acceptedSource });
                 return verified.ok;
               },
             );
