@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] Lawyer account: momcho99@gmail.com not present; supported Add user action required in More → Users, no native account-creation capability exposed here. Do not store supplied password in code, reports or memory.
+- [ ] Lawyer permissions: prior-approval workflow required before unrestricted admin grant; current admin role can apply live edits and grant roles directly. Build owner-only approval and notification plus isolated free TEST access, not fabricated paid rights or global feature opening.
+
 - [x] Security flow review 21.10: partial verified remediation deployed/tested, exact inventory in security-flow-review report; public chat200, commerce unchanged.
 - [ ] Security full closure: complete DScan/ignored history unavailable; upstream braces/sprintf-js unpatched, hosting CSP/anti-framing not served; MCP/CSV await coordinated publication and remaining invitation/EXECUTE/runtime checks not complete.
 
