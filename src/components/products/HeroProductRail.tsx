@@ -49,16 +49,12 @@ export function HeroProductRail() {
                   variant: "rail",
                 })
               }
-              className="group relative flex min-h-[168px] flex-col justify-between gap-3 overflow-hidden rounded-2xl border border-gold/30 bg-card/80 px-5 py-5 text-left shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-gold/70 hover:shadow-xl focus-visible:border-gold focus-visible:outline-none aria-[current=page]:border-gold motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:min-h-[188px] sm:px-6"
+              className="group relative flex min-h-[168px] flex-col justify-between gap-3 overflow-hidden rounded-xl border border-border bg-card px-5 py-5 text-left transition-colors hover:border-gold focus-visible:border-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold aria-[current=page]:border-gold motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:min-h-[188px] sm:px-6"
             >
               {/* Златен акцент като при рекламния банер */}
               <span
                 aria-hidden="true"
-                className="absolute inset-x-0 top-0 h-1 bg-gold"
-              />
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-gold/10 blur-2xl transition-opacity duration-300 group-hover:bg-gold/20"
+                className="absolute inset-x-0 top-0 h-0.5 bg-gold/70"
               />
 
               <span className="flex min-w-0 flex-col gap-2">

@@ -32,23 +32,22 @@ export function SectorPackages() {
             const Icon = Icons[item.icon];
             const availability = getDeclaredSectorPackageAvailability(item);
             return (
-              <article key={item.id} className="group overflow-hidden rounded-xl border border-gold/25 bg-card/65 shadow-soft transition-colors hover:border-gold/50">
-                <div className="grid h-full sm:grid-cols-[170px_1fr]">
-                  <div className="relative min-h-40 overflow-hidden border-b border-border/50 sm:border-b-0 sm:border-r">
-                    <img src={IMAGES[item.image]} alt="" loading="lazy" decoding="async" width={340} height={320} className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.03]" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent" />
-                    <span className="absolute bottom-3 left-3 inline-flex size-10 items-center justify-center rounded-lg border border-gold/35 bg-background/85 text-gold"><Icon className="size-5" /></span>
-                  </div>
-                  <div className="flex min-w-0 flex-col p-5">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gold/80">{availability.available} налични · {availability.planned} планирани</p>
-                    <h3 className="mt-2 font-serif text-xl font-bold text-foreground">{item.title}</h3>
+              <article key={item.id} className="group overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-gold focus-within:border-gold">
+                <div className="flex h-full flex-col p-5 sm:p-6">
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <div className="flex items-center gap-3">
+                      <img src={IMAGES[item.image]} alt="" loading="lazy" decoding="async" width={48} height={48} className="size-12 shrink-0 rounded-lg object-cover" />
+                      <span className="inline-flex size-9 items-center justify-center rounded-lg border border-gold/35 text-gold"><Icon className="size-5" /></span>
+                    </div>
+                    <p className="mt-4 text-xs font-semibold uppercase tracking-[0.12em] text-gold">{availability.available} налични · {availability.planned} планирани</p>
+                    <h3 className="mt-2 font-serif text-[22px] font-bold leading-tight text-foreground">{item.title}</h3>
                     <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.outcome}</p>
                     <div className="mt-4 flex flex-wrap gap-1.5" aria-label="Етапи">
                       {[...new Set(item.documents.map((document) => document.stage.replace(/^\d+ · /, "")))].map((stage) => (
-                        <span key={stage} className="inline-flex items-center gap-1 rounded-full border border-border/60 px-2 py-1 text-[10px] text-muted-foreground"><FileText className="size-3 text-gold" />{stage}</span>
+                        <span key={stage} className="inline-flex items-center gap-1 rounded-full border border-border/60 px-2.5 py-1 text-xs text-foreground/80"><FileText className="size-3 text-gold" />{stage}</span>
                       ))}
                     </div>
-                    <Link to={`/paketi/${item.slug}`} className="mt-5 inline-flex min-h-11 items-center gap-2 self-start text-sm font-semibold text-gold hover:text-gold-light">
+                    <Link to={`/paketi/${item.slug}`} className="mt-auto inline-flex min-h-11 items-center gap-2 self-start pt-4 text-sm font-semibold text-gold hover:text-gold-light">
                       Разгледайте пакета <ArrowRight className="size-4" />
                     </Link>
                   </div>

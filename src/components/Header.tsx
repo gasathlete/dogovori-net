@@ -31,6 +31,7 @@ const NAV = [
 const MOBILE_PRIMARY: { to: string; label: string }[] = [
   { to: "/produkti", label: "Продукти" },
   { to: "/plans", label: "Планове" },
+  { to: "/catalog", label: "Каталог с шаблони" },
   { to: "/analiz", label: "Проверка на документ" },
   { to: "/build", label: "Създайте документ" },
   { to: "/account", label: "Профил" },
@@ -38,7 +39,6 @@ const MOBILE_PRIMARY: { to: string; label: string }[] = [
 
 const MOBILE_MORE: { to: string; label: string }[] = [
   { to: "/paketi", label: "Пакети по сектор" },
-  { to: "/catalog", label: "Каталог с шаблони" },
   { to: "/komplekti", label: "Комплекти документи" },
   { to: "__tools__", label: "Инструменти" },
   { to: "/blog", label: "Блог" },
@@ -93,7 +93,7 @@ export function Header() {
         className={cn(
           // Възстановени пропорции на предишния мобилен хедър (68px, 64px при
           // скрол); десктоп височините остават непроменени.
-          "container flex items-center justify-between gap-3 transition-[height] duration-300 xl:grid xl:grid-cols-[1fr_auto_1fr] xl:gap-6",
+          "container flex items-center justify-between gap-3 transition-[height] duration-300 xl:gap-6",
           scrolled ? "h-16 xl:h-14" : "h-[68px] xl:h-16",
         )}
       >
@@ -115,7 +115,7 @@ export function Header() {
         </div>
 
         {/* Zone 2 — Primary product navigation (centered) */}
-        <nav className="hidden items-center gap-5 justify-self-center xl:flex 2xl:gap-7">
+        <nav aria-label="Основна навигация" className="hidden min-w-0 flex-1 items-center justify-center gap-1 xl:flex 2xl:gap-2">
           {NAV.map((n) => {
             if (n.to === "__tools__") {
               return <ToolsMenu key="tools" variant="desktop" />;
@@ -128,8 +128,8 @@ export function Header() {
                 onClick={(e) => handleNav(n.to, e)}
                 {...prefetchHandlers(n.to)}
                 className={cn(
-                  "relative whitespace-nowrap py-1 text-[13px] font-medium tracking-wide transition-colors",
-                  "after:absolute after:inset-x-0 after:-bottom-0.5 after:h-0.5 after:rounded-full after:bg-gold after:transition-opacity",
+                  "relative inline-flex min-h-11 items-center whitespace-nowrap rounded-md px-2.5 text-[14px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold",
+                  "after:absolute after:inset-x-2.5 after:bottom-1 after:h-0.5 after:rounded-full after:bg-gold after:transition-opacity",
                   active ? "text-gold after:opacity-100" : "text-foreground/75 hover:text-gold after:opacity-0",
                 )}
               >
