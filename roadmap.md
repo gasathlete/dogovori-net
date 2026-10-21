@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Release package 06:06: reconcile genuine refunds independent of roles; retest improve/negotiation/export/refinement; inspect LIVE catalog/webhook/token; prepare unified frontend without publishing or opening LIVE.
+
 - [x] Paid runtime 21.10 boundary/check proof: LIVE default-closed service row deployed/503 verified; genuine check TEST webhook→ready→browser PDF→identical replay proven. Fixture disabled, staff revoked; LIVE/public stay closed.
 - [ ] Paid release review: correct immutable paid sandbox reversal handling/redeliver genuine historical refunds; two improve failures fixed but latest changes await genuine paid retest; negotiation/refinement/DOCX/mobile untested. ROOT review and project AI app-context confirmation required before opening.
 
