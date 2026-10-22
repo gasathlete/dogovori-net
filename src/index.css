@@ -1388,7 +1388,17 @@ html.dark .brand-platform-preview {
   .workspace-body { gap: 10px; padding: 12px; }
   .workspace-preview { padding: 12px; }
   .workspace-hint, .workspace-addressee { display: none; }
-  .workspace-swatch { padding: 0 8px; }
+  .workspace-toolbar { min-height: 32px; padding: 0 12px; }
+  .workspace-step { gap: 4px; padding: 0 2px; white-space: nowrap; font-size: 12px; }
+  .workspace-step-num { width: 18px; height: 18px; }
+  .workspace-inputs { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .workspace-brand-row { flex-wrap: nowrap; align-items: center; justify-content: space-between; }
+  .workspace-swatch { width: 44px; justify-content: center; padding: 0; }
+  .workspace-swatch span { width: 20px; height: 20px; }
+  .workspace-swatch-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .workspace-panel { min-height: 64px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .workspace-preview { height: 196px; }
+  .workspace-copy { font-size: 14px; line-height: 1.5; }
   .workspace-step { font-size: 12px; }
 }
 @media (prefers-reduced-motion: reduce) { .workspace-panel, .workspace-mono { animation: none; } .workspace-preview, .workspace-preview mark, .workspace-step { transition: none; } }

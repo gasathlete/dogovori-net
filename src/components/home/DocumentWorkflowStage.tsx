@@ -45,7 +45,7 @@ export function DocumentWorkflowStage() {
       <div className="workspace-body" onTouchStart={(e) => { touch.current = e.touches[0]?.clientX ?? null; }} onTouchEnd={(e) => { const s = touch.current; touch.current = null; const end = e.changedTouches[0]?.clientX; if (s !== null && end !== undefined && Math.abs(end - s) > 50) go(step + (end < s ? 1 : -1)); }}>
         <div id={`${uid}-p`} role="tabpanel" aria-labelledby={`${uid}-t${step}`} className="workspace-panel">
           {step === 0 && (
-            <div className="grid gap-3">
+            <div className="workspace-inputs grid gap-3">
               <label className="workspace-field"><span>Фирма</span><input value={company} maxLength={40} onChange={(e) => { setCompany(e.target.value); ping("company"); }} /></label>
               <label className="workspace-field"><span>Относно</span><input value={project} maxLength={60} onChange={(e) => { setProject(e.target.value); ping("project"); }} /></label>
               <p className="workspace-hint text-xs text-muted-foreground">Пишете — документът вдясно се променя веднага. Нищо не се записва.</p>
@@ -53,21 +53,21 @@ export function DocumentWorkflowStage() {
           )}
           {step === 1 && (
             <div className="grid gap-3">
-              <p className="text-sm font-medium">Акцентен цвят</p>
-              <div className="flex gap-2" role="radiogroup" aria-label="Акцентен цвят">
+              <p className="workspace-hint text-sm font-medium">Акцентен цвят</p>
+              <div className="workspace-brand-row flex flex-wrap gap-2"><div className="flex gap-2" role="radiogroup" aria-label="Акцентен цвят">
                 {ACCENTS.map((a) => (
-                  <button key={a.id} type="button" role="radio" aria-checked={accent === a.id} onClick={() => { setAccent(a.id); ping("brand"); }} className="workspace-swatch" data-on={accent === a.id}>
-                    <span style={{ background: `hsl(${a.token})` }} aria-hidden="true" />{a.label}
+                  <button key={a.id} type="button" role="radio" aria-checked={accent === a.id} aria-label={a.label} onClick={() => { setAccent(a.id); ping("brand"); }} className="workspace-swatch" data-on={accent === a.id}>
+                    <span style={{ background: `hsl(${a.token})` }} aria-hidden="true" /><span className="workspace-swatch-label">{a.label}</span>
                   </button>
                 ))}
               </div>
-              <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" className="size-4" checked={showLogo} onChange={(e) => { setShowLogo(e.target.checked); ping("brand"); }} />Лого в бланката</label>
+              <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" className="size-4" checked={showLogo} aria-label="Лого в бланката" onChange={(e) => { setShowLogo(e.target.checked); ping("brand"); }} />Лого</label></div>
               <p className="workspace-hint text-xs text-muted-foreground">Вашето лого. Вашият стил — на всеки документ.</p>
             </div>
           )}
           {step === 2 && (
             <div className="grid gap-3">
-              <ul className="grid gap-2 text-sm">
+              <ul className="workspace-hint grid gap-2 text-sm">
                 <li className="flex gap-2"><Check className="size-4 shrink-0 text-gold" />Данните са попълнени</li>
                 <li className="flex gap-2"><Check className="size-4 shrink-0 text-gold" />Фирменият стил е приложен</li>
                 <li className="flex gap-2"><Check className="size-4 shrink-0 text-gold" />PDF или DOCX след преглед</li>
@@ -86,7 +86,7 @@ export function DocumentWorkflowStage() {
           </header>
           <p className="workspace-addressee mt-3 text-xs text-muted-foreground">До екипа на Договори.нет</p>
           <h3 className="mt-2 font-serif text-lg font-bold leading-tight">Покана за сътрудничество</h3>
-          <p className="mt-2 text-[13px] leading-relaxed">
+          <p className="workspace-copy mt-2 text-[13px] leading-relaxed">
             От името на <mark className={flash === "company" ? "ws-flash" : ""}>{name}</mark> Ви каним да обсъдим подготовката на <mark className={flash === "project" ? "ws-flash" : ""}>{project.trim() || "нашите документи"}</mark> с ясен текст и единен фирмен облик.
           </p>
           <div className="mt-auto flex items-end justify-between gap-3 pt-3 text-[11px] text-muted-foreground">
@@ -96,7 +96,7 @@ export function DocumentWorkflowStage() {
         </article>
       </div>
       <div className="mt-3 flex items-center justify-between gap-3">
-        <span className="text-xs text-muted-foreground">Илюстрация · не е реална кореспонденция</span>
+        <span className="text-xs text-muted-foreground">Пример · не е реална кореспонденция</span>
         <div className="flex shrink-0 gap-2">
           <Button variant="outline" size="icon" className="size-11" aria-label="Предишна стъпка" onClick={() => go(step - 1)}><ArrowLeft /></Button>
           <Button size="icon" className="size-11" aria-label="Следваща стъпка" onClick={() => go(step + 1)}><ArrowRight /></Button>
