@@ -1,43 +1,41 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { DocumentWorkflowStage } from "@/components/home/DocumentWorkflowStage";
 
-describe("home demonstration navigation", () => {
-  it("advances through all four steps and wraps back to selection", () => {
-    render(<MemoryRouter><DocumentWorkflowStage /></MemoryRouter>);
-    const selected = () => screen.getAllByRole("tab").find((tab) => tab.getAttribute("aria-selected") === "true");
-    expect(selected()?.getAttribute("data-state")).toBe("active");
-    expect(selected()?.textContent).toContain("Избирате");
-    fireEvent.click(screen.getByRole("button", { name: "Следваща стъпка" }));
-    expect(selected()?.textContent).toContain("Попълвате");
-    fireEvent.click(screen.getByRole("button", { name: "Следваща стъпка" }));
-    expect(selected()?.textContent).toContain("Брандирате");
-    expect(screen.getByRole("link", { name: /Настройте фирмен стил/ }).getAttribute("href")).toBe("/account?tab=branding");
-    fireEvent.click(screen.getByRole("button", { name: "Следваща стъпка" }));
-    expect(selected()?.textContent).toContain("Преглеждате");
-    fireEvent.click(screen.getByRole("button", { name: "Следваща стъпка" }));
-    expect(selected()?.textContent).toContain("Избирате");
-    cleanup();
+const setup = () => render(<MemoryRouter><DocumentWorkflowStage /></MemoryRouter>);
+const selected = () => screen.getAllByRole("tab").find((t) => t.getAttribute("aria-selected") === "true")?.textContent;
+const preview = () => screen.getByRole("article", { name: "Преглед на примерния документ" });
+afterEach(cleanup);
+
+describe("hero interactive workspace", () => {
+  it("editing the company field updates the preview immediately", () => {
+    setup();
+    fireEvent.change(screen.getByLabelText("Фирма"), { target: { value: "Ателие Роза" } });
+    expect(preview().textContent).toContain("Ателие Роза");
+    expect(preview().textContent).not.toContain("IM Development");
   });
-  it("preserves scene nodes through navigation and synchronizes native swiping", () => {
-    vi.useFakeTimers();
-    const { container } = render(<MemoryRouter><DocumentWorkflowStage /></MemoryRouter>);
-    const scenes = Array.from(container.querySelectorAll('[role="tabpanel"]'));
+  it("brand step applies monogram and selected accent to the same preview", () => {
+    setup();
+    expect(preview().getAttribute("data-branded")).toBe("false");
     fireEvent.click(screen.getByRole("button", { name: "Следваща стъпка" }));
-    fireEvent.click(screen.getByRole("button", { name: "Следваща стъпка" }));
-    expect(Array.from(container.querySelectorAll('[role="tabpanel"]'))).toEqual(scenes);
-    const track = container.querySelector(".workflow-scene-viewport");
-    if (!track) throw new Error("Missing workflow track");
-    fireEvent.touchStart(track, { touches: [{ clientX: 300 }] });
-    fireEvent.touchEnd(track, { changedTouches: [{ clientX: 100 }] });
-    expect(screen.getByRole("tab", { name: /Преглеждате/ }).getAttribute("aria-selected")).toBe("true");
-    cleanup();
-    vi.useRealTimers();
+    expect(selected()).toContain("Вашият бранд");
+    expect(preview().getAttribute("data-branded")).toBe("true");
+    expect(preview().textContent).toContain("ID");
+    fireEvent.click(screen.getByRole("radio", { name: /Мастило/ }));
+    expect(preview().getAttribute("style")).toContain("--brand-ink");
+    fireEvent.click(screen.getByLabelText("Лого в бланката"));
+    expect(preview().textContent).not.toMatch(/^ID/);
   });
-  it("keeps the actual creation destination rather than submitting demonstration values", () => {
-    render(<MemoryRouter><DocumentWorkflowStage /></MemoryRouter>);
+  it("steps wrap, swipe advances and final step links to /build", () => {
+    const { container } = setup();
+    const body = container.querySelector(".workspace-body")!;
+    fireEvent.touchStart(body, { touches: [{ clientX: 300 }] });
+    fireEvent.touchEnd(body, { changedTouches: [{ clientX: 100 }] });
+    expect(selected()).toContain("Вашият бранд");
+    fireEvent.click(screen.getByRole("button", { name: "Следваща стъпка" }));
     expect(screen.getByRole("link", { name: /Изгответе свой документ/ }).getAttribute("href")).toBe("/build");
-    cleanup();
+    fireEvent.click(screen.getByRole("button", { name: "Следваща стъпка" }));
+    expect(selected()).toContain("Попълнете");
   });
 });
