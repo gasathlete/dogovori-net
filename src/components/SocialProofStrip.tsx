@@ -28,7 +28,8 @@ async function fetchApprovedPartners(): Promise<Partner[]> {
  * При грешка или невалиден резултат хвърля — не връща измислена стойност.
  */
 export async function fetchRegisteredUsers(): Promise<number> {
-  const { data, error } = await supabase.rpc("get_registered_users_count");
+  const { data: result, error } = await supabase.rpc("get_registered_users_count");
+  const data: unknown = result;
   if (error) throw error;
   if (data === null || data === undefined || data === "") throw new Error("Празен брой регистрирани потребители");
   const n = typeof data === "number" ? data : Number(data);
@@ -66,6 +67,7 @@ export function SocialProofStrip() {
   // Валидни кеширани данни остават видими и при временна грешка при опресняване.
   const hasUsers = typeof registeredUsers === "number";
   const usersUnavailable = !hasUsers && !usersPending;
+  const retryUsers = () => { void refetch(); };
 
   const catalogMetrics: { value: string; label: string }[] = [
     ...(TEMPLATES_COUNT > 0 ? [{ value: `${TEMPLATES_COUNT}`, label: "образеца в каталога" }] : []),
@@ -94,7 +96,7 @@ export function SocialProofStrip() {
               {usersUnavailable && (
                 <>
                   <span className="sr-only"> — броят не е наличен в момента</span>
-                  <button type="button" onClick={() => refetch()} disabled={isFetching}
+                  <button type="button" onClick={retryUsers} disabled={isFetching}
                     className="ml-2 inline-flex min-h-11 items-center underline underline-offset-4 hover:text-foreground disabled:opacity-60">
                     {isFetching ? "Зарежда се…" : "Опитайте отново"}
                   </button>
