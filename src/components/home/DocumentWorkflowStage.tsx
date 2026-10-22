@@ -14,6 +14,7 @@ export function DocumentWorkflowStage() {
   const [kind, setKind] = useState<WorkflowDocumentKind>("invitation");
   const touch = useRef<number | null>(null);
   const go = (index: number) => setStep((index + STEPS.length) % STEPS.length);
+  const advance = (direction: number) => setStep((current) => (current + direction + STEPS.length) % STEPS.length);
   return (
     <div id="hero-workflow" className="commerce-workflow min-w-0 scroll-mt-28">
       <div className="mb-4 flex items-center justify-between gap-3 text-xs text-muted-foreground"><span>Илюстрация · не е реална кореспонденция</span><span className="shrink-0 tabular-nums" aria-label="Текуща стъпка">0{step + 1} / 04</span></div>
@@ -25,7 +26,7 @@ export function DocumentWorkflowStage() {
           <Button variant={kind === "invitation" ? "secondary" : "ghost"} aria-pressed={kind === "invitation"} className="min-h-11 px-3 text-xs" onClick={() => setKind("invitation")}><FileText className="size-4" />Покана · IM Development</Button>
           <Button variant={kind === "contract" ? "secondary" : "ghost"} aria-pressed={kind === "contract"} className="min-h-11 px-3 text-xs" onClick={() => setKind("contract")}>Документ за услуги</Button>
         </div>
-        <div className="workflow-scene-viewport" onTouchStart={(e) => { touch.current = e.touches[0]?.clientX ?? null; }} onTouchEnd={(e) => { const start = touch.current; touch.current = null; const end = e.changedTouches[0]?.clientX; if (start !== null && end !== undefined && Math.abs(end - start) > 50) go(step + (end < start ? 1 : -1)); }}>
+        <div className="workflow-scene-viewport" onTouchStart={(e) => { touch.current = e.touches[0]?.clientX ?? null; }} onTouchEnd={(e) => { const start = touch.current; touch.current = null; const end = e.changedTouches[0]?.clientX; if (start !== null && end !== undefined && Math.abs(end - start) > 50) advance(end < start ? 1 : -1); }}>
         <div className="workflow-scene-track" style={{ transform: `translate3d(-${step * 100}%,0,0)` }}>
           {STEPS.map((title, index) => <div key={title} id={`workflow-scene-${index}`} role="tabpanel" aria-labelledby={`workflow-tab-${index}`} aria-hidden={index !== step} ref={(node) => { if (!node) return; if (index !== step) node.setAttribute("inert", ""); else node.removeAttribute("inert"); }} className="workflow-scene">
             <p className="workflow-scene-note font-serif text-lg font-semibold">{NOTES[index]}</p>
