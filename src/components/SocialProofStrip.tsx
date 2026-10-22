@@ -1,8 +1,20 @@
+import type * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 // Леки константи вместо целия CATALOG/SECTORS (~1 MB JSON) — виж src/data/catalogCounts.ts
 import { TEMPLATES_COUNT, SECTORS_COUNT } from "@/data/catalogCounts";
 import { PartnerCarousel } from "@/components/PartnerCarousel";
+import { useCountUp } from "@/hooks/useCountUp";
+
+function InlineCount({ value }: { value: number }) {
+  const { ref, value: shown } = useCountUp(value, { duration: 900 });
+  return (
+    <strong ref={ref as React.Ref<HTMLElement>} data-testid="inline-users-count" aria-label={`${value} регистрирани`}
+      className="inline-block min-w-[3ch] font-serif text-xl font-bold tabular-nums text-gold sm:text-2xl">
+      <span aria-hidden="true">{Math.round(shown).toLocaleString("bg-BG")}</span>
+    </strong>
+  );
+}
 
 
 type Partner = { id: string; name: string; logo_url: string; website_url?: string | null };
@@ -81,8 +93,8 @@ export function SocialProofStrip() {
           Към нас вече се присъединиха{" "}
           {hasUsers ? <InlineCount value={registeredUsers} />
             : usersPending ? <span aria-hidden="true" className="inline-block h-5 w-12 animate-pulse rounded-sm bg-muted align-middle" />
-            : <span className="font-serif font-semibold text-foreground">много</span>}
-          {" "}потребители — фирми, специалисти на свободна практика, адвокати и счетоводители.
+            : null}
+          {usersUnavailable ? "" : " "}потребители — фирми, специалисти на свободна практика, адвокати и счетоводители.
         </p>
 
         <PartnerCarousel partners={partners} />
