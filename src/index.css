@@ -1307,10 +1307,25 @@ html.dark .brand-platform-preview {
   padding: 24px 28px; border-radius: 3px; box-shadow: var(--shadow-document);
   border-top: 4px solid hsl(var(--commerce-gold));
 }
-.workflow-page-content { height: 324px; padding-top: 16px; margin-top: 0; }
-.workflow-lines { display: grid; gap: 9px; }
-.workflow-lines span { display: block; height: 1px; background: hsl(var(--border)); }
-.workflow-lines span:last-child { width: 65%; }
+.workflow-scene-viewport { overflow: hidden; touch-action: pan-y; }
+.workflow-scene-track { display: flex; align-items: stretch; transition: transform .75s cubic-bezier(.25,.1,.25,1); will-change: transform; }
+.workflow-scene-track::-webkit-scrollbar { display: none; }
+.workflow-scene { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; display: flex; flex-direction: column; padding: 0 2px 2px; }
+.workflow-scene-note { min-height: 52px; padding-bottom: 12px; line-height: 1.4; }
+.workflow-letter { flex: 1; display: flex; flex-direction: column; border-top-color: hsl(var(--brand-paper-border)); }
+.workflow-letter-branded { border-top-color: hsl(var(--commerce-gold)); }
+.workflow-letterhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 66px; padding-bottom: 14px; border-bottom: 1px solid hsl(var(--border)); }
+.workflow-letter-branded .workflow-letterhead { border-bottom: 2px solid hsl(var(--gold)); }
+.workflow-im-mark { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 44px; height: 44px; background: hsl(var(--brand-ink)); color: hsl(var(--commerce-gold)); font-family: var(--font-serif); font-size: 20px; }
+.workflow-letter-body { flex: 1; padding-top: 16px; }
+.workflow-letter-prose { font-size: 14px; line-height: 1.65; }
+.workflow-letter-prose p + p, .workflow-letter-prose ol { margin-top: 12px; }
+.workflow-letter-prose ol { list-style: decimal; padding-left: 20px; }
+.workflow-letter-prose li + li { margin-top: 8px; }
+.workflow-signature { margin: 24px 0 20px; }
+.workflow-letter-branded h3 { color: hsl(var(--brand-ink)); }
+@media (prefers-reduced-motion: no-preference) { .commerce-workflow { animation: workflow-arrive .55s ease-out both; } }
+@keyframes workflow-arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 .browse-shelf {
   display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 40px) / 3);
   gap: 20px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 2px;
@@ -1333,7 +1348,6 @@ html.dark .brand-platform-preview {
   .commerce-hero .hero-search-row input { height: 52px; }
   .commerce-workflow { margin-top: 8px; }
   .workflow-paper { padding: 18px; }
-  .workflow-page-content { height: 340px; }
   .browse-shelf { grid-auto-columns: 86%; gap: 16px; }
   .hero-commerce-products { display: grid; grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 88%; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 12px; }
   .hero-commerce-product { scroll-snap-align: start; }
