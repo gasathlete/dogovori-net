@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Check } from "@/icons";
 
 const STEPS = ["Попълнете", "Вашият бранд", "Готово за преглед"] as const;
+const SHORT = ["Данни", "Бранд", "Преглед"] as const;
 const ACCENTS = [
   { id: "gold", label: "Злато", token: "var(--gold)" },
   { id: "ink", label: "Мастило", token: "var(--brand-ink)" },
@@ -38,7 +39,7 @@ export function DocumentWorkflowStage() {
       <div role="tablist" aria-label="Стъпки на примера" className="workspace-steps">
         {STEPS.map((title, i) => (
           <button key={title} type="button" role="tab" id={`${uid}-t${i}`} aria-selected={i === step} aria-controls={`${uid}-p`} onClick={() => go(i)} className="workspace-step" data-active={i === step} data-done={i < step}>
-            <span aria-hidden="true" className="workspace-step-num">{i < step ? <Check className="size-3" /> : i + 1}</span>{title}
+            <span aria-hidden="true" className="workspace-step-num">{i < step ? <Check className="size-3" /> : i + 1}</span><span className="workspace-step-long">{title}</span><span className="workspace-step-short" aria-hidden="true">{SHORT[i]}</span>
           </button>
         ))}
       </div>
@@ -89,7 +90,7 @@ export function DocumentWorkflowStage() {
           <p className="workspace-copy mt-2 text-[13px] leading-relaxed">
             От името на <mark className={flash === "company" ? "ws-flash" : ""}>{name}</mark> Ви каним да обсъдим подготовката на <mark className={flash === "project" ? "ws-flash" : ""}>{project.trim() || "нашите документи"}</mark> с ясен текст и единен фирмен облик.
           </p>
-          <div className="mt-auto flex items-end justify-between gap-3 pt-3 text-[11px] text-muted-foreground">
+          <div className="workspace-sig mt-auto flex items-end justify-between gap-3 pt-3 text-[11px] text-muted-foreground">
             <span>С уважение,<span className="mt-3 block w-28 border-b border-border" /></span>
             <span>{step === 2 ? "Готово за преглед" : "Чернова"}</span>
           </div>
