@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, FileText, Palette } from "@/icons";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { WorkflowDocument, type WorkflowDocumentKind } from "./WorkflowDocument";
 
 const STEPS = ["Избирате", "Попълвате", "Брандирате", "Преглеждате"] as const;
@@ -13,22 +12,9 @@ const NOTES = ["От покана до документ за услуги.", "В
 export function DocumentWorkflowStage() {
   const [step, setStep] = useState(0);
   const [kind, setKind] = useState<WorkflowDocumentKind>("invitation");
-  const track = useRef<HTMLDivElement>(null);
   const touch = useRef<number | null>(null);
-  const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const navigationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const navigating = useRef(false);
-  useEffect(() => () => { if (scrollTimer.current) clearTimeout(scrollTimer.current); if (navigationTimer.current) clearTimeout(navigationTimer.current); }, []);
-  const reduced = useReducedMotion();
-  const currentStep = useRef(step);
-  currentStep.current = step;
-  useEffect(() => {
-    const node = track.current;
-    if (!node || typeof ResizeObserver === "undefined") return;
-    let width = node.clientWidth;
-    const observer = new ResizeObserver(() => { if (width === node.clientWidth) return; width = node.clientWidth; node.scrollTo({ left: currentStep.current * width, behavior: "instant" }); });
-    observer.observe(node);
-    return () => observer.disconnect();
+  const go = (index: number) => setStep((index + STEPS.length) % STEPS.length);
+  return () => observer.disconnect();
   }, []);
   const go = (index: number) => {
     const next = (index + STEPS.length) % STEPS.length;
@@ -50,7 +36,7 @@ export function DocumentWorkflowStage() {
           <Button variant={kind === "contract" ? "secondary" : "ghost"} aria-pressed={kind === "contract"} className="min-h-11 px-3 text-xs" onClick={() => setKind("contract")}>Документ за услуги</Button>
         </div>
         <div className="workflow-scene-viewport" onTouchStart={(e) => { touch.current = e.touches[0]?.clientX ?? null; }} onTouchEnd={(e) => { const start = touch.current; touch.current = null; const end = e.changedTouches[0]?.clientX; if (start !== null && end !== undefined && Math.abs(end - start) > 50) go(step + (end < start ? 1 : -1)); }}>
-        <div ref={track} className="workflow-scene-track" style={{ transform: `translate3d(-${step * 100}%,0,0)` }}>
+        <div className="workflow-scene-track" style={{ transform: `translate3d(-${step * 100}%,0,0)` }}>
           {STEPS.map((title, index) => <div key={title} id={`workflow-scene-${index}`} role="tabpanel" aria-labelledby={`workflow-tab-${index}`} aria-hidden={index !== step} ref={(node) => { if (!node) return; if (index !== step) node.setAttribute("inert", ""); else node.removeAttribute("inert"); }} className="workflow-scene">
             <p className="workflow-scene-note font-serif text-lg font-semibold">{NOTES[index]}</p>
             <WorkflowDocument kind={kind} branded={index >= 2} />
