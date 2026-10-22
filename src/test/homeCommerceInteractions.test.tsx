@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { DocumentWorkflowStage } from "@/components/home/DocumentWorkflowStage";
 
 describe("home demonstration navigation", () => {
-  it("advances through all three steps and wraps back to selection", () => {
+  it("advances through all four steps and wraps back to selection", () => {
     render(<MemoryRouter><DocumentWorkflowStage /></MemoryRouter>);
     const selected = () => screen.getAllByRole("tab").find((tab) => tab.getAttribute("aria-selected") === "true");
     expect(selected()?.getAttribute("data-state")).toBe("active");
@@ -12,9 +12,25 @@ describe("home demonstration navigation", () => {
     fireEvent.click(screen.getByRole("button", { name: "Следваща стъпка" }));
     expect(selected()?.textContent).toContain("Попълвате");
     fireEvent.click(screen.getByRole("button", { name: "Следваща стъпка" }));
+    expect(selected()?.textContent).toContain("Брандирате");
+    expect(screen.getByRole("link", { name: /Настройте фирмен стил/ }).getAttribute("href")).toBe("/account?tab=branding");
+    fireEvent.click(screen.getByRole("button", { name: "Следваща стъпка" }));
     expect(selected()?.textContent).toContain("Преглеждате");
     fireEvent.click(screen.getByRole("button", { name: "Следваща стъпка" }));
     expect(selected()?.textContent).toContain("Избирате");
+    cleanup();
+  });
+  it("preserves scene nodes through navigation and synchronizes native swiping", () => {
+    const { container } = render(<MemoryRouter><DocumentWorkflowStage /></MemoryRouter>);
+    const scenes = Array.from(container.querySelectorAll('[role="tabpanel"]'));
+    fireEvent.click(screen.getByRole("tab", { name: /Брандирате/ }));
+    expect(Array.from(container.querySelectorAll('[role="tabpanel"]'))).toEqual(scenes);
+    const track = container.querySelector(".workflow-scene-track");
+    if (!track) throw new Error("Missing workflow track");
+    Object.defineProperty(track, "clientWidth", { value: 390 });
+    Object.defineProperty(track, "scrollLeft", { value: 1170 });
+    fireEvent.scroll(track);
+    expect(screen.getByRole("tab", { name: /Преглеждате/ }).getAttribute("aria-selected")).toBe("true");
     cleanup();
   });
   it("keeps the actual creation destination rather than submitting demonstration values", () => {

@@ -51,11 +51,11 @@ export function Hero() {
 
   return (
     <section className="brand-hero commerce-hero border-b border-border">
-      <div className="container grid w-full gap-8 py-5 sm:py-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,.9fr)] lg:items-center lg:gap-16 lg:py-14">
+      <div className="container grid w-full gap-8 py-5 sm:py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-10 lg:py-14">
         <div className="min-w-0 text-left">
           <p className="flex items-center gap-3 text-sm text-muted-foreground"><BrandMark decorative className="h-10 w-12" /> За хората и бизнеса · Тестов период</p>
           <h1 className="mt-4 max-w-[17ch] font-serif text-[38px] font-bold leading-[1.08] text-foreground sm:text-[52px] lg:text-[64px]">
-            {copy.heroHeadline.lead} {copy.heroHeadline.accent}{copy.heroHeadline.tail}
+            {copy.heroHeadline.lead}{" "}<span className="block text-gold">{copy.heroHeadline.accent}{copy.heroHeadline.tail}</span>
           </h1>
           <p className="mt-5 max-w-[48ch] text-base leading-relaxed text-muted-foreground sm:text-lg">
             {copy.heroSub}
@@ -119,7 +119,7 @@ export function Hero() {
           </nav>
         </div>
 
-        <div className={demoOpen ? "min-w-0" : "hidden min-w-0 lg:block"}>
+        <div className="min-w-0">
           {demoOpen && <Button variant="ghost" className="mb-2 min-h-11 lg:hidden" onClick={() => setDemoOpen(false)}>Скрийте демонстрацията</Button>}
           <DocumentWorkflowStage />
         </div>
