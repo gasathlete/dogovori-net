@@ -77,8 +77,12 @@ export function SocialProofStrip() {
   return (
     <section id="partners" aria-label="Партньори" className="border-b border-border bg-muted/50">
       <div className="container py-10 sm:py-12">
-        <p className="max-w-[70ch] text-base leading-relaxed text-foreground/85">
-          Използвана от фирми, специалисти на свободна практика, адвокати и счетоводители у нас и в чужбина.
+        <p className="max-w-[70ch] text-base leading-relaxed text-foreground/85 sm:text-lg" data-testid="social-proof-sentence">
+          Към нас вече се присъединиха{" "}
+          {hasUsers ? <InlineCount value={registeredUsers} />
+            : usersPending ? <span aria-hidden="true" className="inline-block h-5 w-12 animate-pulse rounded-sm bg-muted align-middle" />
+            : <span className="font-serif font-semibold text-foreground">много</span>}
+          {" "}потребители — фирми, специалисти на свободна практика, адвокати и счетоводители.
         </p>
 
         <PartnerCarousel partners={partners} />
