@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Focused hero upgrade: recovered IM invitation, readable stable manual document scenes, gold headline emphasis, visible personal branding; desktop/390px verification; no publication.
 - [x] Partner single-row carousel: cyclic 650ms/3500ms track, pause/accessibility; five focused tests and 360/390/430/1280 browser checks passed. Query/counts/header unchanged; no publication.
 - [x] Mobile guided selling: task chooser, factual product/auth continuity, single mobile action bar, duplicate guard and persistent retry; bonus preserved. 113 tests/13 files, 360/390/430 and desktop public journey, simulated keyboard, automatic build OK. No purchases/publication; boundaries in mobile-guided-selling-2026-10-21.md.
 - [x] Consent-only starter bonus: MAIN migrations 0030–0032 applied; 79 focused tests and isolated PostgreSQL signup/claim/concurrency/wave/assistant assertions passed; authenticated MAIN status and desktop/390px mocked dialog checked, automatic build OK. Frontend not published; exact boundaries in marketing-starter-bonus-2026-10-21.md.
