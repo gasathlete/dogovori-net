@@ -32,7 +32,6 @@ export function Hero() {
   const { copy } = useAudience();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const [demoOpen, setDemoOpen] = useState(false);
 
   useEffect(() => { markFunnelStep(1); }, []);
 
@@ -109,7 +108,6 @@ export function Hero() {
               <FileUp className="h-4 w-4" /> {isFeatureAvailable("document_review") ? "Проверете документ" : "Проверка · В подготовка"}
             </Link>
             <Button variant="link" type="button" onClick={() => {
-              setDemoOpen(true);
               trackFunnelEvent("home_demo_story_opened", { source: "hero" });
               requestAnimationFrame(() => document.getElementById("hero-workflow")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "center" }));
             }} className="link-ink min-h-11 px-0">Вижте как работи <ArrowRight className="size-4" /></Button>
@@ -120,7 +118,6 @@ export function Hero() {
         </div>
 
         <div className="min-w-0">
-          {demoOpen && <Button variant="ghost" className="mb-2 min-h-11 lg:hidden" onClick={() => setDemoOpen(false)}>Скрийте демонстрацията</Button>}
           <DocumentWorkflowStage />
         </div>
       </div>
