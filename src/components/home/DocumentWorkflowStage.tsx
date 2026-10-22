@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ export function DocumentWorkflowStage() {
   const [step, setStep] = useState(0);
   const [kind, setKind] = useState<WorkflowDocumentKind>("invitation");
   const track = useRef<HTMLDivElement>(null);
+  const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (scrollTimer.current) clearTimeout(scrollTimer.current); }, []);
   const reduced = useReducedMotion();
   const go = (index: number) => {
     const next = (index + STEPS.length) % STEPS.length;
@@ -31,7 +33,7 @@ export function DocumentWorkflowStage() {
           <Button variant={kind === "invitation" ? "secondary" : "ghost"} aria-pressed={kind === "invitation"} className="min-h-11 px-3 text-xs" onClick={() => setKind("invitation")}><FileText className="size-4" />Покана · IM Development</Button>
           <Button variant={kind === "contract" ? "secondary" : "ghost"} aria-pressed={kind === "contract"} className="min-h-11 px-3 text-xs" onClick={() => setKind("contract")}>Документ за услуги</Button>
         </div>
-        <div ref={track} className="workflow-scene-track" onScroll={(e) => { const node = e.currentTarget; if (node.clientWidth) setStep(Math.min(STEPS.length - 1, Math.max(0, Math.round(node.scrollLeft / node.clientWidth)))); }}>
+        <div ref={track} className="workflow-scene-track" onScroll={(e) => { const node = e.currentTarget; if (scrollTimer.current) clearTimeout(scrollTimer.current); scrollTimer.current = setTimeout(() => { if (node.clientWidth) setStep(Math.min(STEPS.length - 1, Math.max(0, Math.round(node.scrollLeft / node.clientWidth)))); }, 120); }}>
           {STEPS.map((title, index) => <div key={title} id={`workflow-scene-${index}`} role="tabpanel" aria-labelledby={`workflow-tab-${index}`} aria-hidden={index !== step} ref={(node) => { if (!node) return; if (index !== step) node.setAttribute("inert", ""); else node.removeAttribute("inert"); }} className="workflow-scene">
             <p className="workflow-scene-note font-serif text-lg font-semibold">{NOTES[index]}</p>
             <WorkflowDocument kind={kind} branded={index >= 2} />

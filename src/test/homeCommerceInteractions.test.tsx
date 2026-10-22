@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { DocumentWorkflowStage } from "@/components/home/DocumentWorkflowStage";
@@ -21,6 +21,7 @@ describe("home demonstration navigation", () => {
     cleanup();
   });
   it("preserves scene nodes through navigation and synchronizes native swiping", () => {
+    vi.useFakeTimers();
     const { container } = render(<MemoryRouter><DocumentWorkflowStage /></MemoryRouter>);
     const scenes = Array.from(container.querySelectorAll('[role="tabpanel"]'));
     fireEvent.click(screen.getByRole("tab", { name: /Брандирате/ }));
@@ -30,8 +31,13 @@ describe("home demonstration navigation", () => {
     Object.defineProperty(track, "clientWidth", { value: 390 });
     Object.defineProperty(track, "scrollLeft", { value: 1170 });
     fireEvent.scroll(track);
+    fireEvent.click(screen.getByRole("button", { name: "Документ за услуги" }));
+    fireEvent.scroll(track);
+    // Scroll selection only commits once the manual swipe settles.
+    act(() => { vi.advanceTimersByTime(120); });
     expect(screen.getByRole("tab", { name: /Преглеждате/ }).getAttribute("aria-selected")).toBe("true");
     cleanup();
+    vi.useRealTimers();
   });
   it("keeps the actual creation destination rather than submitting demonstration values", () => {
     render(<MemoryRouter><DocumentWorkflowStage /></MemoryRouter>);
