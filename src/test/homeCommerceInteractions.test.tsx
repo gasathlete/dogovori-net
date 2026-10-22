@@ -30,6 +30,7 @@ describe("home demonstration navigation", () => {
     if (!track) throw new Error("Missing workflow track");
     Object.defineProperty(track, "clientWidth", { value: 390 });
     Object.defineProperty(track, "scrollLeft", { value: 1170 });
+    fireEvent.pointerDown(track);
     fireEvent.scroll(track);
     fireEvent.click(screen.getByRole("button", { name: "Документ за услуги" }));
     fireEvent.scroll(track);
