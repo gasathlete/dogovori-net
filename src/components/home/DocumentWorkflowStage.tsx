@@ -48,7 +48,7 @@ export function DocumentWorkflowStage() {
             <div className="grid gap-3">
               <label className="workspace-field"><span>Фирма</span><input value={company} maxLength={40} onChange={(e) => { setCompany(e.target.value); ping("company"); }} /></label>
               <label className="workspace-field"><span>Относно</span><input value={project} maxLength={60} onChange={(e) => { setProject(e.target.value); ping("project"); }} /></label>
-              <p className="text-xs text-muted-foreground">Пишете — документът вдясно се променя веднага. Нищо не се записва.</p>
+              <p className="workspace-hint text-xs text-muted-foreground">Пишете — документът вдясно се променя веднага. Нищо не се записва.</p>
             </div>
           )}
           {step === 1 && (
@@ -62,7 +62,7 @@ export function DocumentWorkflowStage() {
                 ))}
               </div>
               <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" className="size-4" checked={showLogo} onChange={(e) => { setShowLogo(e.target.checked); ping("brand"); }} />Лого в бланката</label>
-              <p className="text-xs text-muted-foreground">Вашето лого. Вашият стил — на всеки документ.</p>
+              <p className="workspace-hint text-xs text-muted-foreground">Вашето лого. Вашият стил — на всеки документ.</p>
             </div>
           )}
           {step === 2 && (
@@ -84,8 +84,8 @@ export function DocumentWorkflowStage() {
               <p className="text-[11px] text-muted-foreground">Изх. № ПРИМЕР–01 · 02.09.2026 г.</p>
             </div>
           </header>
-          <p className="mt-3 text-xs text-muted-foreground">До екипа на Договори.нет</p>
-          <h3 className="mt-1 font-serif text-lg font-bold leading-tight">Покана за сътрудничество</h3>
+          <p className="workspace-addressee mt-3 text-xs text-muted-foreground">До екипа на Договори.нет</p>
+          <h3 className="mt-2 font-serif text-lg font-bold leading-tight">Покана за сътрудничество</h3>
           <p className="mt-2 text-[13px] leading-relaxed">
             От името на <mark className={flash === "company" ? "ws-flash" : ""}>{name}</mark> Ви каним да обсъдим подготовката на <mark className={flash === "project" ? "ws-flash" : ""}>{project.trim() || "нашите документи"}</mark> с ясен текст и единен фирмен облик.
           </p>
