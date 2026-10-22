@@ -14,6 +14,7 @@ export function DocumentWorkflowStage() {
   const [step, setStep] = useState(0);
   const [kind, setKind] = useState<WorkflowDocumentKind>("invitation");
   const track = useRef<HTMLDivElement>(null);
+  const touch = useRef<number | null>(null);
   const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navigationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navigating = useRef(false);
@@ -48,11 +49,13 @@ export function DocumentWorkflowStage() {
           <Button variant={kind === "invitation" ? "secondary" : "ghost"} aria-pressed={kind === "invitation"} className="min-h-11 px-3 text-xs" onClick={() => setKind("invitation")}><FileText className="size-4" />Покана · IM Development</Button>
           <Button variant={kind === "contract" ? "secondary" : "ghost"} aria-pressed={kind === "contract"} className="min-h-11 px-3 text-xs" onClick={() => setKind("contract")}>Документ за услуги</Button>
         </div>
-        <div ref={track} className="workflow-scene-track" onPointerDown={() => { navigating.current = false; }} onTouchStart={() => { navigating.current = false; }} onScroll={(e) => { if (navigating.current) return; const node = e.currentTarget; if (scrollTimer.current) clearTimeout(scrollTimer.current); scrollTimer.current = setTimeout(() => { if (node.clientWidth) setStep(Math.min(STEPS.length - 1, Math.max(0, Math.round(node.scrollLeft / node.clientWidth)))); }, 120); }}>
+        <div className="workflow-scene-viewport" onTouchStart={(e) => { touch.current = e.touches[0]?.clientX ?? null; }} onTouchEnd={(e) => { const start = touch.current; touch.current = null; const end = e.changedTouches[0]?.clientX; if (start !== null && end !== undefined && Math.abs(end - start) > 50) go(step + (end < start ? 1 : -1)); }}>
+        <div ref={track} className="workflow-scene-track" style={{ transform: `translate3d(-${step * 100}%,0,0)` }}>
           {STEPS.map((title, index) => <div key={title} id={`workflow-scene-${index}`} role="tabpanel" aria-labelledby={`workflow-tab-${index}`} aria-hidden={index !== step} ref={(node) => { if (!node) return; if (index !== step) node.setAttribute("inert", ""); else node.removeAttribute("inert"); }} className="workflow-scene">
             <p className="workflow-scene-note font-serif text-lg font-semibold">{NOTES[index]}</p>
             <WorkflowDocument kind={kind} branded={index >= 2} />
           </div>)}
+        </div>
         </div>
       </Tabs>
       <div className="mt-3 flex items-center justify-between gap-3">

@@ -1307,7 +1307,8 @@ html.dark .brand-platform-preview {
   padding: 24px 28px; border-radius: 3px; box-shadow: var(--shadow-document);
   border-top: 4px solid hsl(var(--commerce-gold));
 }
-.workflow-scene-track { display: flex; align-items: stretch; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.workflow-scene-viewport { overflow: hidden; touch-action: pan-y; }
+.workflow-scene-track { display: flex; align-items: stretch; transition: transform .75s cubic-bezier(.25,.1,.25,1); will-change: transform; }
 .workflow-scene-track::-webkit-scrollbar { display: none; }
 .workflow-scene { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; display: flex; flex-direction: column; padding: 0 2px 2px; }
 .workflow-scene-note { min-height: 52px; padding-bottom: 12px; line-height: 1.4; }

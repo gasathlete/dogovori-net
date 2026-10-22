@@ -26,16 +26,10 @@ describe("home demonstration navigation", () => {
     const scenes = Array.from(container.querySelectorAll('[role="tabpanel"]'));
     fireEvent.click(screen.getByRole("tab", { name: /Брандирате/ }));
     expect(Array.from(container.querySelectorAll('[role="tabpanel"]'))).toEqual(scenes);
-    const track = container.querySelector(".workflow-scene-track");
+    const track = container.querySelector(".workflow-scene-viewport");
     if (!track) throw new Error("Missing workflow track");
-    Object.defineProperty(track, "clientWidth", { value: 390 });
-    Object.defineProperty(track, "scrollLeft", { value: 1170 });
-    fireEvent.pointerDown(track);
-    fireEvent.scroll(track);
-    fireEvent.click(screen.getByRole("button", { name: "Документ за услуги" }));
-    fireEvent.scroll(track);
-    // Scroll selection only commits once the manual swipe settles.
-    act(() => { vi.advanceTimersByTime(120); });
+    fireEvent.touchStart(track, { touches: [{ clientX: 300 }] });
+    fireEvent.touchEnd(track, { changedTouches: [{ clientX: 100 }] });
     expect(screen.getByRole("tab", { name: /Преглеждате/ }).getAttribute("aria-selected")).toBe("true");
     cleanup();
     vi.useRealTimers();
