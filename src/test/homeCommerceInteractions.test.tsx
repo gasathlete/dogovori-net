@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, cleanup, act } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { DocumentWorkflowStage } from "@/components/home/DocumentWorkflowStage";
 
@@ -24,7 +24,8 @@ describe("home demonstration navigation", () => {
     vi.useFakeTimers();
     const { container } = render(<MemoryRouter><DocumentWorkflowStage /></MemoryRouter>);
     const scenes = Array.from(container.querySelectorAll('[role="tabpanel"]'));
-    fireEvent.click(screen.getByRole("tab", { name: /Брандирате/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Следваща стъпка" }));
+    fireEvent.click(screen.getByRole("button", { name: "Следваща стъпка" }));
     expect(Array.from(container.querySelectorAll('[role="tabpanel"]'))).toEqual(scenes);
     const track = container.querySelector(".workflow-scene-viewport");
     if (!track) throw new Error("Missing workflow track");
