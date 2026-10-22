@@ -46,6 +46,8 @@ describe("SocialProofStrip — брой регистрирани потреби�
       ).toBeTruthy(),
     );
     expect(document.body.textContent).not.toMatch(/137\s*\+/);
+    await waitFor(() => expect(screen.getByTestId("social-proof-sentence").textContent).toContain("потребители — фирми"));
+    expect(screen.getByLabelText("137 регистрирани")).toBeTruthy();
   });
 
   it("показва 0 честно", async () => {
@@ -72,6 +74,7 @@ describe("SocialProofStrip — брой регистрирани потреби�
     expect(screen.getByText(/регистрирани потребители/)).toBeTruthy();
     expect(screen.queryByLabelText(/^\d+ регистрирани потребители$/)).toBeNull();
     expect(document.body.textContent).toContain("образеца в каталога");
+    expect(screen.getByTestId("social-proof-sentence").textContent).toContain("Към нас вече се присъединиха потребители");
     rpcMock.mockResolvedValue({ data: 306, error: null });
     screen.getByRole("button", { name: "Опитайте отново" }).click();
     await waitFor(() => expect(screen.getByLabelText("306 регистрирани потребители")).toBeTruthy());

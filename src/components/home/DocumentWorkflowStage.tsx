@@ -1,45 +1,107 @@
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, FileText, Palette } from "@/icons";
-import { WorkflowDocument, type WorkflowDocumentKind } from "./WorkflowDocument";
+import { ArrowLeft, ArrowRight, Check } from "@/icons";
 
-const STEPS = ["Избирате", "Попълвате", "Брандирате", "Преглеждате"] as const;
-const NOTES = ["От покана до документ за услуги.", "Вашите условия, подредени в документ.", "Вашето лого. Вашият стил.", "Последен преглед преди следващата стъпка."] as const;
+const STEPS = ["Попълнете", "Вашият бранд", "Готово за преглед"] as const;
+const ACCENTS = [
+  { id: "gold", label: "Злато", token: "var(--gold)" },
+  { id: "ink", label: "Мастило", token: "var(--brand-ink)" },
+  { id: "bronze", label: "Бронз", token: "var(--commerce-gold)" },
+] as const;
+type AccentId = (typeof ACCENTS)[number]["id"];
 
-/** Manual, local-only scenes stay mounted. No saving, consent or customer input. */
+/** Local-only interactive demo. Nothing is saved, sent or submitted. */
 export function DocumentWorkflowStage() {
   const [step, setStep] = useState(0);
-  const [kind, setKind] = useState<WorkflowDocumentKind>("invitation");
+  const [company, setCompany] = useState("IM Development");
+  const [project, setProject] = useState("фирмени документи за наеми и услуги");
+  const [accent, setAccent] = useState<AccentId>("gold");
+  const [showLogo, setShowLogo] = useState(true);
+  const [flash, setFlash] = useState<"company" | "project" | "brand" | null>(null);
   const touch = useRef<number | null>(null);
-  const go = (index: number) => setStep((index + STEPS.length) % STEPS.length);
-  const advance = (direction: number) => setStep((current) => (current + direction + STEPS.length) % STEPS.length);
+  const uid = useId();
+  const go = (i: number) => setStep((i + STEPS.length) % STEPS.length);
+  const ping = (f: typeof flash) => { setFlash(f); window.setTimeout(() => setFlash((c) => (c === f ? null : c)), 900); };
+  const branded = step >= 1;
+  const accentToken = ACCENTS.find((a) => a.id === accent)!.token;
+  const name = company.trim() || "Вашата фирма";
+  const initials = name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+
   return (
-    <div id="hero-workflow" className="commerce-workflow min-w-0 scroll-mt-28">
-      <div className="mb-4 flex items-center justify-between gap-3 text-xs text-muted-foreground"><span>Илюстрация · не е реална кореспонденция</span><span className="shrink-0 tabular-nums" aria-label="Текуща стъпка">0{step + 1} / 04</span></div>
-      <Tabs value={String(step)} onValueChange={(value) => go(Number(value))}>
-        <TabsList aria-label="Стъпки на документа" className="workflow-tabs grid h-auto w-full grid-cols-4 gap-1 bg-transparent p-0">
-          {STEPS.map((title, index) => <TabsTrigger id={`workflow-tab-${index}`} aria-controls={`workflow-scene-${index}`} key={title} value={String(index)} className="min-h-12 min-w-0 flex-col gap-1 px-1 py-2 text-xs sm:text-sm"><span aria-hidden="true" className="text-xs">0{index + 1}</span>{title}</TabsTrigger>)}
-        </TabsList>
-        <div className="my-3 flex gap-2" role="group" aria-label="Примерен документ">
-          <Button variant={kind === "invitation" ? "secondary" : "ghost"} aria-pressed={kind === "invitation"} className="min-h-11 px-3 text-xs" onClick={() => setKind("invitation")}><FileText className="size-4" />Покана · IM Development</Button>
-          <Button variant={kind === "contract" ? "secondary" : "ghost"} aria-pressed={kind === "contract"} className="min-h-11 px-3 text-xs" onClick={() => setKind("contract")}>Документ за услуги</Button>
-        </div>
-        <div className="workflow-scene-viewport" onTouchStart={(e) => { touch.current = e.touches[0]?.clientX ?? null; }} onTouchEnd={(e) => { const start = touch.current; touch.current = null; const end = e.changedTouches[0]?.clientX; if (start !== null && end !== undefined && Math.abs(end - start) > 50) advance(end < start ? 1 : -1); }}>
-        <div className="workflow-scene-track" style={{ transform: `translate3d(-${step * 100}%,0,0)` }}>
-          {STEPS.map((title, index) => <div key={title} id={`workflow-scene-${index}`} role="tabpanel" aria-labelledby={`workflow-tab-${index}`} aria-hidden={index !== step} ref={(node) => { if (!node) return; if (index !== step) node.setAttribute("inert", ""); else node.removeAttribute("inert"); }} className="workflow-scene">
-            <p className="workflow-scene-note font-serif text-lg font-semibold">{NOTES[index]}</p>
-            <WorkflowDocument kind={kind} branded={index >= 2} />
-          </div>)}
-        </div>
-        </div>
-      </Tabs>
-      <div className="mt-3 flex items-center justify-between gap-3">
-        <Button asChild variant="link" className="h-auto min-h-11 whitespace-normal px-0 text-left text-foreground"><Link to={step === 2 ? "/account?tab=branding" : "/build"}>{step === 2 ? <><Palette className="size-4 shrink-0" />Настройте фирмен стил</> : <>Изгответе свой документ <ArrowRight className="shrink-0" /></>}</Link></Button>
-        <div className="flex shrink-0 gap-2"><Button variant="outline" size="icon" className="size-11" aria-label="Предишна стъпка" onClick={() => go(step - 1)}><ArrowLeft /></Button><Button variant="outline" size="icon" className="size-11" aria-label="Следваща стъпка" onClick={() => go(step + 1)}><ArrowRight /></Button></div>
+    <div id="hero-workflow" className="commerce-workflow workspace min-w-0 scroll-mt-28">
+      <div className="workspace-toolbar">
+        <span className="workspace-dots" aria-hidden="true"><i /><i /><i /></span>
+        <span className="truncate text-xs">Покана за сътрудничество · пример</span>
+        <span className="ml-auto shrink-0 text-xs tabular-nums" aria-label="Текуща стъпка">{step + 1} / {STEPS.length}</span>
       </div>
-      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{step === 2 ? "Логото и фирменият акцент правят документите разпознаваеми. Настройките са в профила Ви; достъпът зависи от плана." : "Адаптиран демонстрационен текст. Не е пълен документ или потвърдено партньорство. Проверете внимателно преди подписване."}</p>
+      <div role="tablist" aria-label="Стъпки на примера" className="workspace-steps">
+        {STEPS.map((title, i) => (
+          <button key={title} type="button" role="tab" id={`${uid}-t${i}`} aria-selected={i === step} aria-controls={`${uid}-p`} onClick={() => go(i)} className="workspace-step" data-active={i === step} data-done={i < step}>
+            <span aria-hidden="true" className="workspace-step-num">{i < step ? <Check className="size-3" /> : i + 1}</span>{title}
+          </button>
+        ))}
+      </div>
+      <div className="workspace-body" onTouchStart={(e) => { touch.current = e.touches[0]?.clientX ?? null; }} onTouchEnd={(e) => { const s = touch.current; touch.current = null; const end = e.changedTouches[0]?.clientX; if (s !== null && end !== undefined && Math.abs(end - s) > 50) go(step + (end < s ? 1 : -1)); }}>
+        <div id={`${uid}-p`} role="tabpanel" aria-labelledby={`${uid}-t${step}`} className="workspace-panel">
+          {step === 0 && (
+            <div className="grid gap-3">
+              <label className="workspace-field"><span>Фирма</span><input value={company} maxLength={40} onChange={(e) => { setCompany(e.target.value); ping("company"); }} /></label>
+              <label className="workspace-field"><span>Относно</span><input value={project} maxLength={60} onChange={(e) => { setProject(e.target.value); ping("project"); }} /></label>
+              <p className="workspace-hint text-xs text-muted-foreground">Пишете — документът вдясно се променя веднага. Нищо не се записва.</p>
+            </div>
+          )}
+          {step === 1 && (
+            <div className="grid gap-3">
+              <p className="text-sm font-medium">Акцентен цвят</p>
+              <div className="flex gap-2" role="radiogroup" aria-label="Акцентен цвят">
+                {ACCENTS.map((a) => (
+                  <button key={a.id} type="button" role="radio" aria-checked={accent === a.id} onClick={() => { setAccent(a.id); ping("brand"); }} className="workspace-swatch" data-on={accent === a.id}>
+                    <span style={{ background: `hsl(${a.token})` }} aria-hidden="true" />{a.label}
+                  </button>
+                ))}
+              </div>
+              <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" className="size-4" checked={showLogo} onChange={(e) => { setShowLogo(e.target.checked); ping("brand"); }} />Лого в бланката</label>
+              <p className="workspace-hint text-xs text-muted-foreground">Вашето лого. Вашият стил — на всеки документ.</p>
+            </div>
+          )}
+          {step === 2 && (
+            <div className="grid gap-3">
+              <ul className="grid gap-2 text-sm">
+                <li className="flex gap-2"><Check className="size-4 shrink-0 text-gold" />Данните са попълнени</li>
+                <li className="flex gap-2"><Check className="size-4 shrink-0 text-gold" />Фирменият стил е приложен</li>
+                <li className="flex gap-2"><Check className="size-4 shrink-0 text-gold" />PDF или DOCX след преглед</li>
+              </ul>
+              <Button asChild className="min-h-11 w-full"><Link to="/build">Изгответе свой документ <ArrowRight /></Link></Button>
+            </div>
+          )}
+        </div>
+        <article className="workspace-preview" data-branded={branded} style={{ ["--ws-accent" as string]: `hsl(${accentToken})` }} aria-label="Преглед на примерния документ" aria-live="off">
+          <header className={`workspace-letterhead ${flash === "brand" ? "ws-flash" : ""}`}>
+            {branded && showLogo && <span className="workspace-mono" aria-hidden="true">{initials}</span>}
+            <div className="min-w-0">
+              <p className={`truncate font-serif text-base font-bold ${flash === "company" ? "ws-flash" : ""}`}>{name}</p>
+              <p className="text-[11px] text-muted-foreground">Изх. № ПРИМЕР–01 · 02.09.2026 г.</p>
+            </div>
+          </header>
+          <p className="workspace-addressee mt-3 text-xs text-muted-foreground">До екипа на Договори.нет</p>
+          <h3 className="mt-2 font-serif text-lg font-bold leading-tight">Покана за сътрудничество</h3>
+          <p className="mt-2 text-[13px] leading-relaxed">
+            От името на <mark className={flash === "company" ? "ws-flash" : ""}>{name}</mark> Ви каним да обсъдим подготовката на <mark className={flash === "project" ? "ws-flash" : ""}>{project.trim() || "нашите документи"}</mark> с ясен текст и единен фирмен облик.
+          </p>
+          <div className="mt-auto flex items-end justify-between gap-3 pt-3 text-[11px] text-muted-foreground">
+            <span>С уважение,<span className="mt-3 block w-28 border-b border-border" /></span>
+            <span>{step === 2 ? "Готово за преглед" : "Чернова"}</span>
+          </div>
+        </article>
+      </div>
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <span className="text-xs text-muted-foreground">Илюстрация · не е реална кореспонденция</span>
+        <div className="flex shrink-0 gap-2">
+          <Button variant="outline" size="icon" className="size-11" aria-label="Предишна стъпка" onClick={() => go(step - 1)}><ArrowLeft /></Button>
+          <Button size="icon" className="size-11" aria-label="Следваща стъпка" onClick={() => go(step + 1)}><ArrowRight /></Button>
+        </div>
+      </div>
     </div>
   );
 }
