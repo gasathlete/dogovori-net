@@ -14,16 +14,6 @@ export function DocumentWorkflowStage() {
   const [kind, setKind] = useState<WorkflowDocumentKind>("invitation");
   const touch = useRef<number | null>(null);
   const go = (index: number) => setStep((index + STEPS.length) % STEPS.length);
-  return () => observer.disconnect();
-  }, []);
-  const go = (index: number) => {
-    const next = (index + STEPS.length) % STEPS.length;
-    navigating.current = true;
-    if (navigationTimer.current) clearTimeout(navigationTimer.current);
-    navigationTimer.current = setTimeout(() => { navigating.current = false; }, reduced ? 0 : 900);
-    setStep(next);
-    track.current?.scrollTo?.({ left: next * track.current.clientWidth, behavior: reduced ? "auto" : "smooth" });
-  };
   return (
     <div id="hero-workflow" className="commerce-workflow min-w-0 scroll-mt-28">
       <div className="mb-4 flex items-center justify-between gap-3 text-xs text-muted-foreground"><span>Илюстрация · не е реална кореспонденция</span><span className="shrink-0 tabular-nums" aria-label="Текуща стъпка">0{step + 1} / 04</span></div>
