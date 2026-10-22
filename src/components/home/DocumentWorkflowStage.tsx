@@ -17,6 +17,15 @@ export function DocumentWorkflowStage() {
   const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (scrollTimer.current) clearTimeout(scrollTimer.current); }, []);
   const reduced = useReducedMotion();
+  const currentStep = useRef(step);
+  currentStep.current = step;
+  useEffect(() => {
+    const node = track.current;
+    if (!node || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => { node.scrollTo({ left: currentStep.current * node.clientWidth, behavior: "instant" }); });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
   const go = (index: number) => {
     const next = (index + STEPS.length) % STEPS.length;
     setStep(next);
