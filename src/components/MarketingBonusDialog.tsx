@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { MarketingOptIn } from "@/components/auth/MarketingOptIn";
+
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BonusOffer, MARKETING_BONUS_EVENT, MARKETING_BONUS_VERSION, refreshBonusBalance } from "@/lib/marketingBonus";
 import { entryPackCheckoutTarget } from "@/lib/entryPack";
@@ -82,10 +82,7 @@ export function MarketingBonusDialog() {
         <DialogTitle>Недостатъчно операции</DialogTitle>
         <DialogDescription>Можете еднократно да получите още {active?.bonusOps} операции със съгласие за имейл маркетинг. Регистрацията и платените възможности не изискват това съгласие.</DialogDescription>
       </DialogHeader>
-      <div className="flex items-start gap-3">
-        <Checkbox id="marketing-bonus-consent" checked={checked} disabled={busy || verifiedOffer !== active} onCheckedChange={(value) => setChecked(value === true)} />
-        <Label htmlFor="marketing-bonus-consent" className="leading-relaxed">Искам да получавам имейл съобщения за новости, бонуси и награди. Мога да оттегля съгласието от профила си, без да загубя получените операции.</Label>
-      </div>
+      <MarketingOptIn id="marketing-bonus-consent" checked={checked} disabled={busy || verifiedOffer !== active} onCheckedChange={setChecked} bonusOps={active?.bonusOps} />
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       <Button disabled={!checked || busy || verifiedOffer !== active} onClick={() => { void claim(); }}>Получете бонуса и продължете</Button>
       <div className="flex flex-wrap gap-2">

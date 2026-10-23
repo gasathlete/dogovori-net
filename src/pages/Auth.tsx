@@ -1,4 +1,5 @@
-import { FREE_OPS_ON_SIGNUP, FREE_OPS_PER_MONTH } from "@/lib/pricing";
+import { MarketingOptIn } from "@/components/auth/MarketingOptIn";
+import { trackMetric } from "@/lib/metrics";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Header } from "@/components/Header";
@@ -149,22 +150,12 @@ export default function AuthPage() {
       return;
     }
     setBusy(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo,
-        data: { display_name: name },
-      },
-    });
-    setBusy(false);
-    if (error) return toast.error("Грешка при регистрация", { description: translateAuthError(error.message) });
-
-    // Stash consents to record on first sign-in.
+    // Store explicit evidence before signup can emit a session.
     try {
       sessionStorage.setItem(
         "pending_consents",
         JSON.stringify({
+          event_id: crypto.randomUUID(),
           marketing: acceptMarketing,
           operational_notifications: acceptNotifications,
           terms: true,
@@ -175,8 +166,21 @@ export default function AuthPage() {
         }),
       );
       sessionStorage.setItem("post_login_redirect", redirect);
-    } catch { /* storage unavailable */ }
+    } catch {
+      setBusy(false);
+      toast.error("Не успяхме да запазим избора Ви. Разрешете съхранението в браузъра и опитайте отново.");
+      return;
+    }
+    const { error } = await supabase.auth.signUp({
+      email, password, options: { emailRedirectTo, data: { display_name: name } },
+    });
+    setBusy(false);
+    if (error) {
+      try { sessionStorage.removeItem("pending_consents"); sessionStorage.removeItem("post_login_redirect"); } catch { /* unavailable */ }
+      return toast.error("Грешка при регистрация", { description: translateAuthError(error.message) });
+    }
 
+    trackMetric("registration_marketing_choice_submitted", { source: "auth", opted_in: acceptMarketing });
     toast.success("Провери си имейла", {
       description: "Изпратихме ти линк за потвърждение на регистрацията.",
     });
@@ -255,14 +259,14 @@ export default function AuthPage() {
       />
       <Header />
       <main className="container max-w-md py-12 md:py-20">
-        <div className="rounded-2xl border border-gold/20 bg-gradient-card p-8 shadow-elegant anim-rise">
+        <div className="rounded-md border border-border bg-card p-4 sm:p-6">
           <BrandLogo className="mb-5" />
           <h1 className="font-serif text-3xl font-bold text-balance">
             {tab === "login" ? "Добре дошли отново" : "Създайте профил"}
           </h1>
           <h2 className="sr-only">Вход и регистрация в Dogovori.net</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Влезте, за да теглите договори и да управлявате контрагентите си.
+            {tab === "signup" ? "Безплатен профил, без карта. Платените услуги се избират отделно." : "Влезте, за да продължите с Вашите документи."}
           </p>
 
           <Tabs value={tab} onValueChange={(v) => setTab(v as "login" | "signup")} className="mt-6">
@@ -393,17 +397,7 @@ export default function AuthPage() {
                       подписване, за да можем да Ви уведомим при нужда. <span className="text-gold">*</span>
                     </Label>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <Checkbox
-                      id="c-mkt"
-                      checked={acceptMarketing}
-                      onCheckedChange={(v) => setAcceptMarketing(!!v)}
-                      className="mt-0.5"
-                    />
-                    <Label htmlFor="c-mkt" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
-                      Искам да получавам имейл съобщения за новости, бонуси и награди. <span className="text-muted-foreground">(по желание — еднократно още {FREE_OPS_ON_SIGNUP - FREE_OPS_PER_MONTH} операции; без отметка регистрацията остава възможна)</span>
-                    </Label>
-                  </div>
+                  <MarketingOptIn id="c-mkt" checked={acceptMarketing} onCheckedChange={setAcceptMarketing} disabled={busy} />
                 </div>
 
                 <Button
@@ -412,7 +406,7 @@ export default function AuthPage() {
                   className="btn-sheen w-full bg-gradient-gold text-navy hover:shadow-gold disabled:opacity-50"
                 >
                   {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Създай профил
+                  Регистрирай се безплатно
                 </Button>
                 <p className="text-[10px] leading-relaxed text-muted-foreground">
                   Документите, генерирани от платформата, са образци, създадени с изкуствен интелект, и не представляват правен съвет.

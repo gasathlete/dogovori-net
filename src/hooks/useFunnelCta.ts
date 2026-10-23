@@ -6,6 +6,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useIsPro } from "@/hooks/useIsPro";
 import type { FunnelStep } from "@/lib/funnel";
+import { registrationTarget, SIGNUP_LABEL } from "@/lib/registrationFunnel";
 
 export interface FunnelCta {
   label: string;
@@ -22,25 +23,17 @@ export function useFunnelCta(step: FunnelStep): FunnelCta {
 
   // While loading, default to the pre-login CTA — it's the safest fallback.
   const loading = authLoading || planLoading;
-  const isAnonymous = !user || loading;
+  const isAnonymous = !user;
 
   if (isAnonymous) {
-    // Pre-login: always „Започни безплатно", target depends on step.
-    const href =
-      step === 1
-        ? "/analiz"
-        : step === 2
-        ? "/analiz"
-        : step === 3
-        ? "/auth?tab=signup&redirect=%2Fanaliz"
-        : "/auth?tab=signup&redirect=%2Fplans";
     return {
-      label: "Започни безплатно",
-      href,
+      label: SIGNUP_LABEL,
+      href: registrationTarget(step === 4 ? "/plans" : "/analiz"),
       variant: "primary",
-      subLabel: step >= 3 ? "Без карта · 60 секунди" : undefined,
+      subLabel: "Без карта. Платените услуги се избират отделно.",
     };
   }
+  if (loading) return { label: "Изгответе документ", href: "/build", variant: "primary" };
 
   // Post-login, paid plans
   if (isTeam || isEntrepreneur || isPro) {

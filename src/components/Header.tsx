@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Menu, X, User as UserIcon, LogIn, ChevronDown } from "@/icons";
 import { Button } from "@/components/ui/button";
+import { RegistrationCTA } from "@/components/funnel/RegistrationCTA";
 import { BrandLockup } from "./BrandLockup";
 import { TEST_PERIOD_LABEL } from "@/lib/prelaunch";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -117,7 +118,7 @@ export function Header() {
         </div>
 
         {/* Zone 2 — Primary product navigation (centered) */}
-        <nav aria-label="Основна навигация" className="hidden min-w-0 flex-1 items-center justify-center gap-1 min-[1400px]:flex 2xl:gap-3">
+        <nav aria-label="Основна навигация" className="hidden min-w-0 flex-1 items-center justify-center gap-1 min-[1800px]:flex 2xl:gap-3">
           {NAV.map((n) => {
             if (n.to === "__tools__") {
               return <ToolsMenu key="tools" variant="desktop" />;
@@ -143,16 +144,16 @@ export function Header() {
 
         {/* Zone 3 — Utility (helpers + account), separated by a hairline */}
         <div className="flex items-center justify-end gap-2 justify-self-end">
-          <Button asChild className="header-catalog-action hidden min-h-11 px-4 text-sm min-[1800px]:inline-flex"><Link to="/catalog">Намерете документ</Link></Button>
+          {!location.pathname.startsWith("/auth") && <div className="hidden sm:block"><RegistrationCTA source="header" className="header-catalog-action btn-gold min-h-11 px-4 text-sm" /></div>}
           {/* Helpers subgroup */}
-          <div className="hidden items-center gap-1 min-[1400px]:flex">
+          <div className="hidden items-center gap-1 min-[1800px]:flex">
             <ThemeToggle />
           </div>
 
           {/* Divider between helpers and account */}
           <span
             aria-hidden="true"
-            className="mx-1 hidden h-5 w-px bg-border/60 min-[1400px]:block"
+            className="mx-1 hidden h-5 w-px bg-border/60 min-[1800px]:block"
           />
 
           {/* Account subgroup */}
@@ -180,7 +181,7 @@ export function Header() {
           ) : (
             <div
               ref={guestRef}
-              className="relative hidden min-[1400px]:block"
+              className="relative hidden min-[1800px]:block"
               onMouseEnter={() => setGuestOpen(true)}
               onMouseLeave={() => setGuestOpen(false)}
             >
@@ -225,7 +226,7 @@ export function Header() {
                     Вход
                   </Link>
                   <Link
-                    to="/auth?mode=signup"
+                    to="/auth?tab=signup"
                     role="menuitem"
                     onClick={() => setGuestOpen(false)}
                     {...prefetchHandlers("/auth")}
@@ -254,7 +255,7 @@ export function Header() {
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Затвори менюто" : "Отвори менюто"}
             aria-expanded={open}
-            className="inline-flex h-11 min-w-[64px] items-center justify-center gap-1.5 rounded-lg border border-gold/40 bg-card/50 px-3 text-sm font-semibold  text-foreground transition-colors hover:border-gold hover:bg-gold/10 hover:text-gold min-[1400px]:hidden"
+            className="inline-flex h-11 min-w-[64px] items-center justify-center gap-1.5 rounded-lg border border-gold/40 bg-card/50 px-3 text-sm font-semibold  text-foreground transition-colors hover:border-gold hover:bg-gold/10 hover:text-gold min-[1800px]:hidden"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             <span>{open ? "Затвори" : "Меню"}</span>
@@ -265,7 +266,7 @@ export function Header() {
       {open && (
         <nav
           aria-label="Мобилна навигация"
-          className="origin-top animate-accordion-down overflow-hidden border-t border-gold/20 bg-background min-[1400px]:hidden"
+          className="origin-top animate-accordion-down overflow-hidden border-t border-gold/20 bg-background min-[1800px]:hidden"
         >
           <div className="container flex max-h-[calc(100dvh-68px)] flex-col gap-4 overflow-y-auto py-4">
             {(() => {
@@ -307,6 +308,7 @@ export function Header() {
               };
               return (
                 <>
+                  {!location.pathname.startsWith("/auth") && <div onClick={() => setOpen(false)}><RegistrationCTA source="header" className="btn-gold min-h-12 w-full" /></div>}
                   <div className="flex flex-col gap-1" data-testid="mobile-menu-primary">
                     {MOBILE_PRIMARY.map(renderItem)}
                   </div>

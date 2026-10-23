@@ -1,101 +1,69 @@
-/**
- * StickyScrollCta — appears after the user has scrolled past ~50% of the
- * landing page. Single primary CTA driven by `useFunnelCta(2)` (Educate
- * step). Dismissable per session.
- */
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { X, ArrowRight } from "@/icons";
-import { useFunnelCta } from "@/hooks/useFunnelCta";
-import { trackFunnelEvent } from "@/lib/funnel";
-import { cn } from "@/lib/utils";
+import { useLocation } from "react-router-dom";
+import { X } from "@/icons";
+import { useAuth } from "@/hooks/useAuth";
+import { useKeyboardOpen } from "@/hooks/useKeyboardOpen";
+import { getCookiePrefs } from "@/lib/analytics";
+import { trackMetric } from "@/lib/metrics";
+import { REGISTRATION_DISMISS_KEY, shouldShowRegistrationInvitation } from "@/lib/registrationFunnel";
+import { RegistrationCTA } from "./RegistrationCTA";
+import { Button } from "@/components/ui/button";
 
-const DISMISS_KEY = "funnel_sticky_dismissed_v1";
+const inView = (el: Element) => {
+  const rect = el.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0 && rect.bottom > 80 && rect.top < window.innerHeight && getComputedStyle(el).visibility !== "hidden";
+};
 
+/** One home-only invitation, never over a form, cookie decision or another overlay. */
 export function StickyScrollCta() {
-  const [visible, setVisible] = useState(false);
-  const [ctaBandVisible, setCtaBandVisible] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  const cta = useFunnelCta(2);
-  const location = useLocation();
-
+  const { user, loading } = useAuth();
+  const { pathname } = useLocation();
+  const keyboardOpen = useKeyboardOpen();
+  const [shown, setShown] = useState(false);
+  const [dismissed, setDismissed] = useState(() => {
+    try { return sessionStorage.getItem(REGISTRATION_DISMISS_KEY) === "1"; } catch { return false; }
+  });
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (sessionStorage.getItem(DISMISS_KEY) === "1") {
-      setDismissed(true);
-      return;
-    }
     let raf = 0;
-    const onScroll = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
-        const h = document.documentElement;
-        const scrolled =
-          (h.scrollTop + window.innerHeight) / Math.max(h.scrollHeight, 1);
-        setVisible(scrolled > 0.5);
-      });
+    let engaged = false;
+    const started = Date.now();
+    const update = () => {
+      const hero = document.getElementById("hero-registration-cta");
+      const focused = document.activeElement;
+      const busy = keyboardOpen || document.hidden || getCookiePrefs() === null ||
+        Boolean(focused?.closest("input, textarea, select, [contenteditable=true], form")) ||
+        [...document.querySelectorAll('[role="dialog"], [role="alertdialog"], [role="menu"], [aria-label="Мобилна навигация"], [aria-label="Бисквитки — управление по категории"]')].some(inView);
+      const competingAction = [...document.querySelectorAll('[data-registration-cta="header"], [data-registration-cta="hero"], [data-registration-cta="plans_section"], #footer-registration, #cta-band, form')].some(inView);
+      setShown(shouldShowRegistrationInvitation({ anonymous: !user, ready: !loading, home: pathname === "/", dismissed,
+        engaged: engaged && Date.now() - started >= 8000,
+        heroPassed: Boolean(hero && hero.getBoundingClientRect().bottom < 80), competingAction, busy }));
     };
+    const schedule = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; update(); }); };
+    const onScroll = () => { if (window.scrollY > 160) engaged = true; schedule(); };
+    const observer = new MutationObserver(schedule);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-state", "aria-hidden"] });
+    const interval = window.setInterval(update, 1000);
     window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
+    window.addEventListener("resize", schedule);
+    window.addEventListener("dogovori:cookie-preferences-changed", schedule);
+    document.addEventListener("focusin", schedule);
+    document.addEventListener("focusout", schedule);
+    document.addEventListener("visibilitychange", schedule);
+    update();
     return () => {
-      window.removeEventListener("scroll", onScroll);
-      if (raf) cancelAnimationFrame(raf);
+      observer.disconnect(); clearInterval(interval); if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll); window.removeEventListener("resize", schedule);
+      window.removeEventListener("dogovori:cookie-preferences-changed", schedule);
+      document.removeEventListener("focusin", schedule); document.removeEventListener("focusout", schedule);
+      document.removeEventListener("visibilitychange", schedule);
     };
-  }, []);
-
-  // Auto-hide sticky when the CTABand section is on screen (avoid double CTA).
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const el = document.getElementById("cta-band");
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([entry]) => setCtaBandVisible(entry.isIntersecting && entry.intersectionRatio >= 0.3),
-      { threshold: [0, 0.3, 0.6] },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [location.pathname]);
-
-  // Only show on the landing page
-  if (location.pathname !== "/" || dismissed) return null;
-  const shown = visible && !ctaBandVisible;
-
-  return (
-    <div
-      aria-hidden={!shown}
-      className={cn(
-        "fixed inset-x-2 z-40 mx-auto max-w-md transition-all duration-300",
-        "bottom-[calc(env(safe-area-inset-bottom,0)+72px)] md:bottom-4",
-        shown
-          ? "translate-y-0 opacity-100"
-          : "pointer-events-none translate-y-6 opacity-0",
-      )}
-    >
-      <div className="flex items-center gap-2 rounded-full border border-gold/30 bg-background/90 px-3 py-2 shadow-xl backdrop-blur-xl">
-        <Link
-          to={cta.href}
-          onClick={() =>
-            trackFunnelEvent("sticky_cta_click", { step: 2, href: cta.href })
-          }
-          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-gold px-4 py-2 text-[13px] font-semibold text-navy hover:bg-gold/90 transition-colors"
-        >
-          {cta.label}
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-        <button
-          type="button"
-          aria-label="Скрий"
-          onClick={() => {
-            sessionStorage.setItem(DISMISS_KEY, "1");
-            setDismissed(true);
-            trackFunnelEvent("sticky_cta_dismiss", { step: 2 });
-          }}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-    </div>
-  );
+  }, [user, loading, pathname, dismissed, keyboardOpen]);
+  if (!shown) return null;
+  return <aside aria-label="Безплатен профил" className="fixed inset-x-2 bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] z-40 mx-auto flex max-w-md items-center gap-2 rounded border border-border bg-background p-2 shadow-lg lg:bottom-4">
+    <RegistrationCTA source="sticky" className="btn-gold min-h-11 flex-1 px-3 text-sm" />
+    <Button variant="ghost" size="icon" className="size-11 shrink-0" aria-label="Скрий поканата за регистрация" onClick={() => {
+      try { sessionStorage.setItem(REGISTRATION_DISMISS_KEY, "1"); } catch { /* this mount still respects dismissal */ }
+      setDismissed(true); trackMetric("registration_invitation_dismissed", { source: "sticky" });
+    }}><X className="size-4" /></Button>
+  </aside>;
 }

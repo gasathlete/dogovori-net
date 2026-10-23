@@ -11,6 +11,8 @@ import { CATALOG_REVIEW_STATUS } from "@/lib/templateReviewStatus";
 
 import { DocumentWorkflowStage } from "@/components/home/DocumentWorkflowStage";
 import { Button } from "@/components/ui/button";
+import { RegistrationCTA } from "@/components/funnel/RegistrationCTA";
+import { openStartStory } from "@/lib/startStory";
 import { TaskChooser } from "@/components/home/TaskChooser";
 
 /** Бързи търсения — водят към реалното търсене в каталога (/catalog?q=…). */
@@ -59,6 +61,8 @@ export function Hero() {
             {copy.heroSub}
           </p>
 
+          <div className="mt-5"><RegistrationCTA source="hero" id="hero-registration-cta" className="btn-gold min-h-12 w-full px-6 text-base sm:w-auto" /><p className="mt-2 text-sm text-muted-foreground">Безплатен профил · без карта. Платените услуги се избират отделно.</p></div>
+
           <form role="search" action="/catalog" method="get" onSubmit={onSubmit} className="mt-4 max-w-xl sm:mt-8">
             <label htmlFor="hero-search" className="mb-2 block text-sm font-semibold text-foreground">
               Какъв документ търсите?
@@ -82,7 +86,8 @@ export function Hero() {
                 type="submit"
                 data-testid="hero-primary-cta"
                 data-href="/catalog"
-                className="btn-gold inline-flex min-h-14 items-center justify-center gap-2 px-7 text-base"
+                variant="outline"
+                className="inline-flex min-h-14 items-center justify-center gap-2 px-7 text-base"
               >
                 Намерете документ
                 <ArrowRight className="h-[18px] w-[18px]" />
@@ -108,7 +113,7 @@ export function Hero() {
             </Link>
             <Button variant="link" type="button" onClick={() => {
               trackFunnelEvent("home_demo_story_opened", { source: "hero" });
-              requestAnimationFrame(() => document.getElementById("hero-workflow")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "center" }));
+              openStartStory();
             }} className="link-ink min-h-11 px-0">Вижте как работи <ArrowRight className="size-4" /></Button>
           </div>
           <nav aria-label="Бързи задачи" className="mt-6 hidden grid-cols-2 gap-x-5 border-t border-border pt-3 sm:grid">

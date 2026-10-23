@@ -1,3 +1,4 @@
+import { RegistrationCTA } from "@/components/funnel/RegistrationCTA";
 import { Link } from "react-router-dom";
 import { BrandLockup } from "./BrandLockup";
 import { ONE_TIME_PRODUCTS, productPath } from "@/lib/products";
@@ -76,6 +77,7 @@ export function SeoFooter() {
   return (
     <footer className="brand-footer border-t border-border bg-background pt-12 pb-16 lg:pb-0">
       <div className="container">
+        <div id="footer-registration" className="mb-10 flex flex-col items-start gap-4 border-b border-border pb-8 sm:flex-row sm:items-center sm:justify-between"><p className="font-serif text-2xl font-bold">Повече време за Вашата работа.</p><RegistrationCTA source="footer" /></div>
         <div className="grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
           <div className="sm:col-span-2 lg:col-span-3 lg:grid lg:grid-cols-[320px_1fr] lg:gap-x-12 lg:items-start lg:border-b lg:border-border lg:pb-8">
             <Link to="/" aria-label="Договори.нет — начало" className="inline-flex min-h-11 items-center"><BrandLockup /></Link>
