@@ -3,7 +3,7 @@
  * failed/incomplete/error/прекъснат поток → неуспех (не се записва като кандидат).
  */
 export type StreamOutcome =
-  | { ok: true; text: string; responseId: string | null }
+  | { ok: true; text: string; responseId: string | null; usage: { input: number; output: number } | null }
   | { ok: false; kind: "failed" | "incomplete" | "error" | "truncated" | "empty"; text: string; detail: string };
 
 export async function parseResponsesStream(chunks: AsyncIterable<Uint8Array>): Promise<StreamOutcome> {
@@ -11,18 +11,20 @@ export async function parseResponsesStream(chunks: AsyncIterable<Uint8Array>): P
   let buf = "", text = "", completed = false, responseId: string | null = null;
   let failure: StreamOutcome | null = null;
   let completedText: string | null = null;
+  let usage: { input: number; output: number } | null = null;
 
   const handle = (line: string) => {
     const l = line.replace(/\r$/, "");
     if (!l.startsWith("data:")) return;
     const data = l.slice(5).trim();
     if (!data || data === "[DONE]") return;
-    let ev: { type?: string; delta?: string; response?: { id?: string; status?: string; incomplete_details?: unknown; error?: unknown; output?: unknown[] }; message?: string; error?: unknown };
+    let ev: { type?: string; delta?: string; response?: { id?: string; status?: string; incomplete_details?: unknown; error?: unknown; output?: unknown[]; usage?: { input_tokens?: number; output_tokens?: number } }; message?: string; error?: unknown };
     try { ev = JSON.parse(data); } catch { failure ??= { ok: false, kind: "error", text, detail: "malformed_sse_json" }; return; }
     switch (ev.type) {
       case "response.output_text.delta": text += ev.delta ?? ""; break;
       case "response.completed": {
         completed = true; responseId = ev.response?.id ?? null;
+        if (ev.response?.usage) usage = { input: ev.response.usage.input_tokens ?? 0, output: ev.response.usage.output_tokens ?? 0 };
         // Пълният текст от финалното съобщение е по-надежден от делтите.
         const parts: string[] = [];
         for (const item of (ev.response?.output ?? []) as { type?: string; content?: { type?: string; text?: string }[] }[]) {
@@ -50,5 +52,5 @@ export async function parseResponsesStream(chunks: AsyncIterable<Uint8Array>): P
   if (!completed) return { ok: false, kind: "truncated", text, detail: "no_response_completed" };
   const final = completedText ?? text;
   if (!final.trim()) return { ok: false, kind: "empty", text: final, detail: "empty_output" };
-  return { ok: true, text: final, responseId };
+  return { ok: true, text: final, responseId, usage };
 }
