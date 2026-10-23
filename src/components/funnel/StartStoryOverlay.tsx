@@ -47,7 +47,7 @@ export function StartStoryOverlay() {
   const current = SCENES[scene];
   const close = () => { opened.current = false; setOpen(false); };
   return <Dialog open={open} onOpenChange={(value) => { if (!value) close(); }}>
-    <DialogContent className="!inset-0 !h-dvh !max-h-dvh !w-full !max-w-none !translate-x-0 !translate-y-0 !rounded-none grid-rows-[auto_1fr_auto] gap-5 overflow-y-auto px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(3.75rem,env(safe-area-inset-top))] motion-reduce:!animate-none [&>.dialog-close]:size-11 sm:!inset-auto sm:!left-1/2 sm:!top-1/2 sm:!h-auto sm:!max-h-[90dvh] sm:!max-w-3xl sm:!translate-x-[-50%] sm:!translate-y-[-50%] sm:!rounded-md sm:p-8"
+    <DialogContent className="!inset-0 !h-dvh !max-h-dvh !w-full !max-w-none !translate-x-0 !translate-y-0 !rounded-none grid-rows-[auto_minmax(0,1fr)_auto] gap-3 !overflow-hidden px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(3.75rem,env(safe-area-inset-top))] motion-reduce:!animate-none [&>.dialog-close]:size-11 sm:!inset-auto sm:!left-1/2 sm:!top-1/2 sm:!h-auto sm:!max-h-[90dvh] sm:!max-w-3xl sm:!translate-x-[-50%] sm:!translate-y-[-50%] sm:!rounded-md sm:p-8"
       onCloseAutoFocus={(event) => { event.preventDefault(); if (originFocus.current?.isConnected) originFocus.current.focus(); }}
       onKeyDown={(event) => {
         if ((event.key === "ArrowRight" || event.key === "ArrowLeft") && !(event.target instanceof HTMLElement && event.target.closest("input, textarea, select"))) {
@@ -58,11 +58,11 @@ export function StartStoryOverlay() {
         <DialogTitle className="font-serif text-2xl font-bold sm:text-3xl">Как работи Договори.нет</DialogTitle>
         <DialogDescription className="text-sm leading-relaxed">Демонстрация с измислени данни — не изпраща и не записва документ.</DialogDescription>
       </DialogHeader>
-      <div className="min-w-0" onTouchStart={(event) => { const point = event.touches[0]; if (point) touch.current = { x: point.clientX, y: point.clientY }; }} onTouchEnd={(event) => {
+      <div className="min-h-0 min-w-0 overflow-y-auto" onTouchStart={(event) => { const point = event.touches[0]; if (point) touch.current = { x: point.clientX, y: point.clientY }; }} onTouchEnd={(event) => {
         const point = event.changedTouches[0]; const start = touch.current; touch.current = null;
         if (point && start && Math.abs(point.clientX - start.x) > 50 && Math.abs(point.clientX - start.x) > Math.abs(point.clientY - start.y)) move(scene + (point.clientX < start.x ? 1 : -1));
       }}>
-        <nav aria-label="Стъпки на демонстрацията" className="mb-6 grid grid-cols-4 gap-1 border-b border-border pb-3">
+        <nav aria-label="Стъпки на демонстрацията" className="mb-4 grid grid-cols-4 gap-1 border-b border-border pb-2">
           {SCENES.map((item, index) => <Button key={item.label} variant="ghost" aria-current={index === scene ? "step" : undefined} className={`min-h-11 whitespace-normal rounded-none px-1 text-sm ${index === scene ? "border-b-2 border-gold text-foreground" : "text-muted-foreground"}`} onClick={() => move(index)}>{item.label}</Button>)}
         </nav>
         <div className="grid gap-5 sm:min-h-[310px] sm:grid-cols-[1fr_1.1fr] sm:items-start">
@@ -76,7 +76,7 @@ export function StartStoryOverlay() {
             </div>
             <p className="font-semibold">До: Договори.нет</p>
             <p className="mt-3">Предлагаме да обсъдим подготовката на документи за проект „Нов офис“.</p>
-            <p className="mt-3"><strong>Обхват:</strong> уточняване на задачите, условията и начина на приемане на работата.</p>
+            {scene !== 3 && <p className="mt-3"><strong>Обхват:</strong> уточняване на задачите, условията и начина на приемане на работата.</p>}
             {scene >= 2 && <p className="mt-3 flex items-start gap-2 text-foreground"><Check className="mt-1 size-4 shrink-0" />За допълване: срок, възнаграждение и данни на страните.</p>}
             <p className="mt-4 border-t border-border pt-3 text-muted-foreground">Адаптиран фиктивен пример — не е реално партньорство или готов за подпис документ.</p>
           </div>

@@ -144,7 +144,7 @@ export function Header() {
 
         {/* Zone 3 — Utility (helpers + account), separated by a hairline */}
         <div className="flex items-center justify-end gap-2 justify-self-end">
-          {!location.pathname.startsWith("/auth") && <RegistrationCTA source="header" className="btn-gold hidden min-h-11 px-4 text-sm sm:inline-flex" />}
+          {!location.pathname.startsWith("/auth") && <div className="hidden sm:block"><RegistrationCTA source="header" className="header-catalog-action btn-gold min-h-11 px-4 text-sm" /></div>}
           {/* Helpers subgroup */}
           <div className="hidden items-center gap-1 min-[1400px]:flex">
             <ThemeToggle />

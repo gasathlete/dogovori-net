@@ -259,7 +259,7 @@ export default function AuthPage() {
       />
       <Header />
       <main className="container max-w-md py-12 md:py-20">
-        <div className="rounded-2xl border border-gold/20 bg-gradient-card p-8 shadow-elegant anim-rise">
+        <div className="rounded-md border border-border bg-card p-4 sm:p-6">
           <BrandLogo className="mb-5" />
           <h1 className="font-serif text-3xl font-bold text-balance">
             {tab === "login" ? "Добре дошли отново" : "Създайте профил"}
