@@ -77,7 +77,8 @@ export function buildGenerationPrompt(p: EvidencePacket, extras: PromptExtras = 
   const excerpts = extras.excerpts?.length
     ? extras.excerpts.map((e) => `- ${e.law} чл. ${e.article}: ${e.text.slice(0, EXCERPT_CHARS)}`).join("\n")
     : `- няма (${extras.evidenceReason ?? "няма откъси"}) — всички позовавания остават непроверени`;
+  const sources = p.sources.length ? p.sources.map((s) => `- ${s.title} (${s.url}), прочетен ${s.readOn}: ${s.articles.join(", ")}`).join("\n") : "- няма";
   const findings = p.findings.length ? p.findings.map((f) => `- [${f.ruleId}] ${f.message} | извадка: „${f.excerpt}“`).join("\n") : "- няма автоматични находки (това не означава липса на дефекти)";
-  const user = `Документ: ${p.catalogName}\nSlug: ${p.slug}\nSHA-256 на оригинала: ${p.sourceSha256}\nКомплекти: ${p.kits.join(", ") || "няма"}\n\nПрочетени откъси (изтеглени, неофициален консолидиран текст):\n${excerpts}\n\nНаходки:\n${findings}\n\nОРИГИНАЛ:\n<<<\n${p.originalText}\n>>>`;
+  const user = `Документ: ${p.catalogName}\nSlug: ${p.slug}\nSHA-256 на оригинала: ${p.sourceSha256}\nКомплекти: ${p.kits.join(", ") || "няма"}\n\nПрочетени източници:\n${sources}\n\nПрочетени откъси (изтеглени, неофициален консолидиран текст):\n${excerpts}\n\nНаходки:\n${findings}\n\nОРИГИНАЛ:\n<<<\n${p.originalText}\n>>>`;
   return { system, user };
 }
