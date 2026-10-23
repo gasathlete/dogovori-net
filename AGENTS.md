@@ -1,5 +1,6 @@
 # Project architecture rules
 - Registration CTAs share sanitized signup destinations; the homepage has one session-dismissed invitation suppressed by visible actions/forms/cookies/overlays. The lazy voluntary story uses the existing dialog focus lifecycle and local-only scenes, never timers or a signup gate. Marketing benefit presentation is shared; server consent/grant logic stays authoritative.
+- Story capability examples reuse canonical product findings where applicable and isolate fixed local selections in StoryCapabilityDemo; never invoke real analysis, chat or exports from a presentation.
 - Starter bonus eligibility is server-owned and historical legacy allowances count as claimed; atomic consent-triggered grants use the existing signup-minus-monthly delta, while user-initiated quota denials replay the identical request at most once after confirmed consent/grant.
 
 - All billing navigation validates exact application origins; CSV exports share formula-neutralizing cell escaping, and raw PostgREST OR values are quoted as literals — untrusted data must not become navigation, spreadsheet commands or query syntax.
