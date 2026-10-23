@@ -150,22 +150,12 @@ export default function AuthPage() {
       return;
     }
     setBusy(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo,
-        data: { display_name: name },
-      },
-    });
-    setBusy(false);
-    if (error) return toast.error("Грешка при регистрация", { description: translateAuthError(error.message) });
-
-    // Stash consents to record on first sign-in.
+    // Store explicit evidence before signup can emit a session.
     try {
       sessionStorage.setItem(
         "pending_consents",
         JSON.stringify({
+          event_id: crypto.randomUUID(),
           marketing: acceptMarketing,
           operational_notifications: acceptNotifications,
           terms: true,
@@ -176,7 +166,19 @@ export default function AuthPage() {
         }),
       );
       sessionStorage.setItem("post_login_redirect", redirect);
-    } catch { /* storage unavailable */ }
+    } catch {
+      setBusy(false);
+      toast.error("Не успяхме да запазим избора Ви. Разрешете съхранението в браузъра и опитайте отново.");
+      return;
+    }
+    const { error } = await supabase.auth.signUp({
+      email, password, options: { emailRedirectTo, data: { display_name: name } },
+    });
+    setBusy(false);
+    if (error) {
+      try { sessionStorage.removeItem("pending_consents"); sessionStorage.removeItem("post_login_redirect"); } catch { /* unavailable */ }
+      return toast.error("Грешка при регистрация", { description: translateAuthError(error.message) });
+    }
 
     trackMetric("registration_marketing_choice_submitted", { source: "auth", opted_in: acceptMarketing });
     toast.success("Провери си имейла", {

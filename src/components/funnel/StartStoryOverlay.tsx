@@ -23,9 +23,12 @@ export function StartStoryOverlay() {
   const [branded, setBranded] = useState(true);
   const originFocus = useRef<HTMLElement | null>(null);
   const completed = useRef(false);
+  const opened = useRef(false);
   const touch = useRef<{ x: number; y: number } | null>(null);
   useEffect(() => {
     const show = () => {
+      if (opened.current) return;
+      opened.current = true;
       originFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       setScene(0); setBranded(true); completed.current = false; setOpen(true);
       trackMetric("story_opened", { source: "hero" });
@@ -42,7 +45,8 @@ export function StartStoryOverlay() {
     }
   };
   const current = SCENES[scene];
-  return <Dialog open={open} onOpenChange={setOpen}>
+  const close = () => { opened.current = false; setOpen(false); };
+  return <Dialog open={open} onOpenChange={(value) => { if (!value) close(); }}>
     <DialogContent className="!inset-0 !h-dvh !max-h-dvh !w-full !max-w-none !translate-x-0 !translate-y-0 !rounded-none grid-rows-[auto_1fr_auto] gap-5 overflow-y-auto px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(3.75rem,env(safe-area-inset-top))] motion-reduce:!animate-none [&>.dialog-close]:size-11 sm:!inset-auto sm:!left-1/2 sm:!top-1/2 sm:!h-auto sm:!max-h-[90dvh] sm:!max-w-3xl sm:!translate-x-[-50%] sm:!translate-y-[-50%] sm:!rounded-md sm:p-8"
       onCloseAutoFocus={(event) => { event.preventDefault(); if (originFocus.current?.isConnected) originFocus.current.focus(); }}
       onKeyDown={(event) => {
@@ -80,7 +84,7 @@ export function StartStoryOverlay() {
         {scene === 2 && <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{CATALOG_REVIEW_STATUS.notice}</p>}
       </div>
       <div className="border-t border-border pt-4">
-        {scene === 3 && <div onClick={() => setOpen(false)}><RegistrationCTA source="story" destination="/build" className="btn-gold mb-4 min-h-12 w-full text-base" /></div>}
+        {scene === 3 && <div onClick={close}><RegistrationCTA source="story" destination="/build" className="btn-gold mb-4 min-h-12 w-full text-base" /></div>}
         <div className="flex items-center justify-between gap-3">
           <Button variant="ghost" disabled={scene === 0} className="min-h-11" onClick={() => move(scene - 1)} aria-label="Предишна стъпка"><ArrowLeft className="mr-2 size-4" />Назад</Button>
           <span className="text-sm tabular-nums text-muted-foreground" aria-live="polite">{scene + 1} / 4</span>
