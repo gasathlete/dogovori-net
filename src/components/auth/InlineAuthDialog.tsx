@@ -1,4 +1,6 @@
 import { MarketingOptIn } from "@/components/auth/MarketingOptIn";
+import { flushPendingConsents } from "@/lib/consents";
+import { trackMetric } from "@/lib/metrics";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -49,6 +51,7 @@ export function InlineAuthDialog() {
       setAction(detail?.action);
       setMode(detail?.mode === "login" ? "login" : "signup");
       setEmailSent(false);
+      setMarketing(false);
       setOpen(true);
       // auth_prompt_shown се отчита тук — единственото място, където подканата
       // реално се показва (дедупликирано по doc_key + намерение + източник).
@@ -99,6 +102,17 @@ export function InlineAuthDialog() {
       toast.error("Паролата трябва да съдържа поне 8 символа");
       return;
     }
+    // Preserve the explicit checkbox choice before a session can be emitted.
+    try {
+      sessionStorage.setItem("pending_consents", JSON.stringify({
+        event_id: crypto.randomUUID(), marketing, terms, privacy, age_18: age,
+        operational_notifications: notifications, ts: Date.now(),
+      }));
+    } catch {
+      setBusy(false);
+      toast.error("Не успяхме да запазим избора Ви. Разрешете съхранението в браузъра и опитайте отново.");
+      return;
+    }
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -108,14 +122,17 @@ export function InlineAuthDialog() {
     });
     setBusy(false);
     if (error) {
+      try { sessionStorage.removeItem("pending_consents"); } catch { /* unavailable */ }
       toast.error("Неуспешна регистрация", { description: translateAuthError(error.message) });
       return;
     }
     if (data.session) {
+      await flushPendingConsents();
       toast.success("Профилът е създаден");
       finish();
       return;
     }
+    trackMetric("registration_marketing_choice_submitted", { source: "inline", opted_in: marketing });
     setEmailSent(true);
   };
 

@@ -1,4 +1,5 @@
 import { MarketingOptIn } from "@/components/auth/MarketingOptIn";
+import { trackMetric } from "@/lib/metrics";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Header } from "@/components/Header";
@@ -177,6 +178,7 @@ export default function AuthPage() {
       sessionStorage.setItem("post_login_redirect", redirect);
     } catch { /* storage unavailable */ }
 
+    trackMetric("registration_marketing_choice_submitted", { source: "auth", opted_in: acceptMarketing });
     toast.success("Провери си имейла", {
       description: "Изпратихме ти линк за потвърждение на регистрацията.",
     });
@@ -262,7 +264,7 @@ export default function AuthPage() {
           </h1>
           <h2 className="sr-only">Вход и регистрация в Dogovori.net</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Влезте, за да теглите договори и да управлявате контрагентите си.
+            {tab === "signup" ? "Безплатен профил, без карта. Платените услуги се избират отделно." : "Влезте, за да продължите с Вашите документи."}
           </p>
 
           <Tabs value={tab} onValueChange={(v) => setTab(v as "login" | "signup")} className="mt-6">
@@ -402,7 +404,7 @@ export default function AuthPage() {
                   className="btn-sheen w-full bg-gradient-gold text-navy hover:shadow-gold disabled:opacity-50"
                 >
                   {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Създай профил
+                  Регистрирай се безплатно
                 </Button>
                 <p className="text-[10px] leading-relaxed text-muted-foreground">
                   Документите, генерирани от платформата, са образци, създадени с изкуствен интелект, и не представляват правен съвет.
