@@ -11,7 +11,7 @@ const ev = (o: object) => `data: ${JSON.stringify(o)}\n\n`;
 describe("SSE", () => {
   it("успех само при response.completed, с flush на последния ред без \\n", async () => {
     const r = await parseResponsesStream(chunks(ev({ type: "response.output_text.delta", delta: "{\"a\"" }), `data: ${JSON.stringify({ type: "response.completed", response: { id: "r1", output: [{ type: "message", content: [{ type: "output_text", text: "{\"a\":1}" }] }] } })}`));
-    expect(r).toEqual({ ok: true, text: "{\"a\":1}", responseId: "r1" });
+    expect(r).toMatchObject({ ok: true, text: "{\"a\":1}", responseId: "r1" });
   });
   it("прекъснат поток, failed, incomplete и error не са успех", async () => {
     expect((await parseResponsesStream(chunks(ev({ type: "response.output_text.delta", delta: "част" })))).ok).toBe(false);

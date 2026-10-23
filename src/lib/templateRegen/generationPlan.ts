@@ -53,21 +53,31 @@ const RULES = `Правила:
 - Разделяш различните правни основания/сценарии вместо един универсален текст. Ролите на страните са последователни.
 - Не твърдиш универсална валидност на форма или КЕП. Бъдещи редакции на закон не се третират като действащи.
 - Дължината следва нуждата на документа — няма целева дължина.
-- Отговор: JSON; полето "payload" съдържа JSON текст {"scenarios":[{"id","label","text","decisiveFields":[]}],"unverifiedLegalBases":[],"unresolvedFacts":[],"changes":[{"finding","change"}]}.`;
+- decisiveFields съдържат точните имена на полета (без скобите), които присъстват в text.
+- Отговор: само JSON по зададената схема (scenarios, unverifiedLegalBases, unresolvedFacts, changes).`;
 
 const CONTENT_RULES = `Правила:
-- Поясненията (intro, usageCases, requirements, mistakes, faq) трябва да съответстват на кандидат-документа и на прочетените източници.
-- Не цитираш членове извън „Прочетени източници“; иначе пишеш без номер или маркираш [НЕПРОВЕРЕНО].
+- Поясненията (intro, usageCases, requirements, mistakes, faq) трябва да съответстват на документа и на прочетените откъси.
+- Не цитираш членове извън „Прочетени откъси“; иначе пишеш без номер или маркираш [НЕПРОВЕРЕНО ОСНОВАНИЕ: …] и го добавяш в unverifiedLegalBases. faq.law е null, ако няма прочетен член.
 - Без абсолютни обещания за валидност, без измислени срокове/суми.
-- Отговор: JSON; полето "payload" съдържа JSON текст със същата структура като оригинала.`;
+- Отговор: само JSON по зададената схема.`;
+
+export interface PromptExtras {
+  excerpts?: readonly { law: string; article: string; text: string }[];
+  checklist?: { docType: string; checks: readonly string[] };
+  evidenceReason?: string;
+}
+
+const EXCERPT_CHARS = 700;
 
 /** Prompt без персона и без измислен „опит“ — доказателствата са входът. */
-export function buildGenerationPrompt(p: EvidencePacket): { system: string; user: string } {
-  const system = `Подготвяш кандидат-редакция на български правен ${p.kind === "draft" ? "образец" : "пояснителен текст"} за преглед от юрист. Резултатът не е одобрен и не се публикува автоматично.\n\n${p.kind === "draft" ? RULES : CONTENT_RULES}`;
-  const sources = p.sources.length
-    ? p.sources.map((s) => `- ${s.title} (${s.url}), прочетен ${s.readOn}: ${s.articles.join(", ")}. Уговорки: ${s.caveats.join(" ")}`).join("\n")
-    : "- няма";
+export function buildGenerationPrompt(p: EvidencePacket, extras: PromptExtras = {}): { system: string; user: string } {
+  const checks = extras.checklist ? `\n\nЧеклист за тип „${extras.checklist.docType}“:\n${extras.checklist.checks.map((c) => `- ${c}`).join("\n")}` : "";
+  const system = `Подготвяш кандидат-редакция на български правен ${p.kind === "draft" ? "образец" : "пояснителен текст"} за преглед от юрист. Резултатът не е одобрен и не се публикува автоматично.\n\n${p.kind === "draft" ? RULES : CONTENT_RULES}${checks}`;
+  const excerpts = extras.excerpts?.length
+    ? extras.excerpts.map((e) => `- ${e.law} чл. ${e.article}: ${e.text.slice(0, EXCERPT_CHARS)}`).join("\n")
+    : `- няма (${extras.evidenceReason ?? "няма откъси"}) — всички позовавания остават непроверени`;
   const findings = p.findings.length ? p.findings.map((f) => `- [${f.ruleId}] ${f.message} | извадка: „${f.excerpt}“`).join("\n") : "- няма автоматични находки (това не означава липса на дефекти)";
-  const user = `Документ: ${p.catalogName}\nSlug: ${p.slug}\nSHA-256 на оригинала: ${p.sourceSha256}\nКомплекти: ${p.kits.join(", ") || "няма"}\n\nПрочетени източници:\n${sources}\n\nНаходки:\n${findings}\n\nОРИГИНАЛ:\n<<<\n${p.originalText}\n>>>`;
+  const user = `Документ: ${p.catalogName}\nSlug: ${p.slug}\nSHA-256 на оригинала: ${p.sourceSha256}\nКомплекти: ${p.kits.join(", ") || "няма"}\n\nПрочетени откъси (изтеглени, неофициален консолидиран текст):\n${excerpts}\n\nНаходки:\n${findings}\n\nОРИГИНАЛ:\n<<<\n${p.originalText}\n>>>`;
   return { system, user };
 }
