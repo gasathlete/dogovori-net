@@ -9,7 +9,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAudience } from "@/hooks/useAudience";
 import { CATALOG_REVIEW_STATUS } from "@/lib/templateReviewStatus";
 
-import { BrandMark } from "@/components/BrandLogo";
 import { DocumentWorkflowStage } from "@/components/home/DocumentWorkflowStage";
 import { Button } from "@/components/ui/button";
 import { TaskChooser } from "@/components/home/TaskChooser";
@@ -52,7 +51,7 @@ export function Hero() {
     <section className="brand-hero commerce-hero border-b border-border">
       <div className="container grid w-full gap-8 py-5 sm:py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-10 lg:py-14">
         <div className="min-w-0 text-left">
-          <p className="flex items-center gap-3 text-sm text-muted-foreground"><BrandMark decorative className="h-10 w-12" /> За хората и бизнеса · Тестов период</p>
+          <p className="text-sm text-muted-foreground">Тестов период</p>
           <h1 className="mt-4 max-w-[17ch] font-serif text-[38px] font-bold leading-[1.08] text-foreground sm:text-[52px] lg:text-[64px]">
             {copy.heroHeadline.lead}{" "}<span className="block text-gold">{copy.heroHeadline.accent}{copy.heroHeadline.tail}</span>
           </h1>

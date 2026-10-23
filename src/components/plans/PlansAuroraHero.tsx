@@ -12,10 +12,9 @@ interface Props {
   className?: string;
 }
 
-export function PlansAuroraHero({ kicker, children, className }: Props) {
+export function PlansAuroraHero({ children, className }: Props) {
   return (
     <section className={cn("border-b border-border pb-10 pt-4 sm:pb-14", className)}>
-      {kicker && <p className="mb-3 text-sm text-muted-foreground">{kicker}</p>}
       {children}
     </section>
   );

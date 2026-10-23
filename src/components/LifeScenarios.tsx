@@ -63,7 +63,7 @@ export function LifeScenarios() {
   const hiddenCount = remaining.length;
 
   return (
-    <section id="scenarios" aria-labelledby="scenarios-heading" className="browse-item">
+    <section id="scenarios" aria-labelledby="scenarios-heading" className="home-situations border-b border-border bg-card">
       <div className="container py-14 sm:py-20">
         <div className="max-w-2xl">
           <h2 id="scenarios-heading" className="font-serif text-3xl font-bold leading-tight sm:text-4xl">

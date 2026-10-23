@@ -117,7 +117,7 @@ export function Header() {
         </div>
 
         {/* Zone 2 — Primary product navigation (centered) */}
-        <nav aria-label="Основна навигация" className="hidden min-w-0 flex-1 items-center justify-center gap-1 xl:flex 2xl:gap-2">
+        <nav aria-label="Основна навигация" className="hidden min-w-0 flex-1 items-center justify-center gap-1 2xl:flex 2xl:gap-3">
           {NAV.map((n) => {
             if (n.to === "__tools__") {
               return <ToolsMenu key="tools" variant="desktop" />;
@@ -130,7 +130,7 @@ export function Header() {
                 onClick={(e) => handleNav(n.to, e)}
                 {...prefetchHandlers(n.to)}
                 className={cn(
-                  "relative inline-flex min-h-11 items-center whitespace-nowrap rounded-md px-2.5 text-[14px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold",
+                  "relative inline-flex min-h-11 items-center whitespace-nowrap rounded-md px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold",
                   "after:absolute after:inset-x-2.5 after:bottom-2 after:h-px after:bg-foreground after:transition-opacity",
                   active ? "text-foreground after:opacity-100" : "text-foreground/75 hover:text-foreground after:opacity-0 hover:after:opacity-60",
                 )}
@@ -143,16 +143,16 @@ export function Header() {
 
         {/* Zone 3 — Utility (helpers + account), separated by a hairline */}
         <div className="flex items-center justify-end gap-2 justify-self-end">
-          <Button asChild className="header-catalog-action hidden min-h-11 px-4 text-sm 2xl:inline-flex"><Link to="/catalog">Намерете документ</Link></Button>
+          <Button asChild className="header-catalog-action hidden min-h-11 px-4 text-sm min-[1800px]:inline-flex"><Link to="/catalog">Намерете документ</Link></Button>
           {/* Helpers subgroup */}
-          <div className="hidden items-center gap-1 xl:flex">
+          <div className="hidden items-center gap-1 2xl:flex">
             <ThemeToggle />
           </div>
 
           {/* Divider between helpers and account */}
           <span
             aria-hidden="true"
-            className="mx-1 hidden h-5 w-px bg-border/60 xl:block"
+            className="mx-1 hidden h-5 w-px bg-border/60 2xl:block"
           />
 
           {/* Account subgroup */}
@@ -165,7 +165,7 @@ export function Header() {
                   ? `Профил (${unreadCount} непрочетени известия)`
                   : "Профил"
               }
-              className="relative hidden h-11 min-w-11 items-center justify-center gap-2 rounded-lg sm:inline-flex border border-gold/30 bg-gold/[0.08] px-4 text-[13px] font-semibold tracking-wide text-gold transition-colors hover:border-gold/50 hover:bg-gold/15"
+              className="relative hidden h-11 min-w-11 items-center justify-center gap-2 rounded-lg sm:inline-flex border border-gold/30 bg-gold/[0.08] px-4 text-sm font-semibold text-gold transition-colors hover:border-gold/50 hover:bg-gold/15"
             >
               {/* Под 640px профилът е в долната навигация — тук не се дублира. */}
               <UserIcon className="h-4 w-4" />
@@ -180,11 +180,12 @@ export function Header() {
           ) : (
             <div
               ref={guestRef}
-              className="relative hidden xl:block"
+              className="relative hidden 2xl:block"
               onMouseEnter={() => setGuestOpen(true)}
               onMouseLeave={() => setGuestOpen(false)}
             >
-              <button
+              <Button
+                variant="outline"
                 type="button"
                 onClick={() => setGuestOpen((v) => !v)}
                 onFocus={() => setGuestOpen(true)}
@@ -194,7 +195,7 @@ export function Header() {
                 aria-haspopup="menu"
                 aria-expanded={guestOpen}
                 aria-label="Влезте"
-                className="inline-flex h-10 items-center gap-2 rounded-lg border border-gold/40 bg-transparent px-4 text-[13px] font-semibold tracking-wide text-foreground transition-colors hover:border-gold hover:bg-gold/10 hover:text-gold"
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-gold/40 bg-transparent px-4 text-sm font-semibold text-foreground transition-colors hover:border-gold hover:bg-gold/10 hover:text-gold"
               >
                 <LogIn className="h-4 w-4" />
                 <span className="hidden sm:inline">Влезте</span>
@@ -204,7 +205,7 @@ export function Header() {
                     guestOpen && "rotate-180",
                   )}
                 />
-              </button>
+              </Button>
               {guestOpen && (
                 <div className="absolute right-0 top-full h-2 w-56" aria-hidden="true" />
               )}
@@ -247,23 +248,24 @@ export function Header() {
             </div>
           )}
 
-          <button
+          <Button
+            variant="outline"
             type="button"
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Затвори менюто" : "Отвори менюто"}
             aria-expanded={open}
-            className="inline-flex h-11 min-w-[64px] items-center justify-center gap-1.5 rounded-lg border border-gold/40 bg-card/50 px-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-foreground transition-colors hover:border-gold hover:bg-gold/10 hover:text-gold xl:hidden"
+            className="inline-flex h-11 min-w-[64px] items-center justify-center gap-1.5 rounded-lg border border-gold/40 bg-card/50 px-3 text-sm font-semibold  text-foreground transition-colors hover:border-gold hover:bg-gold/10 hover:text-gold 2xl:hidden"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             <span>{open ? "Затвори" : "Меню"}</span>
-          </button>
+          </Button>
         </div>
       </div>
 
       {open && (
         <nav
           aria-label="Мобилна навигация"
-          className="origin-top animate-accordion-down overflow-hidden border-t border-gold/20 bg-background xl:hidden"
+          className="origin-top animate-accordion-down overflow-hidden border-t border-gold/20 bg-background 2xl:hidden"
         >
           <div className="container flex max-h-[calc(100dvh-68px)] flex-col gap-4 overflow-y-auto py-4">
             {(() => {

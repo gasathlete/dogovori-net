@@ -188,9 +188,6 @@ export function ProductShowcaseCarousel({
                     : "border-border/70 bg-background/60 text-muted-foreground hover:border-gold/40 hover:text-foreground",
                 )}
               >
-                <span className="font-serif text-[12px] tabular-nums opacity-70">
-                  0{i + 1}
-                </span>
                 <span className="min-w-0 truncate">{p.shortName}</span>
               </button>
             ))}
@@ -237,7 +234,7 @@ export function ProductShowcaseCarousel({
 
           <p
             data-testid="showcase-rotation-note"
-            className="text-[11.5px] leading-snug text-muted-foreground"
+            className="text-sm leading-relaxed text-muted-foreground"
           >
             {reduced
               ? "Автоматичната смяна е изключена."
@@ -267,12 +264,7 @@ export function ProductShowcaseCarousel({
         >
           <div className="overflow-hidden rounded-2xl border border-border/70 bg-background/70 shadow-elegant">
             <div className="flex items-center gap-2 border-b border-border/60 bg-muted/40 px-3 py-2">
-              <span className="flex gap-1" aria-hidden="true">
-                <span className="size-2 rounded-full bg-border" />
-                <span className="size-2 rounded-full bg-border" />
-                <span className="size-2 rounded-full bg-gold/60" />
-              </span>
-              <span className="truncate text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              <span className="truncate text-sm font-medium text-muted-foreground">
                 Dogovori.net · работен изглед
               </span>
             </div>
@@ -324,7 +316,7 @@ export function ProductShowcaseCarousel({
         >
           Вижте продукта
         </Link>}
-        <span className="text-[11.5px] font-medium text-muted-foreground">
+        <span className="text-sm font-medium text-muted-foreground">
           {ONE_TIME_TERMS}
         </span>
       </div>
