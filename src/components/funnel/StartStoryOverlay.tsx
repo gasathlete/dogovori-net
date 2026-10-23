@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Check } from "@/icons";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { RegistrationCTA } from "./RegistrationCTA";
+import { StoryCapabilityDemo } from "./StoryCapabilityDemo";
 import { drainBufferedEvents } from "@/lib/bufferedEvents";
 import { START_STORY_EVENT } from "@/lib/startStory";
 import { trackMetric } from "@/lib/metrics";
@@ -12,7 +13,10 @@ export { openStartStory } from "@/lib/startStory";
 const SCENES = [
   { label: "Задача", title: "Повече време за Вас.", text: "Опишете какво Ви е необходимо. Изберете образец или започнете изготвяне с Вашите параметри." },
   { label: "Вашият стил", title: "Вашето лого. Вашият стил.", text: "Попълнете страните и условията. Добавете Вашата фирмена идентичност към документа." },
-  { label: "Преглед", title: "Прочетете. Проверете. Допълнете.", text: "Прегледайте резултата и уточнете липсващите данни. AI резултатът не е правен съвет или адвокатска проверка." },
+  { label: "Анализ", title: "Вижте клаузата в контекст.", text: "При анализ на документ виждате извадка, последица и следваща стъпка. Изберете една от двете примерни клаузи." },
+  { label: "DogovaryAI", title: "Уточнете въпроса си.", text: "Помощникът може да Ви помогне да подредите задачата и въпросите си. Тук отговорите са само демонстрация." },
+  { label: "Образци", title: "Не започвайте от празен лист.", text: "Разгледайте образец или документи, подредени по сектор. Разглеждането не изисква регистрация." },
+  { label: "Резултат", title: "Прочетете. Проверете. Допълнете.", text: "Уточнете липсващите данни преди изтегляне в PDF или DOCX. Достъпът зависи от Вашите права и налични операции. AI резултатът не е правен съвет или адвокатска проверка." },
   { label: "Начало", title: "Продължете с Вашия документ.", text: "Създайте безплатен профил. Платените продукти и планове се избират отделно — няма автоматичен абонамент." },
 ] as const;
 
@@ -40,7 +44,7 @@ export function StartStoryOverlay() {
   const move = (next: number) => {
     const bounded = Math.max(0, Math.min(SCENES.length - 1, next));
     setScene(bounded);
-    if (bounded === 3 && !completed.current) {
+    if (bounded === SCENES.length - 1 && !completed.current) {
       completed.current = true; trackMetric("story_completed", { source: "hero" });
     }
   };
@@ -62,33 +66,34 @@ export function StartStoryOverlay() {
         const point = event.changedTouches[0]; const start = touch.current; touch.current = null;
         if (point && start && Math.abs(point.clientX - start.x) > 50 && Math.abs(point.clientX - start.x) > Math.abs(point.clientY - start.y)) move(scene + (point.clientX < start.x ? 1 : -1));
       }}>
-        <nav aria-label="Стъпки на демонстрацията" className="mb-4 grid grid-cols-4 gap-1 border-b border-border pb-2">
+        <nav aria-label="Стъпки на демонстрацията" className="mb-4 grid grid-cols-4 gap-1 border-b border-border pb-2 sm:grid-cols-7">
           {SCENES.map((item, index) => <Button key={item.label} variant="ghost" aria-current={index === scene ? "step" : undefined} className={`min-h-11 whitespace-normal rounded-none px-1 text-sm ${index === scene ? "border-b-2 border-gold text-foreground" : "text-muted-foreground"}`} onClick={() => move(index)}>{item.label}</Button>)}
         </nav>
         <div className="grid gap-5 sm:min-h-[310px] sm:grid-cols-[1fr_1.1fr] sm:items-start">
           <div><h2 className="font-serif text-2xl font-bold leading-tight">{current.title}</h2><p className="mt-3 text-base leading-relaxed text-muted-foreground">{current.text}</p>
             {scene === 1 && <Button variant="outline" className="mt-4 min-h-11" aria-pressed={branded} onClick={() => setBranded((value) => !value)}>{branded ? "Без брандиране" : "Добавете брандиране"}</Button>}
           </div>
-          <div className="border-l-2 border-gold bg-muted/40 p-4 text-sm leading-relaxed sm:p-5" aria-label="Примерна покана">
+          {scene >= 2 && scene <= 4 ? <StoryCapabilityDemo key={scene} kind={scene === 2 ? "analysis" : scene === 3 ? "assistant" : "catalog"} /> : <div className="border-l-2 border-gold bg-muted/40 p-4 text-sm leading-relaxed sm:p-5" aria-label="Примерна покана">
             <div className="mb-4 flex items-center gap-3 border-b border-border pb-3">
               {scene > 0 && branded && <span className="flex size-11 shrink-0 items-center justify-center border border-gold text-base font-bold text-gold" aria-label="Примерен монограм">IM</span>}
               <p className="font-semibold">{scene === 0 ? "Нова задача" : "IM Development"}<span className="block font-normal text-muted-foreground">Примерна покана за сътрудничество</span></p>
             </div>
             <p className="font-semibold">До: Договори.нет</p>
             <p className="mt-3">Предлагаме да обсъдим подготовката на документи за проект „Нов офис“.</p>
-            {scene !== 3 && <p className="mt-3"><strong>Обхват:</strong> уточняване на задачите, условията и начина на приемане на работата.</p>}
-            {scene >= 2 && <p className="mt-3 flex items-start gap-2 text-foreground"><Check className="mt-1 size-4 shrink-0" />За допълване: срок, възнаграждение и данни на страните.</p>}
+            {scene !== SCENES.length - 1 && <p className="mt-3"><strong>Обхват:</strong> уточняване на задачите, условията и начина на приемане на работата.</p>}
+            {scene >= 5 && <p className="mt-3 flex items-start gap-2 text-foreground"><Check className="mt-1 size-4 shrink-0" />За допълване: срок, възнаграждение и данни на страните.</p>}
+            {scene === 5 && <p className="mt-3 font-semibold">PDF · за споделяне / DOCX · за редактиране</p>}
             <p className="mt-4 border-t border-border pt-3 text-muted-foreground">Адаптиран фиктивен пример — не е реално партньорство или готов за подпис документ.</p>
-          </div>
+          </div>}
         </div>
-        {scene === 2 && <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{CATALOG_REVIEW_STATUS.notice}</p>}
+        {scene === 5 && <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{CATALOG_REVIEW_STATUS.notice}</p>}
       </div>
       <div className="border-t border-border pt-4">
-        {scene === 3 && <div onClick={close}><RegistrationCTA source="story" destination="/build" className="btn-gold mb-4 min-h-12 w-full text-base" /></div>}
+        {scene === SCENES.length - 1 ? <div onClick={close}><RegistrationCTA source="story" destination="/build" className="btn-gold mb-3 min-h-12 w-full text-base" /></div> : <Button variant="link" className="mb-2 min-h-11 w-full text-sm" onClick={() => move(SCENES.length - 1)}>Към началото с Ваш документ<ArrowRight className="ml-2 size-4" /></Button>}
         <div className="flex items-center justify-between gap-3">
           <Button variant="ghost" disabled={scene === 0} className="min-h-11" onClick={() => move(scene - 1)} aria-label="Предишна стъпка"><ArrowLeft className="mr-2 size-4" />Назад</Button>
-          <span className="text-sm tabular-nums text-muted-foreground" aria-live="polite">{scene + 1} / 4</span>
-          <Button variant="ghost" className="min-h-11" onClick={() => scene === 3 ? move(0) : move(scene + 1)} aria-label={scene === 3 ? "Отначало" : "Следваща стъпка"}>{scene === 3 ? "Отначало" : "Напред"}<ArrowRight className="ml-2 size-4" /></Button>
+          <span className="text-sm tabular-nums text-muted-foreground" aria-live="polite">{scene + 1} / {SCENES.length}</span>
+          <Button variant="ghost" className="min-h-11" onClick={() => scene === SCENES.length - 1 ? move(0) : move(scene + 1)} aria-label={scene === SCENES.length - 1 ? "Отначало" : "Следваща стъпка"}>{scene === SCENES.length - 1 ? "Отначало" : "Напред"}<ArrowRight className="ml-2 size-4" /></Button>
         </div>
       </div>
     </DialogContent>

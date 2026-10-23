@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Expand the voluntary story to seven local-only scenes; preserve signup/consent, verify interactions and desktop/390/360 layouts. No publication/backend changes.
 - [x] Focused registration funnel: shared sanitized signup destinations, one session-dismissed invitation, optional honest three-operation marketing bonus block, voluntary manual four-scene story; 80 focused tests and desktop/390/360 + signed-in preview checks. Automatic build OK; no new accounts/grants/backend/publication. Evidence: registration-funnel-2026-10-23.md.
 - [x] Final public visual polish: redundant ornaments removed, navigation and public layouts refined; 94 focused tests, automatic build OK, desktop/390/360 screenshots and interactions checked; compact demo ~432px, live counter preserved, reduced motion checked. No publication; public-visual-polish-2026-10-23.md.
 - [x] Focused hero upgrade: adapted historical IM demonstration, readable stable manual document scenes, gold headline, visible branding; 19 focused tests, automatic build OK, desktop/390px buttons/swipe/no-overflow checks. No publication; hero-document-narrative report.
