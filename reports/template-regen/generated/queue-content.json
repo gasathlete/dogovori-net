@@ -1586,7 +1586,9 @@
       "kind": "content",
       "catalogName": "Договор за краткосрочен наем (Airbnb тип)",
       "sourceSha256": "1cb2498b1b48710dc4aea498fc1830f5dad6b6087f6a853ca2575ea46389a281",
-      "findings": [],
+      "findings": [
+        "ZZD_229_AS_FORM_RULE"
+      ],
       "kits": [
         "kratkosrochen-naem"
       ],
@@ -1804,6 +1806,7 @@
       "catalogName": "Договор за наем на МПС (краткосрочен)",
       "sourceSha256": "fd4a8db9d8cf6c2c975fcfb816a27b76ecc24336ca506482107d0a194e3f6fe7",
       "findings": [
+        "ZZD_229_AS_FORM_RULE",
         "ZZD_232_RETURN"
       ],
       "kits": [],
@@ -1815,7 +1818,9 @@
       "kind": "content",
       "catalogName": "Договор за наем на недвижим имот",
       "sourceSha256": "601f94af1e61dacf33f32d99deacb44931e8ebc8683382c534c35ef112776507",
-      "findings": [],
+      "findings": [
+        "ZZD_229_AS_FORM_RULE"
+      ],
       "kits": [],
       "output": "reports/template-regen/generated/content/dogovor-za-naem-na-nedvizhim-imot.601f94af1e61.json",
       "exists": false
@@ -1830,7 +1835,9 @@
       "kind": "content",
       "catalogName": "Договор за наем на офис",
       "sourceSha256": "c208948ef76bdc2a790ae4597c05f5fb35d44678c87f47ada621760ab46fdabc",
-      "findings": [],
+      "findings": [
+        "ZZD_229_AS_FORM_RULE"
+      ],
       "kits": [
         "naem-ofis"
       ],
@@ -1842,7 +1849,9 @@
       "kind": "content",
       "catalogName": "Договор за наем на паркомясто/гараж",
       "sourceSha256": "3bcda6638c7ca95102b0bd012c32b46df3a20b51341d89785d7a0404e0bb463e",
-      "findings": [],
+      "findings": [
+        "ZZD_229_AS_FORM_RULE"
+      ],
       "kits": [],
       "output": "reports/template-regen/generated/content/dogovor-za-naem-na-parkomyasto-garazh.3bcda6638c7c.json",
       "exists": false
@@ -1892,7 +1901,9 @@
       "kind": "content",
       "catalogName": "Договор за наем на търговски обект",
       "sourceSha256": "dcfc1fec7ac649a335c4845cc5beecf283a048958d7826162f707a049b6fa3f1",
-      "findings": [],
+      "findings": [
+        "ZZD_229_AS_FORM_RULE"
+      ],
       "kits": [],
       "output": "reports/template-regen/generated/content/dogovor-za-naem-na-targovski-obekt.dcfc1fec7ac6.json",
       "exists": false
@@ -1914,7 +1925,9 @@
       "kind": "content",
       "catalogName": "Договор за наем на земеделска земя",
       "sourceSha256": "780e00ec9f420d66d46cd49bac0371933130e8d485c965b69030701269fa32a5",
-      "findings": [],
+      "findings": [
+        "ZZD_229_AS_FORM_RULE"
+      ],
       "kits": [],
       "output": "reports/template-regen/generated/content/dogovor-za-naem-na-zemedelska-zemya.780e00ec9f42.json",
       "exists": false
@@ -1924,7 +1937,9 @@
       "kind": "content",
       "catalogName": "Договор за наем на жилище",
       "sourceSha256": "d535bebed87726158c194ede5257d6d9a9297736e0489ac45c1488fb141a3159",
-      "findings": [],
+      "findings": [
+        "ZZD_229_AS_FORM_RULE"
+      ],
       "kits": [
         "naem-zhilishte"
       ],
@@ -2869,7 +2884,9 @@
       "kind": "content",
       "catalogName": "Дружествен договор на ООД",
       "sourceSha256": "387b9ad43300a9c511151c356f19d0dde00da82dbbc1b212f28a231844ec4306",
-      "findings": [],
+      "findings": [
+        "TZ_115_PARA2"
+      ],
       "kits": [
         "registratsiya-na-ood",
         "promyana-po-partida",
@@ -3555,7 +3572,9 @@
       "kind": "content",
       "catalogName": "Оферта за наем на тежка строителна механизация и оборудване за срок от 6 месеца",
       "sourceSha256": "f5032ff452b1feb99faee7902e3527f0c52aa9242f179fcae0385025793ac984",
-      "findings": [],
+      "findings": [
+        "ZZD_229_AS_FORM_RULE"
+      ],
       "kits": [],
       "output": "reports/template-regen/generated/content/oferta-za-naem-na-tezhka-stroitelna-mehanizatsiya-i-oborudvane-za-srok-ot-6-mesetsa.f5032ff452b1.json",
       "exists": false
@@ -3941,7 +3960,10 @@
       "kind": "content",
       "catalogName": "Предизвестие за прекратяване на наем",
       "sourceSha256": "b2745b877f55b4e0d5cbff9228c17b2637b75956ca31b5cf42caab1e4f142c36",
-      "findings": [],
+      "findings": [
+        "ZZD_228_NOTICE_TERM",
+        "MOVABLE_THREE_DAYS"
+      ],
       "kits": [
         "naem-zhilishte"
       ],
@@ -4644,7 +4666,9 @@
       "kind": "content",
       "catalogName": "Споразумение за обучение по време на работа",
       "sourceSha256": "c738c4052458dfc20bc886893ea97b34d3f5d839e83b9ae517a4306ad68e373e",
-      "findings": [],
+      "findings": [
+        "ZZD_229_AS_FORM_RULE"
+      ],
       "kits": [],
       "output": "reports/template-regen/generated/content/sporazumenie-za-obuchenie-po-vreme-na-rabota.c738c4052458.json",
       "exists": false
@@ -4676,7 +4700,9 @@
       "kind": "content",
       "catalogName": "Споразумение за прекратяване на наем по взаимно съгласие",
       "sourceSha256": "233665dd5ab65506aa8d86f99d8ff0a068874488adc4661d8abee379395b8c7a",
-      "findings": [],
+      "findings": [
+        "ZZD_229_AS_FORM_RULE"
+      ],
       "kits": [],
       "output": "reports/template-regen/generated/content/sporazumenie-za-prekratyavane-na-naem-po-vzaimno-saglasie.233665dd5ab6.json",
       "exists": false
@@ -4876,7 +4902,11 @@
       "kind": "content",
       "catalogName": "Учредителен акт на ЕООД",
       "sourceSha256": "e365a6ff5fa7a65a69ab664e8f0cd2a8478eed9aad1dc7d2b4fc7af045a01cfa",
-      "findings": [],
+      "findings": [
+        "COMPANY_ARISES_WITH_ACT",
+        "TZ_115_PARA2",
+        "MIN_CAPITAL_NOT_ONE_EUR"
+      ],
       "kits": [
         "registratsiya-na-eood"
       ],
