@@ -1,4 +1,4 @@
-import { FREE_OPS_ON_SIGNUP, FREE_OPS_PER_MONTH } from "@/lib/pricing";
+import { MarketingOptIn } from "@/components/auth/MarketingOptIn";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Header } from "@/components/Header";
@@ -393,17 +393,7 @@ export default function AuthPage() {
                       подписване, за да можем да Ви уведомим при нужда. <span className="text-gold">*</span>
                     </Label>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <Checkbox
-                      id="c-mkt"
-                      checked={acceptMarketing}
-                      onCheckedChange={(v) => setAcceptMarketing(!!v)}
-                      className="mt-0.5"
-                    />
-                    <Label htmlFor="c-mkt" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
-                      Искам да получавам имейл съобщения за новости, бонуси и награди. <span className="text-muted-foreground">(по желание — еднократно още {FREE_OPS_ON_SIGNUP - FREE_OPS_PER_MONTH} операции; без отметка регистрацията остава възможна)</span>
-                    </Label>
-                  </div>
+                  <MarketingOptIn id="c-mkt" checked={acceptMarketing} onCheckedChange={setAcceptMarketing} disabled={busy} />
                 </div>
 
                 <Button

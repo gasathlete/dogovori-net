@@ -5,6 +5,7 @@
  * собствените си страници и в менюто.
  */
 import { lazy, Suspense } from "react";
+import { StickyScrollCta } from "@/components/funnel/StickyScrollCta";
 import { Hero } from "@/components/Hero";
 import { SeoFooter } from "@/components/SeoFooter";
 import { LazyOnVisible } from "@/components/LazyOnVisible";
@@ -69,6 +70,7 @@ export function HomeSections() {
       </LazyOnVisible>
 
       <SeoFooter />
+      <StickyScrollCta />
     </main>
   );
 }

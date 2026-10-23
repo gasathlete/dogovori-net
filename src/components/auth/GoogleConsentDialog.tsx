@@ -1,4 +1,4 @@
-import { FREE_OPS_ON_SIGNUP, FREE_OPS_PER_MONTH } from "@/lib/pricing";
+import { MarketingOptIn } from "@/components/auth/MarketingOptIn";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -105,17 +105,7 @@ export function GoogleConsentDialog({ open, onOpenChange, onConfirm, busy }: Goo
               Съгласявам се да предоставя име и имейл, които се съхраняват в профила ми и се използват за вътрешни известия по документите, както и за проверката при подписване, за да можем да Ви уведомим при нужда. <span className="text-gold">*</span>
             </Label>
           </div>
-          <div className="flex items-start gap-2">
-            <Checkbox
-              id="g-mkt"
-              checked={marketing}
-              onCheckedChange={(v) => setMarketing(!!v)}
-              className="mt-0.5"
-            />
-            <Label htmlFor="g-mkt" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
-              Искам да получавам имейл съобщения за новости, бонуси и награди. <span className="text-muted-foreground">(по желание — еднократно още {FREE_OPS_ON_SIGNUP - FREE_OPS_PER_MONTH} операции; без отметка регистрацията остава възможна)</span>
-            </Label>
-          </div>
+          <MarketingOptIn id="g-mkt" checked={marketing} onCheckedChange={setMarketing} disabled={busy} />
         </div>
 
         <Button

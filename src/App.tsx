@@ -280,9 +280,7 @@ function DeferredOverlays() {
       <LazyOnSignal commandKey="k" events={["dogovori:open-command"]}>
         <CommandPalette />
       </LazyOnSignal>
-      <LazyOnSignal onMouseLeave delayMs={20000}>
-        <ExitIntentLeadMagnet />
-      </LazyOnSignal>
+      {/* Registration uses one voluntary inline invitation, not an exit-intent popup. */}
       <LazyOnSignal events={["dogovari:op-completed", "dogovori:free-op-success"]}>
         <ActionCelebrationHost />
         <EntrepreneurAdPopup />
@@ -479,7 +477,7 @@ const App = () => (
             <InlineAuthDialog />
             <PrelaunchWaitlistDialog />
 
-            <StartStoryOverlay />
+            <LazyOnSignal events={["dogovori:start-story"]}><StartStoryOverlay /></LazyOnSignal>
             <AIDisclaimerModal />
             <UnfilledPlaceholdersModal />
           </Suspense>

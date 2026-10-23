@@ -1,4 +1,4 @@
-import { FREE_OPS_ON_SIGNUP, FREE_OPS_PER_MONTH } from "@/lib/pricing";
+import { MarketingOptIn } from "@/components/auth/MarketingOptIn";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -238,17 +238,7 @@ export function InlineAuthDialog() {
                     <span className="text-gold">*</span>
                   </Label>
                 </div>
-                <div className="flex items-start gap-2">
-                  <Checkbox
-                    id="inline-c-mkt"
-                    checked={marketing}
-                    onCheckedChange={(v) => setMarketing(!!v)}
-                    className="mt-0.5"
-                  />
-                  <Label htmlFor="inline-c-mkt" className="cursor-pointer text-[11px] font-normal leading-relaxed text-foreground">
-                    Искам да получавам имейл съобщения за новости, бонуси и награди. <span className="text-muted-foreground">(по желание — еднократно още {FREE_OPS_ON_SIGNUP - FREE_OPS_PER_MONTH} операции; без отметка регистрацията остава възможна)</span>
-                  </Label>
-                </div>
+                <MarketingOptIn id="inline-c-mkt" checked={marketing} onCheckedChange={setMarketing} disabled={busy} />
               </div>
             )}
             <Button type="submit" className="w-full gap-2" disabled={busy || (mode === "signup" && (!age || !terms || !privacy || !notifications))}>
