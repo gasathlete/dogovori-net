@@ -66,7 +66,7 @@ export function MobileBottomNav() {
   const path = location.pathname;
   const product = /^\/produkti\/[^/]+$/.test(path) ? getProductBySlug(path.split("/")[2]) : null;
   if (
-    cookieChoicePending || keyboardOpen || path.startsWith("/admin") ||
+    cookieChoicePending || keyboardOpen || path.startsWith("/admin") || path.startsWith("/auth") ||
     (path.startsWith("/produkti/") && path.endsWith("/start")) ||
     path.startsWith("/sign/") ||
     path.startsWith("/signing/") ||
