@@ -1,8 +1,7 @@
 /**
  * PlanStoryStage — етап от scroll storytelling презентацията на /plans.
  *
- * Разкрива съдържанието при влизане във viewport (IntersectionObserver,
- * без външни библиотеки) и излъчва аналитично събитие веднъж на етап.
+ * Съдържанието остава видимо; отчита преглед веднъж на етап.
  */
 import { useEffect, useRef, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -31,7 +30,7 @@ export function PlanStoryStage({ index, title, subtitle, id, children, className
       (entries) => {
         entries.forEach((entry) => {
           if (!entry.isIntersecting) return;
-              if (!tracked.current) {
+          if (!tracked.current) {
             tracked.current = true;
             trackEvent("plans_story_stage_viewed", { stage: index });
           }
