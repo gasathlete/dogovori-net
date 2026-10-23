@@ -1,5 +1,5 @@
 # Roadmap
-- [ ] Final public visual polish: simplify decoration, refine navigation and public layouts; verify desktop/390/360, demo/counters/carousels. No publication.
+- [x] Final public visual polish: redundant ornaments removed, navigation and public layouts refined; 94 focused tests, automatic build OK, desktop/390/360 screenshots and interactions checked; compact demo ~432px, live counter preserved, reduced motion checked. No publication; public-visual-polish-2026-10-23.md.
 - [x] Focused hero upgrade: adapted historical IM demonstration, readable stable manual document scenes, gold headline, visible branding; 19 focused tests, automatic build OK, desktop/390px buttons/swipe/no-overflow checks. No publication; hero-document-narrative report.
 - [x] Partner single-row carousel: cyclic 650ms/3500ms track, pause/accessibility; five focused tests and 360/390/430/1280 browser checks passed. Query/counts/header unchanged; no publication.
 - [x] Mobile guided selling: task chooser, factual product/auth continuity, single mobile action bar, duplicate guard and persistent retry; bonus preserved. 113 tests/13 files, 360/390/430 and desktop public journey, simulated keyboard, automatic build OK. No purchases/publication; boundaries in mobile-guided-selling-2026-10-21.md.
