@@ -1,6 +1,6 @@
 {
   "kind": "draft",
-  "generatedAt": "2026-10-23T11:19:50.757Z",
+  "generatedAt": "2026-10-23T11:25:29.425Z",
   "model": "openai/gpt-6-astra",
   "legalApproval": null,
   "counts": {
@@ -9,10 +9,12 @@
     "catalogEntriesWithoutOriginal": 49,
     "orphanFiles": 73,
     "sharedFiles": 2,
-    "callsThisRun": 0,
-    "pending": 545
+    "callsThisRun": 3,
+    "validated_generated_pending_legal_review": 3,
+    "pending": 534,
+    "baseline_v2_candidate_exists": 8
   },
-  "estimatedCreditsThisRun": 0,
+  "estimatedCreditsThisRun": 3.563,
   "stopReason": null,
   "catalogEntriesWithoutOriginal": [
     "Acceptance Protocol (приемане на разработка)",
@@ -171,7 +173,8 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/affiliate-marketing-dogovor.0581f6f96fbf.json",
-      "status": "pending"
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
     },
     {
       "slug": "affiliate-programa-za-magazin",
@@ -187,7 +190,8 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/affiliate-programa-za-magazin.2daf5ea61de3.json",
-      "status": "pending"
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
     },
     {
       "slug": "agentski-dogovor-po-chl-32-48-tz",
@@ -206,7 +210,8 @@
       ],
       "kits": [],
       "output": "reports/template-regen/generated/draft/agentski-dogovor-po-chl-32-48-tz.e7536942ccb0.json",
-      "status": "pending"
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
     },
     {
       "slug": "air-waybill-awb-blanka",
@@ -3551,20 +3556,7 @@
     {
       "slug": "dogovor-za-naem-na-parkomyasto-garazh",
       "kind": "draft",
-      "catalogNames": [
-        "Договор за наем на паркомясто/гараж"
-      ],
-      "docType": "contract",
-      "sourceSha256": "ad2309af582c91d2e620bc8b118043eb9b1767bc2cec1d25db4cd7b458ce2a65",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [
-        "MALFORMED_DATE_FIELD"
-      ],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/dogovor-za-naem-na-parkomyasto-garazh.ad2309af582c.json",
-      "status": "pending"
+      "status": "baseline_v2_candidate_exists"
     },
     {
       "slug": "dogovor-za-naem-na-selskostopanska-tehnika",
@@ -6353,36 +6345,12 @@
     {
       "slug": "molba-za-napuskane",
       "kind": "draft",
-      "catalogNames": [
-        "Молба за напускане"
-      ],
-      "docType": "application",
-      "sourceSha256": "e34a9611317b1a879e24758c03b19d76c3a77178504ab057e8c8569e154e07aa",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "tax"
-      ],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/molba-za-napuskane.e34a9611317b.json",
-      "status": "pending"
+      "status": "baseline_v2_candidate_exists"
     },
     {
       "slug": "molba-zayavlenie-za-otpusk",
       "kind": "draft",
-      "catalogNames": [
-        "Молба/Заявление за отпуск"
-      ],
-      "docType": "application",
-      "sourceSha256": "9e3a95c7fd6c766b7af18de5685285437ded55a16862335e47fa365ddd8be56d",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/molba-zayavlenie-za-otpusk.9e3a95c7fd6c.json",
-      "status": "pending"
+      "status": "baseline_v2_candidate_exists"
     },
     {
       "slug": "muzikalen-izdatelski-dogovor",
@@ -7457,25 +7425,7 @@
     {
       "slug": "predizvestie-za-prekratyavane-na-naem",
       "kind": "draft",
-      "catalogNames": [
-        "Предизвестие за прекратяване на наем"
-      ],
-      "docType": "notice",
-      "sourceSha256": "e92bd2ed180f844d3dd16f1dee87e3a6071510ba5c9ae1414e65c5433b717ad0",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [
-        "ZZD_228_PARA2",
-        "WISH_INSTEAD_OF_DECLARATION",
-        "ROLE_SWAP_RETURN_REQUEST",
-        "ZZD_232_RETURN"
-      ],
-      "kits": [
-        "naem-zhilishte"
-      ],
-      "output": "reports/template-regen/generated/draft/predizvestie-za-prekratyavane-na-naem.e92bd2ed180f.json",
-      "status": "pending"
+      "status": "baseline_v2_candidate_exists"
     },
     {
       "slug": "predvaritelen-dogovor-za-pokupka-na-imot",
@@ -7517,23 +7467,7 @@
     {
       "slug": "priemo-predavatelen-protokol",
       "kind": "draft",
-      "catalogNames": [
-        "Приемно-предавателен протокол",
-        "Приемно-предавателен протокол за МПС"
-      ],
-      "docType": "protocol",
-      "sourceSha256": "2351f0410b51aa2c48ffc004ac9c4d0ddda852edb34b50db4894e6e31262db07",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "naem-zhilishte",
-        "naem-ofis",
-        "prodajba-mps"
-      ],
-      "output": "reports/template-regen/generated/draft/priemo-predavatelen-protokol.2351f0410b51.json",
-      "status": "pending"
+      "status": "baseline_v2_candidate_exists"
     },
     {
       "slug": "priemo-predavatelen-protokol-pri-prodazhba-na-imot",
@@ -8702,26 +8636,7 @@
     {
       "slug": "sporazumenie-za-prekratyavane-na-naem-po-vzaimno-saglasie",
       "kind": "draft",
-      "catalogNames": [
-        "Споразумение за прекратяване на наем по взаимно съгласие"
-      ],
-      "docType": "agreement",
-      "sourceSha256": "f0aa732cf7263b6318549701d74258353d4b5ebbc48ee6f49ab5b215be6d6dd4",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [
-        "PERSON_COMPANY_MIXED_PARTY",
-        "PERSON_COMPANY_MIXED_PARTY",
-        "ZZD_325_TERMINATION",
-        "ZZD_325_TERMINATION",
-        "BLANKET_WAIVER",
-        "AUTOMATIC_PAYMENT_ADMISSION",
-        "BLANKET_WAIVER"
-      ],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/sporazumenie-za-prekratyavane-na-naem-po-vzaimno-saglasie.f0aa732cf726.json",
-      "status": "pending"
+      "status": "baseline_v2_candidate_exists"
     },
     {
       "slug": "sporazumenie-za-prekratyavane-na-trudov-dogovor-po-vzaimno-saglasie",
@@ -8742,20 +8657,7 @@
     {
       "slug": "sporazumenie-za-prekratyavane-po-chl-325-al-1-t-1-kt",
       "kind": "draft",
-      "catalogNames": [
-        "Споразумение за прекратяване по чл. 325, ал. 1, т. 1 КТ"
-      ],
-      "docType": "agreement",
-      "sourceSha256": "b3562ef928539ad6a48ab9cc45934e0ab044ec7a7e5799a961df94a292166c22",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "prekratyavane-trudovo"
-      ],
-      "output": "reports/template-regen/generated/draft/sporazumenie-za-prekratyavane-po-chl-325-al-1-t-1-kt.b3562ef92853.json",
-      "status": "pending"
+      "status": "baseline_v2_candidate_exists"
     },
     {
       "slug": "sporazumenie-za-prekratyavane-po-chl-331-kt-sreshtu-obezshtetenie",
@@ -9039,26 +8941,7 @@
     {
       "slug": "uchreditelen-akt-na-eood",
       "kind": "draft",
-      "catalogNames": [
-        "Учредителен акт на ЕООД"
-      ],
-      "docType": "corporate_act",
-      "sourceSha256": "b9e7177f0f6bc37502b561ca65941808dc6e08cf62d140c121260b1ce221008d",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [
-        "TZ_154_FOUNDING",
-        "EOOD_LATIN_OOD",
-        "OWNER_LIABILITY_TO_CAPITAL",
-        "TZ_113_PARA2",
-        "UNILATERAL_COPIES_PER_PARTY"
-      ],
-      "kits": [
-        "registratsiya-na-eood"
-      ],
-      "output": "reports/template-regen/generated/draft/uchreditelen-akt-na-eood.b9e7177f0f6b.json",
-      "status": "pending"
+      "status": "baseline_v2_candidate_exists"
     },
     {
       "slug": "udostoverenie-za-polucheno-kaparo-naem",

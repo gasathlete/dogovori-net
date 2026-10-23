@@ -23,6 +23,7 @@ import { CONTENT_OUTPUT_SCHEMA, DRAFT_OUTPUT_SCHEMA, validateContentOutput, vali
 import { checkContentCandidate, checkDraftCandidate, type CandidateStatus } from "../src/lib/templateRegen/candidateValidation";
 import { selectEvidence, type ExcerptStore } from "../src/lib/templateRegen/evidence";
 import { checklistFor } from "../src/lib/templateRegen/checklists";
+import { TEMPLATE_CANDIDATES } from "../src/data/templateCandidates/index";
 import { MAX_ATTEMPTS, classifyHttp, decideAction } from "../src/lib/templateRegen/batchState";
 
 const arg = (k: string) => { const i = process.argv.indexOf(k); return i >= 0 ? process.argv[i + 1] : undefined; };
@@ -100,6 +101,7 @@ async function callModel(system: string, user: string, key: string) {
   }
 }
 
+const baselineSlugs = new Set(TEMPLATE_CANDIDATES.map((c) => c.slug));
 const queue: Record<string, unknown>[] = [];
 let generated = 0, spent = 0, stopReason: string | null = null;
 const tally: Record<string, number> = {};
@@ -107,6 +109,7 @@ const key = process.env.LOVABLE_API_KEY;
 
 for (const [slug, info] of [...targets].sort()) {
   if (onlySlug && slug !== onlySlug) continue;
+  if (kind === "draft" && baselineSlugs.has(slug)) { queue.push({ slug, kind, status: "baseline_v2_candidate_exists" }); tally.baseline_v2_candidate_exists = (tally.baseline_v2_candidate_exists ?? 0) + 1; continue; }
   const original = await originalFor(slug);
   if (!original) { queue.push({ slug, kind, status: "no_original" }); tally.no_original = (tally.no_original ?? 0) + 1; continue; }
   const packet = buildEvidencePacket({ kind, catalogName: info.name, slug, sourceSha256: sha(original), originalText: original, findings: scanTemplateText(original), kits: [...info.kits] });
