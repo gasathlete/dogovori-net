@@ -716,14 +716,6 @@ export default function Plans() {
 
         <section className="relative z-10 mx-auto max-w-4xl px-4 pb-20">
           <div className="brand-platform-band border-t border-border p-8 sm:p-12">
-            <div
-              className="pointer-events-none absolute inset-0 opacity-60"
-              aria-hidden
-              style={{
-                background:
-                  "radial-gradient(ellipse 60% 80% at 50% 0%, hsl(var(--brand) / 0.45), transparent 70%)",
-              }}
-            />
             <div className="relative z-10">
               <h2 className="font-serif text-2xl text-foreground sm:text-3xl">
                 Разгледайте плановете спокойно
