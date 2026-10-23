@@ -1,377 +1,92 @@
-/**
- * StartStoryOverlay — Instagram-style story overlay, което обяснява как работи
- * платформата. ВАЖНО: това е ОПЦИОНАЛНО демо, а не гейт пред започването на
- * документ. Отваря се само по изрично желание на потребителя (напр. връзката
- * „Виж как работи“ в hero-а).
- *
- * Поведение:
- *   - 5 story карти (intro / find / build / analyse / dogovary).
- *   - Всяка карта авто-превърта след ~3s; на последната авто-превъртането спира
- *     и се показват Назад / Отначало контролите.
- *   - НЯМА idle таймер и НЯМА автоматична навигация. Никой таймер не може да
- *     отведе потребителя другаде.
- *   - Затваряне / пропускане никога не навигира.
- *   - Финалният primary CTA е изрично действие на потребителя → /start.
- *   - Tap left/right зони прескачат назад/напред; задържане пауза на не-последна
- *     карта.
- *   - Глобален mount в App.tsx. Тригер с `openStartStory()`.
- */
-import { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
-import { X, ArrowRight, ChevronLeft, ChevronRight, Sparkles } from "@/icons";
-import { TUTORIAL_STEPS } from "@/components/onboarding/tutorialSteps";
-import { trackFunnelEvent } from "@/lib/funnel";
-import { cn } from "@/lib/utils";
-import { dispatchBuffered, drainBufferedEvents } from "@/lib/bufferedEvents";
+import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, Check } from "@/icons";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { RegistrationCTA } from "./RegistrationCTA";
+import { drainBufferedEvents } from "@/lib/bufferedEvents";
+import { START_STORY_EVENT } from "@/lib/startStory";
+import { trackMetric } from "@/lib/metrics";
+import { CATALOG_REVIEW_STATUS } from "@/lib/templateReviewStatus";
+export { openStartStory } from "@/lib/startStory";
 
-export const START_STORY_EVENT = "dogovori:start-story";
-const SEEN_KEY = "dgv:start-story:seen";
-const STORY_DURATION_MS = 3000; // 3s per card
-/** Реалното начало на документ — същата дестинация като hero CTA. */
-const START_HREF = "/start";
-/** Входът запазва намерението, за да продължи потокът след вход. */
-const LOGIN_HREF = "/auth?redirect=%2Fstart";
-// Most logical 5 out of TUTORIAL_STEPS: intro, find, build, analyse, dogovary.
-const STORY_INDICES = [0, 1, 2, 3, 7] as const;
+const SCENES = [
+  { label: "Задача", title: "Повече време за Вас.", text: "Опишете какво Ви е необходимо. Изберете образец или започнете изготвяне с Вашите параметри." },
+  { label: "Вашият стил", title: "Вашето лого. Вашият стил.", text: "Попълнете страните и условията. Добавете Вашата фирмена идентичност към документа." },
+  { label: "Преглед", title: "Прочетете. Проверете. Допълнете.", text: "Прегледайте резултата и уточнете липсващите данни. AI резултатът не е правен съвет или адвокатска проверка." },
+  { label: "Начало", title: "Продължете с Вашия документ.", text: "Създайте безплатен профил. Платените продукти и планове се избират отделно — няма автоматичен абонамент." },
+] as const;
 
+/** Voluntary, local-only manual story. Radix owns focus trap, Escape and restoration. */
 export function StartStoryOverlay() {
-  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [idx, setIdx] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const [progress, setProgress] = useState(0); // 0..1 for active story
-  const rafRef = useRef<number | null>(null);
-  const startedAtRef = useRef<number>(0);
-  const carriedRef = useRef<number>(0);
-
-  const stories = STORY_INDICES.map((i) => TUTORIAL_STEPS[i]).filter(Boolean);
-  const total = stories.length;
-  const isLast = idx === total - 1;
-
-  // Open trigger
+  const [scene, setScene] = useState(0);
+  const [branded, setBranded] = useState(true);
+  const originFocus = useRef<HTMLElement | null>(null);
+  const completed = useRef(false);
+  const touch = useRef<{ x: number; y: number } | null>(null);
   useEffect(() => {
-    const openStory = () => {
-      setIdx(0);
-      setProgress(0);
-      carriedRef.current = 0;
-      setPaused(false);
-      setOpen(true);
-      trackFunnelEvent("story_view", { story_idx: 0 });
+    const show = () => {
+      originFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      setScene(0); setBranded(true); completed.current = false; setOpen(true);
+      trackMetric("story_opened", { source: "hero" });
     };
-    const handler = () => openStory();
-    window.addEventListener(START_STORY_EVENT, handler as EventListener);
-    // Replay any dispatches that fired before this overlay mounted
-    // (e.g. hero link tapped while the lazy chunk was still loading).
-    drainBufferedEvents(START_STORY_EVENT, () => openStory());
-    return () => window.removeEventListener(START_STORY_EVENT, handler as EventListener);
+    window.addEventListener(START_STORY_EVENT, show);
+    drainBufferedEvents(START_STORY_EVENT, show);
+    return () => window.removeEventListener(START_STORY_EVENT, show);
   }, []);
-
-  /** Затваряне/пропускане — НИКОГА не навигира. */
-  const close = useCallback(
-    (reason: "skip" | "complete") => {
-      setOpen(false);
-      try { window.localStorage.setItem(SEEN_KEY, String(Date.now())); } catch { /* storage недостъпен */ }
-      trackFunnelEvent(reason === "complete" ? "story_complete" : "story_skip", {
-        at_idx: idx,
-        total,
-      });
-    },
-    [idx, total],
-  );
-
-  /** Изрично действие на потребителя → реално начало на документ. */
-  const goToStart = useCallback(
-    (source: "cta" | "keyboard") => {
-      trackFunnelEvent("story_cta_click", { target: "start", source });
-      setOpen(false);
-      try { window.localStorage.setItem(SEEN_KEY, String(Date.now())); } catch { /* storage недостъпен */ }
-      navigate(START_HREF);
-    },
-    [navigate],
-  );
-
-  const goto = useCallback(
-    (nextIdx: number) => {
-      // Отвъд последната карта не навигираме автоматично — оставаме на нея.
-      if (nextIdx >= total) return;
-      const clamped = Math.max(0, nextIdx);
-      setIdx(clamped);
-      setProgress(0);
-      carriedRef.current = 0;
-      trackFunnelEvent("story_view", { story_idx: clamped });
-    },
-    [total],
-  );
-
-  // rAF progress loop for the active story (последната карта изчаква
-  // потребителя — без таймер и без навигация).
-  useEffect(() => {
-    if (!open) return;
-    if (isLast) return;
-    if (paused) {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      return;
+  const move = (next: number) => {
+    const bounded = Math.max(0, Math.min(SCENES.length - 1, next));
+    setScene(bounded);
+    if (bounded === 3 && !completed.current) {
+      completed.current = true; trackMetric("story_completed", { source: "hero" });
     }
-    startedAtRef.current = performance.now();
-    const tick = (now: number) => {
-      const elapsed = now - startedAtRef.current + carriedRef.current;
-      const p = Math.min(1, elapsed / STORY_DURATION_MS);
-      setProgress(p);
-      if (p >= 1) {
-        carriedRef.current = 0;
-        goto(idx + 1);
-        return;
-      }
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      carriedRef.current = progress * STORY_DURATION_MS;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, paused, idx, goto, isLast]);
-
-  // Keyboard navigation. ArrowRight на последната карта е ИЗРИЧНО потребителско
-  // действие, така че може да отведе до /start.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close("skip");
-      else if (e.key === "ArrowRight") {
-        if (isLast) goToStart("keyboard");
-        else goto(idx + 1);
-      } else if (e.key === "ArrowLeft") goto(idx - 1);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, idx, goto, close, isLast, goToStart]);
-
-  if (!open || typeof document === "undefined") return null;
-
-  return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Кратко представяне на Dogovori.net"
-      className="fixed inset-0 z-[300] flex items-center justify-center bg-black/90 backdrop-blur-md"
-      style={{
-        paddingTop: "env(safe-area-inset-top)",
-        paddingBottom: "env(safe-area-inset-bottom)",
-      }}
-    >
-      <div
-        className="relative flex h-[100dvh] w-full max-w-md flex-col overflow-hidden sm:h-[92vh] sm:rounded-2xl sm:border sm:border-gold/30 sm:shadow-elegant"
-        style={{
-          background:
-            "radial-gradient(ellipse at top, hsl(220 40% 12%) 0%, hsl(220 45% 7%) 60%, hsl(220 50% 5%) 100%)",
-        }}
-        onPointerDown={() => {
-          if (!isLast) setPaused(true);
-        }}
-        onPointerUp={() => {
-          if (!isLast) setPaused(false);
-        }}
-        onPointerLeave={() => {
-          if (!isLast) setPaused(false);
-        }}
-        onPointerCancel={() => {
-          if (!isLast) setPaused(false);
-        }}
-      >
-        {/* Progress bars — GPU scaleX for buttery-smooth per-frame updates */}
-        <div className="pointer-events-none absolute inset-x-3 top-3 z-30 flex gap-1.5">
-          {stories.map((_, i) => {
-            const scale = i < idx ? 1 : i === idx ? (isLast ? 1 : progress) : 0;
-            return (
-              <div key={i} className="h-1 flex-1 overflow-hidden rounded-full bg-white/20">
-                <div
-                  className="h-full origin-left rounded-full bg-gold will-change-transform"
-                  style={{
-                    transform: `scaleX(${scale})`,
-                    transition: "none",
-                  }}
-                />
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Close */}
-        <button
-          type="button"
-          onClick={() => close("skip")}
-          aria-label="Затвори"
-          className="absolute right-3 top-6 z-40 rounded-full bg-black/50 p-1.5 text-white/80 backdrop-blur transition hover:bg-black/70 hover:text-white"
-        >
-          <X className="h-5 w-5" />
-        </button>
-
-        {/* Tap zones (disabled on last card so buttons stay clickable) */}
-        {!isLast && (
-          <>
-            <button
-              type="button"
-              aria-label="Предишна стори"
-              onClick={(e) => {
-                e.stopPropagation();
-                goto(idx - 1);
-              }}
-              className="absolute left-0 top-0 z-20 h-full w-1/3"
-              tabIndex={-1}
-            />
-            <button
-              type="button"
-              aria-label="Следваща стори"
-              onClick={(e) => {
-                e.stopPropagation();
-                goto(idx + 1);
-              }}
-              className="absolute right-0 top-0 z-20 h-full w-1/3"
-              tabIndex={-1}
-            />
-          </>
-        )}
-
-        {/* Sliding card track — one horizontal flex, GPU translate3d */}
-        <div className="relative z-10 flex h-full flex-col pt-14 pb-6">
-          <div className="relative flex-1 overflow-hidden">
-            <div
-              className="flex h-full will-change-transform"
-              style={{
-                transform: `translate3d(-${idx * 100}%, 0, 0)`,
-                transition: "transform 560ms cubic-bezier(0.22, 1, 0.36, 1)",
-              }}
-            >
-              {stories.map((s, i) => {
-                const active = i === idx;
-                return (
-                  <div
-                    key={s.id}
-                    className="flex h-full w-full shrink-0 flex-col justify-between px-6"
-                    style={{
-                      opacity: active ? 1 : 0.35,
-                      transition: "opacity 420ms ease-out",
-                    }}
-                    aria-hidden={!active}
-                  >
-                    <div className="mt-2">
-                      <span className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-gold">
-                        {s.icon}
-                        {s.kicker ?? "Добре дошли"}
-                      </span>
-                      <h2 className="mt-4 font-serif text-[26px] font-bold leading-tight text-white sm:text-3xl">
-                        {s.title}
-                      </h2>
-                      <p className="mt-3 text-sm leading-relaxed text-white/80">
-                        {s.body}
-                      </p>
-                    </div>
-
-                    <div className="my-4">{s.preview}</div>
-                  </div>
-                );
-              })}
+  };
+  const current = SCENES[scene];
+  return <Dialog open={open} onOpenChange={setOpen}>
+    <DialogContent className="!inset-0 !h-dvh !max-h-dvh !w-full !max-w-none !translate-x-0 !translate-y-0 !rounded-none grid-rows-[auto_1fr_auto] gap-5 overflow-y-auto px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(3.75rem,env(safe-area-inset-top))] motion-reduce:!animate-none [&>.dialog-close]:size-11 sm:!inset-auto sm:!left-1/2 sm:!top-1/2 sm:!h-auto sm:!max-h-[90dvh] sm:!max-w-3xl sm:!translate-x-[-50%] sm:!translate-y-[-50%] sm:!rounded-md sm:p-8"
+      onCloseAutoFocus={(event) => { event.preventDefault(); if (originFocus.current?.isConnected) originFocus.current.focus(); }}
+      onKeyDown={(event) => {
+        if ((event.key === "ArrowRight" || event.key === "ArrowLeft") && !(event.target instanceof HTMLElement && event.target.closest("input, textarea, select"))) {
+          event.preventDefault(); move(scene + (event.key === "ArrowRight" ? 1 : -1));
+        }
+      }}>
+      <DialogHeader className="text-left sm:pr-10">
+        <DialogTitle className="font-serif text-2xl font-bold sm:text-3xl">Как работи Договори.нет</DialogTitle>
+        <DialogDescription className="text-sm leading-relaxed">Демонстрация с измислени данни — не изпраща и не записва документ.</DialogDescription>
+      </DialogHeader>
+      <div className="min-w-0" onTouchStart={(event) => { const point = event.touches[0]; if (point) touch.current = { x: point.clientX, y: point.clientY }; }} onTouchEnd={(event) => {
+        const point = event.changedTouches[0]; const start = touch.current; touch.current = null;
+        if (point && start && Math.abs(point.clientX - start.x) > 50 && Math.abs(point.clientX - start.x) > Math.abs(point.clientY - start.y)) move(scene + (point.clientX < start.x ? 1 : -1));
+      }}>
+        <nav aria-label="Стъпки на демонстрацията" className="mb-6 grid grid-cols-4 gap-1 border-b border-border pb-3">
+          {SCENES.map((item, index) => <Button key={item.label} variant="ghost" aria-current={index === scene ? "step" : undefined} className={`min-h-11 whitespace-normal rounded-none px-1 text-sm ${index === scene ? "border-b-2 border-gold text-foreground" : "text-muted-foreground"}`} onClick={() => move(index)}>{item.label}</Button>)}
+        </nav>
+        <div className="grid gap-5 sm:min-h-[310px] sm:grid-cols-[1fr_1.1fr] sm:items-start">
+          <div><h2 className="font-serif text-2xl font-bold leading-tight">{current.title}</h2><p className="mt-3 text-base leading-relaxed text-muted-foreground">{current.text}</p>
+            {scene === 1 && <Button variant="outline" className="mt-4 min-h-11" aria-pressed={branded} onClick={() => setBranded((value) => !value)}>{branded ? "Без брандиране" : "Добавете брандиране"}</Button>}
+          </div>
+          <div className="border-l-2 border-gold bg-muted/40 p-4 text-sm leading-relaxed sm:p-5" aria-label="Примерна покана">
+            <div className="mb-4 flex items-center gap-3 border-b border-border pb-3">
+              {scene > 0 && branded && <span className="flex size-11 shrink-0 items-center justify-center border border-gold text-base font-bold text-gold" aria-label="Примерен монограм">IM</span>}
+              <p className="font-semibold">{scene === 0 ? "Нова задача" : "IM Development"}<span className="block font-normal text-muted-foreground">Примерна покана за сътрудничество</span></p>
             </div>
+            <p className="font-semibold">До: Договори.нет</p>
+            <p className="mt-3">Предлагаме да обсъдим подготовката на документи за проект „Нов офис“.</p>
+            <p className="mt-3"><strong>Обхват:</strong> уточняване на задачите, условията и начина на приемане на работата.</p>
+            {scene >= 2 && <p className="mt-3 flex items-start gap-2 text-foreground"><Check className="mt-1 size-4 shrink-0" />За допълване: срок, възнаграждение и данни на страните.</p>}
+            <p className="mt-4 border-t border-border pt-3 text-muted-foreground">Адаптиран фиктивен пример — не е реално партньорство или готов за подпис документ.</p>
           </div>
-
-          {/* Footer nav — sits below the sliding track, static container */}
-          <div className="mt-2 space-y-3 px-6">
-
-            {isLast ? (
-              <div className="space-y-3">
-                <button
-                  type="button"
-                  onClick={() => goToStart("cta")}
-                  className="btn-gold btn-sheen btn-press flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-[15px] font-bold normal-case tracking-normal shadow-gold"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  Започни документ
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-
-                <div className="flex items-center justify-between text-white/70">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      goto(idx - 1);
-                    }}
-                    className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.18em] transition-colors hover:text-gold"
-                  >
-                    <ChevronLeft className="h-4 w-4" /> Назад
-                  </button>
-                  <span className="text-[10px] uppercase tracking-[0.18em] text-white/50">
-                    {idx + 1} / {total}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      goto(0);
-                    }}
-                    className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.18em] text-gold hover:text-gold/80"
-                  >
-                    Отначало <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    trackFunnelEvent("story_cta_click", { target: "login" });
-                    close("complete");
-                    navigate(LOGIN_HREF);
-                  }}
-                  className="block w-full text-center text-xs uppercase tracking-[0.18em] text-white/70 hover:text-gold"
-                >
-                  Имам акаунт → Вход
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between text-white/70">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    goto(idx - 1);
-                  }}
-                  disabled={idx === 0}
-                  className={cn(
-                    "inline-flex items-center gap-1 text-xs uppercase tracking-[0.18em] transition-colors",
-                    idx === 0 ? "opacity-30" : "hover:text-gold",
-                  )}
-                >
-                  <ChevronLeft className="h-4 w-4" /> Назад
-                </button>
-                <span className="text-[10px] uppercase tracking-[0.18em] text-white/50">
-                  {idx + 1} / {total}
-                </span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    goto(idx + 1);
-                  }}
-                  className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.18em] text-gold hover:text-gold/80"
-                >
-                  Напред <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-          </div>
+        </div>
+        {scene === 2 && <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{CATALOG_REVIEW_STATUS.notice}</p>}
+      </div>
+      <div className="border-t border-border pt-4">
+        {scene === 3 && <div onClick={() => setOpen(false)}><RegistrationCTA source="story" destination="/build" className="btn-gold mb-4 min-h-12 w-full text-base" /></div>}
+        <div className="flex items-center justify-between gap-3">
+          <Button variant="ghost" disabled={scene === 0} className="min-h-11" onClick={() => move(scene - 1)} aria-label="Предишна стъпка"><ArrowLeft className="mr-2 size-4" />Назад</Button>
+          <span className="text-sm tabular-nums text-muted-foreground" aria-live="polite">{scene + 1} / 4</span>
+          <Button variant="ghost" className="min-h-11" onClick={() => scene === 3 ? move(0) : move(scene + 1)} aria-label={scene === 3 ? "Отначало" : "Следваща стъпка"}>{scene === 3 ? "Отначало" : "Напред"}<ArrowRight className="ml-2 size-4" /></Button>
         </div>
       </div>
-    </div>,
-    document.body,
-  );
-}
-
-/**
- * Convenience trigger — dispatches the CustomEvent listened to by the overlay.
- */
-export function openStartStory() {
-  if (typeof window === "undefined") return;
-  dispatchBuffered(START_STORY_EVENT);
+    </DialogContent>
+  </Dialog>;
 }
