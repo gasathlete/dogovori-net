@@ -1425,6 +1425,8 @@ html.dark .brand-platform-preview {
 .public-tools a > span:last-child { min-height: 44px; font-size: 14px; }
 .public-packages article ol { line-height: 1.65; }
 .workspace-preview .text-muted-foreground { color: hsl(var(--brand-paper-muted)); }
+.workspace-mono { color: hsl(var(--brand-paper-ink)); }
+.workspace-preview[data-accent="ink"] .workspace-mono { color: hsl(var(--brand-paper)); }
 @media (min-width: 1536px) and (max-width: 1799px) {
   .brand-header .brand-lockup .brand-lockup-wordmark { width: 218px; height: 44px; }
   .brand-header .brand-lockup .brand-lockup-mark { width: 42px; height: 40px; }

@@ -76,7 +76,7 @@ export function DocumentWorkflowStage() {
             </div>
           )}
         </div>
-        <article className="workspace-preview" data-branded={branded} style={{ ["--ws-accent" as string]: `hsl(${accentToken})` }} aria-label="Преглед на примерния документ" aria-live="off">
+        <article className="workspace-preview" data-branded={branded} data-accent={accent} style={{ ["--ws-accent" as string]: `hsl(${accentToken})` }} aria-label="Преглед на примерния документ" aria-live="off">
           <header className={`workspace-letterhead ${flash === "brand" ? "ws-flash" : ""}`}>
             {branded && showLogo && <span className="workspace-mono" aria-hidden="true">{initials}</span>}
             <div className="min-w-0">
