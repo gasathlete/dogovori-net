@@ -107,7 +107,10 @@ let generated = 0, spent = 0, stopReason: string | null = null;
 const tally: Record<string, number> = {};
 const key = process.env.LOVABLE_API_KEY;
 
-for (const [slug, info] of [...targets].sort()) {
+// Приоритет при ограничен бюджет: открити находки → документи в комплекти → азбучно.
+const prio = (slug: string, kits: number) => (scanTemplateText(textBySlug.get(slug) ?? "").length ? 2 : 0) + (kits ? 1 : 0);
+const ordered = [...targets].sort((a, b) => prio(b[0], b[1].kits.size) - prio(a[0], a[1].kits.size) || a[0].localeCompare(b[0]));
+for (const [slug, info] of ordered) {
   if (onlySlug && slug !== onlySlug) continue;
   if (kind === "draft" && baselineSlugs.has(slug)) { queue.push({ slug, kind, status: "baseline_v2_candidate_exists" }); tally.baseline_v2_candidate_exists = (tally.baseline_v2_candidate_exists ?? 0) + 1; continue; }
   const original = await originalFor(slug);
