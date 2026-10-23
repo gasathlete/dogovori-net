@@ -1,4 +1,3 @@
-import { Sparkles } from "@/icons";
 import { cn } from "@/lib/utils";
 import type { PlanId } from "@/hooks/usePlans";
 import { PLAN_HERO_BENEFIT } from "@/lib/planCategories";
@@ -15,31 +14,19 @@ export function PlanHeroBenefit({ planId, highlight, className }: Props) {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl border px-4 py-3",
+        "border-l-2 pl-4 py-2",
         highlight
-          ? "border-brand/45 bg-gradient-to-br from-brand/12 via-brand/5 to-transparent"
-          : "border-hairline bg-brand/[0.04]",
+          ? "border-gold"
+          : "border-border",
         className,
       )}
     >
       <div className="flex items-start gap-2.5">
-        <span
-          className={cn(
-            "mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg",
-            highlight ? "bg-gradient-brand text-white" : "bg-brand/12 text-brand",
-          )}
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-        </span>
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand">
-            Акцент
-          </p>
-
           <p className="mt-0.5 text-sm font-semibold leading-snug text-foreground">
             {b.title}
           </p>
-          <p className="mt-0.5 text-xs text-muted-foreground leading-snug">
+          <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
             {b.subtitle}
           </p>
         </div>

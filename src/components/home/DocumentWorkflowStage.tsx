@@ -25,14 +25,13 @@ export function DocumentWorkflowStage() {
   const go = (i: number) => setStep((i + STEPS.length) % STEPS.length);
   const ping = (f: typeof flash) => { setFlash(f); window.setTimeout(() => setFlash((c) => (c === f ? null : c)), 900); };
   const branded = step >= 1;
-  const accentToken = ACCENTS.find((a) => a.id === accent)!.token;
+  const accentToken = ACCENTS.find((a) => a.id === accent)?.token ?? ACCENTS[0].token;
   const name = company.trim() || "Вашата фирма";
   const initials = name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
   return (
     <div id="hero-workflow" className="commerce-workflow workspace min-w-0 scroll-mt-28">
       <div className="workspace-toolbar">
-        <span className="workspace-dots" aria-hidden="true"><i /><i /><i /></span>
         <span className="truncate text-xs">Покана за сътрудничество · пример</span>
         <span className="ml-auto shrink-0 text-xs tabular-nums" aria-label="Текуща стъпка">{step + 1} / {STEPS.length}</span>
       </div>
@@ -77,7 +76,7 @@ export function DocumentWorkflowStage() {
             </div>
           )}
         </div>
-        <article className="workspace-preview" data-branded={branded} style={{ ["--ws-accent" as string]: `hsl(${accentToken})` }} aria-label="Преглед на примерния документ" aria-live="off">
+        <article className="workspace-preview" data-branded={branded} data-accent={accent} style={{ ["--ws-accent" as string]: `hsl(${accentToken})` }} aria-label="Преглед на примерния документ" aria-live="off">
           <header className={`workspace-letterhead ${flash === "brand" ? "ws-flash" : ""}`}>
             {branded && showLogo && <span className="workspace-mono" aria-hidden="true">{initials}</span>}
             <div className="min-w-0">

@@ -58,24 +58,21 @@ export default function Products() {
         jsonLd={jsonLd}
       />
       <Header />
-      <main className="route-fade min-h-dvh pb-16">
+      <main className="public-commerce route-fade min-h-dvh pb-16">
         <section className="container pt-7 sm:pt-12">
-          <div className="mx-auto max-w-2xl text-center">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-              Продукти
-            </p>
+          <div className="max-w-3xl">
             <h1 className="mt-2 font-serif text-[32px] font-bold leading-[1.1] tracking-tight sm:text-4xl">
-              Разгледайте нашите продукти
+              Продукти за Вашия документ
             </h1>
-            <p className="mx-auto mt-3 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-base">
+            <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-base">
               Проверка преди подпис, поправка на текста или пълен пакет за
               преговори — плащате веднъж, без абонамент.
             </p>
-            <p className="mt-4 inline-flex items-baseline gap-2 rounded-lg border border-gold/25 bg-gold/[0.07] px-3 py-1.5">
+            <p className="mt-5 inline-flex items-baseline gap-3">
               <span className="font-serif text-[22px] font-bold tabular-nums text-gold">
                 от {lowestOneTimePriceLabel()}
               </span>
-              <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <span className="text-sm text-muted-foreground">
                 еднократно
               </span>
             </p>
@@ -93,7 +90,7 @@ export default function Products() {
         <section className="container mt-10" aria-labelledby="produkti-spisak">
           <h2
             id="produkti-spisak"
-            className="mb-4 text-center font-serif text-[22px] font-bold tracking-tight sm:text-2xl"
+            className="mb-6 font-serif text-[22px] font-bold tracking-tight sm:text-2xl"
           >
             Трите продукта
           </h2>

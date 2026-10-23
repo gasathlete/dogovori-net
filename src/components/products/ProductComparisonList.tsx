@@ -16,12 +16,6 @@ import {
 } from "@/lib/products";
 import { cn } from "@/lib/utils";
 
-/** Тихият етикет на всеки продукт — казва за кого е, без натиск. */
-const TIER_LABEL: Record<OneTimeProductId, string> = {
-  contract_check: "Най-лесно начало",
-  contract_improve: "Препоръчано",
-  negotiation_package: "Пълен пакет",
-};
 
 const CARD_TONE: Record<OneTimeProductId, string> = {
   contract_check: "border-border/70 bg-card/50",
@@ -55,10 +49,7 @@ export function ProductComparisonList() {
           >
             <span className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
               <span className="min-w-0 flex-1">
-                <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-gold">
-                  {TIER_LABEL[p.id]}
-                </span>
-                <span className="mt-1 block text-[16px] font-semibold leading-snug text-foreground">
+                <span className="mt-1 block font-serif text-xl font-bold leading-snug text-foreground">
                   {p.name}
                 </span>
                 <span className="mt-1 block text-[13.5px] leading-snug text-muted-foreground">
@@ -67,7 +58,7 @@ export function ProductComparisonList() {
               </span>
               <span className="flex shrink-0 flex-col items-start gap-1">
                 <ProductPrice id={p.id} size="sm" />
-                <span className="text-[11.5px] font-medium text-muted-foreground">
+                <span className="text-sm font-medium text-muted-foreground">
                   еднократно
                 </span>
               </span>
@@ -78,7 +69,7 @@ export function ProductComparisonList() {
               className="mt-3 block border-t border-border/60 pt-3"
               data-testid={`product-entry-receive-${p.id}`}
             >
-              <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <span className="block text-sm font-semibold text-muted-foreground">
                 Получавате
               </span>
               <span className="mt-1.5 grid gap-1.5 sm:grid-cols-2">

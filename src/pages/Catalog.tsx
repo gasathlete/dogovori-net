@@ -197,10 +197,6 @@ export default function CatalogPage() {
         <div className="absolute inset-x-0 top-0 hairline-x" />
         <div className="container relative py-9 md:py-14">
           <div className="max-w-3xl text-left">
-            <div className="eyebrow mb-3 anim-rise" style={{ animationDelay: "0ms" }}>
-              <BookOpen className="h-3.5 w-3.5" />
-              Каталог на документите
-            </div>
             <h1 className="font-serif text-[28px] font-bold leading-[1.12] text-balance md:text-5xl anim-rise" style={{ animationDelay: "80ms" }}>
               {totalDocs}+ професионални договора и бланки
             </h1>
@@ -269,14 +265,14 @@ export default function CatalogPage() {
                             </div>
                             <CatalogReviewNotice />
                             <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{s.purpose}</div>
-                            <div className="mt-1 text-[10px] uppercase tracking-wider text-gold/80">{s.category_title}</div>
+                            <div className="mt-1 text-xs text-muted-foreground">{s.category_title}</div>
                           </Link>
                         </li>
                       );
                     })}
                   </ul>
                   {suggestions.length > 3 && (
-                    <div className="border-t border-border/60 bg-navy-light/40 px-4 py-1.5 text-center text-[10px] uppercase tracking-wider text-muted-foreground">
+                    <div className="border-t border-border/60 bg-navy-light/40 px-4 py-1.5 text-center text-xs text-muted-foreground">
                       {suggestions.length} съвпадения · скролни за още
                     </div>
                   )}
@@ -292,8 +288,8 @@ export default function CatalogPage() {
                 </div>
               )}
             </div>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-              <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="mt-4 flex flex-wrap items-center justify-start gap-2">
+              <span className="text-sm text-muted-foreground">
                 Често търсено
               </span>
               {["наем", "трудов договор", "NDA", "пълномощно", "заем", "фактура"].map((q) => (
@@ -305,7 +301,7 @@ export default function CatalogPage() {
                     setShowAll(false);
                     setOpen(true);
                   }}
-                  className="rounded-full border border-border/60 bg-card/60 px-3 py-1.5 text-xs text-foreground/85 transition-colors hover:border-gold/50 hover:text-gold"
+                  className="min-h-11 rounded border border-border/60 bg-card/60 px-3 py-1.5 text-sm text-foreground/85 transition-colors hover:border-gold/50 hover:text-gold"
                 >
                   {q}
                 </button>
@@ -320,7 +316,7 @@ export default function CatalogPage() {
       <section className="border-b border-border/60 bg-navy-light/20">
         <div className="container py-4 md:py-5">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <Filter className="h-3.5 w-3.5 text-gold/80" />
               Вид документ
             </div>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Check, X, ArrowRight, Sparkles, ShieldCheck, Users, Zap, Crown, Loader2 } from "@/icons";
+import { Check, X, ArrowRight, FileText, ShieldCheck, Users, Zap, Crown, Loader2 } from "@/icons";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Seo } from "@/components/Seo";
@@ -58,7 +58,7 @@ const SUBS_OPEN = isFeatureAvailable("subscription");
 
 
 const PLAN_ICON: Record<PlanId, React.ComponentType<{ className?: string }>> = {
-  free: Sparkles,
+  free: FileText,
   professional: Zap,
   entrepreneur: Crown,
   team: Users,
@@ -107,7 +107,7 @@ function EntryPackCta({ isAuthed, audience }: { isAuthed: boolean; audience: str
   if (SUBS_OPEN) {
     return (
       <Link to={entryPackCtaHref(isAuthed)} onClick={track}
-        className="inline-flex min-h-11 w-fit shrink-0 items-center justify-center rounded-full border border-gold/40 px-5 text-sm font-semibold text-foreground hover:bg-gold/10">
+        className="inline-flex min-h-11 w-fit shrink-0 items-center justify-center rounded border border-gold/40 px-5 text-sm font-semibold text-foreground hover:bg-gold/10">
         Купи за {fmtEur(ENTRY_PACK_CONFIG.eur)}
       </Link>
     );
@@ -133,16 +133,16 @@ function BillingToggle({
     <div
       role="tablist"
       aria-label="Период на фактуриране"
-      className="relative inline-flex items-center rounded-full border border-hairline bg-card/80 p-1 backdrop-blur-md shadow-soft"
+      className="relative inline-flex items-center rounded border border-hairline bg-card/80 p-1  shadow-soft"
     >
       <button
         role="tab"
         aria-selected={billing === "monthly"}
         onClick={() => setBilling("monthly")}
         className={cn(
-          "relative z-10 rounded-full px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
+          "relative z-10 rounded px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
           billing === "monthly"
-            ? "bg-gradient-brand text-white shadow-brand"
+            ? "bg-primary text-primary-foreground"
             : "text-muted-foreground hover:text-foreground",
         )}
       >
@@ -153,16 +153,16 @@ function BillingToggle({
         aria-selected={billing === "yearly"}
         onClick={() => setBilling("yearly")}
         className={cn(
-          "relative z-10 inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
+          "relative z-10 inline-flex items-center gap-2 rounded px-5 py-2 text-sm font-medium transition-all duration-300 sm:px-6",
           billing === "yearly"
-            ? "bg-gradient-brand text-white shadow-brand"
+            ? "bg-primary text-primary-foreground"
             : "text-muted-foreground hover:text-foreground",
         )}
       >
         Годишно
         <span
           className={cn(
-            "inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors",
+            "inline-flex rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors",
             billing === "yearly" ? "bg-white/15 text-white" : "bg-brand/15 text-brand",
           )}
         >
@@ -264,10 +264,7 @@ export default function Plans() {
             Как да платите
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="flex flex-col rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:p-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">
-                Една задача
-              </p>
+            <div className="flex flex-col rounded-2xl border border-hairline bg-card/60 p-5  sm:p-6">
               <h3 className="mt-1.5 font-serif text-xl text-foreground">Конкретен документ</h3>
               <p className="mt-2 text-sm text-muted-foreground">
                 Избирате готов резултат и плащате само него.
@@ -289,10 +286,7 @@ export default function Plans() {
               </details>
             </div>
 
-            <div className="flex flex-col rounded-2xl border border-brand/40 bg-brand/[0.04] p-5 backdrop-blur-md sm:p-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">
-                Работите редовно
-              </p>
+            <div className="flex flex-col rounded-2xl border border-brand/40 bg-brand/[0.04] p-5  sm:p-6">
               <h3 className="mt-1.5 font-serif text-xl text-foreground">Абонамент</h3>
               <p className="mt-2 text-sm text-muted-foreground">
                 {planVolumeSentence()} Изготвяте, проверявате и споделяте документи, а историята и
@@ -303,7 +297,7 @@ export default function Plans() {
                 onClick={() =>
                   trackEvent("plans_purchase_mode_selected", { mode: "subscription", audience })
                 }
-                className="mt-4 inline-flex w-fit items-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-white shadow-brand"
+                className="mt-4 inline-flex w-fit items-center gap-2 rounded bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
               >
                 Виж абонаментите
                 <ArrowRight className="h-4 w-4" />
@@ -347,7 +341,7 @@ export default function Plans() {
                   key={plan.id}
                   id={`plan-${plan.id}`}
                   className={cn(
-                    "group relative flex flex-col scroll-mt-28 overflow-hidden rounded-3xl border bg-card/85 p-6 backdrop-blur-md transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_28px_60px_-30px_hsl(var(--brand)/0.45)] sm:p-7",
+                    "group relative flex flex-col scroll-mt-28 overflow-hidden rounded-3xl border bg-card/85 p-6  transition-all duration-500  sm:p-7",
                     plan.highlight
                       ? "border-brand/50 shadow-brand ring-1 ring-brand/20"
                       : "border-hairline hover:border-brand/30",
@@ -356,35 +350,28 @@ export default function Plans() {
                   )}
                   style={{ animationDelay: `${idx * 80}ms` }}
                 >
-                  {/* Sheen при hover — клипва се в собствен слой, за да не реже бейджовете */}
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl"
-                  >
-                    <span className="absolute inset-y-0 -left-1/3 w-1/3 skew-x-12 bg-gradient-to-r from-transparent via-foreground/[0.07] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-hover:motion-safe:animate-[sheen_1.6s_ease-out]" />
-                  </span>
 
                   {/* Един ред бейджове — без наслагване върху рамката */}
                   {(plan.highlight || isRecommended || plan.id === "entrepreneur") && (
                     <div className="relative z-10 mb-4 flex flex-wrap items-center gap-2">
                       {plan.id === "entrepreneur" && (
-                        <span className="inline-flex rounded-full bg-gradient-brand px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white shadow-brand">
+                        <span className="inline-flex rounded bg-gradient-brand px-2.5 py-1 text-xs font-semibold text-white shadow-brand">
                           Препоръчан план
                         </span>
                       )}
                       {plan.highlight && plan.id !== "entrepreneur" && (
-                        <span className="inline-flex rounded-full bg-gradient-brand px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white shadow-brand">
+                        <span className="inline-flex rounded bg-gradient-brand px-2.5 py-1 text-xs font-semibold text-white shadow-brand">
                           {plan.badge}
                         </span>
                       )}
                       {plan.id === "entrepreneur" && copy.planBadge && (
-                        <span className="inline-flex rounded-full border border-brand/40 bg-brand/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand">
+                        <span className="inline-flex rounded border border-brand/40 bg-brand/10 px-2.5 py-1 text-xs font-medium text-brand">
                           {copy.planBadge}
                         </span>
                       )}
 
                       {isRecommended && (
-                        <span className="inline-flex rounded-full border border-brand/40 bg-brand/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand">
+                        <span className="inline-flex rounded border border-brand/40 bg-brand/10 px-2.5 py-1 text-xs font-medium text-brand">
                           За вашия обем
                         </span>
                       )}
@@ -394,9 +381,9 @@ export default function Plans() {
                   <div className="relative z-10 flex items-center gap-3">
                     <div
                       className={cn(
-                        "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
+                        "hidden",
                         plan.highlight
-                          ? "bg-gradient-brand text-white shadow-brand"
+                          ? "bg-primary text-primary-foreground"
                           : "bg-brand/10 text-brand",
                       )}
                     >
@@ -459,7 +446,7 @@ export default function Plans() {
                   <div className="relative z-10 mt-auto flex flex-col gap-2 pt-7">
 {SUBS_OPEN ? (() => { const cta = buildCta(plan.id as PlanId, billing, isAuthed); return (
                     <Link to={cta.href} onClick={() => trackEvent("plans_cta_clicked", { plan: plan.id, billing, authed: isAuthed, audience })}
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-gold/40 px-5 text-sm font-semibold text-foreground hover:bg-gold/10">
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded border border-gold/40 px-5 text-sm font-semibold text-foreground hover:bg-gold/10">
                       {cta.label}<ArrowRight className="h-4 w-4" />
                     </Link>); })() : (
                     <Button
@@ -476,7 +463,7 @@ export default function Plans() {
                           openPrelaunchWaitlist("subscription", { source: "plans", productId: `subscription_${plan.id}` });
                         }
                       }
-                      className="min-h-11 rounded-full border-gold/40 text-foreground hover:bg-gold/10"
+                      className="min-h-11 rounded border-gold/40 text-foreground hover:bg-gold/10"
                     >
                       Извести ме при пускане
                     </Button>)}
@@ -494,10 +481,10 @@ export default function Plans() {
             if (!free) return null;
             const cta = buildCta("free", billing, isAuthed);
             return (
-              <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:p-6">
+              <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-hairline bg-card/60 p-5  sm:flex-row sm:items-center sm:justify-between sm:p-6">
                 <div className="flex items-start gap-3 sm:items-center">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
-                    <Sparkles className="h-5 w-5" />
+                  <div className="hidden">
+                    <FileText className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
                     <h3 className="font-serif text-lg leading-tight text-foreground">
@@ -512,7 +499,7 @@ export default function Plans() {
                 <Link
                   to={cta.href}
                   onClick={() => trackEvent("plans_cta_clicked", { plan: "free", billing, authed: isAuthed, audience })}
-                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-brand/40 bg-brand/5 px-5 py-2.5 text-sm font-semibold text-brand transition-all hover:border-brand hover:bg-brand/10"
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded border border-brand/40 bg-brand/5 px-5 py-2.5 text-sm font-semibold text-brand transition-all hover:border-brand hover:bg-brand/10"
                 >
                   {cta.label}
                   <ArrowRight className="h-4 w-4" />
@@ -529,7 +516,7 @@ export default function Plans() {
 
         {/* Помощ при избора по обем — след избора на начин на плащане и абонаментите */}
         <section className="relative z-10 mx-auto max-w-7xl px-4 pb-4 sm:pb-6">
-          <p className="mb-3 text-center text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="mb-3 text-center text-sm text-muted-foreground">
             По избор: помощ при избора по обем документи
           </p>
           <PlanScaleSlider
@@ -564,7 +551,7 @@ export default function Plans() {
             ].map((it) => (
               <div
                 key={it.t}
-                className="rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md"
+                className="rounded-2xl border border-hairline bg-card/60 p-5 "
               >
                 <p className="font-serif text-lg text-foreground">{it.t}</p>
                 <p className="mt-1.5 text-sm text-muted-foreground">{it.d}</p>
@@ -604,13 +591,13 @@ export default function Plans() {
             ].map((s, i) => (
               <li
                 key={s.n}
-                className="relative rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md transition-colors hover:border-brand/40"
+                className="relative rounded-2xl border border-hairline bg-card/60 p-5  transition-colors hover:border-brand/40"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">
+                  <span className="text-sm font-medium text-brand">
                     Стъпка {i + 1}
                   </span>
-                  <span className="shrink-0 rounded-full border border-hairline bg-background/60 px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+                  <span className="shrink-0 rounded border border-hairline bg-background/60 px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
                     {s.ops}
                   </span>
                 </div>
@@ -633,7 +620,7 @@ export default function Plans() {
           subtitle="Еднократните продукти са за един конкретен документ. Абонаментът е за редовна работа по документи — включените действия и цените са описани по-долу."
         >
 
-          <div className="rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:p-6">
+          <div className="rounded-2xl border border-hairline bg-card/60 p-5  sm:p-6">
             <div className="mx-auto max-w-3xl">
               <RoiSavingsBanner />
             </div>
@@ -642,7 +629,7 @@ export default function Plans() {
 
         <section className="relative z-10 mx-auto max-w-7xl px-4 pb-12 sm:pb-16">
           {/* Top-up пакети */}
-          <section id="topup" className="scroll-mt-24 rounded-2xl border border-hairline bg-card/70 p-5 backdrop-blur-md sm:p-6">
+          <section id="topup" className="scroll-mt-24 rounded-2xl border border-hairline bg-card/70 p-5  sm:p-6">
 
             <div className="mx-auto max-w-3xl text-center">
               <h2 className="font-serif text-2xl text-foreground sm:text-3xl">
@@ -660,7 +647,7 @@ export default function Plans() {
 
 
           <ExpandableCard
-            className="mt-10 rounded-2xl border border-hairline bg-card/70 p-5 backdrop-blur-md sm:mt-14 sm:p-6"
+            className="mt-10 rounded-2xl border border-hairline bg-card/70 p-5  sm:mt-14 sm:p-6"
             triggerLabel="Виж пълно сравнение ↓"
             triggerLabelOpen="Скрий сравнението ↑"
             triggerClassName="!text-xs"
@@ -711,7 +698,7 @@ export default function Plans() {
         </section>
 
         <section className="relative z-10 mx-auto max-w-5xl px-4 pb-12 sm:pb-16">
-          <div className="grid grid-cols-2 gap-3 rounded-2xl border border-hairline bg-card/60 p-5 backdrop-blur-md sm:grid-cols-4 sm:p-6">
+          <div className="grid grid-cols-2 gap-3 rounded-2xl border border-hairline bg-card/60 p-5  sm:grid-cols-4 sm:p-6">
             {[
               { icon: ShieldCheck, label: "Условия и поверителност" },
               { icon: ShieldCheck, label: "ЗЗД, ТЗ, ЗУТ, eIDAS, ЗЕДЕУУ" },
@@ -728,29 +715,21 @@ export default function Plans() {
 
 
         <section className="relative z-10 mx-auto max-w-4xl px-4 pb-20">
-          <div className="relative overflow-hidden rounded-3xl border border-brand/40 bg-gradient-to-br from-brand-dark via-brand-dark to-foreground/5 p-8 text-center sm:p-12">
-            <div
-              className="pointer-events-none absolute inset-0 opacity-60"
-              aria-hidden
-              style={{
-                background:
-                  "radial-gradient(ellipse 60% 80% at 50% 0%, hsl(var(--brand) / 0.45), transparent 70%)",
-              }}
-            />
+          <div className="brand-platform-band border-t border-border p-8 sm:p-12">
             <div className="relative z-10">
-              <h2 className="font-serif text-2xl text-white sm:text-3xl">
+              <h2 className="font-serif text-2xl text-foreground sm:text-3xl">
                 Разгледайте плановете спокойно
               </h2>
-              <p className="mt-2 text-sm text-white/80 sm:text-base">
+              <p className="mt-2 text-sm text-muted-foreground sm:text-base">
                 {SUBS_OPEN ? "Изберете план или започнете безплатно без карта." : "Покупките още не са отворени. Безплатният старт остава достъпен без карта."}
               </p>
               <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 {SUBS_OPEN ? (
-                  <Link to={buildCta("entrepreneur", "monthly" as Billing, isAuthed).href} className="inline-flex min-h-11 items-center justify-center rounded-full border border-gold/50 bg-background/20 px-6 text-sm font-medium text-white hover:bg-gold/10">{buildCta("entrepreneur", "monthly" as Billing, isAuthed).label}</Link>
-                ) : <Button type="button" variant="outline" className="min-h-11 border-gold/50 bg-background/20 text-white hover:bg-gold/10" onClick={() => openPrelaunchWaitlist("subscription", { source: "plans", productId: "subscription_entrepreneur" })}>Извести ме при пускане</Button>}
+                  <Link to={buildCta("entrepreneur", "monthly" as Billing, isAuthed).href} className="inline-flex min-h-11 items-center justify-center rounded border border-gold/50 bg-background/20 px-6 text-sm font-medium text-foreground hover:bg-gold/10">{buildCta("entrepreneur", "monthly" as Billing, isAuthed).label}</Link>
+                ) : <Button type="button" variant="outline" className="min-h-11 border-gold/50 bg-background/20 text-foreground hover:bg-gold/10" onClick={() => openPrelaunchWaitlist("subscription", { source: "plans", productId: "subscription_entrepreneur" })}>Извести ме при пускане</Button>}
                 <Link
                   to="/catalog"
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-white/30 px-6 py-3 text-sm font-medium text-white/90 transition-all hover:border-white/60 hover:bg-white/5"
+                  className="inline-flex items-center justify-center gap-2 rounded border border-border px-6 py-3 text-sm font-medium text-foreground transition-all hover:border-gold hover:bg-accent"
                 >
                   Разгледай каталога
                 </Link>
@@ -769,7 +748,7 @@ export default function Plans() {
               <AccordionItem
                 key={i}
                 value={`faq-${i}`}
-                className="rounded-xl border border-hairline bg-card/70 px-4 backdrop-blur-md"
+                className="rounded-xl border border-hairline bg-card/70 px-4 "
               >
                 <AccordionTrigger className="text-left text-sm font-medium hover:no-underline">
                   {item.q}

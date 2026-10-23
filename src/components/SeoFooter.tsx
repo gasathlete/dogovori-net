@@ -76,20 +76,20 @@ export function SeoFooter() {
   return (
     <footer className="brand-footer border-t border-border bg-background pt-12 pb-16 lg:pb-0">
       <div className="container">
-        <div className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <div className="sm:col-span-2 lg:col-span-1">
+        <div className="grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="sm:col-span-2 lg:col-span-3 lg:grid lg:grid-cols-[320px_1fr] lg:gap-x-12 lg:items-start lg:border-b lg:border-border lg:pb-8">
             <Link to="/" aria-label="Договори.нет — начало" className="inline-flex min-h-11 items-center"><BrandLockup /></Link>
-            <p className="mt-3 max-w-xs text-xs leading-relaxed text-muted-foreground">
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground lg:mt-0">
               Помощ в ежедневната бюрокрация за хората и малкия и средния бизнес. {CATALOG_DOCUMENT_COUNT} образеца за лични въпроси, работа и бизнес.
             </p>
-            <p className="mt-2 max-w-xs text-xs leading-relaxed text-muted-foreground">
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground lg:col-start-2">
               {CATALOG_REVIEW_STATUS.notice}
             </p>
             <a
               href="https://im-development.imot.bg"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground transition-colors hover:text-gold"
+              className="mt-4 inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-gold lg:col-start-1 lg:row-start-2"
             >
               От <span className="whitespace-nowrap font-semibold text-gold/90">IM Development</span>
             </a>
@@ -100,7 +100,7 @@ export function SeoFooter() {
             if (links.length === 0) return null;
             return (
               <div key={block.title}>
-                <h3 className="mb-3 text-sm font-semibold text-foreground">
+                <h3 className="mb-3 font-serif text-lg font-bold text-foreground">
                   {block.title}
                 </h3>
                 <ul className="space-y-1 text-sm text-muted-foreground">
@@ -117,7 +117,7 @@ export function SeoFooter() {
           })}
 
           <div>
-            <h3 className="mb-3 text-sm font-semibold text-foreground">Продукти</h3>
+            <h3 className="mb-3 font-serif text-lg font-bold text-foreground">Продукти</h3>
             <ul className="space-y-1 text-sm text-muted-foreground">
               {ONE_TIME_PRODUCTS.map((p) => (
                 <li key={p.id}>
@@ -150,7 +150,7 @@ export function SeoFooter() {
           </div>
 
           <div>
-            <h3 className="mb-3 text-sm font-semibold text-foreground">Категории</h3>
+            <h3 className="mb-3 font-serif text-lg font-bold text-foreground">Категории</h3>
             <ul className="space-y-1 text-sm text-muted-foreground">
               {FOOTER_CATEGORIES.map((cat) => (
                 <li key={cat.id}>
@@ -168,7 +168,7 @@ export function SeoFooter() {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-border/40 py-6 text-xs text-muted-foreground">
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-border/40 py-6 text-sm text-muted-foreground">
           <div>© {new Date().getFullYear()} Dogovori.net · Изготвените договори не заместват консултация с адвокат.</div>
           <nav aria-label="Правна информация" className="flex flex-wrap gap-x-4">
             <Link to="/terms" className="inline-flex min-h-11 items-center hover:text-gold">Общи условия</Link>

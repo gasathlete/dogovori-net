@@ -29,14 +29,14 @@ export function TrustGuaranteeBar({ compact = false }: { compact?: boolean }) {
         <div
           key={title}
           role="listitem"
-          className="flex items-start gap-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 transition-colors hover:border-emerald-500/40 hover:bg-emerald-500/10"
+          className="flex items-start gap-2.5 border-t border-border py-4"
         >
-          <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-500">
+          <span className="mt-0.5 flex shrink-0 items-center text-muted-foreground">
             <Icon className="h-3.5 w-3.5" />
           </span>
           <div className="min-w-0">
-            <div className="text-[12px] font-semibold leading-tight text-foreground">{title}</div>
-            <div className="mt-0.5 text-[10.5px] leading-snug text-muted-foreground">{sub}</div>
+            <div className="text-sm font-semibold leading-tight text-foreground">{title}</div>
+            <div className="mt-1 text-sm leading-relaxed text-muted-foreground">{sub}</div>
           </div>
         </div>
       ))}

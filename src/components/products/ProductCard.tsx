@@ -53,15 +53,11 @@ export function ProductCard({
             : "border border-border/70 shadow-soft")
         }
       >
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/50 to-transparent opacity-60 transition-opacity duration-300 group-hover:opacity-100"
-        />
 
         <header className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             {product.badge && (
-              <span className="mb-1.5 inline-block rounded-full border border-gold/30 bg-gold/[0.08] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-gold">
+              <span className="mb-2 block text-sm font-medium text-muted-foreground">
                 {product.badge}
               </span>
             )}

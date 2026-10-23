@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { BrandLockup } from "./BrandLockup";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Button } from "@/components/ui/button";
 import { revokeCookieConsent } from "@/lib/analytics";
 
 function openCookieSettings() {
@@ -16,18 +17,18 @@ export function Footer() {
         <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center xl:gap-12">
           <div className="flex min-w-[220px] flex-col gap-2">
             <Link to="/" aria-label="Договори.нет — начало"><BrandLockup /></Link>
-            <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">По-малко бюрокрация. Повече време за Вас.</p>
+            <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">По-малко бюрокрация. Повече време за Вас.</p>
             <a
               href="https://im-development.imot.bg"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-gold"
+              className="inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-gold"
             >
-              Powered by <span className="whitespace-nowrap font-semibold text-gold/90">IM Development</span>
+              От <span className="whitespace-nowrap font-semibold text-gold/90">IM Development</span>
             </a>
           </div>
-          <nav className="grid w-full grid-cols-2 gap-x-5 gap-y-2 text-xs text-muted-foreground sm:flex sm:w-auto sm:flex-wrap md:justify-end md:max-w-[min(880px,70%)]">
-            <Link to="/feedback?source=footer" className="font-semibold text-gold transition-colors hover:text-gold/80 sm:whitespace-nowrap">💬 Обратна връзка</Link>
+          <nav aria-label="Информация и условия" className="footer-directory grid w-full grid-cols-2 gap-x-6 gap-y-1 text-sm text-muted-foreground lg:grid-cols-3">
+            <Link to="/feedback?source=footer" className="font-semibold text-gold transition-colors hover:text-gold/80 sm:whitespace-nowrap">Обратна връзка</Link>
             <Link to="/ai" className="transition-colors hover:text-gold sm:whitespace-nowrap">AI анализ</Link>
             <Link to="/paketi" className="transition-colors hover:text-gold sm:whitespace-nowrap">Пакети</Link>
             <Link to="/komplekti" className="transition-colors hover:text-gold sm:whitespace-nowrap">Комплекти</Link>
@@ -50,17 +51,17 @@ export function Footer() {
             <Link to="/legal/security" className="transition-colors hover:text-gold sm:whitespace-nowrap">VDP</Link>
             <Link to="/legal/changelog" className="transition-colors hover:text-gold sm:whitespace-nowrap">Changelog</Link>
             <Link to="/legal/knowledge-base" className="transition-colors hover:text-gold sm:whitespace-nowrap">Нормативна база</Link>
-            <button
+            <Button variant="link"
               type="button"
               onClick={openCookieSettings}
-              className="text-left transition-colors hover:text-gold sm:whitespace-nowrap"
+              className="h-auto justify-start whitespace-normal p-0 text-left font-normal text-muted-foreground hover:text-gold"
             >
               Бисквитки: настройки
-            </button>
+            </Button>
           </nav>
         </div>
         <div className="section-divider" />
-        <div className="flex flex-col gap-4 border-t-0 pt-0 text-center text-[11px] leading-relaxed text-muted-foreground md:flex-row md:items-start md:justify-between md:text-left">
+        <div className="flex flex-col gap-4 border-t-0 pt-0 text-left text-sm leading-relaxed text-muted-foreground md:flex-row md:items-start md:justify-between">
           <div className="flex-1">
             <p>
               <strong>„Иванов и Милев Пропърти Девелъпмент" ЕООД</strong> · ЕИК 206957326 ·
@@ -72,7 +73,7 @@ export function Footer() {
             </p>
           </div>
           <div className="flex items-center justify-center gap-2 md:justify-end">
-            <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">Тема</span>
+            <span className="text-sm text-muted-foreground">Тема</span>
             <ThemeToggle />
           </div>
         </div>
