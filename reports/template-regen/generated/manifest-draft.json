@@ -1,6 +1,6 @@
 {
   "kind": "draft",
-  "generatedAt": "2026-10-23T11:25:29.425Z",
+  "generatedAt": "2026-10-23T12:26:12.083Z",
   "model": "openai/gpt-6-astra",
   "legalApproval": null,
   "counts": {
@@ -9,12 +9,13 @@
     "catalogEntriesWithoutOriginal": 49,
     "orphanFiles": 73,
     "sharedFiles": 2,
-    "callsThisRun": 3,
-    "validated_generated_pending_legal_review": 3,
-    "pending": 534,
-    "baseline_v2_candidate_exists": 8
+    "callsThisRun": 39,
+    "validated_generated_pending_legal_review": 48,
+    "baseline_v2_candidate_exists": 8,
+    "validation_failed": 1,
+    "pending": 488
   },
-  "estimatedCreditsThisRun": 3.563,
+  "estimatedCreditsThisRun": 30.595,
   "stopReason": null,
   "catalogEntriesWithoutOriginal": [
     "Acceptance Protocol (приемане на разработка)",
@@ -160,38 +161,63 @@
   ],
   "entries": [
     {
-      "slug": "affiliate-marketing-dogovor",
+      "slug": "data-processing-agreement-dpa-po-gdpr",
       "kind": "draft",
       "catalogNames": [
-        "Affiliate marketing договор"
-      ],
-      "docType": "contract",
-      "sourceSha256": "0581f6f96fbf679e4d57ff5df86f0d02b21c6c1cc121fce2e6dcb672dd08c8c6",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/affiliate-marketing-dogovor.0581f6f96fbf.json",
-      "status": "validated_generated_pending_legal_review",
-      "errors": []
-    },
-    {
-      "slug": "affiliate-programa-za-magazin",
-      "kind": "draft",
-      "catalogNames": [
-        "Affiliate програма (за магазин)"
+        "Data Processing Agreement (DPA по GDPR)"
       ],
       "docType": "other",
-      "sourceSha256": "2daf5ea61de39779e1485100b64d251d955f8b51cdb9cf35e2747b64206f8174",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
+      "sourceSha256": "fd633363e22f90355421a8238f0557f14294cdfa828360583530541709ef612c",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "eu_data"
+      ],
+      "uncoveredCitations": [
+        "чл. 28 от ОРЗД",
+        "чл. 32 от ОРЗД",
+        "чл. 33 от ОРЗД"
+      ],
+      "findings": [
+        "VAGUE_DEADLINE"
+      ],
+      "kits": [
+        "saas-klient",
+        "gdpr-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/data-processing-agreement-dpa-po-gdpr.fd633363e22f.json",
+      "status": "validated_generated_pending_legal_review"
+    },
+    {
+      "slug": "predizvestie-za-prekratyavane-na-naem",
+      "kind": "draft",
+      "status": "baseline_v2_candidate_exists"
+    },
+    {
+      "slug": "saas-abonamenten-dogovor",
+      "kind": "draft",
+      "catalogNames": [
+        "SaaS абонаментен договор"
+      ],
+      "docType": "contract",
+      "sourceSha256": "906f1dba2caa4ad859509c9618c207b030363441d622d22689df7d650b43a17b",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "ip_it"
+      ],
       "uncoveredCitations": [],
-      "findings": [],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/affiliate-programa-za-magazin.2daf5ea61de3.json",
-      "status": "validated_generated_pending_legal_review",
-      "errors": []
+      "findings": [
+        "VAGUE_DEADLINE"
+      ],
+      "kits": [
+        "saas-klient"
+      ],
+      "output": "reports/template-regen/generated/draft/saas-abonamenten-dogovor.906f1dba2caa.json",
+      "status": "validated_generated_pending_legal_review"
+    },
+    {
+      "slug": "uchreditelen-akt-na-eood",
+      "kind": "draft",
+      "status": "baseline_v2_candidate_exists"
     },
     {
       "slug": "agentski-dogovor-po-chl-32-48-tz",
@@ -210,24 +236,350 @@
       ],
       "kits": [],
       "output": "reports/template-regen/generated/draft/agentski-dogovor-po-chl-32-48-tz.e7536942ccb0.json",
+      "status": "validated_generated_pending_legal_review"
+    },
+    {
+      "slug": "aneks-kam-dogovor-za-naem-za-promyana-na-adresa-za-korespondentsiya",
+      "kind": "draft",
+      "catalogNames": [
+        "Анекс към договор за наем за промяна на адреса за кореспонденция"
+      ],
+      "docType": "agreement",
+      "sourceSha256": "c84edbe0edd834f70d6c40efe13ccae34606032a6dca5ef70386b5728b8a3609",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [
+        "PERSON_COMPANY_MIXED_PARTY",
+        "PERSON_COMPANY_MIXED_PARTY"
+      ],
+      "kits": [],
+      "output": "reports/template-regen/generated/draft/aneks-kam-dogovor-za-naem-za-promyana-na-adresa-za-korespondentsiya.c84edbe0edd8.json",
+      "status": "validated_generated_pending_legal_review"
+    },
+    {
+      "slug": "deklaratsiya-za-lipsa-na-publichni-zadalzheniya-po-smisala-na-dopk",
+      "kind": "draft",
+      "catalogNames": [
+        "Декларация за липса на публични задължения по смисъла на ДОПК"
+      ],
+      "docType": "declaration",
+      "sourceSha256": "c18bd8020240fac09269143dff2a5f0fafb475cbba9161a819fb6f2de5a36bd3",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [
+        "PERSON_COMPANY_MIXED_PARTY"
+      ],
+      "kits": [],
+      "output": "reports/template-regen/generated/draft/deklaratsiya-za-lipsa-na-publichni-zadalzheniya-po-smisala-na-dopk.c18bd8020240.json",
+      "status": "validated_generated_pending_legal_review"
+    },
+    {
+      "slug": "dogovor-s-arhitekt",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор с архитект"
+      ],
+      "docType": "contract",
+      "sourceSha256": "e97f3d504d3d98af9db467273163da0030330669926bf68960bbc22d6c9ecad0",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [
+        "VAGUE_DEADLINE"
+      ],
+      "kits": [],
+      "output": "reports/template-regen/generated/draft/dogovor-s-arhitekt.e97f3d504d3d.json",
+      "status": "validation_failed"
+    },
+    {
+      "slug": "dogovor-za-foto-video-produktsiya",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор за фото/видео продукция"
+      ],
+      "docType": "contract",
+      "sourceSha256": "728d45257fb8470ab74c0af588cb6cc2276ec30620c3ab3f9598bc2ca14d3208",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [
+        "PERSON_COMPANY_MIXED_PARTY",
+        "PERSON_COMPANY_MIXED_PARTY"
+      ],
+      "kits": [],
+      "output": "reports/template-regen/generated/draft/dogovor-za-foto-video-produktsiya.728d45257fb8.json",
+      "status": "validated_generated_pending_legal_review"
+    },
+    {
+      "slug": "dogovor-za-franchayzing-bazov-model",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор за франчайзинг (базов модел)"
+      ],
+      "docType": "contract",
+      "sourceSha256": "a59663d28bbd60b69f231bce943069487357e761a9a19c24ecb6d07a1716c3ef",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [
+        "VAGUE_DEADLINE"
+      ],
+      "kits": [],
+      "output": "reports/template-regen/generated/draft/dogovor-za-franchayzing-bazov-model.a59663d28bbd.json",
+      "status": "validated_generated_pending_legal_review"
+    },
+    {
+      "slug": "dogovor-za-grafichen-ux-dizayn",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор за графичен/UX дизайн"
+      ],
+      "docType": "contract",
+      "sourceSha256": "ee45574709c9644c0a71b9ade3daf63d370b8926d0d2cc4428c0d3d72e41f8e8",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [
+        "PERSON_COMPANY_MIXED_PARTY",
+        "PERSON_COMPANY_MIXED_PARTY",
+        "VAGUE_DEADLINE",
+        "VAGUE_DEADLINE"
+      ],
+      "kits": [],
+      "output": "reports/template-regen/generated/draft/dogovor-za-grafichen-ux-dizayn.ee45574709c9.json",
       "status": "validated_generated_pending_legal_review",
       "errors": []
     },
     {
-      "slug": "air-waybill-awb-blanka",
+      "slug": "dogovor-za-investitsionno-proektirane",
       "kind": "draft",
       "catalogNames": [
-        "Air Waybill (AWB) бланка"
+        "Договор за инвестиционно проектиране"
       ],
-      "docType": "other",
-      "sourceSha256": "a4fb6c7c96bd804927c903451d987c15cbc0759466a34e5d2f43f594aad41bfb",
+      "docType": "contract",
+      "sourceSha256": "929b8a14a0455d47e485fc32ddf0ab42724a6861eb730d55102864a3e4056634",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [
+        "чл. 163, ал. 2 от ЗУТ"
+      ],
+      "findings": [
+        "VAGUE_DEADLINE"
+      ],
+      "kits": [],
+      "output": "reports/template-regen/generated/draft/dogovor-za-investitsionno-proektirane.929b8a14a045.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "dogovor-za-naem-na-parkomyasto-garazh",
+      "kind": "draft",
+      "status": "baseline_v2_candidate_exists"
+    },
+    {
+      "slug": "dogovor-za-pr-uslugi",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор за PR услуги"
+      ],
+      "docType": "contract",
+      "sourceSha256": "acf36f7133c120d38221ef1873bd8902dcbf42649e7a407525de25dd6a909652",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [
+        "PERSON_COMPANY_MIXED_PARTY",
+        "PERSON_COMPANY_MIXED_PARTY",
+        "VAGUE_DEADLINE"
+      ],
+      "kits": [],
+      "output": "reports/template-regen/generated/draft/dogovor-za-pr-uslugi.acf36f7133c1.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "dogovor-za-prevod",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор за превод"
+      ],
+      "docType": "contract",
+      "sourceSha256": "6adbe30f66f316a31c31b7bc4644ed5bed33491312ad85e7cf44330c59acaaa0",
       "evidence": "domain_unmapped",
       "gapDomains": [],
       "uncoveredCitations": [],
-      "findings": [],
+      "findings": [
+        "VAGUE_DEADLINE"
+      ],
       "kits": [],
-      "output": "reports/template-regen/generated/draft/air-waybill-awb-blanka.a4fb6c7c96bd.json",
-      "status": "pending"
+      "output": "reports/template-regen/generated/draft/dogovor-za-prevod.6adbe30f66f3.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "dogovor-za-remont-na-zhilishte",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор за ремонт на жилище"
+      ],
+      "docType": "contract",
+      "sourceSha256": "fe9434b989c33d3d07baabaf97d5fe2df68bb050b1ae1e70c97a3fca49816207",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [
+        "VAGUE_DEADLINE"
+      ],
+      "kits": [],
+      "output": "reports/template-regen/generated/draft/dogovor-za-remont-na-zhilishte.fe9434b989c3.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "dogovor-za-seo-uslugi",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор за SEO услуги"
+      ],
+      "docType": "contract",
+      "sourceSha256": "8c50e7e9c5a5bc00e8fa7050ebe4843b9e6bf7432cc13bd71e3220bbdccea874",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [
+        "VAGUE_DEADLINE"
+      ],
+      "kits": [],
+      "output": "reports/template-regen/generated/draft/dogovor-za-seo-uslugi.8c50e7e9c5a5.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "dopalnitelno-sporazumenie-za-promyana-na-obem-na-rabota-po-grazhdanski-dogovor",
+      "kind": "draft",
+      "catalogNames": [
+        "Допълнително споразумение за промяна на обем на работа по граждански договор"
+      ],
+      "docType": "agreement",
+      "sourceSha256": "6e7fa34e7a096e10213a75905d602cbd5c4cda3af6540493d9a879031be2ad34",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [
+        "PERSON_COMPANY_MIXED_PARTY"
+      ],
+      "kits": [],
+      "output": "reports/template-regen/generated/draft/dopalnitelno-sporazumenie-za-promyana-na-obem-na-rabota-po-grazhdanski-dogovor.6e7fa34e7a09.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "garantsionna-karta",
+      "kind": "draft",
+      "catalogNames": [
+        "Гаранционна карта"
+      ],
+      "docType": "other",
+      "sourceSha256": "ccca3beec0bdaa2b2c8dcc64358f5991408d8fccc3e93448e843bff3692d5cdb",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [
+        "VAGUE_DEADLINE"
+      ],
+      "kits": [],
+      "output": "reports/template-regen/generated/draft/garantsionna-karta.ccca3beec0bd.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "mediatsionno-sporazumenie-za-razreshavane-na-targovski-spor",
+      "kind": "draft",
+      "catalogNames": [
+        "Медиационно споразумение за разрешаване на търговски спор"
+      ],
+      "docType": "agreement",
+      "sourceSha256": "6ea85285a6b831fe03e506022a66cda65666b69baba8023929b82d932c72bb81",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [
+        "BLANKET_WAIVER"
+      ],
+      "kits": [],
+      "output": "reports/template-regen/generated/draft/mediatsionno-sporazumenie-za-razreshavane-na-targovski-spor.6ea85285a6b8.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "notarialna-pokana-za-dobrovolno-izpalnenie-na-parichno-zadalzhenie-po-dogovor-za-zaem",
+      "kind": "draft",
+      "catalogNames": [
+        "Нотариална покана за доброволно изпълнение на парично задължение по договор за заем"
+      ],
+      "docType": "notice",
+      "sourceSha256": "f4cb7860a686ad5685e685d96f705bcebcf5ee1f985bfc22e1cf5e9e7d236c52",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "property"
+      ],
+      "uncoveredCitations": [],
+      "findings": [
+        "PERSON_COMPANY_MIXED_PARTY",
+        "PERSON_COMPANY_MIXED_PARTY"
+      ],
+      "kits": [],
+      "output": "reports/template-regen/generated/draft/notarialna-pokana-za-dobrovolno-izpalnenie-na-parichno-zadalzhenie-po-dogovor-za-zaem.f4cb7860a686.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "notarialna-pokana-za-vrashtane-na-dadena-stoka-po-stokov-zaem-ili-druga-forma-na-vremenno-",
+      "kind": "draft",
+      "catalogNames": [
+        "Нотариална покана за връщане на дадена стока по стоков заем или друга форма на временно ползване"
+      ],
+      "docType": "notice",
+      "sourceSha256": "c3f7c40cdb0acf6f08b5dec1245fc5143ea69fac83168859549e88008feb1908",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "property"
+      ],
+      "uncoveredCitations": [],
+      "findings": [
+        "PERSON_COMPANY_MIXED_PARTY",
+        "PERSON_COMPANY_MIXED_PARTY"
+      ],
+      "kits": [],
+      "output": "reports/template-regen/generated/draft/notarialna-pokana-za-vrashtane-na-dadena-stoka-po-stokov-zaem-ili-druga-forma-na-vremenno-.c3f7c40cdb0a.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "palnomoshtno-za-izvarshvane-na-registratsionni-deystviya-v-kat-patna-politsiya",
+      "kind": "draft",
+      "catalogNames": [
+        "Пълномощно за извършване на регистрационни действия в КАТ (Пътна полиция)"
+      ],
+      "docType": "power_of_attorney",
+      "sourceSha256": "7f6f0812ef14c534eab18270cb3d4de7cefbf0dd3478a1461b8b0d622344bd6b",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [
+        "PERSON_COMPANY_MIXED_PARTY"
+      ],
+      "kits": [],
+      "output": "reports/template-regen/generated/draft/palnomoshtno-za-izvarshvane-na-registratsionni-deystviya-v-kat-patna-politsiya.7f6f0812ef14.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "sporazumenie-za-prekratyavane-na-naem-po-vzaimno-saglasie",
+      "kind": "draft",
+      "status": "baseline_v2_candidate_exists"
     },
     {
       "slug": "akt-obr-15-priemane-na-stroezha",
@@ -254,6 +606,1532 @@
         "stroitelen-obekt"
       ],
       "output": "reports/template-regen/generated/draft/akt-obr-15-priemane-na-stroezha.870eb3034d0b.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "aneks-za-podnovyavane-na-naem",
+      "kind": "draft",
+      "catalogNames": [
+        "Анекс за подновяване на наем"
+      ],
+      "docType": "agreement",
+      "sourceSha256": "e60dd0ef7162ff00c37e66d8e61b0c42fa577ab6c18e408a444b73c67097fe24",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "naem-ofis"
+      ],
+      "output": "reports/template-regen/generated/draft/aneks-za-podnovyavane-na-naem.e60dd0ef7162.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "convertible-note",
+      "kind": "draft",
+      "catalogNames": [
+        "Convertible Note"
+      ],
+      "docType": "other",
+      "sourceSha256": "7a73c8b431ea11b65946038afdeb2ba2c30699d6cbe7973952e4255fe3069840",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "investitsionna-sdelka"
+      ],
+      "output": "reports/template-regen/generated/draft/convertible-note.7a73c8b431ea.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "cookie-politika",
+      "kind": "draft",
+      "catalogNames": [
+        "Cookie политика"
+      ],
+      "docType": "internal_policy",
+      "sourceSha256": "161f3ab787b1478787cc0bff96ba20c9332e3977dc35977219be597c90522713",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "saas-eshop-paket",
+        "gdpr-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/cookie-politika.161f3ab787b1.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "deklaratsiya-po-chl-264-dopk",
+      "kind": "draft",
+      "catalogNames": [
+        "Декларация по чл. 264 ДОПК"
+      ],
+      "docType": "declaration",
+      "sourceSha256": "d4cd9e4a79efcf0fee8ac6b72723a49ab93a5c3a93f8e2f0ed72e5cf7b4be43d",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "tax"
+      ],
+      "uncoveredCitations": [
+        "чл. 264, ал. 2 от ДОПК"
+      ],
+      "findings": [],
+      "kits": [
+        "pokupko-prodajba-imot",
+        "prodajba-mps",
+        "predvaritelen-dogovor-imot",
+        "nasledstvo-paket",
+        "deklaratsii-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/deklaratsiya-po-chl-264-dopk.d4cd9e4a79ef.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "deklaratsiya-po-zmip-merki-sreshtu-praneto-na-pari",
+      "kind": "draft",
+      "catalogNames": [
+        "Декларация по ЗМИП (мерки срещу прането на пари)"
+      ],
+      "docType": "declaration",
+      "sourceSha256": "39fd5b7956280dffe8da63e6a4351fb269c2c5fca8506896df05ecbd981a3a89",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "pokupko-prodajba-imot",
+        "deklaratsii-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/deklaratsiya-po-zmip-merki-sreshtu-praneto-na-pari.39fd5b795628.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "deklaratsiya-za-otkaz-ot-nasledstvo",
+      "kind": "draft",
+      "catalogNames": [
+        "Декларация за отказ от наследство"
+      ],
+      "docType": "declaration",
+      "sourceSha256": "de1b21ede9d61e01456da4afc4c1eacb96f63ae8bac5fe181e111afdafe9cc0a",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "family"
+      ],
+      "uncoveredCitations": [
+        "чл. 48 от ЗН"
+      ],
+      "findings": [],
+      "kits": [
+        "nasledstvo-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/deklaratsiya-za-otkaz-ot-nasledstvo.de1b21ede9d6.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "deklaratsiya-za-prodazhba-na-mps-pred-kat",
+      "kind": "draft",
+      "catalogNames": [
+        "Декларация за продажба на МПС пред КАТ"
+      ],
+      "docType": "declaration",
+      "sourceSha256": "2adb5431a2056078ba7fe73844565ec741f05dcd3b0eb68e8818d6b1524859a8",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "prodajba-mps"
+      ],
+      "output": "reports/template-regen/generated/draft/deklaratsiya-za-prodazhba-na-mps-pred-kat.2adb5431a205.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "deklaratsiya-za-saglasie-po-gdpr",
+      "kind": "draft",
+      "catalogNames": [
+        "Декларация за съгласие по GDPR"
+      ],
+      "docType": "declaration",
+      "sourceSha256": "705ab35d6fe86d397a476cbb0a0320e462a36756f251b59d52efa174b2998763",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "eu_data"
+      ],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "gdpr-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/deklaratsiya-za-saglasie-po-gdpr.705ab35d6fe8.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "deklaratsiya-za-saglasie-za-obrabotka-na-lichni-danni-gdpr",
+      "kind": "draft",
+      "catalogNames": [
+        "Декларация за съгласие за обработка на лични данни (GDPR)"
+      ],
+      "docType": "declaration",
+      "sourceSha256": "bea0322eace531c68261b3eaeff7118562eb8d4ea4cbb2e3d53d979ca17ed4ce",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "eu_data"
+      ],
+      "uncoveredCitations": [
+        "чл. 28 от ОРЗД",
+        "чл. 15 ОРЗД",
+        "чл. 16 ОРЗД",
+        "чл. 17 ОРЗД",
+        "чл. 18 ОРЗД",
+        "чл. 20 ОРЗД",
+        "чл. 21 ОРЗД",
+        "чл. 77 ОРЗД"
+      ],
+      "findings": [],
+      "kits": [
+        "saas-eshop-paket",
+        "deklaratsii-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/deklaratsiya-za-saglasie-za-obrabotka-na-lichni-danni-gdpr.bea0322eace5.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "dlazhnostna-harakteristika",
+      "kind": "draft",
+      "catalogNames": [
+        "Длъжностна характеристика"
+      ],
+      "docType": "other",
+      "sourceSha256": "52a52db4120e174b52ef55f12ba1b59ccd03ee0df37ceed8de3a40bd74dac205",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "trudovo-naznachavane"
+      ],
+      "output": "reports/template-regen/generated/draft/dlazhnostna-harakteristika.52a52db4120e.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "dogovor-za-grub-stroezh-akt-14",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор за груб строеж (Акт 14)"
+      ],
+      "docType": "contract",
+      "sourceSha256": "6b2ca55564b41c25868156ec202a2907a879c0af99161f6056be2455af3b1a2f",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "construction"
+      ],
+      "uncoveredCitations": [
+        "чл. 177, ал. 3 от ЗУТ",
+        "чл. 154, ал. 2 от ЗУТ"
+      ],
+      "findings": [],
+      "kits": [
+        "stroitelen-obekt"
+      ],
+      "output": "reports/template-regen/generated/draft/dogovor-za-grub-stroezh-akt-14.6b2ca55564b4.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "dogovor-za-izrabotka-na-uebsayt-mobilno-prilozhenie",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор за изработка на уебсайт / мобилно приложение"
+      ],
+      "docType": "contract",
+      "sourceSha256": "b8d2ebd85d6a0bb592b9d3577562fa2df2b9b55597a24af597605c21a32294f5",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "digitalen-proekt"
+      ],
+      "output": "reports/template-regen/generated/draft/dogovor-za-izrabotka-na-uebsayt-mobilno-prilozhenie.b8d2ebd85d6a.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "dogovor-za-kaparo-pri-prodazhba-na-imot",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор за капаро при продажба на имот"
+      ],
+      "docType": "contract",
+      "sourceSha256": "5ce0b1c5a886779c0daa08fda6a15446751777cb6ecf3ebe444406de1cd9624e",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "property"
+      ],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "pokupko-prodajba-imot"
+      ],
+      "output": "reports/template-regen/generated/draft/dogovor-za-kaparo-pri-prodazhba-na-imot.5ce0b1c5a886.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "dogovor-za-kratkosrochen-naem-airbnb-tip",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор за краткосрочен наем (Airbnb тип)"
+      ],
+      "docType": "contract",
+      "sourceSha256": "a5252b9bf6fcc24f2f97767a6a3bb763fba872a9f8dc0311fd6b05c493f3aad6",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "kratkosrochen-naem"
+      ],
+      "output": "reports/template-regen/generated/draft/dogovor-za-kratkosrochen-naem-airbnb-tip.a5252b9bf6fc.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "dogovor-za-naem-na-ofis",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор за наем на офис"
+      ],
+      "docType": "contract",
+      "sourceSha256": "8f5598cb66520841913f1f98ef586d036c8717675c3b55eb8cd0ab622c1d685a",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "naem-ofis"
+      ],
+      "output": "reports/template-regen/generated/draft/dogovor-za-naem-na-ofis.8f5598cb6652.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "dogovor-za-naem-na-zhilishte",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор за наем на жилище"
+      ],
+      "docType": "contract",
+      "sourceSha256": "7c6935c096fca89e01e35e3e8bb50159add8007d3dac009c03a878ef0627cd60",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "naem-zhilishte"
+      ],
+      "output": "reports/template-regen/generated/draft/dogovor-za-naem-na-zhilishte.7c6935c096fc.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "dogovor-za-poddrazhka-na-softuer-harduer-sla",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор за поддръжка на софтуер/хардуер (SLA)"
+      ],
+      "docType": "contract",
+      "sourceSha256": "64ee6bf4da3d06a1ed028457df2da0ef4a62d44a4b1866c2efdf48008ea1590a",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "ip_it"
+      ],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "saas-klient"
+      ],
+      "output": "reports/template-regen/generated/draft/dogovor-za-poddrazhka-na-softuer-harduer-sla.64ee6bf4da3d.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "dogovor-za-pokupko-prodazhba-na-mps",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор за покупко-продажба на МПС"
+      ],
+      "docType": "contract",
+      "sourceSha256": "91276661da240788acab784ac890880881d0f1a12ab7d65f84addba8da68f0f8",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "prodajba-mps"
+      ],
+      "output": "reports/template-regen/generated/draft/dogovor-za-pokupko-prodazhba-na-mps.91276661da24.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "dogovor-za-prehvarlyane-na-avtorski-prava",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор за прехвърляне на авторски права"
+      ],
+      "docType": "contract",
+      "sourceSha256": "5ac35056747d5f825f299fc65c461a32fed61327f5cb62df8415fe75c86390cd",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "ip_it"
+      ],
+      "uncoveredCitations": [
+        "чл. 18, ал. 2 от ЗАПСП",
+        "чл. 20 от ЗАПСП"
+      ],
+      "findings": [],
+      "kits": [
+        "nda-ip"
+      ],
+      "output": "reports/template-regen/generated/draft/dogovor-za-prehvarlyane-na-avtorski-prava.5ac35056747d.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "dogovor-za-prehvarlyane-na-druzhestveni-dyalove-chl-129-tz",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор за прехвърляне на дружествени дялове (чл. 129 ТЗ)"
+      ],
+      "docType": "contract",
+      "sourceSha256": "d4fbc91446971156df50c8bb0da15a34499ee18801608b2c4892945e5ccf8d04",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "prehvarlyane-dyalove"
+      ],
+      "output": "reports/template-regen/generated/draft/dogovor-za-prehvarlyane-na-druzhestveni-dyalove-chl-129-tz.d4fbc9144697.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "dogovor-za-stroitelen-nadzor",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор за строителен надзор"
+      ],
+      "docType": "contract",
+      "sourceSha256": "902d61e6c5bc1e40847d88a0694194e280e2db2da28a0cbc7ee08f0adbf7e1f3",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "construction"
+      ],
+      "uncoveredCitations": [
+        "чл. 167 от ЗУТ"
+      ],
+      "findings": [],
+      "kits": [
+        "stroitelen-obekt"
+      ],
+      "output": "reports/template-regen/generated/draft/dogovor-za-stroitelen-nadzor.902d61e6c5bc.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "dogovor-za-upravlenie-i-kontrol-duk",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор за управление и контрол (ДУК)"
+      ],
+      "docType": "contract",
+      "sourceSha256": "a9185178a785de3d6e3d78e8a192a00969f71e01ad3c651ce9fa3892acda300c",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "registratsiya-na-ood",
+        "registratsiya-na-eood"
+      ],
+      "output": "reports/template-regen/generated/draft/dogovor-za-upravlenie-i-kontrol-duk.a9185178a785.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "dogovor-za-zaem-na-parichni-sredstva",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор за заем на парични средства"
+      ],
+      "docType": "contract",
+      "sourceSha256": "d43d965907beeb792c9406bb2d1e58c005fc0a8266b1d54a33b892d5bb84a017",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "zaem-pari-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/dogovor-za-zaem-na-parichni-sredstva.d43d965907be.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "dogovor-za-zalog-na-druzhestveni-dyalove",
+      "kind": "draft",
+      "catalogNames": [
+        "Договор за залог на дружествени дялове"
+      ],
+      "docType": "contract",
+      "sourceSha256": "abcdde67461d039482176e077de2d0f53cf94361fde934ff01e827c52404574a",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [
+        "чл. 74а от ТЗ"
+      ],
+      "findings": [],
+      "kits": [
+        "zalog-na-dyalove"
+      ],
+      "output": "reports/template-regen/generated/draft/dogovor-za-zalog-na-druzhestveni-dyalove.abcdde67461d.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "drag-along-tag-along-sporazumenie",
+      "kind": "draft",
+      "catalogNames": [
+        "Drag-along / Tag-along споразумение"
+      ],
+      "docType": "agreement",
+      "sourceSha256": "de8d7185ca60c56f3037a5087dc6b417101beb2f627e558ecc969cfddc67a8d6",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "investitsionna-sdelka"
+      ],
+      "output": "reports/template-regen/generated/draft/drag-along-tag-along-sporazumenie.de8d7185ca60.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "druzhestven-dogovor-na-ood",
+      "kind": "draft",
+      "catalogNames": [
+        "Дружествен договор на ООД"
+      ],
+      "docType": "corporate_act",
+      "sourceSha256": "28db7e11e1c067959002996883fb24d85ffd7e36767436d3636b9fb1d21058b4",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "registratsiya-na-ood",
+        "promyana-po-partida",
+        "prehvarlyane-dyalove"
+      ],
+      "output": "reports/template-regen/generated/draft/druzhestven-dogovor-na-ood.28db7e11e1c0.json",
+      "status": "validated_generated_pending_legal_review",
+      "errors": []
+    },
+    {
+      "slug": "grazhdanski-dogovor-dogovor-za-uslugi",
+      "kind": "draft",
+      "catalogNames": [
+        "Граждански договор / Договор за услуги"
+      ],
+      "docType": "contract",
+      "sourceSha256": "e2e0ee5d6cd907895a0c1a7735927fca2f5b981d25d9ae695800069908c4b14a",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "freelancer-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/grazhdanski-dogovor-dogovor-za-uslugi.e2e0ee5d6cd9.json",
+      "status": "pending"
+    },
+    {
+      "slug": "master-services-agreement-msa",
+      "kind": "draft",
+      "catalogNames": [
+        "Master Services Agreement (MSA)"
+      ],
+      "docType": "other",
+      "sourceSha256": "0f13f58a2e9a3971173b1c2639c53df3ae62e70b4879726c3845d3cb9e82e9b2",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "digitalen-proekt"
+      ],
+      "output": "reports/template-regen/generated/draft/master-services-agreement-msa.0f13f58a2e9a.json",
+      "status": "pending"
+    },
+    {
+      "slug": "molba-za-izdrazhka-na-dete-blanka",
+      "kind": "draft",
+      "catalogNames": [
+        "Молба за издръжка на дете (бланка)"
+      ],
+      "docType": "application",
+      "sourceSha256": "d69e53d02d84c14d6eb2273d995e572f9d93fd61137b1d7b40b036f3ca2ae6af",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "family"
+      ],
+      "uncoveredCitations": [
+        "чл. 142 от СК"
+      ],
+      "findings": [],
+      "kits": [
+        "razvod-paket",
+        "roditelski-prava-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/molba-za-izdrazhka-na-dete-blanka.d69e53d02d84.json",
+      "status": "pending"
+    },
+    {
+      "slug": "nda-dogovor-za-konfidentsialnost",
+      "kind": "draft",
+      "catalogNames": [
+        "NDA – Договор за конфиденциалност"
+      ],
+      "docType": "contract",
+      "sourceSha256": "130c49b1c738b5305452fd124e8fc75e97f9ea8ad20438331b1b6b8ec3fb5b51",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "freelancer-paket",
+        "digitalen-proekt",
+        "nda-ip"
+      ],
+      "output": "reports/template-regen/generated/draft/nda-dogovor-za-konfidentsialnost.130c49b1c738.json",
+      "status": "pending"
+    },
+    {
+      "slug": "notarialno-zaveshtanie",
+      "kind": "draft",
+      "catalogNames": [
+        "Нотариално завещание"
+      ],
+      "docType": "other",
+      "sourceSha256": "6713fecf5d4479d3398b4eb016a4ad2cc272119126d049ca84c7c6c0de0134d8",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "property",
+        "family"
+      ],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "nasledstvo-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/notarialno-zaveshtanie.6713fecf5d44.json",
+      "status": "pending"
+    },
+    {
+      "slug": "obshti-usloviya-na-onlayn-magazin",
+      "kind": "draft",
+      "catalogNames": [
+        "Общи условия на онлайн магазин"
+      ],
+      "docType": "other",
+      "sourceSha256": "e1ebc5bde332283eb0c6fa33f2eff9db233aa0544f9a3bcdaa4571adf81fe1d4",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [
+        "чл. 36 от ЗДДС"
+      ],
+      "findings": [],
+      "kits": [
+        "saas-eshop-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/obshti-usloviya-na-onlayn-magazin.e1ebc5bde332.json",
+      "status": "pending"
+    },
+    {
+      "slug": "okonchatelen-dogovor-za-pokupko-prodazhba-na-imot-proekt-na-notarialen-akt",
+      "kind": "draft",
+      "catalogNames": [
+        "Окончателен договор за покупко-продажба на имот (проект на нотариален акт)"
+      ],
+      "docType": "contract",
+      "sourceSha256": "17b66ac90b9b0c394ef5b7113dcb7b4a729847a9e34a315027211e87aba55c1e",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "property"
+      ],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "pokupko-prodajba-imot"
+      ],
+      "output": "reports/template-regen/generated/draft/okonchatelen-dogovor-za-pokupko-prodazhba-na-imot-proekt-na-notarialen-akt.17b66ac90b9b.json",
+      "status": "pending"
+    },
+    {
+      "slug": "optsii-za-dyalove-esop-plan",
+      "kind": "draft",
+      "catalogNames": [
+        "Опции за дялове / ESOP план"
+      ],
+      "docType": "other",
+      "sourceSha256": "75b3c2d71b77272c2e3dca1e8ac7177fbfbda6dd7b9801d2a723cb08d48caa86",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "esop-vesting"
+      ],
+      "output": "reports/template-regen/generated/draft/optsii-za-dyalove-esop-plan.75b3c2d71b77.json",
+      "status": "pending"
+    },
+    {
+      "slug": "otteglyane-na-palnomoshtno",
+      "kind": "draft",
+      "catalogNames": [
+        "Оттегляне на пълномощно"
+      ],
+      "docType": "power_of_attorney",
+      "sourceSha256": "a47e154c105213c3ac0eab990dc6c9596b9c463ed56224cacb6b0b313cd6e761",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "pulnomoshchno-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/otteglyane-na-palnomoshtno.a47e154c1052.json",
+      "status": "pending"
+    },
+    {
+      "slug": "palnomoshtno-za-bankovi-operatsii",
+      "kind": "draft",
+      "catalogNames": [
+        "Пълномощно за банкови операции"
+      ],
+      "docType": "power_of_attorney",
+      "sourceSha256": "7a1f99dbe8a92c4f0d4fdd49e85d919388fd26ccb278767ad4489b1e5e73e316",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "pulnomoshchno-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/palnomoshtno-za-bankovi-operatsii.7a1f99dbe8a9.json",
+      "status": "pending"
+    },
+    {
+      "slug": "palnomoshtno-za-nap",
+      "kind": "draft",
+      "catalogNames": [
+        "Пълномощно за НАП"
+      ],
+      "docType": "power_of_attorney",
+      "sourceSha256": "26627213abc1647ea811d4fcf53b164315e53e287e805241d6be8ede76da9be5",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "tax"
+      ],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "pulnomoshchno-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/palnomoshtno-za-nap.26627213abc1.json",
+      "status": "pending"
+    },
+    {
+      "slug": "palnomoshtno-za-nedvizhim-imot",
+      "kind": "draft",
+      "catalogNames": [
+        "Пълномощно за недвижим имот"
+      ],
+      "docType": "power_of_attorney",
+      "sourceSha256": "1d56d5e3e420b138be5ba2c20cac99ce57546fea60eaa885fa7c8b5b4e6ce26b",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "property"
+      ],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "pulnomoshchno-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/palnomoshtno-za-nedvizhim-imot.1d56d5e3e420.json",
+      "status": "pending"
+    },
+    {
+      "slug": "palnomoshtno-za-sad",
+      "kind": "draft",
+      "catalogNames": [
+        "Пълномощно за съд"
+      ],
+      "docType": "power_of_attorney",
+      "sourceSha256": "dc13e444e525ceb3845e6b73a920ec1f386b48c0329d9223e91a6c59c2adca1e",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "pulnomoshchno-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/palnomoshtno-za-sad.dc13e444e525.json",
+      "status": "pending"
+    },
+    {
+      "slug": "palnomoshtno-za-upravlenie-i-prodazhba-na-mps",
+      "kind": "draft",
+      "catalogNames": [
+        "Пълномощно за управление и продажба на МПС"
+      ],
+      "docType": "power_of_attorney",
+      "sourceSha256": "6cfe4bbccfd0be0329b9dbf123a26fe9299c2fe740c78aff9418db8f2ecb669e",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "prodajba-mps",
+        "pulnomoshchno-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/palnomoshtno-za-upravlenie-i-prodazhba-na-mps.6cfe4bbccfd0.json",
+      "status": "pending"
+    },
+    {
+      "slug": "podrobno-palnomoshtno-za-prodazhba-na-imot",
+      "kind": "draft",
+      "catalogNames": [
+        "Подробно пълномощно за продажба на имот"
+      ],
+      "docType": "power_of_attorney",
+      "sourceSha256": "50306d4e5a02d607745ce3441766dded06e7c1a6c61ea5360cc373bef794165c",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "property"
+      ],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "pokupko-prodajba-imot"
+      ],
+      "output": "reports/template-regen/generated/draft/podrobno-palnomoshtno-za-prodazhba-na-imot.50306d4e5a02.json",
+      "status": "pending"
+    },
+    {
+      "slug": "pokana-za-dobrovolno-izpalnenie",
+      "kind": "draft",
+      "catalogNames": [
+        "Покана за доброволно изпълнение"
+      ],
+      "docType": "notice",
+      "sourceSha256": "d57799eed29a64e83301455dd977d7d59ec4ce6a804c7bf20dce12f8ec8ed2f0",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "vzemanie-spor"
+      ],
+      "output": "reports/template-regen/generated/draft/pokana-za-dobrovolno-izpalnenie.d57799eed29a.json",
+      "status": "pending"
+    },
+    {
+      "slug": "pokana-za-svikvane-na-obshto-sabranie",
+      "kind": "draft",
+      "catalogNames": [
+        "Покана за свикване на Общо събрание"
+      ],
+      "docType": "corporate_act",
+      "sourceSha256": "18cce9d43ab6ecc2a553bd4205b2cc7dacca99f3bcd9be179a42966826e358fb",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "dividend"
+      ],
+      "output": "reports/template-regen/generated/draft/pokana-za-svikvane-na-obshto-sabranie.18cce9d43ab6.json",
+      "status": "pending"
+    },
+    {
+      "slug": "politika-za-poveritelnost-gdpr",
+      "kind": "draft",
+      "catalogNames": [
+        "Политика за поверителност (GDPR)"
+      ],
+      "docType": "internal_policy",
+      "sourceSha256": "d87689ccb97ccc86ca172135a2eb5566d75f9a8a8771a18fd7cc7c428d67d8b5",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "eu_data"
+      ],
+      "uncoveredCitations": [
+        "чл. 5 от ОРЗД",
+        "чл. 28 от ОРЗД",
+        "чл. 15 от ОРЗД",
+        "чл. 16 от ОРЗД",
+        "чл. 17 от ОРЗД",
+        "чл. 18 от ОРЗД",
+        "чл. 20 от ОРЗД",
+        "чл. 21 от ОРЗД",
+        "чл. 77 от ОРЗД",
+        "чл. 32 от ОРЗД"
+      ],
+      "findings": [],
+      "kits": [
+        "saas-eshop-paket",
+        "gdpr-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/politika-za-poveritelnost-gdpr.d87689ccb97c.json",
+      "status": "pending"
+    },
+    {
+      "slug": "predvaritelen-dogovor-za-pokupka-na-imot",
+      "kind": "draft",
+      "catalogNames": [
+        "Предварителен договор за покупка на имот"
+      ],
+      "docType": "contract",
+      "sourceSha256": "4593111b66868ace9a3cb7d2eef7c57df13c3129b359ce8d48944af33b2e3d7a",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "property"
+      ],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "pokupko-prodajba-imot",
+        "predvaritelen-dogovor-imot"
+      ],
+      "output": "reports/template-regen/generated/draft/predvaritelen-dogovor-za-pokupka-na-imot.4593111b6686.json",
+      "status": "pending"
+    },
+    {
+      "slug": "priemo-predavatelen-protokol",
+      "kind": "draft",
+      "status": "baseline_v2_candidate_exists"
+    },
+    {
+      "slug": "priemo-predavatelen-protokol-pri-prodazhba-na-imot",
+      "kind": "draft",
+      "catalogNames": [
+        "Приемно-предавателен протокол при продажба на имот"
+      ],
+      "docType": "protocol",
+      "sourceSha256": "a1c7d7a9e2960877d135b050a90fa1d1c1839a24cc1fb78ab18de30172048daf",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "property"
+      ],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "pokupko-prodajba-imot"
+      ],
+      "output": "reports/template-regen/generated/draft/priemo-predavatelen-protokol-pri-prodazhba-na-imot.a1c7d7a9e296.json",
+      "status": "pending"
+    },
+    {
+      "slug": "protokol-obrazets-2-otkrivane-na-stroitelna-ploshtadka",
+      "kind": "draft",
+      "catalogNames": [
+        "Протокол образец 2 (откриване на строителна площадка)"
+      ],
+      "docType": "protocol",
+      "sourceSha256": "6560520a4fc8ea9d034f5c2dba38ef2fcd75ea65591dfc5bb832bd35a211a7e9",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "construction"
+      ],
+      "uncoveredCitations": [
+        "чл. 166 от ЗУТ"
+      ],
+      "findings": [],
+      "kits": [
+        "stroitelen-obekt"
+      ],
+      "output": "reports/template-regen/generated/draft/protokol-obrazets-2-otkrivane-na-stroitelna-ploshtadka.6560520a4fc8.json",
+      "status": "pending"
+    },
+    {
+      "slug": "protokol-ot-obshto-sabranie-na-ood",
+      "kind": "draft",
+      "catalogNames": [
+        "Протокол от Общо събрание на ООД"
+      ],
+      "docType": "corporate_act",
+      "sourceSha256": "adb954388a649cf0d002e8680b85eb993e8df88d28c57bf293b30359d901e4ca",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "registratsiya-na-ood",
+        "promyana-po-partida",
+        "prehvarlyane-dyalove",
+        "zalog-na-dyalove",
+        "dividend"
+      ],
+      "output": "reports/template-regen/generated/draft/protokol-ot-obshto-sabranie-na-ood.adb954388a64.json",
+      "status": "pending"
+    },
+    {
+      "slug": "protokol-za-ogled-na-imot-pod-naem",
+      "kind": "draft",
+      "catalogNames": [
+        "Протокол за оглед на имот под наем"
+      ],
+      "docType": "protocol",
+      "sourceSha256": "180d7a7d8857f5b95f6abd3568395aaf5951b8391c6f5b71403fc515f69bb5d2",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "property"
+      ],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "kratkosrochen-naem"
+      ],
+      "output": "reports/template-regen/generated/draft/protokol-za-ogled-na-imot-pod-naem.180d7a7d8857.json",
+      "status": "pending"
+    },
+    {
+      "slug": "razpiska-za-poluchena-suma",
+      "kind": "draft",
+      "catalogNames": [
+        "Разписка за получена сума"
+      ],
+      "docType": "other",
+      "sourceSha256": "30ade9ad9018fa352c6d732ffd4d80f802d23f011a436e633f60ab3584931e1e",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "zaem-pari-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/razpiska-za-poluchena-suma.30ade9ad9018.json",
+      "status": "pending"
+    },
+    {
+      "slug": "razpiska-za-poluchena-suma-naem-depozit",
+      "kind": "draft",
+      "catalogNames": [
+        "Разписка за получена сума (наем/депозит)"
+      ],
+      "docType": "other",
+      "sourceSha256": "c55f2f3c92c9e40f829248a4ecaca6deb67572cd841237e1cc5c48609881a27e",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "naem-zhilishte"
+      ],
+      "output": "reports/template-regen/generated/draft/razpiska-za-poluchena-suma-naem-depozit.c55f2f3c92c9.json",
+      "status": "pending"
+    },
+    {
+      "slug": "razpiska-za-poluchena-suma-v-agentsiya-zadatak",
+      "kind": "draft",
+      "catalogNames": [
+        "Разписка за получена сума в агенция (задатък)"
+      ],
+      "docType": "other",
+      "sourceSha256": "1c91085d6fed42b64786a99bc5e98cc372c66c659f78141bcb0e74db1bfe4a1b",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "predvaritelen-dogovor-imot"
+      ],
+      "output": "reports/template-regen/generated/draft/razpiska-za-poluchena-suma-v-agentsiya-zadatak.1c91085d6fed.json",
+      "status": "pending"
+    },
+    {
+      "slug": "reshenie-na-ednolichniya-sobstvenik-na-kapitala",
+      "kind": "draft",
+      "catalogNames": [
+        "Решение на едноличния собственик на капитала"
+      ],
+      "docType": "corporate_act",
+      "sourceSha256": "08be578b4568d31d5b03c518aa185d0c0069dff14271e32d66791e9974de71d0",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "registratsiya-na-eood"
+      ],
+      "output": "reports/template-regen/generated/draft/reshenie-na-ednolichniya-sobstvenik-na-kapitala.08be578b4568.json",
+      "status": "pending"
+    },
+    {
+      "slug": "reshenie-za-razpredelenie-na-divident",
+      "kind": "draft",
+      "catalogNames": [
+        "Решение за разпределение на дивидент"
+      ],
+      "docType": "other",
+      "sourceSha256": "25e677b4647a277ba0cae75d6322fa2c232239a3a0ab36f5d607800273ffb0ca",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "dividend"
+      ],
+      "output": "reports/template-regen/generated/draft/reshenie-za-razpredelenie-na-divident.25e677b4647a.json",
+      "status": "pending"
+    },
+    {
+      "slug": "safe-simple-agreement-for-future-equity",
+      "kind": "draft",
+      "catalogNames": [
+        "SAFE (Simple Agreement for Future Equity)"
+      ],
+      "docType": "other",
+      "sourceSha256": "b52d1db4be38126c50e14c9c132b1d0359dc3017e6b644165326f21c4d3ba4d8",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "investitsionna-sdelka"
+      ],
+      "output": "reports/template-regen/generated/draft/safe-simple-agreement-for-future-equity.b52d1db4be38.json",
+      "status": "pending"
+    },
+    {
+      "slug": "samorachno-zaveshtanie",
+      "kind": "draft",
+      "catalogNames": [
+        "Саморъчно завещание"
+      ],
+      "docType": "other",
+      "sourceSha256": "1fe133f876bf2d8338d9676b0c421d8dfde2d299c91ad619c7647c9e2dea4c6a",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "family"
+      ],
+      "uncoveredCitations": [
+        "чл. 46, ал. 1 от ЗН"
+      ],
+      "findings": [],
+      "kits": [
+        "nasledstvo-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/samorachno-zaveshtanie.1fe133f876bf.json",
+      "status": "pending"
+    },
+    {
+      "slug": "smetka-za-izplateni-sumi",
+      "kind": "draft",
+      "catalogNames": [
+        "Сметка за изплатени суми"
+      ],
+      "docType": "other",
+      "sourceSha256": "b05a58a2dc15a29e235eba3567934610e92cfb75e1be84b9fee0a2a45e9e5f35",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "freelancer-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/smetka-za-izplateni-sumi.b05a58a2dc15.json",
+      "status": "pending"
+    },
+    {
+      "slug": "sporazumenie-mezhdu-sadruzhnitsi-shareholders-agreement",
+      "kind": "draft",
+      "catalogNames": [
+        "Споразумение между съдружници (Shareholders Agreement)"
+      ],
+      "docType": "agreement",
+      "sourceSha256": "2a72a3ce7999b1916b6d5308f730534b62590cc5622be87691545bc906c6b0ef",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "investitsionna-sdelka",
+        "esop-vesting"
+      ],
+      "output": "reports/template-regen/generated/draft/sporazumenie-mezhdu-sadruzhnitsi-shareholders-agreement.2a72a3ce7999.json",
+      "status": "pending"
+    },
+    {
+      "slug": "sporazumenie-za-izvansadebno-urezhdane-na-spor",
+      "kind": "draft",
+      "catalogNames": [
+        "Споразумение за извънсъдебно уреждане на спор"
+      ],
+      "docType": "agreement",
+      "sourceSha256": "443468a56f9ce09af6a8d21fcc1d877b72d1226c4a720ba119488d3d4764fa72",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "roditelski-prava-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/sporazumenie-za-izvansadebno-urezhdane-na-spor.443468a56f9c.json",
+      "status": "pending"
+    },
+    {
+      "slug": "sporazumenie-za-oproshtavane-na-dalg-chl-108-zzd",
+      "kind": "draft",
+      "catalogNames": [
+        "Споразумение за опрощаване на дълг (чл. 108 ЗЗД)"
+      ],
+      "docType": "agreement",
+      "sourceSha256": "71d56bdaf9666e2b5688ab5eca61a48ab83c6d7ef7dd14bbf901a9eef62dbcc7",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "zaem-pari-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/sporazumenie-za-oproshtavane-na-dalg-chl-108-zzd.71d56bdaf966.json",
+      "status": "pending"
+    },
+    {
+      "slug": "sporazumenie-za-prekratyavane-po-chl-325-al-1-t-1-kt",
+      "kind": "draft",
+      "status": "baseline_v2_candidate_exists"
+    },
+    {
+      "slug": "sporazumenie-za-razvalyane-na-predvaritelen-dogovor",
+      "kind": "draft",
+      "catalogNames": [
+        "Споразумение за разваляне на предварителен договор"
+      ],
+      "docType": "agreement",
+      "sourceSha256": "08b8514d50aaa918f95294a05a90146d4abffb9ee79129ccd3a3471fae1ef150",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "predvaritelen-dogovor-imot"
+      ],
+      "output": "reports/template-regen/generated/draft/sporazumenie-za-razvalyane-na-predvaritelen-dogovor.08b8514d50aa.json",
+      "status": "pending"
+    },
+    {
+      "slug": "sporazumenie-za-razvod-po-vzaimno-saglasie",
+      "kind": "draft",
+      "catalogNames": [
+        "Споразумение за развод по взаимно съгласие"
+      ],
+      "docType": "agreement",
+      "sourceSha256": "3a92ae319c5dd3bb07654bf2b597ce65319eed34fa3f24b9ff9bcc6b0a4e3449",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "family"
+      ],
+      "uncoveredCitations": [
+        "чл. 51, ал. 1 от СК"
+      ],
+      "findings": [],
+      "kits": [
+        "razvod-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/sporazumenie-za-razvod-po-vzaimno-saglasie.3a92ae319c5d.json",
+      "status": "pending"
+    },
+    {
+      "slug": "sporazumenie-za-roditelski-prava",
+      "kind": "draft",
+      "catalogNames": [
+        "Споразумение за родителски права"
+      ],
+      "docType": "agreement",
+      "sourceSha256": "5f9acea97b751c98ff3c28c0abf079965f6f3ecdb74ed39b4de141567c8421dd",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "family"
+      ],
+      "uncoveredCitations": [
+        "чл. 150 от СК"
+      ],
+      "findings": [],
+      "kits": [
+        "razvod-paket",
+        "roditelski-prava-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/sporazumenie-za-roditelski-prava.5f9acea97b75.json",
+      "status": "pending"
+    },
+    {
+      "slug": "statement-of-work-sow",
+      "kind": "draft",
+      "catalogNames": [
+        "Statement of Work (SOW)"
+      ],
+      "docType": "other",
+      "sourceSha256": "dfa1cef89ae230c3aaec38683bcfa3ce545e8a3a579932da7c30f2e016551cb3",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "digitalen-proekt"
+      ],
+      "output": "reports/template-regen/generated/draft/statement-of-work-sow.dfa1cef89ae2.json",
+      "status": "pending"
+    },
+    {
+      "slug": "term-sheet-za-investitsiya",
+      "kind": "draft",
+      "catalogNames": [
+        "Term sheet за инвестиция"
+      ],
+      "docType": "other",
+      "sourceSha256": "3ebfa54368563dd111c377dfce1b1766417e2ec3d08b29699ef692f025747e70",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "investitsionna-sdelka"
+      ],
+      "output": "reports/template-regen/generated/draft/term-sheet-za-investitsiya.3ebfa5436856.json",
+      "status": "pending"
+    },
+    {
+      "slug": "trudov-dogovor-po-chl-67-kt-bezsrochen",
+      "kind": "draft",
+      "catalogNames": [
+        "Трудов договор по чл. 67 КТ (безсрочен)"
+      ],
+      "docType": "contract",
+      "sourceSha256": "bc446d0a2a25832040694ce38fe0a977d72ffb1b6db84834a15984cbd6363f84",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "trudovo-naznachavane"
+      ],
+      "output": "reports/template-regen/generated/draft/trudov-dogovor-po-chl-67-kt-bezsrochen.bc446d0a2a25.json",
+      "status": "pending"
+    },
+    {
+      "slug": "uvedomlenie-po-chl-62-al-5-kt-do-nap",
+      "kind": "draft",
+      "catalogNames": [
+        "Уведомление по чл. 62, ал. 5 КТ до НАП"
+      ],
+      "docType": "notice",
+      "sourceSha256": "a7b857f1f2a536ba270f311fd038d939c09bcc1ec05ea344e73b198e7311312e",
+      "evidence": "evidence_gap_domain",
+      "gapDomains": [
+        "tax"
+      ],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "trudovo-naznachavane"
+      ],
+      "output": "reports/template-regen/generated/draft/uvedomlenie-po-chl-62-al-5-kt-do-nap.a7b857f1f2a5.json",
+      "status": "pending"
+    },
+    {
+      "slug": "vesting-agreement-za-saosnovateli",
+      "kind": "draft",
+      "catalogNames": [
+        "Vesting agreement за съоснователи"
+      ],
+      "docType": "other",
+      "sourceSha256": "78d1514c12a716e989922b8051b745b7ec9145bad92925bc8201d263c4351311",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [
+        "чл. 147а от ТЗ"
+      ],
+      "findings": [],
+      "kits": [
+        "esop-vesting"
+      ],
+      "output": "reports/template-regen/generated/draft/vesting-agreement-za-saosnovateli.78d1514c12a7.json",
+      "status": "pending"
+    },
+    {
+      "slug": "work-for-hire-sporazumenie",
+      "kind": "draft",
+      "catalogNames": [
+        "Work-for-hire споразумение"
+      ],
+      "docType": "agreement",
+      "sourceSha256": "6a0e295d1eaacf6364cdf268db1f2b03c5dd1ad8b6a9adb929a3f76fcc72f995",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "nda-ip"
+      ],
+      "output": "reports/template-regen/generated/draft/work-for-hire-sporazumenie.6a0e295d1eaa.json",
+      "status": "pending"
+    },
+    {
+      "slug": "zapis-na-zapoved",
+      "kind": "draft",
+      "catalogNames": [
+        "Запис на заповед",
+        "Запис на заповед (образец)"
+      ],
+      "docType": "internal_policy",
+      "sourceSha256": "380a6f88b92dea7bc60f975598a4ad725f4890751d9b906943f00b702a9fb322",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "zaem-pari-paket"
+      ],
+      "output": "reports/template-regen/generated/draft/zapis-na-zapoved.380a6f88b92d.json",
+      "status": "pending"
+    },
+    {
+      "slug": "zapoved-za-prekratyavane-na-tpo",
+      "kind": "draft",
+      "catalogNames": [
+        "Заповед за прекратяване на ТПО"
+      ],
+      "docType": "internal_policy",
+      "sourceSha256": "3e2b9ca75bc86a78d3fb2e85099e515b083c17a46a453f72aa5e5304aaf4b97d",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "prekratyavane-trudovo"
+      ],
+      "output": "reports/template-regen/generated/draft/zapoved-za-prekratyavane-na-tpo.3e2b9ca75bc8.json",
+      "status": "pending"
+    },
+    {
+      "slug": "zapoved-za-rabotno-vreme-pravilnik-za-vatreshniya-trudov-red",
+      "kind": "draft",
+      "catalogNames": [
+        "Заповед за работно време / Правилник за вътрешния трудов ред"
+      ],
+      "docType": "internal_policy",
+      "sourceSha256": "696c5c6483fae5d9a0adae34b9987432047f4fe163c9db86c8d3d4f622e5db3b",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [
+        "trudovo-naznachavane"
+      ],
+      "output": "reports/template-regen/generated/draft/zapoved-za-rabotno-vreme-pravilnik-za-vatreshniya-trudov-red.696c5c6483fa.json",
+      "status": "pending"
+    },
+    {
+      "slug": "zayavlenie-a4-a5-za-vpisvane-v-targovskiya-registar",
+      "kind": "draft",
+      "catalogNames": [
+        "Заявление А4/А5 за вписване в Търговския регистър"
+      ],
+      "docType": "application",
+      "sourceSha256": "67610155367273ac84bdaa23fb095872cc7eb87cbaae2f5c7c202172c11f9293",
+      "evidence": "supported",
+      "gapDomains": [],
+      "uncoveredCitations": [
+        "чл. 38, ал. 1 от ЗТРРЮЛНЦ",
+        "чл. 21 от ЗТРРЮЛНЦ"
+      ],
+      "findings": [],
+      "kits": [
+        "registratsiya-na-ood",
+        "registratsiya-na-eood",
+        "promyana-po-partida",
+        "prehvarlyane-dyalove",
+        "zalog-na-dyalove"
+      ],
+      "output": "reports/template-regen/generated/draft/zayavlenie-a4-a5-za-vpisvane-v-targovskiya-registar.676101553672.json",
+      "status": "pending"
+    },
+    {
+      "slug": "affiliate-marketing-dogovor",
+      "kind": "draft",
+      "catalogNames": [
+        "Affiliate marketing договор"
+      ],
+      "docType": "contract",
+      "sourceSha256": "0581f6f96fbf679e4d57ff5df86f0d02b21c6c1cc121fce2e6dcb672dd08c8c6",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [],
+      "output": "reports/template-regen/generated/draft/affiliate-marketing-dogovor.0581f6f96fbf.json",
+      "status": "validated_generated_pending_legal_review"
+    },
+    {
+      "slug": "affiliate-programa-za-magazin",
+      "kind": "draft",
+      "catalogNames": [
+        "Affiliate програма (за магазин)"
+      ],
+      "docType": "other",
+      "sourceSha256": "2daf5ea61de39779e1485100b64d251d955f8b51cdb9cf35e2747b64206f8174",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [],
+      "output": "reports/template-regen/generated/draft/affiliate-programa-za-magazin.2daf5ea61de3.json",
+      "status": "validated_generated_pending_legal_review"
+    },
+    {
+      "slug": "air-waybill-awb-blanka",
+      "kind": "draft",
+      "catalogNames": [
+        "Air Waybill (AWB) бланка"
+      ],
+      "docType": "other",
+      "sourceSha256": "a4fb6c7c96bd804927c903451d987c15cbc0759466a34e5d2f43f594aad41bfb",
+      "evidence": "domain_unmapped",
+      "gapDomains": [],
+      "uncoveredCitations": [],
+      "findings": [],
+      "kits": [],
+      "output": "reports/template-regen/generated/draft/air-waybill-awb-blanka.a4fb6c7c96bd.json",
       "status": "pending"
     },
     {
@@ -433,25 +2311,6 @@
       "status": "pending"
     },
     {
-      "slug": "aneks-kam-dogovor-za-naem-za-promyana-na-adresa-za-korespondentsiya",
-      "kind": "draft",
-      "catalogNames": [
-        "Анекс към договор за наем за промяна на адреса за кореспонденция"
-      ],
-      "docType": "agreement",
-      "sourceSha256": "c84edbe0edd834f70d6c40efe13ccae34606032a6dca5ef70386b5728b8a3609",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [
-        "PERSON_COMPANY_MIXED_PARTY",
-        "PERSON_COMPANY_MIXED_PARTY"
-      ],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/aneks-kam-dogovor-za-naem-za-promyana-na-adresa-za-korespondentsiya.c84edbe0edd8.json",
-      "status": "pending"
-    },
-    {
       "slug": "aneks-kam-dogovor-za-softuerno-razrabotvane-za-dobavyane-na-novi-uslugi",
       "kind": "draft",
       "catalogNames": [
@@ -499,24 +2358,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/aneks-kam-trudov-dogovor-za-promyana-na-rabotnoto-vreme-petdnevna-rabotna-sedmitsa.d39457824513.json",
-      "status": "pending"
-    },
-    {
-      "slug": "aneks-za-podnovyavane-na-naem",
-      "kind": "draft",
-      "catalogNames": [
-        "Анекс за подновяване на наем"
-      ],
-      "docType": "agreement",
-      "sourceSha256": "e60dd0ef7162ff00c37e66d8e61b0c42fa577ab6c18e408a444b73c67097fe24",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "naem-ofis"
-      ],
-      "output": "reports/template-regen/generated/draft/aneks-za-podnovyavane-na-naem.e60dd0ef7162.json",
       "status": "pending"
     },
     {
@@ -693,70 +2534,6 @@
       "status": "pending"
     },
     {
-      "slug": "convertible-note",
-      "kind": "draft",
-      "catalogNames": [
-        "Convertible Note"
-      ],
-      "docType": "other",
-      "sourceSha256": "7a73c8b431ea11b65946038afdeb2ba2c30699d6cbe7973952e4255fe3069840",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "investitsionna-sdelka"
-      ],
-      "output": "reports/template-regen/generated/draft/convertible-note.7a73c8b431ea.json",
-      "status": "pending"
-    },
-    {
-      "slug": "cookie-politika",
-      "kind": "draft",
-      "catalogNames": [
-        "Cookie политика"
-      ],
-      "docType": "internal_policy",
-      "sourceSha256": "161f3ab787b1478787cc0bff96ba20c9332e3977dc35977219be597c90522713",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "saas-eshop-paket",
-        "gdpr-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/cookie-politika.161f3ab787b1.json",
-      "status": "pending"
-    },
-    {
-      "slug": "data-processing-agreement-dpa-po-gdpr",
-      "kind": "draft",
-      "catalogNames": [
-        "Data Processing Agreement (DPA по GDPR)"
-      ],
-      "docType": "other",
-      "sourceSha256": "fd633363e22f90355421a8238f0557f14294cdfa828360583530541709ef612c",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "eu_data"
-      ],
-      "uncoveredCitations": [
-        "чл. 28 от ОРЗД",
-        "чл. 32 от ОРЗД",
-        "чл. 33 от ОРЗД"
-      ],
-      "findings": [
-        "VAGUE_DEADLINE"
-      ],
-      "kits": [
-        "saas-klient",
-        "gdpr-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/data-processing-agreement-dpa-po-gdpr.fd633363e22f.json",
-      "status": "pending"
-    },
-    {
       "slug": "debitno-izvestie-za-nachislyavane-na-lihvi-za-zabava-po-dogovor",
       "kind": "draft",
       "catalogNames": [
@@ -788,32 +2565,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/deklaratsiya-po-chl-25-znnd-proizhod-na-sredstvata-pred-notarius.b62bd395e9b5.json",
-      "status": "pending"
-    },
-    {
-      "slug": "deklaratsiya-po-chl-264-dopk",
-      "kind": "draft",
-      "catalogNames": [
-        "Декларация по чл. 264 ДОПК"
-      ],
-      "docType": "declaration",
-      "sourceSha256": "d4cd9e4a79efcf0fee8ac6b72723a49ab93a5c3a93f8e2f0ed72e5cf7b4be43d",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "tax"
-      ],
-      "uncoveredCitations": [
-        "чл. 264, ал. 2 от ДОПК"
-      ],
-      "findings": [],
-      "kits": [
-        "pokupko-prodajba-imot",
-        "prodajba-mps",
-        "predvaritelen-dogovor-imot",
-        "nasledstvo-paket",
-        "deklaratsii-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/deklaratsiya-po-chl-264-dopk.d4cd9e4a79ef.json",
       "status": "pending"
     },
     {
@@ -886,25 +2637,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/deklaratsiya-po-zakona-za-merkite-sreshtu-izpiraneto-na-pari-zmip-za-proizhod-na-sredstva.1fe363677f84.json",
-      "status": "pending"
-    },
-    {
-      "slug": "deklaratsiya-po-zmip-merki-sreshtu-praneto-na-pari",
-      "kind": "draft",
-      "catalogNames": [
-        "Декларация по ЗМИП (мерки срещу прането на пари)"
-      ],
-      "docType": "declaration",
-      "sourceSha256": "39fd5b7956280dffe8da63e6a4351fb269c2c5fca8506896df05ecbd981a3a89",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "pokupko-prodajba-imot",
-        "deklaratsii-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/deklaratsiya-po-zmip-merki-sreshtu-praneto-na-pari.39fd5b795628.json",
       "status": "pending"
     },
     {
@@ -1024,46 +2756,6 @@
       "status": "pending"
     },
     {
-      "slug": "deklaratsiya-za-lipsa-na-publichni-zadalzheniya-po-smisala-na-dopk",
-      "kind": "draft",
-      "catalogNames": [
-        "Декларация за липса на публични задължения по смисъла на ДОПК"
-      ],
-      "docType": "declaration",
-      "sourceSha256": "c18bd8020240fac09269143dff2a5f0fafb475cbba9161a819fb6f2de5a36bd3",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [
-        "PERSON_COMPANY_MIXED_PARTY"
-      ],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/deklaratsiya-za-lipsa-na-publichni-zadalzheniya-po-smisala-na-dopk.c18bd8020240.json",
-      "status": "pending"
-    },
-    {
-      "slug": "deklaratsiya-za-otkaz-ot-nasledstvo",
-      "kind": "draft",
-      "catalogNames": [
-        "Декларация за отказ от наследство"
-      ],
-      "docType": "declaration",
-      "sourceSha256": "de1b21ede9d61e01456da4afc4c1eacb96f63ae8bac5fe181e111afdafe9cc0a",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "family"
-      ],
-      "uncoveredCitations": [
-        "чл. 48 от ЗН"
-      ],
-      "findings": [],
-      "kits": [
-        "nasledstvo-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/deklaratsiya-za-otkaz-ot-nasledstvo.de1b21ede9d6.json",
-      "status": "pending"
-    },
-    {
       "slug": "deklaratsiya-za-poveritelnost-na-patsientski-danni",
       "kind": "draft",
       "catalogNames": [
@@ -1121,24 +2813,6 @@
       "status": "pending"
     },
     {
-      "slug": "deklaratsiya-za-prodazhba-na-mps-pred-kat",
-      "kind": "draft",
-      "catalogNames": [
-        "Декларация за продажба на МПС пред КАТ"
-      ],
-      "docType": "declaration",
-      "sourceSha256": "2adb5431a2056078ba7fe73844565ec741f05dcd3b0eb68e8818d6b1524859a8",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "prodajba-mps"
-      ],
-      "output": "reports/template-regen/generated/draft/deklaratsiya-za-prodazhba-na-mps-pred-kat.2adb5431a205.json",
-      "status": "pending"
-    },
-    {
       "slug": "deklaratsiya-za-proizhod-na-sredstva",
       "kind": "draft",
       "catalogNames": [
@@ -1189,26 +2863,6 @@
       "status": "pending"
     },
     {
-      "slug": "deklaratsiya-za-saglasie-po-gdpr",
-      "kind": "draft",
-      "catalogNames": [
-        "Декларация за съгласие по GDPR"
-      ],
-      "docType": "declaration",
-      "sourceSha256": "705ab35d6fe86d397a476cbb0a0320e462a36756f251b59d52efa174b2998763",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "eu_data"
-      ],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "gdpr-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/deklaratsiya-za-saglasie-po-gdpr.705ab35d6fe8.json",
-      "status": "pending"
-    },
-    {
       "slug": "deklaratsiya-za-saglasie-za-izdavane-na-evropeyska-zdravna-osiguritelna-karta-ezok",
       "kind": "draft",
       "catalogNames": [
@@ -1222,36 +2876,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/deklaratsiya-za-saglasie-za-izdavane-na-evropeyska-zdravna-osiguritelna-karta-ezok.f9439a7c143c.json",
-      "status": "pending"
-    },
-    {
-      "slug": "deklaratsiya-za-saglasie-za-obrabotka-na-lichni-danni-gdpr",
-      "kind": "draft",
-      "catalogNames": [
-        "Декларация за съгласие за обработка на лични данни (GDPR)"
-      ],
-      "docType": "declaration",
-      "sourceSha256": "bea0322eace531c68261b3eaeff7118562eb8d4ea4cbb2e3d53d979ca17ed4ce",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "eu_data"
-      ],
-      "uncoveredCitations": [
-        "чл. 28 от ОРЗД",
-        "чл. 15 ОРЗД",
-        "чл. 16 ОРЗД",
-        "чл. 17 ОРЗД",
-        "чл. 18 ОРЗД",
-        "чл. 20 ОРЗД",
-        "чл. 21 ОРЗД",
-        "чл. 77 ОРЗД"
-      ],
-      "findings": [],
-      "kits": [
-        "saas-eshop-paket",
-        "deklaratsii-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/deklaratsiya-za-saglasie-za-obrabotka-na-lichni-danni-gdpr.bea0322eace5.json",
       "status": "pending"
     },
     {
@@ -1395,24 +3019,6 @@
       "status": "pending"
     },
     {
-      "slug": "dlazhnostna-harakteristika",
-      "kind": "draft",
-      "catalogNames": [
-        "Длъжностна характеристика"
-      ],
-      "docType": "other",
-      "sourceSha256": "52a52db4120e174b52ef55f12ba1b59ccd03ee0df37ceed8de3a40bd74dac205",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "trudovo-naznachavane"
-      ],
-      "output": "reports/template-regen/generated/draft/dlazhnostna-harakteristika.52a52db4120e.json",
-      "status": "pending"
-    },
-    {
       "slug": "dogovor-glaven-izpalnitel-podizpalnitel",
       "kind": "draft",
       "catalogNames": [
@@ -1474,24 +3080,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/dogovor-s-agent-menidzhar-na-sportist.94a7b2601c1e.json",
-      "status": "pending"
-    },
-    {
-      "slug": "dogovor-s-arhitekt",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор с архитект"
-      ],
-      "docType": "contract",
-      "sourceSha256": "e97f3d504d3d98af9db467273163da0030330669926bf68960bbc22d6c9ecad0",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [
-        "VAGUE_DEADLINE"
-      ],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/dogovor-s-arhitekt.e97f3d504d3d.json",
       "status": "pending"
     },
     {
@@ -2419,25 +4007,6 @@
       "status": "pending"
     },
     {
-      "slug": "dogovor-za-foto-video-produktsiya",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за фото/видео продукция"
-      ],
-      "docType": "contract",
-      "sourceSha256": "728d45257fb8470ab74c0af588cb6cc2276ec30620c3ab3f9598bc2ca14d3208",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [
-        "PERSON_COMPANY_MIXED_PARTY",
-        "PERSON_COMPANY_MIXED_PARTY"
-      ],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/dogovor-za-foto-video-produktsiya.728d45257fb8.json",
-      "status": "pending"
-    },
-    {
       "slug": "dogovor-za-fotosesiya-model-release",
       "kind": "draft",
       "catalogNames": [
@@ -2467,24 +4036,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/dogovor-za-fotozasnemane.e157c9054312.json",
-      "status": "pending"
-    },
-    {
-      "slug": "dogovor-za-franchayzing-bazov-model",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за франчайзинг (базов модел)"
-      ],
-      "docType": "contract",
-      "sourceSha256": "a59663d28bbd60b69f231bce943069487357e761a9a19c24ecb6d07a1716c3ef",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [
-        "VAGUE_DEADLINE"
-      ],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/dogovor-za-franchayzing-bazov-model.a59663d28bbd.json",
       "status": "pending"
     },
     {
@@ -2535,50 +4086,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/dogovor-za-gledane-i-izdrazhka.ce4465600d16.json",
-      "status": "pending"
-    },
-    {
-      "slug": "dogovor-za-grafichen-ux-dizayn",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за графичен/UX дизайн"
-      ],
-      "docType": "contract",
-      "sourceSha256": "ee45574709c9644c0a71b9ade3daf63d370b8926d0d2cc4428c0d3d72e41f8e8",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [
-        "PERSON_COMPANY_MIXED_PARTY",
-        "PERSON_COMPANY_MIXED_PARTY",
-        "VAGUE_DEADLINE",
-        "VAGUE_DEADLINE"
-      ],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/dogovor-za-grafichen-ux-dizayn.ee45574709c9.json",
-      "status": "pending"
-    },
-    {
-      "slug": "dogovor-za-grub-stroezh-akt-14",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за груб строеж (Акт 14)"
-      ],
-      "docType": "contract",
-      "sourceSha256": "6b2ca55564b41c25868156ec202a2907a879c0af99161f6056be2455af3b1a2f",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "construction"
-      ],
-      "uncoveredCitations": [
-        "чл. 177, ал. 3 от ЗУТ",
-        "чл. 154, ал. 2 от ЗУТ"
-      ],
-      "findings": [],
-      "kits": [
-        "stroitelen-obekt"
-      ],
-      "output": "reports/template-regen/generated/draft/dogovor-za-grub-stroezh-akt-14.6b2ca55564b4.json",
       "status": "pending"
     },
     {
@@ -2707,26 +4214,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/dogovor-za-investitorski-kontrol.648bb8fbe7ae.json",
-      "status": "pending"
-    },
-    {
-      "slug": "dogovor-za-investitsionno-proektirane",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за инвестиционно проектиране"
-      ],
-      "docType": "contract",
-      "sourceSha256": "929b8a14a0455d47e485fc32ddf0ab42724a6861eb730d55102864a3e4056634",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [
-        "чл. 163, ал. 2 от ЗУТ"
-      ],
-      "findings": [
-        "VAGUE_DEADLINE"
-      ],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/dogovor-za-investitsionno-proektirane.929b8a14a045.json",
       "status": "pending"
     },
     {
@@ -2896,24 +4383,6 @@
       "status": "pending"
     },
     {
-      "slug": "dogovor-za-izrabotka-na-uebsayt-mobilno-prilozhenie",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за изработка на уебсайт / мобилно приложение"
-      ],
-      "docType": "contract",
-      "sourceSha256": "b8d2ebd85d6a0bb592b9d3577562fa2df2b9b55597a24af597605c21a32294f5",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "digitalen-proekt"
-      ],
-      "output": "reports/template-regen/generated/draft/dogovor-za-izrabotka-na-uebsayt-mobilno-prilozhenie.b8d2ebd85d6a.json",
-      "status": "pending"
-    },
-    {
       "slug": "dogovor-za-izvanklasni-zanimaniya",
       "kind": "draft",
       "catalogNames": [
@@ -2959,26 +4428,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/dogovor-za-kaparo-po-naem-zadarzhano-ot-posrednik.a7fb58352aa5.json",
-      "status": "pending"
-    },
-    {
-      "slug": "dogovor-za-kaparo-pri-prodazhba-na-imot",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за капаро при продажба на имот"
-      ],
-      "docType": "contract",
-      "sourceSha256": "5ce0b1c5a886779c0daa08fda6a15446751777cb6ecf3ebe444406de1cd9624e",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "property"
-      ],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "pokupko-prodajba-imot"
-      ],
-      "output": "reports/template-regen/generated/draft/dogovor-za-kaparo-pri-prodazhba-na-imot.5ce0b1c5a886.json",
       "status": "pending"
     },
     {
@@ -3107,24 +4556,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/dogovor-za-kouching-uslugi.a602deecba7e.json",
-      "status": "pending"
-    },
-    {
-      "slug": "dogovor-za-kratkosrochen-naem-airbnb-tip",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за краткосрочен наем (Airbnb тип)"
-      ],
-      "docType": "contract",
-      "sourceSha256": "a5252b9bf6fcc24f2f97767a6a3bb763fba872a9f8dc0311fd6b05c493f3aad6",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "kratkosrochen-naem"
-      ],
-      "output": "reports/template-regen/generated/draft/dogovor-za-kratkosrochen-naem-airbnb-tip.a5252b9bf6fc.json",
       "status": "pending"
     },
     {
@@ -3536,29 +4967,6 @@
       "status": "pending"
     },
     {
-      "slug": "dogovor-za-naem-na-ofis",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за наем на офис"
-      ],
-      "docType": "contract",
-      "sourceSha256": "8f5598cb66520841913f1f98ef586d036c8717675c3b55eb8cd0ab622c1d685a",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "naem-ofis"
-      ],
-      "output": "reports/template-regen/generated/draft/dogovor-za-naem-na-ofis.8f5598cb6652.json",
-      "status": "pending"
-    },
-    {
-      "slug": "dogovor-za-naem-na-parkomyasto-garazh",
-      "kind": "draft",
-      "status": "baseline_v2_candidate_exists"
-    },
-    {
       "slug": "dogovor-za-naem-na-selskostopanska-tehnika",
       "kind": "draft",
       "catalogNames": [
@@ -3670,24 +5078,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/dogovor-za-naem-na-zemedelska-zemya.c3cb136f4646.json",
-      "status": "pending"
-    },
-    {
-      "slug": "dogovor-za-naem-na-zhilishte",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за наем на жилище"
-      ],
-      "docType": "contract",
-      "sourceSha256": "7c6935c096fca89e01e35e3e8bb50159add8007d3dac009c03a878ef0627cd60",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "naem-zhilishte"
-      ],
-      "output": "reports/template-regen/generated/draft/dogovor-za-naem-na-zhilishte.7c6935c096fc.json",
       "status": "pending"
     },
     {
@@ -3979,26 +5369,6 @@
       "status": "pending"
     },
     {
-      "slug": "dogovor-za-poddrazhka-na-softuer-harduer-sla",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за поддръжка на софтуер/хардуер (SLA)"
-      ],
-      "docType": "contract",
-      "sourceSha256": "64ee6bf4da3d06a1ed028457df2da0ef4a62d44a4b1866c2efdf48008ea1590a",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "ip_it"
-      ],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "saas-klient"
-      ],
-      "output": "reports/template-regen/generated/draft/dogovor-za-poddrazhka-na-softuer-harduer-sla.64ee6bf4da3d.json",
-      "status": "pending"
-    },
-    {
       "slug": "dogovor-za-podgotvitelni-kursove",
       "kind": "draft",
       "catalogNames": [
@@ -4060,24 +5430,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/dogovor-za-pokupko-prodazhba-na-dvizhima-vesht.75782ceaa64f.json",
-      "status": "pending"
-    },
-    {
-      "slug": "dogovor-za-pokupko-prodazhba-na-mps",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за покупко-продажба на МПС"
-      ],
-      "docType": "contract",
-      "sourceSha256": "91276661da240788acab784ac890880881d0f1a12ab7d65f84addba8da68f0f8",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "prodajba-mps"
-      ],
-      "output": "reports/template-regen/generated/draft/dogovor-za-pokupko-prodazhba-na-mps.91276661da24.json",
       "status": "pending"
     },
     {
@@ -4247,49 +5599,6 @@
       "status": "pending"
     },
     {
-      "slug": "dogovor-za-pr-uslugi",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за PR услуги"
-      ],
-      "docType": "contract",
-      "sourceSha256": "acf36f7133c120d38221ef1873bd8902dcbf42649e7a407525de25dd6a909652",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [
-        "PERSON_COMPANY_MIXED_PARTY",
-        "PERSON_COMPANY_MIXED_PARTY",
-        "VAGUE_DEADLINE"
-      ],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/dogovor-za-pr-uslugi.acf36f7133c1.json",
-      "status": "pending"
-    },
-    {
-      "slug": "dogovor-za-prehvarlyane-na-avtorski-prava",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за прехвърляне на авторски права"
-      ],
-      "docType": "contract",
-      "sourceSha256": "5ac35056747d5f825f299fc65c461a32fed61327f5cb62df8415fe75c86390cd",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "ip_it"
-      ],
-      "uncoveredCitations": [
-        "чл. 18, ал. 2 от ЗАПСП",
-        "чл. 20 от ЗАПСП"
-      ],
-      "findings": [],
-      "kits": [
-        "nda-ip"
-      ],
-      "output": "reports/template-regen/generated/draft/dogovor-za-prehvarlyane-na-avtorski-prava.5ac35056747d.json",
-      "status": "pending"
-    },
-    {
       "slug": "dogovor-za-prehvarlyane-na-domeyn",
       "kind": "draft",
       "catalogNames": [
@@ -4321,24 +5630,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/dogovor-za-prehvarlyane-na-druzhestveni-dyalove.5587eb6085a6.json",
-      "status": "pending"
-    },
-    {
-      "slug": "dogovor-za-prehvarlyane-na-druzhestveni-dyalove-chl-129-tz",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за прехвърляне на дружествени дялове (чл. 129 ТЗ)"
-      ],
-      "docType": "contract",
-      "sourceSha256": "d4fbc91446971156df50c8bb0da15a34499ee18801608b2c4892945e5ccf8d04",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "prehvarlyane-dyalove"
-      ],
-      "output": "reports/template-regen/generated/draft/dogovor-za-prehvarlyane-na-druzhestveni-dyalove-chl-129-tz.d4fbc9144697.json",
       "status": "pending"
     },
     {
@@ -4395,24 +5686,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/dogovor-za-prenaemane.039684188988.json",
-      "status": "pending"
-    },
-    {
-      "slug": "dogovor-za-prevod",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за превод"
-      ],
-      "docType": "contract",
-      "sourceSha256": "6adbe30f66f316a31c31b7bc4644ed5bed33491312ad85e7cf44330c59acaaa0",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [
-        "VAGUE_DEADLINE"
-      ],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/dogovor-za-prevod.6adbe30f66f3.json",
       "status": "pending"
     },
     {
@@ -4560,24 +5833,6 @@
       "status": "pending"
     },
     {
-      "slug": "dogovor-za-remont-na-zhilishte",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за ремонт на жилище"
-      ],
-      "docType": "contract",
-      "sourceSha256": "fe9434b989c33d3d07baabaf97d5fe2df68bb050b1ae1e70c97a3fca49816207",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [
-        "VAGUE_DEADLINE"
-      ],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/dogovor-za-remont-na-zhilishte.fe9434b989c3.json",
-      "status": "pending"
-    },
-    {
       "slug": "dogovor-za-saavtorstvo",
       "kind": "draft",
       "catalogNames": [
@@ -4674,24 +5929,6 @@
       "status": "pending"
     },
     {
-      "slug": "dogovor-za-seo-uslugi",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за SEO услуги"
-      ],
-      "docType": "contract",
-      "sourceSha256": "8c50e7e9c5a5bc00e8fa7050ebe4843b9e6bf7432cc13bd71e3220bbdccea874",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [
-        "VAGUE_DEADLINE"
-      ],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/dogovor-za-seo-uslugi.8c50e7e9c5a5.json",
-      "status": "pending"
-    },
-    {
       "slug": "dogovor-za-skladirane-warehousing",
       "kind": "draft",
       "catalogNames": [
@@ -4785,28 +6022,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/dogovor-za-stipendiya.2ba5047fa414.json",
-      "status": "pending"
-    },
-    {
-      "slug": "dogovor-za-stroitelen-nadzor",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за строителен надзор"
-      ],
-      "docType": "contract",
-      "sourceSha256": "902d61e6c5bc1e40847d88a0694194e280e2db2da28a0cbc7ee08f0adbf7e1f3",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "construction"
-      ],
-      "uncoveredCitations": [
-        "чл. 167 от ЗУТ"
-      ],
-      "findings": [],
-      "kits": [
-        "stroitelen-obekt"
-      ],
-      "output": "reports/template-regen/generated/draft/dogovor-za-stroitelen-nadzor.902d61e6c5bc.json",
       "status": "pending"
     },
     {
@@ -4988,25 +6203,6 @@
       "status": "pending"
     },
     {
-      "slug": "dogovor-za-upravlenie-i-kontrol-duk",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за управление и контрол (ДУК)"
-      ],
-      "docType": "contract",
-      "sourceSha256": "a9185178a785de3d6e3d78e8a192a00969f71e01ad3c651ce9fa3892acda300c",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "registratsiya-na-ood",
-        "registratsiya-na-eood"
-      ],
-      "output": "reports/template-regen/generated/draft/dogovor-za-upravlenie-i-kontrol-duk.a9185178a785.json",
-      "status": "pending"
-    },
-    {
       "slug": "dogovor-za-vatreshen-odit",
       "kind": "draft",
       "catalogNames": [
@@ -5105,24 +6301,6 @@
       "status": "pending"
     },
     {
-      "slug": "dogovor-za-zaem-na-parichni-sredstva",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за заем на парични средства"
-      ],
-      "docType": "contract",
-      "sourceSha256": "d43d965907beeb792c9406bb2d1e58c005fc0a8266b1d54a33b892d5bb84a017",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "zaem-pari-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/dogovor-za-zaem-na-parichni-sredstva.d43d965907be.json",
-      "status": "pending"
-    },
-    {
       "slug": "dogovor-za-zaem-za-posluzhvane",
       "kind": "draft",
       "catalogNames": [
@@ -5152,26 +6330,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/dogovor-za-zalesyavane-gorski-uslugi.88636bcd363d.json",
-      "status": "pending"
-    },
-    {
-      "slug": "dogovor-za-zalog-na-druzhestveni-dyalove",
-      "kind": "draft",
-      "catalogNames": [
-        "Договор за залог на дружествени дялове"
-      ],
-      "docType": "contract",
-      "sourceSha256": "abcdde67461d039482176e077de2d0f53cf94361fde934ff01e827c52404574a",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [
-        "чл. 74а от ТЗ"
-      ],
-      "findings": [],
-      "kits": [
-        "zalog-na-dyalove"
-      ],
-      "output": "reports/template-regen/generated/draft/dogovor-za-zalog-na-druzhestveni-dyalove.abcdde67461d.json",
       "status": "pending"
     },
     {
@@ -5305,24 +6463,6 @@
       "status": "pending"
     },
     {
-      "slug": "dopalnitelno-sporazumenie-za-promyana-na-obem-na-rabota-po-grazhdanski-dogovor",
-      "kind": "draft",
-      "catalogNames": [
-        "Допълнително споразумение за промяна на обем на работа по граждански договор"
-      ],
-      "docType": "agreement",
-      "sourceSha256": "6e7fa34e7a096e10213a75905d602cbd5c4cda3af6540493d9a879031be2ad34",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [
-        "PERSON_COMPANY_MIXED_PARTY"
-      ],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/dopalnitelno-sporazumenie-za-promyana-na-obem-na-rabota-po-grazhdanski-dogovor.6e7fa34e7a09.json",
-      "status": "pending"
-    },
-    {
       "slug": "dopalnitelno-sporazumenie-za-promyana-na-tsenata-po-targovski-dogovor",
       "kind": "draft",
       "catalogNames": [
@@ -5339,24 +6479,6 @@
       "status": "pending"
     },
     {
-      "slug": "drag-along-tag-along-sporazumenie",
-      "kind": "draft",
-      "catalogNames": [
-        "Drag-along / Tag-along споразумение"
-      ],
-      "docType": "agreement",
-      "sourceSha256": "de8d7185ca60c56f3037a5087dc6b417101beb2f627e558ecc969cfddc67a8d6",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "investitsionna-sdelka"
-      ],
-      "output": "reports/template-regen/generated/draft/drag-along-tag-along-sporazumenie.de8d7185ca60.json",
-      "status": "pending"
-    },
-    {
       "slug": "dropshipping-dogovor",
       "kind": "draft",
       "catalogNames": [
@@ -5370,26 +6492,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/dropshipping-dogovor.6a6d33b35094.json",
-      "status": "pending"
-    },
-    {
-      "slug": "druzhestven-dogovor-na-ood",
-      "kind": "draft",
-      "catalogNames": [
-        "Дружествен договор на ООД"
-      ],
-      "docType": "corporate_act",
-      "sourceSha256": "28db7e11e1c067959002996883fb24d85ffd7e36767436d3636b9fb1d21058b4",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "registratsiya-na-ood",
-        "promyana-po-partida",
-        "prehvarlyane-dyalove"
-      ],
-      "output": "reports/template-regen/generated/draft/druzhestven-dogovor-na-ood.28db7e11e1c0.json",
       "status": "pending"
     },
     {
@@ -5550,24 +6652,6 @@
       "status": "pending"
     },
     {
-      "slug": "garantsionna-karta",
-      "kind": "draft",
-      "catalogNames": [
-        "Гаранционна карта"
-      ],
-      "docType": "other",
-      "sourceSha256": "ccca3beec0bdaa2b2c8dcc64358f5991408d8fccc3e93448e843bff3692d5cdb",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [
-        "VAGUE_DEADLINE"
-      ],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/garantsionna-karta.ccca3beec0bd.json",
-      "status": "pending"
-    },
-    {
       "slug": "generalno-palnomoshtno-za-shirok-krag-ot-grazhdanskopravni-sdelki-i-deystviya",
       "kind": "draft",
       "catalogNames": [
@@ -5600,24 +6684,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/ghostwriting-dogovor.b48826aafc68.json",
-      "status": "pending"
-    },
-    {
-      "slug": "grazhdanski-dogovor-dogovor-za-uslugi",
-      "kind": "draft",
-      "catalogNames": [
-        "Граждански договор / Договор за услуги"
-      ],
-      "docType": "contract",
-      "sourceSha256": "e2e0ee5d6cd907895a0c1a7735927fca2f5b981d25d9ae695800069908c4b14a",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "freelancer-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/grazhdanski-dogovor-dogovor-za-uslugi.e2e0ee5d6cd9.json",
       "status": "pending"
     },
     {
@@ -6268,42 +7334,6 @@
       "status": "pending"
     },
     {
-      "slug": "master-services-agreement-msa",
-      "kind": "draft",
-      "catalogNames": [
-        "Master Services Agreement (MSA)"
-      ],
-      "docType": "other",
-      "sourceSha256": "0f13f58a2e9a3971173b1c2639c53df3ae62e70b4879726c3845d3cb9e82e9b2",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "digitalen-proekt"
-      ],
-      "output": "reports/template-regen/generated/draft/master-services-agreement-msa.0f13f58a2e9a.json",
-      "status": "pending"
-    },
-    {
-      "slug": "mediatsionno-sporazumenie-za-razreshavane-na-targovski-spor",
-      "kind": "draft",
-      "catalogNames": [
-        "Медиационно споразумение за разрешаване на търговски спор"
-      ],
-      "docType": "agreement",
-      "sourceSha256": "6ea85285a6b831fe03e506022a66cda65666b69baba8023929b82d932c72bb81",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [
-        "BLANKET_WAIVER"
-      ],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/mediatsionno-sporazumenie-za-razreshavane-na-targovski-spor.6ea85285a6b8.json",
-      "status": "pending"
-    },
-    {
       "slug": "menitelnitsa",
       "kind": "draft",
       "catalogNames": [
@@ -6317,29 +7347,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/menitelnitsa.918fc04f595d.json",
-      "status": "pending"
-    },
-    {
-      "slug": "molba-za-izdrazhka-na-dete-blanka",
-      "kind": "draft",
-      "catalogNames": [
-        "Молба за издръжка на дете (бланка)"
-      ],
-      "docType": "application",
-      "sourceSha256": "d69e53d02d84c14d6eb2273d995e572f9d93fd61137b1d7b40b036f3ca2ae6af",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "family"
-      ],
-      "uncoveredCitations": [
-        "чл. 142 от СК"
-      ],
-      "findings": [],
-      "kits": [
-        "razvod-paket",
-        "roditelski-prava-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/molba-za-izdrazhka-na-dete-blanka.d69e53d02d84.json",
       "status": "pending"
     },
     {
@@ -6366,47 +7373,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/muzikalen-izdatelski-dogovor.e665b12d3a33.json",
-      "status": "pending"
-    },
-    {
-      "slug": "nda-dogovor-za-konfidentsialnost",
-      "kind": "draft",
-      "catalogNames": [
-        "NDA – Договор за конфиденциалност"
-      ],
-      "docType": "contract",
-      "sourceSha256": "130c49b1c738b5305452fd124e8fc75e97f9ea8ad20438331b1b6b8ec3fb5b51",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "freelancer-paket",
-        "digitalen-proekt",
-        "nda-ip"
-      ],
-      "output": "reports/template-regen/generated/draft/nda-dogovor-za-konfidentsialnost.130c49b1c738.json",
-      "status": "pending"
-    },
-    {
-      "slug": "notarialna-pokana-za-dobrovolno-izpalnenie-na-parichno-zadalzhenie-po-dogovor-za-zaem",
-      "kind": "draft",
-      "catalogNames": [
-        "Нотариална покана за доброволно изпълнение на парично задължение по договор за заем"
-      ],
-      "docType": "notice",
-      "sourceSha256": "f4cb7860a686ad5685e685d96f705bcebcf5ee1f985bfc22e1cf5e9e7d236c52",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "property"
-      ],
-      "uncoveredCitations": [],
-      "findings": [
-        "PERSON_COMPANY_MIXED_PARTY",
-        "PERSON_COMPANY_MIXED_PARTY"
-      ],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/notarialna-pokana-za-dobrovolno-izpalnenie-na-parichno-zadalzhenie-po-dogovor-za-zaem.f4cb7860a686.json",
       "status": "pending"
     },
     {
@@ -6558,27 +7524,6 @@
       "status": "pending"
     },
     {
-      "slug": "notarialna-pokana-za-vrashtane-na-dadena-stoka-po-stokov-zaem-ili-druga-forma-na-vremenno-",
-      "kind": "draft",
-      "catalogNames": [
-        "Нотариална покана за връщане на дадена стока по стоков заем или друга форма на временно ползване"
-      ],
-      "docType": "notice",
-      "sourceSha256": "c3f7c40cdb0acf6f08b5dec1245fc5143ea69fac83168859549e88008feb1908",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "property"
-      ],
-      "uncoveredCitations": [],
-      "findings": [
-        "PERSON_COMPANY_MIXED_PARTY",
-        "PERSON_COMPANY_MIXED_PARTY"
-      ],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/notarialna-pokana-za-vrashtane-na-dadena-stoka-po-stokov-zaem-ili-druga-forma-na-vremenno-.c3f7c40cdb0a.json",
-      "status": "pending"
-    },
-    {
       "slug": "notarialno-palnomoshtno-za-prodazhba-na-motorno-prevozno-sredstvo-mps",
       "kind": "draft",
       "catalogNames": [
@@ -6594,47 +7539,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/notarialno-palnomoshtno-za-prodazhba-na-motorno-prevozno-sredstvo-mps.6e659b5601c9.json",
-      "status": "pending"
-    },
-    {
-      "slug": "notarialno-zaveshtanie",
-      "kind": "draft",
-      "catalogNames": [
-        "Нотариално завещание"
-      ],
-      "docType": "other",
-      "sourceSha256": "6713fecf5d4479d3398b4eb016a4ad2cc272119126d049ca84c7c6c0de0134d8",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "property",
-        "family"
-      ],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "nasledstvo-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/notarialno-zaveshtanie.6713fecf5d44.json",
-      "status": "pending"
-    },
-    {
-      "slug": "obshti-usloviya-na-onlayn-magazin",
-      "kind": "draft",
-      "catalogNames": [
-        "Общи условия на онлайн магазин"
-      ],
-      "docType": "other",
-      "sourceSha256": "e1ebc5bde332283eb0c6fa33f2eff9db233aa0544f9a3bcdaa4571adf81fe1d4",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [
-        "чл. 36 от ЗДДС"
-      ],
-      "findings": [],
-      "kits": [
-        "saas-eshop-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/obshti-usloviya-na-onlayn-magazin.e1ebc5bde332.json",
       "status": "pending"
     },
     {
@@ -6806,26 +7710,6 @@
       "status": "pending"
     },
     {
-      "slug": "okonchatelen-dogovor-za-pokupko-prodazhba-na-imot-proekt-na-notarialen-akt",
-      "kind": "draft",
-      "catalogNames": [
-        "Окончателен договор за покупко-продажба на имот (проект на нотариален акт)"
-      ],
-      "docType": "contract",
-      "sourceSha256": "17b66ac90b9b0c394ef5b7113dcb7b4a729847a9e34a315027211e87aba55c1e",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "property"
-      ],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "pokupko-prodajba-imot"
-      ],
-      "output": "reports/template-regen/generated/draft/okonchatelen-dogovor-za-pokupko-prodazhba-na-imot-proekt-na-notarialen-akt.17b66ac90b9b.json",
-      "status": "pending"
-    },
-    {
       "slug": "onlayn-dogovor-za-kaparo-po-naem",
       "kind": "draft",
       "catalogNames": [
@@ -6876,42 +7760,6 @@
       "status": "pending"
     },
     {
-      "slug": "optsii-za-dyalove-esop-plan",
-      "kind": "draft",
-      "catalogNames": [
-        "Опции за дялове / ESOP план"
-      ],
-      "docType": "other",
-      "sourceSha256": "75b3c2d71b77272c2e3dca1e8ac7177fbfbda6dd7b9801d2a723cb08d48caa86",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "esop-vesting"
-      ],
-      "output": "reports/template-regen/generated/draft/optsii-za-dyalove-esop-plan.75b3c2d71b77.json",
-      "status": "pending"
-    },
-    {
-      "slug": "otteglyane-na-palnomoshtno",
-      "kind": "draft",
-      "catalogNames": [
-        "Оттегляне на пълномощно"
-      ],
-      "docType": "power_of_attorney",
-      "sourceSha256": "a47e154c105213c3ac0eab990dc6c9596b9c463ed56224cacb6b0b313cd6e761",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "pulnomoshchno-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/otteglyane-na-palnomoshtno.a47e154c1052.json",
-      "status": "pending"
-    },
-    {
       "slug": "palnomoshtno-za-agentsiya-po-vpisvaniyata",
       "kind": "draft",
       "catalogNames": [
@@ -6925,24 +7773,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/palnomoshtno-za-agentsiya-po-vpisvaniyata.3f269e9f9e06.json",
-      "status": "pending"
-    },
-    {
-      "slug": "palnomoshtno-za-bankovi-operatsii",
-      "kind": "draft",
-      "catalogNames": [
-        "Пълномощно за банкови операции"
-      ],
-      "docType": "power_of_attorney",
-      "sourceSha256": "7a1f99dbe8a92c4f0d4fdd49e85d919388fd26ccb278767ad4489b1e5e73e316",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "pulnomoshchno-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/palnomoshtno-za-bankovi-operatsii.7a1f99dbe8a9.json",
       "status": "pending"
     },
     {
@@ -6962,24 +7792,6 @@
       "status": "pending"
     },
     {
-      "slug": "palnomoshtno-za-izvarshvane-na-registratsionni-deystviya-v-kat-patna-politsiya",
-      "kind": "draft",
-      "catalogNames": [
-        "Пълномощно за извършване на регистрационни действия в КАТ (Пътна полиция)"
-      ],
-      "docType": "power_of_attorney",
-      "sourceSha256": "7f6f0812ef14c534eab18270cb3d4de7cefbf0dd3478a1461b8b0d622344bd6b",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [
-        "PERSON_COMPANY_MIXED_PARTY"
-      ],
-      "kits": [],
-      "output": "reports/template-regen/generated/draft/palnomoshtno-za-izvarshvane-na-registratsionni-deystviya-v-kat-patna-politsiya.7f6f0812ef14.json",
-      "status": "pending"
-    },
-    {
       "slug": "palnomoshtno-za-kat",
       "kind": "draft",
       "catalogNames": [
@@ -6996,26 +7808,6 @@
       "status": "pending"
     },
     {
-      "slug": "palnomoshtno-za-nap",
-      "kind": "draft",
-      "catalogNames": [
-        "Пълномощно за НАП"
-      ],
-      "docType": "power_of_attorney",
-      "sourceSha256": "26627213abc1647ea811d4fcf53b164315e53e287e805241d6be8ede76da9be5",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "tax"
-      ],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "pulnomoshchno-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/palnomoshtno-za-nap.26627213abc1.json",
-      "status": "pending"
-    },
-    {
       "slug": "palnomoshtno-za-nasledstveni-dela",
       "kind": "draft",
       "catalogNames": [
@@ -7029,26 +7821,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/palnomoshtno-za-nasledstveni-dela.a80609470830.json",
-      "status": "pending"
-    },
-    {
-      "slug": "palnomoshtno-za-nedvizhim-imot",
-      "kind": "draft",
-      "catalogNames": [
-        "Пълномощно за недвижим имот"
-      ],
-      "docType": "power_of_attorney",
-      "sourceSha256": "1d56d5e3e420b138be5ba2c20cac99ce57546fea60eaa885fa7c8b5b4e6ce26b",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "property"
-      ],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "pulnomoshchno-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/palnomoshtno-za-nedvizhim-imot.1d56d5e3e420.json",
       "status": "pending"
     },
     {
@@ -7184,24 +7956,6 @@
       "status": "pending"
     },
     {
-      "slug": "palnomoshtno-za-sad",
-      "kind": "draft",
-      "catalogNames": [
-        "Пълномощно за съд"
-      ],
-      "docType": "power_of_attorney",
-      "sourceSha256": "dc13e444e525ceb3845e6b73a920ec1f386b48c0329d9223e91a6c59c2adca1e",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "pulnomoshchno-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/palnomoshtno-za-sad.dc13e444e525.json",
-      "status": "pending"
-    },
-    {
       "slug": "palnomoshtno-za-targovski-registar",
       "kind": "draft",
       "catalogNames": [
@@ -7236,25 +7990,6 @@
       "status": "pending"
     },
     {
-      "slug": "palnomoshtno-za-upravlenie-i-prodazhba-na-mps",
-      "kind": "draft",
-      "catalogNames": [
-        "Пълномощно за управление и продажба на МПС"
-      ],
-      "docType": "power_of_attorney",
-      "sourceSha256": "6cfe4bbccfd0be0329b9dbf123a26fe9299c2fe740c78aff9418db8f2ecb669e",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "prodajba-mps",
-        "pulnomoshchno-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/palnomoshtno-za-upravlenie-i-prodazhba-na-mps.6cfe4bbccfd0.json",
-      "status": "pending"
-    },
-    {
       "slug": "palnomoshtno-za-upravlenie-na-motorno-prevozno-sredstvo-mps-v-stranata-i-chuzhbina",
       "kind": "draft",
       "catalogNames": [
@@ -7284,94 +8019,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/palnomoshtno-za-upravlenie-na-mps-v-chuzhbina.44e78fe46e46.json",
-      "status": "pending"
-    },
-    {
-      "slug": "podrobno-palnomoshtno-za-prodazhba-na-imot",
-      "kind": "draft",
-      "catalogNames": [
-        "Подробно пълномощно за продажба на имот"
-      ],
-      "docType": "power_of_attorney",
-      "sourceSha256": "50306d4e5a02d607745ce3441766dded06e7c1a6c61ea5360cc373bef794165c",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "property"
-      ],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "pokupko-prodajba-imot"
-      ],
-      "output": "reports/template-regen/generated/draft/podrobno-palnomoshtno-za-prodazhba-na-imot.50306d4e5a02.json",
-      "status": "pending"
-    },
-    {
-      "slug": "pokana-za-dobrovolno-izpalnenie",
-      "kind": "draft",
-      "catalogNames": [
-        "Покана за доброволно изпълнение"
-      ],
-      "docType": "notice",
-      "sourceSha256": "d57799eed29a64e83301455dd977d7d59ec4ce6a804c7bf20dce12f8ec8ed2f0",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "vzemanie-spor"
-      ],
-      "output": "reports/template-regen/generated/draft/pokana-za-dobrovolno-izpalnenie.d57799eed29a.json",
-      "status": "pending"
-    },
-    {
-      "slug": "pokana-za-svikvane-na-obshto-sabranie",
-      "kind": "draft",
-      "catalogNames": [
-        "Покана за свикване на Общо събрание"
-      ],
-      "docType": "corporate_act",
-      "sourceSha256": "18cce9d43ab6ecc2a553bd4205b2cc7dacca99f3bcd9be179a42966826e358fb",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "dividend"
-      ],
-      "output": "reports/template-regen/generated/draft/pokana-za-svikvane-na-obshto-sabranie.18cce9d43ab6.json",
-      "status": "pending"
-    },
-    {
-      "slug": "politika-za-poveritelnost-gdpr",
-      "kind": "draft",
-      "catalogNames": [
-        "Политика за поверителност (GDPR)"
-      ],
-      "docType": "internal_policy",
-      "sourceSha256": "d87689ccb97ccc86ca172135a2eb5566d75f9a8a8771a18fd7cc7c428d67d8b5",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "eu_data"
-      ],
-      "uncoveredCitations": [
-        "чл. 5 от ОРЗД",
-        "чл. 28 от ОРЗД",
-        "чл. 15 от ОРЗД",
-        "чл. 16 от ОРЗД",
-        "чл. 17 от ОРЗД",
-        "чл. 18 от ОРЗД",
-        "чл. 20 от ОРЗД",
-        "чл. 21 от ОРЗД",
-        "чл. 77 от ОРЗД",
-        "чл. 32 от ОРЗД"
-      ],
-      "findings": [],
-      "kits": [
-        "saas-eshop-paket",
-        "gdpr-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/politika-za-poveritelnost-gdpr.d87689ccb97c.json",
       "status": "pending"
     },
     {
@@ -7423,32 +8070,6 @@
       "status": "pending"
     },
     {
-      "slug": "predizvestie-za-prekratyavane-na-naem",
-      "kind": "draft",
-      "status": "baseline_v2_candidate_exists"
-    },
-    {
-      "slug": "predvaritelen-dogovor-za-pokupka-na-imot",
-      "kind": "draft",
-      "catalogNames": [
-        "Предварителен договор за покупка на имот"
-      ],
-      "docType": "contract",
-      "sourceSha256": "4593111b66868ace9a3cb7d2eef7c57df13c3129b359ce8d48944af33b2e3d7a",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "property"
-      ],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "pokupko-prodajba-imot",
-        "predvaritelen-dogovor-imot"
-      ],
-      "output": "reports/template-regen/generated/draft/predvaritelen-dogovor-za-pokupka-na-imot.4593111b6686.json",
-      "status": "pending"
-    },
-    {
       "slug": "preupalnomoshtavane",
       "kind": "draft",
       "catalogNames": [
@@ -7462,31 +8083,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/preupalnomoshtavane.b7eda70d6f7f.json",
-      "status": "pending"
-    },
-    {
-      "slug": "priemo-predavatelen-protokol",
-      "kind": "draft",
-      "status": "baseline_v2_candidate_exists"
-    },
-    {
-      "slug": "priemo-predavatelen-protokol-pri-prodazhba-na-imot",
-      "kind": "draft",
-      "catalogNames": [
-        "Приемно-предавателен протокол при продажба на имот"
-      ],
-      "docType": "protocol",
-      "sourceSha256": "a1c7d7a9e2960877d135b050a90fa1d1c1839a24cc1fb78ab18de30172048daf",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "property"
-      ],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "pokupko-prodajba-imot"
-      ],
-      "output": "reports/template-regen/generated/draft/priemo-predavatelen-protokol-pri-prodazhba-na-imot.a1c7d7a9e296.json",
       "status": "pending"
     },
     {
@@ -7770,50 +8366,6 @@
       "status": "pending"
     },
     {
-      "slug": "protokol-obrazets-2-otkrivane-na-stroitelna-ploshtadka",
-      "kind": "draft",
-      "catalogNames": [
-        "Протокол образец 2 (откриване на строителна площадка)"
-      ],
-      "docType": "protocol",
-      "sourceSha256": "6560520a4fc8ea9d034f5c2dba38ef2fcd75ea65591dfc5bb832bd35a211a7e9",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "construction"
-      ],
-      "uncoveredCitations": [
-        "чл. 166 от ЗУТ"
-      ],
-      "findings": [],
-      "kits": [
-        "stroitelen-obekt"
-      ],
-      "output": "reports/template-regen/generated/draft/protokol-obrazets-2-otkrivane-na-stroitelna-ploshtadka.6560520a4fc8.json",
-      "status": "pending"
-    },
-    {
-      "slug": "protokol-ot-obshto-sabranie-na-ood",
-      "kind": "draft",
-      "catalogNames": [
-        "Протокол от Общо събрание на ООД"
-      ],
-      "docType": "corporate_act",
-      "sourceSha256": "adb954388a649cf0d002e8680b85eb993e8df88d28c57bf293b30359d901e4ca",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "registratsiya-na-ood",
-        "promyana-po-partida",
-        "prehvarlyane-dyalove",
-        "zalog-na-dyalove",
-        "dividend"
-      ],
-      "output": "reports/template-regen/generated/draft/protokol-ot-obshto-sabranie-na-ood.adb954388a64.json",
-      "status": "pending"
-    },
-    {
       "slug": "protokol-po-chl-117-zdds",
       "kind": "draft",
       "catalogNames": [
@@ -7900,26 +8452,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/protokol-za-nivelatsiya-pri-izpalnenie-na-zemni-i-izkopni-stroitelno-montazhni-raboti-smr.f3d083970c45.json",
-      "status": "pending"
-    },
-    {
-      "slug": "protokol-za-ogled-na-imot-pod-naem",
-      "kind": "draft",
-      "catalogNames": [
-        "Протокол за оглед на имот под наем"
-      ],
-      "docType": "protocol",
-      "sourceSha256": "180d7a7d8857f5b95f6abd3568395aaf5951b8391c6f5b71403fc515f69bb5d2",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "property"
-      ],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "kratkosrochen-naem"
-      ],
-      "output": "reports/template-regen/generated/draft/protokol-za-ogled-na-imot-pod-naem.180d7a7d8857.json",
       "status": "pending"
     },
     {
@@ -8093,42 +8625,6 @@
       "status": "pending"
     },
     {
-      "slug": "razpiska-za-poluchena-suma",
-      "kind": "draft",
-      "catalogNames": [
-        "Разписка за получена сума"
-      ],
-      "docType": "other",
-      "sourceSha256": "30ade9ad9018fa352c6d732ffd4d80f802d23f011a436e633f60ab3584931e1e",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "zaem-pari-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/razpiska-za-poluchena-suma.30ade9ad9018.json",
-      "status": "pending"
-    },
-    {
-      "slug": "razpiska-za-poluchena-suma-naem-depozit",
-      "kind": "draft",
-      "catalogNames": [
-        "Разписка за получена сума (наем/депозит)"
-      ],
-      "docType": "other",
-      "sourceSha256": "c55f2f3c92c9e40f829248a4ecaca6deb67572cd841237e1cc5c48609881a27e",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "naem-zhilishte"
-      ],
-      "output": "reports/template-regen/generated/draft/razpiska-za-poluchena-suma-naem-depozit.c55f2f3c92c9.json",
-      "status": "pending"
-    },
-    {
       "slug": "razpiska-za-poluchena-suma-po-dogovor-za-zaem-mezhdu-fizicheski-litsa",
       "kind": "draft",
       "catalogNames": [
@@ -8142,24 +8638,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/razpiska-za-poluchena-suma-po-dogovor-za-zaem-mezhdu-fizicheski-litsa.c9c6209c050c.json",
-      "status": "pending"
-    },
-    {
-      "slug": "razpiska-za-poluchena-suma-v-agentsiya-zadatak",
-      "kind": "draft",
-      "catalogNames": [
-        "Разписка за получена сума в агенция (задатък)"
-      ],
-      "docType": "other",
-      "sourceSha256": "1c91085d6fed42b64786a99bc5e98cc372c66c659f78141bcb0e74db1bfe4a1b",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "predvaritelen-dogovor-imot"
-      ],
-      "output": "reports/template-regen/generated/draft/razpiska-za-poluchena-suma-v-agentsiya-zadatak.1c91085d6fed.json",
       "status": "pending"
     },
     {
@@ -8245,42 +8723,6 @@
       "status": "pending"
     },
     {
-      "slug": "reshenie-na-ednolichniya-sobstvenik-na-kapitala",
-      "kind": "draft",
-      "catalogNames": [
-        "Решение на едноличния собственик на капитала"
-      ],
-      "docType": "corporate_act",
-      "sourceSha256": "08be578b4568d31d5b03c518aa185d0c0069dff14271e32d66791e9974de71d0",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "registratsiya-na-eood"
-      ],
-      "output": "reports/template-regen/generated/draft/reshenie-na-ednolichniya-sobstvenik-na-kapitala.08be578b4568.json",
-      "status": "pending"
-    },
-    {
-      "slug": "reshenie-za-razpredelenie-na-divident",
-      "kind": "draft",
-      "catalogNames": [
-        "Решение за разпределение на дивидент"
-      ],
-      "docType": "other",
-      "sourceSha256": "25e677b4647a277ba0cae75d6322fa2c232239a3a0ab36f5d607800273ffb0ca",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "dividend"
-      ],
-      "output": "reports/template-regen/generated/draft/reshenie-za-razpredelenie-na-divident.25e677b4647a.json",
-      "status": "pending"
-    },
-    {
       "slug": "retainer-dogovor-mesechen-abonament-za-uslugi",
       "kind": "draft",
       "catalogNames": [
@@ -8294,68 +8736,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/retainer-dogovor-mesechen-abonament-za-uslugi.85faa229a338.json",
-      "status": "pending"
-    },
-    {
-      "slug": "saas-abonamenten-dogovor",
-      "kind": "draft",
-      "catalogNames": [
-        "SaaS абонаментен договор"
-      ],
-      "docType": "contract",
-      "sourceSha256": "906f1dba2caa4ad859509c9618c207b030363441d622d22689df7d650b43a17b",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "ip_it"
-      ],
-      "uncoveredCitations": [],
-      "findings": [
-        "VAGUE_DEADLINE"
-      ],
-      "kits": [
-        "saas-klient"
-      ],
-      "output": "reports/template-regen/generated/draft/saas-abonamenten-dogovor.906f1dba2caa.json",
-      "status": "pending"
-    },
-    {
-      "slug": "safe-simple-agreement-for-future-equity",
-      "kind": "draft",
-      "catalogNames": [
-        "SAFE (Simple Agreement for Future Equity)"
-      ],
-      "docType": "other",
-      "sourceSha256": "b52d1db4be38126c50e14c9c132b1d0359dc3017e6b644165326f21c4d3ba4d8",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "investitsionna-sdelka"
-      ],
-      "output": "reports/template-regen/generated/draft/safe-simple-agreement-for-future-equity.b52d1db4be38.json",
-      "status": "pending"
-    },
-    {
-      "slug": "samorachno-zaveshtanie",
-      "kind": "draft",
-      "catalogNames": [
-        "Саморъчно завещание"
-      ],
-      "docType": "other",
-      "sourceSha256": "1fe133f876bf2d8338d9676b0c421d8dfde2d299c91ad619c7647c9e2dea4c6a",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "family"
-      ],
-      "uncoveredCitations": [
-        "чл. 46, ал. 1 от ЗН"
-      ],
-      "findings": [],
-      "kits": [
-        "nasledstvo-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/samorachno-zaveshtanie.1fe133f876bf.json",
       "status": "pending"
     },
     {
@@ -8394,24 +8774,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/sluzhebna-belezhka-po-chl-45-zddfl.d56afa1bed48.json",
-      "status": "pending"
-    },
-    {
-      "slug": "smetka-za-izplateni-sumi",
-      "kind": "draft",
-      "catalogNames": [
-        "Сметка за изплатени суми"
-      ],
-      "docType": "other",
-      "sourceSha256": "b05a58a2dc15a29e235eba3567934610e92cfb75e1be84b9fee0a2a45e9e5f35",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "freelancer-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/smetka-za-izplateni-sumi.b05a58a2dc15.json",
       "status": "pending"
     },
     {
@@ -8463,25 +8825,6 @@
       "status": "pending"
     },
     {
-      "slug": "sporazumenie-mezhdu-sadruzhnitsi-shareholders-agreement",
-      "kind": "draft",
-      "catalogNames": [
-        "Споразумение между съдружници (Shareholders Agreement)"
-      ],
-      "docType": "agreement",
-      "sourceSha256": "2a72a3ce7999b1916b6d5308f730534b62590cc5622be87691545bc906c6b0ef",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "investitsionna-sdelka",
-        "esop-vesting"
-      ],
-      "output": "reports/template-regen/generated/draft/sporazumenie-mezhdu-sadruzhnitsi-shareholders-agreement.2a72a3ce7999.json",
-      "status": "pending"
-    },
-    {
       "slug": "sporazumenie-za-delba-na-nasledstvo",
       "kind": "draft",
       "catalogNames": [
@@ -8499,24 +8842,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/sporazumenie-za-delba-na-nasledstvo.92529458bc3c.json",
-      "status": "pending"
-    },
-    {
-      "slug": "sporazumenie-za-izvansadebno-urezhdane-na-spor",
-      "kind": "draft",
-      "catalogNames": [
-        "Споразумение за извънсъдебно уреждане на спор"
-      ],
-      "docType": "agreement",
-      "sourceSha256": "443468a56f9ce09af6a8d21fcc1d877b72d1226c4a720ba119488d3d4764fa72",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "roditelski-prava-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/sporazumenie-za-izvansadebno-urezhdane-na-spor.443468a56f9c.json",
       "status": "pending"
     },
     {
@@ -8600,24 +8925,6 @@
       "status": "pending"
     },
     {
-      "slug": "sporazumenie-za-oproshtavane-na-dalg-chl-108-zzd",
-      "kind": "draft",
-      "catalogNames": [
-        "Споразумение за опрощаване на дълг (чл. 108 ЗЗД)"
-      ],
-      "docType": "agreement",
-      "sourceSha256": "71d56bdaf9666e2b5688ab5eca61a48ab83c6d7ef7dd14bbf901a9eef62dbcc7",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "zaem-pari-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/sporazumenie-za-oproshtavane-na-dalg-chl-108-zzd.71d56bdaf966.json",
-      "status": "pending"
-    },
-    {
       "slug": "sporazumenie-za-poveritelnost-i-nerazkrivane-na-targovska-tayna-mezhdu-sadruzhnitsi",
       "kind": "draft",
       "catalogNames": [
@@ -8634,11 +8941,6 @@
       "status": "pending"
     },
     {
-      "slug": "sporazumenie-za-prekratyavane-na-naem-po-vzaimno-saglasie",
-      "kind": "draft",
-      "status": "baseline_v2_candidate_exists"
-    },
-    {
       "slug": "sporazumenie-za-prekratyavane-na-trudov-dogovor-po-vzaimno-saglasie",
       "kind": "draft",
       "catalogNames": [
@@ -8653,11 +8955,6 @@
       "kits": [],
       "output": "reports/template-regen/generated/draft/sporazumenie-za-prekratyavane-na-trudov-dogovor-po-vzaimno-saglasie.2852c2dc52dc.json",
       "status": "pending"
-    },
-    {
-      "slug": "sporazumenie-za-prekratyavane-po-chl-325-al-1-t-1-kt",
-      "kind": "draft",
-      "status": "baseline_v2_candidate_exists"
     },
     {
       "slug": "sporazumenie-za-prekratyavane-po-chl-331-kt-sreshtu-obezshtetenie",
@@ -8708,69 +9005,6 @@
       "status": "pending"
     },
     {
-      "slug": "sporazumenie-za-razvalyane-na-predvaritelen-dogovor",
-      "kind": "draft",
-      "catalogNames": [
-        "Споразумение за разваляне на предварителен договор"
-      ],
-      "docType": "agreement",
-      "sourceSha256": "08b8514d50aaa918f95294a05a90146d4abffb9ee79129ccd3a3471fae1ef150",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "predvaritelen-dogovor-imot"
-      ],
-      "output": "reports/template-regen/generated/draft/sporazumenie-za-razvalyane-na-predvaritelen-dogovor.08b8514d50aa.json",
-      "status": "pending"
-    },
-    {
-      "slug": "sporazumenie-za-razvod-po-vzaimno-saglasie",
-      "kind": "draft",
-      "catalogNames": [
-        "Споразумение за развод по взаимно съгласие"
-      ],
-      "docType": "agreement",
-      "sourceSha256": "3a92ae319c5dd3bb07654bf2b597ce65319eed34fa3f24b9ff9bcc6b0a4e3449",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "family"
-      ],
-      "uncoveredCitations": [
-        "чл. 51, ал. 1 от СК"
-      ],
-      "findings": [],
-      "kits": [
-        "razvod-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/sporazumenie-za-razvod-po-vzaimno-saglasie.3a92ae319c5d.json",
-      "status": "pending"
-    },
-    {
-      "slug": "sporazumenie-za-roditelski-prava",
-      "kind": "draft",
-      "catalogNames": [
-        "Споразумение за родителски права"
-      ],
-      "docType": "agreement",
-      "sourceSha256": "5f9acea97b751c98ff3c28c0abf079965f6f3ecdb74ed39b4de141567c8421dd",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "family"
-      ],
-      "uncoveredCitations": [
-        "чл. 150 от СК"
-      ],
-      "findings": [],
-      "kits": [
-        "razvod-paket",
-        "roditelski-prava-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/sporazumenie-za-roditelski-prava.5f9acea97b75.json",
-      "status": "pending"
-    },
-    {
       "slug": "sporazumenie-za-savmestna-deynost-i-razpredelenie-na-pechalbi-po-proekt",
       "kind": "draft",
       "catalogNames": [
@@ -8800,24 +9034,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/srochen-trudov-dogovor-po-chl-68-kt.af6a989d132e.json",
-      "status": "pending"
-    },
-    {
-      "slug": "statement-of-work-sow",
-      "kind": "draft",
-      "catalogNames": [
-        "Statement of Work (SOW)"
-      ],
-      "docType": "other",
-      "sourceSha256": "dfa1cef89ae230c3aaec38683bcfa3ce545e8a3a579932da7c30f2e016551cb3",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "digitalen-proekt"
-      ],
-      "output": "reports/template-regen/generated/draft/statement-of-work-sow.dfa1cef89ae2.json",
       "status": "pending"
     },
     {
@@ -8871,24 +9087,6 @@
       "status": "pending"
     },
     {
-      "slug": "term-sheet-za-investitsiya",
-      "kind": "draft",
-      "catalogNames": [
-        "Term sheet за инвестиция"
-      ],
-      "docType": "other",
-      "sourceSha256": "3ebfa54368563dd111c377dfce1b1766417e2ec3d08b29699ef692f025747e70",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "investitsionna-sdelka"
-      ],
-      "output": "reports/template-regen/generated/draft/term-sheet-za-investitsiya.3ebfa5436856.json",
-      "status": "pending"
-    },
-    {
       "slug": "transferen-dogovor-mezhdu-klubove",
       "kind": "draft",
       "catalogNames": [
@@ -8919,29 +9117,6 @@
       "kits": [],
       "output": "reports/template-regen/generated/draft/tristranno-sporazumenie-kupuvach-prodavach-agentsiya.4d9cec5179ee.json",
       "status": "pending"
-    },
-    {
-      "slug": "trudov-dogovor-po-chl-67-kt-bezsrochen",
-      "kind": "draft",
-      "catalogNames": [
-        "Трудов договор по чл. 67 КТ (безсрочен)"
-      ],
-      "docType": "contract",
-      "sourceSha256": "bc446d0a2a25832040694ce38fe0a977d72ffb1b6db84834a15984cbd6363f84",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "trudovo-naznachavane"
-      ],
-      "output": "reports/template-regen/generated/draft/trudov-dogovor-po-chl-67-kt-bezsrochen.bc446d0a2a25.json",
-      "status": "pending"
-    },
-    {
-      "slug": "uchreditelen-akt-na-eood",
-      "kind": "draft",
-      "status": "baseline_v2_candidate_exists"
     },
     {
       "slug": "udostoverenie-za-polucheno-kaparo-naem",
@@ -8976,46 +9151,6 @@
       "status": "pending"
     },
     {
-      "slug": "uvedomlenie-po-chl-62-al-5-kt-do-nap",
-      "kind": "draft",
-      "catalogNames": [
-        "Уведомление по чл. 62, ал. 5 КТ до НАП"
-      ],
-      "docType": "notice",
-      "sourceSha256": "a7b857f1f2a536ba270f311fd038d939c09bcc1ec05ea344e73b198e7311312e",
-      "evidence": "evidence_gap_domain",
-      "gapDomains": [
-        "tax"
-      ],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "trudovo-naznachavane"
-      ],
-      "output": "reports/template-regen/generated/draft/uvedomlenie-po-chl-62-al-5-kt-do-nap.a7b857f1f2a5.json",
-      "status": "pending"
-    },
-    {
-      "slug": "vesting-agreement-za-saosnovateli",
-      "kind": "draft",
-      "catalogNames": [
-        "Vesting agreement за съоснователи"
-      ],
-      "docType": "other",
-      "sourceSha256": "78d1514c12a716e989922b8051b745b7ec9145bad92925bc8201d263c4351311",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [
-        "чл. 147а от ТЗ"
-      ],
-      "findings": [],
-      "kits": [
-        "esop-vesting"
-      ],
-      "output": "reports/template-regen/generated/draft/vesting-agreement-za-saosnovateli.78d1514c12a7.json",
-      "status": "pending"
-    },
-    {
       "slug": "white-label-saas-dogovor",
       "kind": "draft",
       "catalogNames": [
@@ -9031,43 +9166,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/white-label-saas-dogovor.a3c6bf084e5e.json",
-      "status": "pending"
-    },
-    {
-      "slug": "work-for-hire-sporazumenie",
-      "kind": "draft",
-      "catalogNames": [
-        "Work-for-hire споразумение"
-      ],
-      "docType": "agreement",
-      "sourceSha256": "6a0e295d1eaacf6364cdf268db1f2b03c5dd1ad8b6a9adb929a3f76fcc72f995",
-      "evidence": "domain_unmapped",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "nda-ip"
-      ],
-      "output": "reports/template-regen/generated/draft/work-for-hire-sporazumenie.6a0e295d1eaa.json",
-      "status": "pending"
-    },
-    {
-      "slug": "zapis-na-zapoved",
-      "kind": "draft",
-      "catalogNames": [
-        "Запис на заповед",
-        "Запис на заповед (образец)"
-      ],
-      "docType": "internal_policy",
-      "sourceSha256": "380a6f88b92dea7bc60f975598a4ad725f4890751d9b906943f00b702a9fb322",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "zaem-pari-paket"
-      ],
-      "output": "reports/template-regen/generated/draft/zapis-na-zapoved.380a6f88b92d.json",
       "status": "pending"
     },
     {
@@ -9135,42 +9233,6 @@
       "status": "pending"
     },
     {
-      "slug": "zapoved-za-prekratyavane-na-tpo",
-      "kind": "draft",
-      "catalogNames": [
-        "Заповед за прекратяване на ТПО"
-      ],
-      "docType": "internal_policy",
-      "sourceSha256": "3e2b9ca75bc86a78d3fb2e85099e515b083c17a46a453f72aa5e5304aaf4b97d",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "prekratyavane-trudovo"
-      ],
-      "output": "reports/template-regen/generated/draft/zapoved-za-prekratyavane-na-tpo.3e2b9ca75bc8.json",
-      "status": "pending"
-    },
-    {
-      "slug": "zapoved-za-rabotno-vreme-pravilnik-za-vatreshniya-trudov-red",
-      "kind": "draft",
-      "catalogNames": [
-        "Заповед за работно време / Правилник за вътрешния трудов ред"
-      ],
-      "docType": "internal_policy",
-      "sourceSha256": "696c5c6483fae5d9a0adae34b9987432047f4fe163c9db86c8d3d4f622e5db3b",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [],
-      "findings": [],
-      "kits": [
-        "trudovo-naznachavane"
-      ],
-      "output": "reports/template-regen/generated/draft/zapoved-za-rabotno-vreme-pravilnik-za-vatreshniya-trudov-red.696c5c6483fa.json",
-      "status": "pending"
-    },
-    {
       "slug": "zapoved-za-uvolnenie-po-chl-328-kt-sakrashtenie",
       "kind": "draft",
       "catalogNames": [
@@ -9202,31 +9264,6 @@
       "findings": [],
       "kits": [],
       "output": "reports/template-regen/generated/draft/zapovedna-kniga-za-stroitelno-montazhni-raboti-smr.69f4514b61f2.json",
-      "status": "pending"
-    },
-    {
-      "slug": "zayavlenie-a4-a5-za-vpisvane-v-targovskiya-registar",
-      "kind": "draft",
-      "catalogNames": [
-        "Заявление А4/А5 за вписване в Търговския регистър"
-      ],
-      "docType": "application",
-      "sourceSha256": "67610155367273ac84bdaa23fb095872cc7eb87cbaae2f5c7c202172c11f9293",
-      "evidence": "supported",
-      "gapDomains": [],
-      "uncoveredCitations": [
-        "чл. 38, ал. 1 от ЗТРРЮЛНЦ",
-        "чл. 21 от ЗТРРЮЛНЦ"
-      ],
-      "findings": [],
-      "kits": [
-        "registratsiya-na-ood",
-        "registratsiya-na-eood",
-        "promyana-po-partida",
-        "prehvarlyane-dyalove",
-        "zalog-na-dyalove"
-      ],
-      "output": "reports/template-regen/generated/draft/zayavlenie-a4-a5-za-vpisvane-v-targovskiya-registar.676101553672.json",
       "status": "pending"
     },
     {
