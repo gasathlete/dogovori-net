@@ -162,3 +162,9 @@ This section supersedes earlier claims that invoice/team code remains unimplemen
 **Root commits:** CI workflow 4f9dbaf present in this tree. Sitemap/indexability commits 592e142, a12ed2f, 8c361a3 are **not present** in this workspace history yet (local `public/sitemap-static.xml` has no `/plans`), so they could not be verified here; nothing was overwritten. Verify after sync.
 
 **Hosted 404:** remains a platform limitation of Classic SPA fallback; no migration attempted.
+
+## Handoff destination regression — 2026-10-24 ~10:10 UTC
+
+**Bug (found by Root on real fixture):** handoff captured `/plans`, but login ended at `/account` because `Auth.tsx` always wrote `/account` into `post_login_redirect`, and `flushPendingConsents` applied the server path only when no local destination existed.
+**Fix:** `src/lib/postLoginDestination.ts` records provenance. `/account` default is stored as fallback with a value-bound marker; any other sanitized target (query intent, draft `/analiz`, inline current page, OTP, Google) is explicit. Server handoff path (re-sanitized) replaces only missing/fallback values; explicit intent wins; stale markers cannot downgrade (marker must equal current value); all consumers clear the marker. Wired in `Auth.tsx` (login, OTP verify, Google), `InlineAuthDialog.tsx`, `consents.ts`, `useAuth.tsx`, `ConfirmedConsentDialog.tsx`, `ResetPassword.tsx`. Consume runs before post-auth navigation (unchanged order in `useAuth`).
+**Tests:** `src/test/postLoginDestination.test.ts` 9 passed (priority, explicit wins, stale marker, open-redirect rejection, first-confirmation race and replay via **mocked** consume RPC, entrypoint provenance); related auth/consent suites 7 files / 50 passed. The already-consumed fixture cannot re-prove first-use navigation; no new real browser first-use run.
