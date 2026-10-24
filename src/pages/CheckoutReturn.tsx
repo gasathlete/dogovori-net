@@ -106,7 +106,8 @@ export default function CheckoutReturn() {
             return false;
           }
           const entitlement = await fetchEntitlementBySession(uid, sid);
-          return !!entitlement && entitlement.product_id === productParam;
+          return !!entitlement && entitlement.product_id === productParam &&
+            ["paid", "processing", "ready", "failed"].includes(entitlement.status);
         }
         case "entry_pack":
         case "topup":
@@ -148,6 +149,8 @@ export default function CheckoutReturn() {
   );
 
   useEffect(() => {
+    setReadyAt("pending");
+    completedRef.current = false;
     if (authLoading || !user || !sessionId) return;
     let cancelled = false;
     let attempts = 0;
@@ -275,7 +278,7 @@ export default function CheckoutReturn() {
             )}
             {view === "signed_out" ? (
               <Button asChild className="bg-gradient-gold text-navy hover:shadow-gold">
-                <Link to="/auth">Вход в профила</Link>
+                <Link to={`/auth?tab=login&redirect=${encodeURIComponent(sanitizeReturnPath(`/checkout/return?${params.toString()}`) ?? "/account")}`}>Вход в профила</Link>
               </Button>
             ) : (
               <Button

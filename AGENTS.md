@@ -1,4 +1,5 @@
 # Project architecture rules
+- Auth mutations use a synchronous request lock with finally-based recovery; password recovery ignores stale product navigation. Static funnel SEO derives plans from canonical pricing and marks known private entry routes noindex before JavaScript runs.
 - Registration CTAs share sanitized signup destinations; the homepage has one session-dismissed invitation suppressed by visible actions/forms/cookies/overlays. The lazy voluntary story uses the existing dialog focus lifecycle and local-only scenes, never timers or a signup gate. Marketing benefit presentation is shared; server consent/grant logic stays authoritative.
 - Story capability examples reuse canonical product findings where applicable and isolate fixed local selections in StoryCapabilityDemo; never invoke real analysis, chat or exports from a presentation.
 - Starter bonus eligibility is server-owned and historical legacy allowances count as claimed; atomic consent-triggered grants use the existing signup-minus-monthly delta, while user-initiated quota denials replay the identical request at most once after confirmed consent/grant.

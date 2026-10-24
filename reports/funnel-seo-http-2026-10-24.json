@@ -1,0 +1,152 @@
+[
+  {
+    "path": "/robots.txt",
+    "status": 200,
+    "type": "text/plain; charset=utf-8",
+    "location": null,
+    "xrobots": null,
+    "canonical": [],
+    "title": null,
+    "h1": [],
+    "robots": [],
+    "bodyChars": 0
+  },
+  {
+    "path": "/sitemap.xml",
+    "status": 200,
+    "type": "application/xml",
+    "location": null,
+    "xrobots": null,
+    "canonical": [],
+    "title": null,
+    "h1": [],
+    "robots": [],
+    "bodyChars": 0
+  },
+  {
+    "path": "/catalog",
+    "status": 200,
+    "type": "text/html; charset=utf-8",
+    "location": null,
+    "xrobots": null,
+    "canonical": [
+      "https://dogovori.net/catalog"
+    ],
+    "title": "Каталог: 625+ договора и бланки на български | Dogovori.net",
+    "h1": [
+      "Каталог на 625+ договори на български"
+    ],
+    "robots": [
+      "index, follow"
+    ],
+    "bodyChars": 78824
+  },
+  {
+    "path": "/produkti",
+    "status": 200,
+    "type": "text/html; charset=utf-8",
+    "location": null,
+    "xrobots": null,
+    "canonical": [
+      "https://dogovori.net/produkti"
+    ],
+    "title": "Проверка на договор, поправка и подготовка за преговори",
+    "h1": [
+      "Продукти за един документ"
+    ],
+    "robots": [
+      "index, follow"
+    ],
+    "bodyChars": 6277
+  },
+  {
+    "path": "/produkti/proverka-predi-podpis",
+    "status": 200,
+    "type": "text/html; charset=utf-8",
+    "location": null,
+    "xrobots": null,
+    "canonical": [
+      "https://dogovori.net/produkti/proverka-predi-podpis"
+    ],
+    "title": "Подробна проверка на документ — 2,99 € еднократно",
+    "h1": [
+      "Подробна проверка на документ преди подпис"
+    ],
+    "robots": [
+      "index, follow"
+    ],
+    "bodyChars": 4299
+  },
+  {
+    "path": "/plans",
+    "status": 200,
+    "type": "text/html; charset=utf-8",
+    "location": null,
+    "xrobots": null,
+    "canonical": [
+      "https://dogovori.net/"
+    ],
+    "title": "Dogovori.net — по-малко бюрокрация. Повече време за Вас.",
+    "h1": [
+      "По-малко бюрокрация. Повече време за Вас."
+    ],
+    "robots": [
+      "index, follow"
+    ],
+    "bodyChars": 2583
+  },
+  {
+    "path": "/auth",
+    "status": 200,
+    "type": "text/html; charset=utf-8",
+    "location": null,
+    "xrobots": null,
+    "canonical": [
+      "https://dogovori.net/"
+    ],
+    "title": "Dogovori.net — по-малко бюрокрация. Повече време за Вас.",
+    "h1": [
+      "По-малко бюрокрация. Повече време за Вас."
+    ],
+    "robots": [
+      "index, follow"
+    ],
+    "bodyChars": 2583
+  },
+  {
+    "path": "/checkout/return",
+    "status": 200,
+    "type": "text/html; charset=utf-8",
+    "location": null,
+    "xrobots": null,
+    "canonical": [
+      "https://dogovori.net/"
+    ],
+    "title": "Dogovori.net — по-малко бюрокрация. Повече време за Вас.",
+    "h1": [
+      "По-малко бюрокрация. Повече време за Вас."
+    ],
+    "robots": [
+      "index, follow"
+    ],
+    "bodyChars": 2583
+  },
+  {
+    "path": "/__audit_missing_20261024",
+    "status": 200,
+    "type": "text/html; charset=utf-8",
+    "location": null,
+    "xrobots": null,
+    "canonical": [
+      "https://dogovori.net/"
+    ],
+    "title": "Dogovori.net — по-малко бюрокрация. Повече време за Вас.",
+    "h1": [
+      "По-малко бюрокрация. Повече време за Вас."
+    ],
+    "robots": [
+      "index, follow"
+    ],
+    "bodyChars": 2583
+  }
+]

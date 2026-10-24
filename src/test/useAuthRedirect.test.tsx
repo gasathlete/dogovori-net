@@ -44,6 +44,16 @@ afterEach(() => {
 });
 
 describe("AuthProvider — пренасочване", () => {
+  it("never consumes a pending product destination on password recovery", async () => {
+    sessionValue = { user: { id: "u1" } };
+    Object.defineProperty(window, "location", { configurable: true, value: { origin: "http://localhost:3000", pathname: "/reset-password", search: "", replace } });
+    sessionStorage.setItem("post_login_redirect", "/produkti/proverka-predi-podpis/start");
+    render(<AuthProvider><div /></AuthProvider>);
+    await waitFor(() => expect(consent.flush).toHaveBeenCalled());
+    await new Promise(resolve => setTimeout(resolve, 10));
+    expect(replace).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem("post_login_redirect")).toBe("/produkti/proverka-predi-podpis/start");
+  });
   it("returns to the selected product preparation exactly once", async () => {
     sessionValue = { user: { id: "u1" } };
     sessionStorage.setItem("post_login_redirect", "/produkti/proverka-predi-podpis/start");

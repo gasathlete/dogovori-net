@@ -51,6 +51,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
      */
     const applyPostAuthRedirect = () => {
       if (redirectHandledRef.current || typeof window === "undefined") return;
+      // A recovery session must stay on the password form, even with a stale product intent.
+      if (window.location.pathname.replace(/\/$/, "") === "/reset-password") return;
       redirectHandledRef.current = true;
       try {
         const destination = sessionStorage.getItem("post_login_redirect");

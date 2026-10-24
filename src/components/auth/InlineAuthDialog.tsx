@@ -1,6 +1,8 @@
 import { MarketingOptIn } from "@/components/auth/MarketingOptIn";
 import { flushPendingConsents } from "@/lib/consents";
 import { trackMetric } from "@/lib/metrics";
+import { useAuthAction } from "@/hooks/useAuthAction";
+import { GoogleConsentDialog } from "@/components/auth/GoogleConsentDialog";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -33,13 +35,14 @@ export function InlineAuthDialog() {
   const [action, setAction] = useState<string | undefined>();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
+  const { busy, run } = useAuthAction();
+  const [googleConsentOpen, setGoogleConsentOpen] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-  const [age, setAge] = useState(true);
-  const [terms, setTerms] = useState(true);
-  const [privacy, setPrivacy] = useState(true);
+  const [age, setAge] = useState(false);
+  const [terms, setTerms] = useState(false);
+  const [privacy, setPrivacy] = useState(false);
   // Задължително съгласие за съхранение на име/имейл и вътрешни известия.
-  const [notifications, setNotifications] = useState(true);
+  const [notifications, setNotifications] = useState(false);
   // Имейл маркетингът е по желание и започва ИЗКЛЮЧЕН (изричен opt-in).
   // Неотметнато поле не създава никакъв маркетингов запис.
   const [marketing, setMarketing] = useState(false);
@@ -52,6 +55,7 @@ export function InlineAuthDialog() {
       setMode(detail?.mode === "login" ? "login" : "signup");
       setEmailSent(false);
       setMarketing(false);
+      setAge(false); setTerms(false); setPrivacy(false); setNotifications(false);
       setOpen(true);
       // auth_prompt_shown се отчита тук — единственото място, където подканата
       // реално се показва (дедупликирано по doc_key + намерение + източник).
@@ -85,10 +89,8 @@ export function InlineAuthDialog() {
       toast.error("Моля, потвърдете задължителните полета");
       return;
     }
-    setBusy(true);
     if (mode === "login") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      setBusy(false);
       if (error) {
         toast.error("Неуспешен вход", { description: translateAuthError(error.message) });
         return;
@@ -98,7 +100,6 @@ export function InlineAuthDialog() {
       return;
     }
     if (password.length < 8) {
-      setBusy(false);
       toast.error("Паролата трябва да съдържа поне 8 символа");
       return;
     }
@@ -109,7 +110,6 @@ export function InlineAuthDialog() {
         operational_notifications: notifications, ts: Date.now(),
       }));
     } catch {
-      setBusy(false);
       toast.error("Не успяхме да запазим избора Ви. Разрешете съхранението в браузъра и опитайте отново.");
       return;
     }
@@ -120,7 +120,6 @@ export function InlineAuthDialog() {
       // изчистен относителен път (без hash, без ab_/utm_ параметри).
       options: { emailRedirectTo: buildAuthRedirectUrl(currentReturnPath()) },
     });
-    setBusy(false);
     if (error) {
       try { sessionStorage.removeItem("pending_consents"); } catch { /* unavailable */ }
       toast.error("Неуспешна регистрация", { description: translateAuthError(error.message) });
@@ -136,12 +135,11 @@ export function InlineAuthDialog() {
     setEmailSent(true);
   };
 
-  const google = async () => {
-    if (mode === "signup" && !notifications) {
+  const google = async (confirmedMarketing = marketing) => {
+    if (mode === "signup" && (!age || !terms || !privacy || !notifications)) {
       toast.error("Моля, потвърдете задължителното съгласие за име и имейл.");
       return;
     }
-    setBusy(true);
     try {
       // Пълното OAuth пренасочване връща потребителя на същия адрес —
       // черновата в уизарда се възстановява автоматично.
@@ -149,7 +147,8 @@ export function InlineAuthDialog() {
       sessionStorage.setItem(
         "pending_consents",
         JSON.stringify({
-          marketing,
+          event_id: crypto.randomUUID(),
+          marketing: confirmedMarketing,
           operational_notifications: mode === "signup" ? notifications : true,
           terms: mode === "signup" ? terms : true,
           privacy: mode === "signup" ? privacy : true,
@@ -157,23 +156,24 @@ export function InlineAuthDialog() {
           ts: Date.now(),
         }),
       );
-    } catch { /* хранилището е недостъпно */ }
+    } catch { throw new Error("consent_storage_unavailable"); }
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
       extraParams: { prompt: "select_account" },
     });
     if (result.error) {
-      setBusy(false);
+      sessionStorage.removeItem("pending_consents");
+      sessionStorage.removeItem("post_login_redirect");
       toast.error("Неуспешен вход с Google", { description: String(result.error) });
       return;
     }
     if (result.redirected) return;
-    setBusy(false);
     toast.success("Успешен вход");
     finish();
   };
 
   return (
+    <><GoogleConsentDialog open={googleConsentOpen} onOpenChange={setGoogleConsentOpen} busy={busy} onConfirm={(choice) => { setGoogleConsentOpen(false); void run(() => google(choice)); }} />
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-w-sm border-gold/30 bg-card">
         <DialogHeader>
@@ -193,12 +193,12 @@ export function InlineAuthDialog() {
               Изпратихме съобщение за потвърждение на <strong>{email}</strong>. След потвърждение се
               връщате на тази страница с попълнените данни.
             </p>
-            <Button variant="outline" className="w-full" onClick={() => setMode("login")}>
+            <Button variant="outline" className="w-full" onClick={() => { setEmailSent(false); setMode("login"); }}>
               Вече потвърдих — вход
             </Button>
           </div>
         ) : (
-          <form onSubmit={submit} className="space-y-3">
+          <form onSubmit={(e) => { e.preventDefault(); void run(() => submit(e)); }} className="space-y-3">
             <div className="space-y-1.5">
               <Label htmlFor="inline-auth-email">Електронна поща</Label>
               <Input
@@ -262,7 +262,7 @@ export function InlineAuthDialog() {
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               {mode === "login" ? "Вход и продължаване" : "Създай профил и продължи"}
             </Button>
-            <Button type="button" variant="outline" className="w-full" onClick={google} disabled={busy}>
+            <Button type="button" variant="outline" className="w-full" onClick={() => { if (mode === "login") setGoogleConsentOpen(true); else void run(() => google()); }} disabled={busy || (mode === "signup" && (!age || !terms || !privacy || !notifications))}>
               Продължи с Google
             </Button>
             <button
@@ -290,6 +290,6 @@ export function InlineAuthDialog() {
           </form>
         )}
       </DialogContent>
-    </Dialog>
+    </Dialog></>
   );
 }

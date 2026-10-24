@@ -1,0 +1,124 @@
+[
+  {
+    "width": 1280,
+    "signupWithoutMarketingEnabled": true,
+    "requiredUnchecked": true,
+    "returnLoginHref": "/auth?tab=login&redirect=%2Fcheckout%2Freturn%3Fsession_id%3Dcs_test_audit_fixture%26price_id%3Dprofessional_monthly%26redirect%3Dhttps%253A%252F%252Fevil.example",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "width": 390,
+    "signupWithoutMarketingEnabled": true,
+    "requiredUnchecked": true,
+    "returnLoginHref": "/auth?tab=login&redirect=%2Fcheckout%2Freturn%3Fsession_id%3Dcs_test_audit_fixture%26price_id%3Dprofessional_monthly%26redirect%3Dhttps%253A%252F%252Fevil.example",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "width": 360,
+    "signupWithoutMarketingEnabled": true,
+    "requiredUnchecked": true,
+    "returnLoginHref": "/auth?tab=login&redirect=%2Fcheckout%2Freturn%3Fsession_id%3Dcs_test_audit_fixture%26price_id%3Dprofessional_monthly%26redirect%3Dhttps%253A%252F%252Fevil.example",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "path": "/catalog",
+    "title": "Каталог: 625+ договора и бланки на български | Dogovori.net",
+    "h1": [
+      "625+ професионални договора и бланки"
+    ],
+    "canonical": [
+      "https://dogovori.net/catalog"
+    ],
+    "robots": [
+      "index, follow, max-image-preview:large, max-snippet:-1"
+    ],
+    "observedWaitSeconds": 2.14
+  },
+  {
+    "path": "/produkti",
+    "title": "Проверка на договор, поправка и подготовка за преговори",
+    "h1": [
+      "Продукти за Вашия документ"
+    ],
+    "canonical": [
+      "https://dogovori.net/produkti"
+    ],
+    "robots": [
+      "index, follow, max-image-preview:large, max-snippet:-1"
+    ],
+    "observedWaitSeconds": 1.86
+  },
+  {
+    "path": "/plans",
+    "title": "Планове и цени — Dogovori.net",
+    "h1": [
+      "Платете според начина, по който работите"
+    ],
+    "canonical": [
+      "https://dogovori.net/plans"
+    ],
+    "robots": [
+      "index, follow, max-image-preview:large, max-snippet:-1"
+    ],
+    "observedWaitSeconds": 1.75
+  },
+  {
+    "path": "/blog",
+    "title": "Блог за договорно право в България | Dogovori.net",
+    "h1": [
+      "Юридически насоки за договорите в България"
+    ],
+    "canonical": [
+      "https://dogovori.net/blog"
+    ],
+    "robots": [
+      "index, follow, max-image-preview:large, max-snippet:-1"
+    ],
+    "observedWaitSeconds": 1.98
+  },
+  {
+    "path": "/auth",
+    "title": "Вход и регистрация — Dogovori.net",
+    "h1": [
+      "Добре дошли отново"
+    ],
+    "canonical": [
+      "https://dogovori.net/auth"
+    ],
+    "robots": [
+      "noindex, nofollow"
+    ],
+    "observedWaitSeconds": 1.8
+  },
+  {
+    "path": "/checkout/return",
+    "title": "Покупката е завършена — Dogovori.net",
+    "h1": [
+      "Няма информация за плащане"
+    ],
+    "canonical": [
+      "https://dogovori.net/checkout/return"
+    ],
+    "robots": [
+      "noindex, nofollow"
+    ],
+    "observedWaitSeconds": 1.72
+  },
+  {
+    "path": "/__audit_missing_20261024",
+    "title": "Страницата не е намерена (404) — Dogovori.net",
+    "h1": [
+      "Страницата не е намерена"
+    ],
+    "canonical": [
+      "https://dogovori.net/__audit_missing_20261024"
+    ],
+    "robots": [
+      "noindex, nofollow"
+    ],
+    "observedWaitSeconds": 1.71
+  }
+]
