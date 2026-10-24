@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { buildFunnelSeoPages } from "../../scripts/lib/funnelSeoPages";
 describe("initial HTML funnel SEO policy", () => {
-  it.each(["/auth", "/reset-password", "/account", "/checkout/return", "/produkti/rezultat", "/produkti/proverka-predi-podpis/start"])("private %s is noindex without fabricated account content", path => {
+  it.each(["/auth", "/auth/callback", "/reset-password", "/account", "/checkout/return", "/produkti/rezultat", "/produkti/proverka-predi-podpis/start"])("private %s is noindex without fabricated account content", path => {
     const page = buildFunnelSeoPages().find(p => p.path === path);
     expect(page?.noindex).toBe(true);
     expect(page?.bodyHtml).toBe("");

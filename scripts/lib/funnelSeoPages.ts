@@ -11,7 +11,7 @@ export interface FunnelSeoPage {
 }
 
 export function buildFunnelSeoPages(): FunnelSeoPage[] {
-  const privatePaths = ["/auth", "/reset-password", "/account", "/checkout/return", "/produkti/rezultat", ...ONE_TIME_PRODUCTS.map(p => `/produkti/${p.slug}/start`)];
+  const privatePaths = ["/auth", "/auth/callback", "/reset-password", "/account", "/checkout/return", "/produkti/rezultat", ...ONE_TIME_PRODUCTS.map(p => `/produkti/${p.slug}/start`)];
   return [{
     path: "/plans", title: "Планове и цени — Dogovori.net",
     description: "Планове за редовна работа с документи. Сравнете цените и включените операции. Платените услуги се избират отделно.",

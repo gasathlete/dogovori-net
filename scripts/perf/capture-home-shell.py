@@ -24,7 +24,7 @@ async def main():
           const header = document.querySelector('header').cloneNode(true);
           const hero = document.querySelector('main > section').cloneNode(true);
           // Session/state-dependent bits are never baked in: no video, no account menu state.
-          hero.querySelectorAll('video, button[aria-pressed]').forEach((e) => e.remove());
+          hero.querySelectorAll('video').forEach((e) => e.remove());
           return header.outerHTML + '\\n<!--hero-->\\n' + hero.outerHTML;
         }""")
         await b.close()
