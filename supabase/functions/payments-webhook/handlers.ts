@@ -65,11 +65,11 @@ function reversalLookupDeps(d: WebhookDeps, env: StripeEnv): WebhookDeps {
       checkout: { sessions: { list: (params: Any) => {
         const key = JSON.stringify(params);
         if (!sessions.has(key)) sessions.set(key, Promise.resolve(client().checkout.sessions.list(params)));
-        return sessions.get(key)!;
+        return sessions.get(key);
       } } },
       charges: { retrieve: (id: string) => {
         if (!charges.has(id)) charges.set(id, Promise.resolve(client().charges.retrieve(id)));
-        return charges.get(id)!;
+        return charges.get(id);
       } },
     }),
   };
