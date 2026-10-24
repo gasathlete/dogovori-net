@@ -1,3 +1,4 @@
+import { useAuthAction } from "@/hooks/useAuthAction";
 import { MarketingOptIn } from "@/components/auth/MarketingOptIn";
 import { trackMetric } from "@/lib/metrics";
 import { useEffect, useState } from "react";
@@ -53,18 +54,18 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [busy, setBusy] = useState(false);
+  const { busy, run } = useAuthAction();
 
   // Signup consent checkboxes
-  const [acceptTerms, setAcceptTerms] = useState(true);
-  const [acceptPrivacy, setAcceptPrivacy] = useState(true);
-  const [acceptAge, setAcceptAge] = useState(true);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
+  const [acceptAge, setAcceptAge] = useState(false);
   // Маркетинговото съгласие е по желание — стартира ИЗКЛЮЧЕНО и НЕ участва
   // в готовността за регистрация (GDPR: свободно, конкретно съгласие).
   // Неотметнато поле не записва нищо — нито съгласие, нито отказ.
   const [acceptMarketing, setAcceptMarketing] = useState(false);
   // Задължително: име и имейл се пазят за вътрешни известия и проверката при подпис.
-  const [acceptNotifications, setAcceptNotifications] = useState(true);
+  const [acceptNotifications, setAcceptNotifications] = useState(false);
   const [tab, setTab] = useState<"login" | "signup">(
     params.get("tab") === "signup" ? "signup" : "login",
   );
@@ -127,9 +128,7 @@ export default function AuthPage() {
     try {
       sessionStorage.setItem("post_login_redirect", redirect);
     } catch { /* storage unavailable */ }
-    setBusy(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setBusy(false);
     if (error) {
       try {
         sessionStorage.removeItem("post_login_redirect");
@@ -149,7 +148,6 @@ export default function AuthPage() {
       toast.error("Паролата трябва да е поне 8 символа");
       return;
     }
-    setBusy(true);
     // Store explicit evidence before signup can emit a session.
     try {
       sessionStorage.setItem(
@@ -167,14 +165,12 @@ export default function AuthPage() {
       );
       sessionStorage.setItem("post_login_redirect", redirect);
     } catch {
-      setBusy(false);
       toast.error("Не успяхме да запазим избора Ви. Разрешете съхранението в браузъра и опитайте отново.");
       return;
     }
     const { error } = await supabase.auth.signUp({
       email, password, options: { emailRedirectTo, data: { display_name: name } },
     });
-    setBusy(false);
     if (error) {
       try { sessionStorage.removeItem("pending_consents"); sessionStorage.removeItem("post_login_redirect"); } catch { /* unavailable */ }
       return toast.error("Грешка при регистрация", { description: translateAuthError(error.message) });
@@ -188,7 +184,6 @@ export default function AuthPage() {
 
 
   const startGoogleOAuth = async (marketing: boolean) => {
-    setBusy(true);
     try {
       sessionStorage.setItem("post_login_redirect", redirect);
       // Always stash consents — the write is idempotent per consent event, and
@@ -199,6 +194,7 @@ export default function AuthPage() {
       sessionStorage.setItem(
         "pending_consents",
         JSON.stringify({
+          event_id: crypto.randomUUID(),
           marketing,
           operational_notifications: true,
           terms: true,
@@ -207,17 +203,16 @@ export default function AuthPage() {
           ts: Date.now(),
         }),
       );
-    } catch { /* storage unavailable */ }
+    } catch { throw new Error("consent_storage_unavailable"); }
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
       extraParams: { prompt: "select_account" },
     });
     if (result.error) {
-      setBusy(false);
+      sessionStorage.removeItem("pending_consents"); sessionStorage.removeItem("post_login_redirect");
       return toast.error("Грешка с Google", { description: String(result.error) });
     }
     if (result.redirected) return;
-    setBusy(false);
     navigate(redirect);
   };
 
@@ -237,7 +232,7 @@ export default function AuthPage() {
 
   const handleGoogleConsentConfirm = async (marketing: boolean) => {
     setGoogleConsentOpen(false);
-    await startGoogleOAuth(marketing);
+    await run(() => startGoogleOAuth(marketing));
   };
 
   const handleReset = async () => {
@@ -276,7 +271,7 @@ export default function AuthPage() {
             </TabsList>
 
             <TabsContent value="login">
-              <form onSubmit={handleLogin} className="mt-4 space-y-3">
+              <form onSubmit={(e) => { e.preventDefault(); void run(() => handleLogin(e)); }} className="mt-4 space-y-3">
                 <div>
                   <Label htmlFor="lemail">Email</Label>
                   <Input id="lemail" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -297,7 +292,7 @@ export default function AuthPage() {
                   {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Влез
                 </Button>
-                <button type="button" onClick={handleReset} className="text-xs text-muted-foreground hover:text-gold">
+                <button type="button" disabled={busy} onClick={() => void run(handleReset)} className="text-xs text-muted-foreground hover:text-gold">
                   Забравена парола?
                 </button>
                 <button
@@ -311,7 +306,7 @@ export default function AuthPage() {
             </TabsContent>
 
             <TabsContent value="signup">
-              <form onSubmit={handleSignup} className="mt-4 space-y-3">
+              <form onSubmit={(e) => { e.preventDefault(); void run(() => handleSignup(e)); }} className="mt-4 space-y-3">
                 <div>
                   <Label htmlFor="sname">Име</Label>
                   <Input id="sname" required value={name} onChange={(e) => setName(e.target.value)} />
@@ -425,7 +420,7 @@ export default function AuthPage() {
 
           <button
             type="button"
-            onClick={handleGoogle}
+            onClick={() => void run(handleGoogle)}
             disabled={busy || (tab === "signup" && !signupReady)}
             className="group relative flex w-full items-center justify-center gap-3 rounded-md border-2 border-gold/50 bg-white px-4 py-3 text-[15px] font-semibold text-slate-800 shadow-[0_4px_14px_-4px_hsl(43_55%_54%/0.45)] transition-all hover:border-gold hover:shadow-[0_6px_20px_-4px_hsl(43_55%_54%/0.65)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
             title={tab === "signup" && !signupReady ? "Първо приемете задължителните условия по-горе" : undefined}

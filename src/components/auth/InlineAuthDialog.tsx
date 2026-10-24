@@ -36,7 +36,6 @@ export function InlineAuthDialog() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { busy, run } = useAuthAction();
-  const setBusy = (_value: boolean) => {}; // Request ownership belongs to run().
   const [googleConsentOpen, setGoogleConsentOpen] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [age, setAge] = useState(false);
@@ -90,10 +89,8 @@ export function InlineAuthDialog() {
       toast.error("Моля, потвърдете задължителните полета");
       return;
     }
-    setBusy(true);
     if (mode === "login") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      setBusy(false);
       if (error) {
         toast.error("Неуспешен вход", { description: translateAuthError(error.message) });
         return;
@@ -103,7 +100,6 @@ export function InlineAuthDialog() {
       return;
     }
     if (password.length < 8) {
-      setBusy(false);
       toast.error("Паролата трябва да съдържа поне 8 символа");
       return;
     }
@@ -114,7 +110,6 @@ export function InlineAuthDialog() {
         operational_notifications: notifications, ts: Date.now(),
       }));
     } catch {
-      setBusy(false);
       toast.error("Не успяхме да запазим избора Ви. Разрешете съхранението в браузъра и опитайте отново.");
       return;
     }
@@ -125,7 +120,6 @@ export function InlineAuthDialog() {
       // изчистен относителен път (без hash, без ab_/utm_ параметри).
       options: { emailRedirectTo: buildAuthRedirectUrl(currentReturnPath()) },
     });
-    setBusy(false);
     if (error) {
       try { sessionStorage.removeItem("pending_consents"); } catch { /* unavailable */ }
       toast.error("Неуспешна регистрация", { description: translateAuthError(error.message) });
@@ -146,7 +140,6 @@ export function InlineAuthDialog() {
       toast.error("Моля, потвърдете задължителното съгласие за име и имейл.");
       return;
     }
-    setBusy(true);
     try {
       // Пълното OAuth пренасочване връща потребителя на същия адрес —
       // черновата в уизарда се възстановява автоматично.
@@ -171,12 +164,10 @@ export function InlineAuthDialog() {
     if (result.error) {
       sessionStorage.removeItem("pending_consents");
       sessionStorage.removeItem("post_login_redirect");
-      setBusy(false);
       toast.error("Неуспешен вход с Google", { description: String(result.error) });
       return;
     }
     if (result.redirected) return;
-    setBusy(false);
     toast.success("Успешен вход");
     finish();
   };

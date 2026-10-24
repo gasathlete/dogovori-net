@@ -21,20 +21,20 @@ interface GoogleConsentDialogProps {
 }
 
 export function GoogleConsentDialog({ open, onOpenChange, onConfirm, busy }: GoogleConsentDialogProps) {
-  const [age, setAge] = useState(true);
-  const [terms, setTerms] = useState(true);
-  const [privacy, setPrivacy] = useState(true);
+  const [age, setAge] = useState(false);
+  const [terms, setTerms] = useState(false);
+  const [privacy, setPrivacy] = useState(false);
   // Задължително: име и имейл за вътрешни известия и проверката при подпис.
-  const [notifications, setNotifications] = useState(true);
+  const [notifications, setNotifications] = useState(false);
   // По желание и изключено по подразбиране — изричен opt-in за имейл маркетинг.
   const [marketing, setMarketing] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setAge(true);
-      setTerms(true);
-      setPrivacy(true);
-      setNotifications(true);
+      setAge(false);
+      setTerms(false);
+      setPrivacy(false);
+      setNotifications(false);
       setMarketing(false);
     }
   }, [open]);
@@ -118,7 +118,7 @@ export function GoogleConsentDialog({ open, onOpenChange, onConfirm, busy }: Goo
           Продължи с Google
         </Button>
         <p className="text-[10px] text-center text-muted-foreground">
-          Ако вече имате профил, ще влезете директно — съгласията се запазват само за нови потребители.
+          Ако вече имате профил, ще влезете директно — запазваме само изрично потвърдените тук съгласия.
         </p>
       </DialogContent>
     </Dialog>
