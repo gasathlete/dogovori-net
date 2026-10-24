@@ -1,3 +1,4 @@
+import { applyHandoffDestination } from "@/lib/postLoginDestination";
 // Helpers for recording user consents (GDPR art. 7 evidence).
 // Document versions are bumped whenever a policy text materially changes.
 
@@ -175,7 +176,7 @@ export async function flushPendingConsents() {
   if (handoffError) return { ok: false as const, reason: "handoff-unavailable" as const };
   const result = handoff as { ok?: boolean; return_path?: string } | null;
   if (result?.return_path) {
-    try { if (!sessionStorage.getItem("post_login_redirect")) sessionStorage.setItem("post_login_redirect", result.return_path); } catch { /* navigation may be unavailable */ }
+    try { applyHandoffDestination(result.return_path); } catch { /* navigation may be unavailable */ }
   }
   let raw: string | null = null;
   try {
