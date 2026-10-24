@@ -2,6 +2,8 @@
 
 ## Scope and evidence
 
+**Native Search Console supplement, 24 October after 09:22 UTC:** the earlier “GSC unavailable” statements refer to the Wizard, not native connector authentication. Read-only native access succeeded; see the final section below. Google indexing is still not inspected.
+
 Current AGENTS, auth pages/modals/provider, consent persistence, Stripe client, checkout/return, product entitlement reads, checkout server and webhook handlers, prerender and robots were read. Existing reports were not used as proof. No payments, new accounts, auth emails, backend deployment/config changes, price changes or publication were performed. Google Search Console is unavailable; Google indexing is not verified.
 
 ## Confirmed findings
@@ -100,3 +102,12 @@ Fresh browser check at 1280×1800: home current H1 and own canonical, three exac
 **Not fixed live:** missing-path HTTP 200/soft404, stale published `/auth` and `/plans`, and old published homepage copy. No publication occurred; changes reach the live URL only after an authorized publication, and even then HTTP 404 requires supported hosting behaviour rather than React NotFound. No new broad audit, Stripe transaction, account/email, backend/config changes or Google indexing verification.
 
 Source/preview changes only. Backend handlers inspected/tested but not changed or deployed. No redesign, dependencies, keys, prices, marketing grant semantics or publication changed. Source correction commit before report artifacts: **96d1d89a8fb36e57c1e81b3153980634f9298494**; later report commits are managed automatically by Lovable, not manual git commits. Credit usage reported **7.52** for project window 08:35–08:44 UTC; final accounting can arrive later and is not a closed invoice.
+
+## Narrow native Google Search Console supplement — after 09:22 UTC
+
+- Reused existing project-linked, accessible OAuth connection **Daniel's Google Search Console**; no connection setup, subscription purchase, new credentials or project configuration change.
+- Actual read-only **GET /webmasters/v3/sites returned HTTP 200**. Native authentication is therefore working for this request, independently of the unavailable GSC Wizard.
+- Google returned two verified properties covering the target, both with `permissionLevel=siteOwner`: **`sc-domain:dogovori.net`** and **`https://dogovori.net/`**. Other unrelated properties were not inspected.
+- This is diagnosis, not initial setup. The connector's required multiple-property selection rule therefore applies: present both matching properties without a default and wait for the owner's choice. No sitemap or URL Inspection request was made before that choice.
+- Next bounded read-only batch after selection: sitemap status and five indexed-version inspections (home, plans, one product, one actual representative template and one article). Stop on 403; respect 429/Retry-After. No sitemap submission, live test or indexing request is authorized by this supplement.
+- **Remaining blocker: property selection, not missing authentication.** No Google indexing or sitemap success/error state is claimed. Primary release blockers and deployment state above are unchanged; no frontend publication.
