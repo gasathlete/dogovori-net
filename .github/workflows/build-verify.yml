@@ -42,11 +42,14 @@ jobs:
       - name: Typecheck application
         run: bunx tsc --noEmit -p tsconfig.app.json
 
-      # 1) Build sitemap + production Vite build + prerender SSG routes.
+      # 1) Run every generation/build stage from package.json's production build.
+      # Artifact and URL verification follow as separate visible gates.
       - name: Vite build + prerender
         env:
           NODE_ENV: production
         run: |
+          bun run scripts/generate-blog-meta.ts
+          bun run scripts/generate-footer-anchors.ts
           bun run scripts/build-sitemap.ts
           bunx vite build
           bun run scripts/prerender.ts
