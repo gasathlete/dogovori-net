@@ -300,8 +300,8 @@ describe("hero копие и продуктови карти", () => {
     expect(read("src/pages/Products.tsx")).toContain("<StepsStrip />");
   });
 
-  it("„Разгледайте нашите продукти“ остава точната водеща фраза", () => {
-    expect(read("src/pages/Products.tsx")).toContain("Разгледайте нашите продукти");
+  it("„Продукти за Вашия документ“ остава точната водеща фраза", () => {
+    expect(read("src/pages/Products.tsx")).toContain("Продукти за Вашия документ");
   });
 });
 

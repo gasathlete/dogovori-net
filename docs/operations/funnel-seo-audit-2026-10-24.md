@@ -133,3 +133,32 @@ This section supersedes earlier claims that invoice/team code remains unimplemen
 **Root build handoff:** existing `.github/workflows/build-verify.yml` supports workflow_dispatch, frozen Bun1.4.2 install, app typecheck, sitemap/Vite/prerender/artifact/URL checks. Its split steps omit package build's blog/footer generation; full exact `bun run build` also needs execution outside this harness. Workflow source reviewed, not dispatched here. Checkpoint **7625460c4e85847e3b23b4c8f0c7c58a65986550** precedes this report update.
 
 **Remaining:** real owned-mail confirmation→consume→bonus readback and dedicated staff TEST checkout/webhook/refund; Root production workflow/artifacts; selected GSC property; hosted HTTP404. Classic automatic SPA fallback and absent exposed route-status customization remain the concrete limitation; no `_redirects`, DNS or broad framework migration attempted. Legacy unknown shared quota remains untouched. Proration-only invoice periods and non-payment-intent settlement fail closed with explicit unverified codes rather than fabricated access facts; actual provider delivery still untested. Full refund behavior is implemented for verified invoice periods, not claimed for every legacy billing configuration. Frontend unpublished.
+## CI closeout and owned fixture — 2026-10-24 ~09:45 UTC
+
+**Owned fixture E2E (real):** Root confirmed the email link; DB showed `email_confirmed_at` set, 0 consents, handoff unconsumed. Browser sign-in on preview → `/account`; readback: handoff consumed, 5 consent rows (terms, privacy, age_18, operational_notifications, marketing=true), `topup_ops_balance=3`, plan free. Second sign-in: still 5 rows, balance 3 (no regrant). Stripe TEST checkout/webhook/refund for this fixture not run.
+
+**Full Tests job 120836593530 (17 failures) — resolved locally, 9 files / 120 tests pass:**
+| Test | Cause | Fix |
+|---|---|---|
+| dependencyLock | package.json override pins MCP SDK 1.32.1 | assert 1.32.1 (lock = override) |
+| documentOperationCallers ×4 | callers now use `invokeWithMarketingBonus` | regex accepts both wrappers; operation_id checks unchanged |
+| freeOfferCopy | canonical rule is 2/month + optional 3 after consent | assert current `FREE_OFFER_RULE` |
+| mobileConversion, positioningOffer | copy changed | assert current H1/plans copy |
+| p2Conversion ×4 | hero link „Вижте как работи“; story finale is `RegistrationCTA` → `/build`; bounded `move` | assert current behavior; no-navigation-on-close kept |
+| publicConversionRoutes | gate gained `payInFlight` double-click guard | assert stricter guard |
+| useAuth.assistantContext ×3 | router mock lacked `Link` (new consent dialog) | mock `Link`; no regression in app |
+| productEmbeddedAvailability | subscriptions were deliberately opened by owner | assert subscription checkout mounts; product state not toggled |
+
+**Security shield:** `body-parser` 2.3.0 → **2.4.0** via `overrides` (transitive through MCP SDK/express); lock regenerated with exact Bun 1.4.2 (`bun install --lockfile-only`, 2-line lock diff, lockfileVersion 3, frozen install OK). `zod` 3.25.76: advisory fix only in 4.x (major API change, used by forms/resolvers) — **not fixed, not suppressed**; needs a separate tested zod 4 migration.
+
+## Final closeout — 2026-10-24 ~10:00 UTC
+
+**Owned fixture (real, current preview):** after Root's provider verify (HTTP 303 → dogovori.net), sign-in consumed the durable handoff: 5 consents incl. marketing=true, bonus +3 once; second sign-in unchanged (5 rows, balance 3).
+
+**Stripe TEST E2E (real provider, staff self session via `lovable auth-session --self`, role moderator):** entry pack `five_operations` 2.90 € paid with test card in embedded checkout → return URL → signed webhook credited **isolated** `billing_test_balances` +5; shared customer quota unchanged (2). Full refund via Stripe sandbox API → signed `charge.refunded` webhook set `reversed_at`, bound payment intent, test balance 5→0; shared quota still 2. Not exercised end-to-end: provider-side webhook redelivery/replay (covered by unit/PGlite tests only), subscription refunds, OAuth.
+
+**Wording correction:** `sc-domain:dogovori.net` was selected by the assistant as the same-domain audit scope, not an explicit owner choice.
+
+**Root commits:** CI workflow 4f9dbaf present in this tree. Sitemap/indexability commits 592e142, a12ed2f, 8c361a3 are **not present** in this workspace history yet (local `public/sitemap-static.xml` has no `/plans`), so they could not be verified here; nothing was overwritten. Verify after sync.
+
+**Hosted 404:** remains a platform limitation of Classic SPA fallback; no migration attempted.

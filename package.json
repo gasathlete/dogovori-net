@@ -146,6 +146,7 @@
     "vite": "$vite",
     "@lovable.dev/mcp-js": {
       "esbuild": "^0.28.2"
-    }
+    },
+    "body-parser": "^2.4.0"
   }
 }

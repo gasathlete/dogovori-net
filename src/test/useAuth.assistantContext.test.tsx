@@ -7,6 +7,7 @@ import { act, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("react-router-dom", () => ({
+  Link: ({ children }: { children?: import("react").ReactNode }) => children,
   useNavigate: () => vi.fn(),
   useLocation: () => ({ pathname: "/" }),
 }));

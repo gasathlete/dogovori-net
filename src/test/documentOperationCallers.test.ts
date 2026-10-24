@@ -34,7 +34,7 @@ const read = (p: string) => readFileSync(p, "utf8");
 describe("повикващият код на документните операции", () => {
   it.each(CALLERS)("$fn праща траен operation_id", ({ path, fn, purpose }) => {
     const src = read(path);
-    expect(src).toMatch(new RegExp(`invoke\\(\\s*"${fn}"`));
+    expect(src).toMatch(new RegExp(`(?:invoke|invokeWithMarketingBonus)\\(\\s*"${fn}"`));
     expect(src).toContain("getOrCreateDocumentOperationId");
     expect(src).toContain(`"${purpose}"`);
     expect(src).toMatch(/operation_id:\s*operationId/);
