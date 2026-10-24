@@ -33,6 +33,7 @@ import {
 import { getSeoTemplateMeta } from "../src/lib/seoTemplateMeta";
 import { formatSeoTitle, formatSeoDescription, hasBulgarianPrimaryContent } from "../src/lib/seoText";
 import { buildLegalPages } from "./lib/legalPages";
+import { buildFunnelSeoPages } from "./lib/funnelSeoPages";
 
 import { FREE_OFFER_RULE, fmtEur } from "../src/lib/pricing";
 import { ONE_TIME_PRODUCTS, ONE_TIME_TERMS, PRODUCTS_SEO } from "../src/lib/products";
@@ -107,6 +108,7 @@ interface PageMeta {
   bodyHtml: string;        // visible placeholder HTML for crawlers
   jsonLd: Record<string, any>[];
   type?: "website" | "article";
+  noindex?: boolean;
 }
 
 function escapeHtml(s: string): string {
@@ -134,6 +136,7 @@ function renderPage(meta: PageMeta): string {
   if (meta.type) html = html.replace(/<meta property="og:type"[^>]*>/, `<meta property="og:type" content="${meta.type}" data-prerendered="true" />`);
   html = html.replace(/<meta name="twitter:title"[^>]*>/, `<meta name="twitter:title" content="${escapeHtml(meta.title)}" data-prerendered="true" />`);
   html = html.replace(/<meta name="twitter:description"[^>]*>/, `<meta name="twitter:description" content="${escapeHtml(meta.description)}" data-prerendered="true" />`);
+  if (meta.noindex) html = html.replace(/<meta name="robots"[^>]*>/, '<meta name="robots" content="noindex, nofollow" data-prerendered="true" />');
 
 
   // Inject extra JSON-LD blocks before </head>.
@@ -966,6 +969,7 @@ if (blogPosts.length) {
   }
 }
 
+pages.push(...buildFunnelSeoPages());
 let n = 0;
 for (const p of pages) {
   writeRoute(p);

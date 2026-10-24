@@ -3,6 +3,7 @@ Allow: /
 
 # Authenticated workspace + tokenized/private routes — never index.
 Disallow: /account
+Disallow: /auth
 Disallow: /admin
 Disallow: /admin/
 Disallow: /build
@@ -31,6 +32,7 @@ User-agent: OAI-SearchBot
 Allow: /
 # Authenticated workspace + tokenized/private routes — never index.
 Disallow: /account
+Disallow: /auth
 Disallow: /admin
 Disallow: /admin/
 Disallow: /build
