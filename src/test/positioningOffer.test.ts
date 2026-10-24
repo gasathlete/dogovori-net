@@ -73,7 +73,7 @@ describe("оферта: еднократно срещу абонамент", () 
     expect(plans).toContain("Платете според начина,");
     expect(plans).toContain("Конкретен документ");
     expect(plans).toContain("Абонамент — когато договорите са редовна работа");
-    expect(plans).toContain("Една задача");
+    expect(plans).toContain("една задача от 2,99 € еднократно");
     expect(plans).toContain('href="#plan-cards"');
   });
 
