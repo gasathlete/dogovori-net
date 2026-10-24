@@ -5974,6 +5974,36 @@ export type Database = {
           },
         ]
       }
+      signup_handoffs: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          event_id: string
+          evidence: Json
+          expires_at: string
+          return_path: string
+          user_id: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          event_id: string
+          evidence: Json
+          expires_at?: string
+          return_path?: string
+          user_id: string
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          event_id?: string
+          evidence?: Json
+          expires_at?: string
+          return_path?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       staff_training: {
         Row: {
           acknowledged_at: string
@@ -7906,6 +7936,7 @@ export type Database = {
         Args: { _doc_key: string; _kind: string; _session_id: string }
         Returns: Json
       }
+      consume_signup_handoff: { Args: never; Returns: Json }
       consume_team_quota: { Args: { _team_id: string }; Returns: Json }
       corrections_wave_bind: {
         Args: {

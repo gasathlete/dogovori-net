@@ -232,6 +232,13 @@
       "when": 1792602660838,
       "tag": "0032_marketing_bonus_wave_cap",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1792833243109,
+      "tag": "0033_signup_confirmation_handoff",
+      "breakpoints": true
     }
   ]
 }
