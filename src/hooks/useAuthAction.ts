@@ -5,7 +5,7 @@ import { toast } from "sonner";
 export function useAuthAction() {
   const locked = useRef(false);
   const [busy, setBusy] = useState(false);
-  const run = useCallback(async (action: () => Promise<void>) => {
+  const run = useCallback(async (action: () => Promise<unknown>) => {
     if (locked.current) return;
     locked.current = true;
     setBusy(true);

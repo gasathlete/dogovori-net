@@ -110,6 +110,9 @@ describe("CheckoutReturn — визуална истинност", () => {
     tables.set("download_quota", { plan: "pro", pro_until: null });
     renderReturn(`session_id=${SESSION}&price_id=professional_monthly&source=account_subscription`);
     await waitFor(() => expect(screen.getByText(/Вход в профила/)).toBeInTheDocument());
+    const link = screen.getByRole("link", { name: "Вход в профила" });
+    const target = new URL(link.getAttribute("href") ?? "", "https://dogovori.net");
+    expect(target.searchParams.get("redirect")).toBe(`/checkout/return?session_id=${SESSION}&price_id=professional_monthly&source=account_subscription`);
     expect(screen.queryByTestId(SUCCESS_ICON)).toBeNull();
     expect(trackCheckoutCompletedMock).not.toHaveBeenCalled();
   });
