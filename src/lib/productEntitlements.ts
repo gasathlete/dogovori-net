@@ -105,6 +105,7 @@ export async function fetchPaidProductPurchase(
   ]);
   const order = (snapshotRes?.data as ProductOrderProof | null) ?? null;
   if (!entitlement || !order) return null;
+  if (!["paid", "processing", "ready", "failed"].includes(entitlement.status)) return null;
   if (order.payment_status !== "paid" || order.purchase_kind !== "product") return null;
   if (order.product_id !== entitlement.product_id) return null;
   if (order.environment !== entitlement.environment) return null;

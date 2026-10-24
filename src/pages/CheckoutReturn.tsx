@@ -106,7 +106,8 @@ export default function CheckoutReturn() {
             return false;
           }
           const entitlement = await fetchEntitlementBySession(uid, sid);
-          return !!entitlement && entitlement.product_id === productParam;
+          return !!entitlement && entitlement.product_id === productParam &&
+            ["paid", "processing", "ready", "failed"].includes(entitlement.status);
         }
         case "entry_pack":
         case "topup":
