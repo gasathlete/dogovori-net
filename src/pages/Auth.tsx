@@ -74,7 +74,7 @@ export default function AuthPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState("");
   const [confirmCode, setConfirmCode] = useState("");
-  const [confirmBusy, setConfirmBusy] = useState(false);
+  const { busy: confirmBusy, run: runConfirmation } = useAuthAction();
   const [confirmSent, setConfirmSent] = useState(false);
 
   // Google consent dialog (login tab — prevents account creation without consents)
@@ -89,31 +89,28 @@ export default function AuthPage() {
 
   const handleResendCode = async () => {
     if (!confirmEmail) return toast.error("Въведете email");
-    setConfirmBusy(true);
     const { error } = await supabase.auth.resend({
       type: "signup",
       email: confirmEmail,
       options: { emailRedirectTo },
     });
-    setConfirmBusy(false);
     if (error) return toast.error("Не успяхме да изпратим код", { description: translateAuthError(error.message) });
     setConfirmSent(true);
     toast.success("Изпратихме нов 6-цифрен код на имейла ви");
   };
 
   const handleVerifyCode = async () => {
-    if (!confirmEmail || confirmCode.length < 6) return toast.error("Въведете 6-цифрения код");
-    setConfirmBusy(true);
+    if (!confirmEmail || !/^\d{6}$/.test(confirmCode.trim())) return toast.error("Въведете 6-цифрения код");
+    sessionStorage.setItem("post_login_redirect", redirect);
     const { error } = await supabase.auth.verifyOtp({
       email: confirmEmail,
       token: confirmCode.trim(),
       type: "signup",
     });
-    setConfirmBusy(false);
     if (error) return toast.error("Невалиден код", { description: translateAuthError(error.message) });
     toast.success("Имейлът е потвърден!");
     setConfirmOpen(false);
-    navigate(redirect);
+    // AuthProvider persists consent and owns navigation after SIGNED_IN.
   };
 
   useEffect(() => {
@@ -467,7 +464,7 @@ export default function AuthPage() {
             </div>
             <Button
               type="button"
-              onClick={handleResendCode}
+              onClick={() => void runConfirmation(handleResendCode)}
               disabled={confirmBusy || !confirmEmail}
               variant="outline"
               className="w-full border-gold/40 hover:bg-gold/10 hover:text-gold"
@@ -502,7 +499,7 @@ export default function AuthPage() {
             </div>
             <Button
               type="button"
-              onClick={handleVerifyCode}
+              onClick={() => void runConfirmation(handleVerifyCode)}
               disabled={confirmBusy || confirmCode.length < 6}
               className="btn-sheen w-full bg-gradient-gold text-navy hover:shadow-gold"
             >
