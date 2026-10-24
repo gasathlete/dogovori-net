@@ -149,6 +149,7 @@ function makeReversalDeps(
           return Promise.resolve({ payment_intent: "pi_product" });
         },
       },
+      invoicePayments: { list: () => Promise.resolve({ data: [], has_more: false }) },
       subscriptions: { retrieve: () => Promise.resolve({ metadata: {} }) },
       ...over,
     }),

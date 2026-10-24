@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { getStripeEnvironment } from "@/lib/stripe";
 
 export interface TeamMembership {
   team_id: string;
@@ -22,8 +23,9 @@ export interface TeamUsage {
 async function fetchTeam(userId: string): Promise<{ team: TeamMembership | null; usage: TeamUsage | null }> {
   const { data: members } = await supabase
     .from("team_members")
-    .select("team_id, role, teams!inner(id, name, seat_count, status, current_period_end)")
+    .select("team_id, role, teams!inner(id, name, seat_count, status, current_period_end,environment)")
     .eq("user_id", userId)
+    .eq("teams.environment", getStripeEnvironment())
     .limit(1);
   const m = members?.[0] as any;
   if (!m) return { team: null, usage: null };
@@ -63,8 +65,8 @@ export function useTeam() {
   const userId = user?.id ?? null;
 
   const query = useQuery({
-    queryKey: ["team", userId],
-    queryFn: () => fetchTeam(userId!),
+    queryKey: ["team", userId, getStripeEnvironment()],
+    queryFn: () => userId ? fetchTeam(userId) : Promise.resolve({ team: null, usage: null }),
     enabled: !!userId,
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
