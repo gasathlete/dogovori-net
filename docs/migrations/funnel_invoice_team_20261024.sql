@@ -24,10 +24,10 @@ BEGIN
  PERFORM pg_advisory_xact_lock(hashtextextended(u::text||p_environment,0));
  SELECT * INTO old FROM public.subscriptions WHERE stripe_subscription_id=p_subscription->>'stripe_subscription_id' FOR UPDATE;
  IF FOUND THEN
- IF old.user_id<>u OR old.environment<>p_environment THEN RAISE EXCEPTION 'subscription_binding_mismatch'; END IF;
- IF old.last_event_created>p_event_created OR old.last_event_id=p_event_id THEN RETURN jsonb_build_object('ok',true,'applied',false); END IF;
+ IF old.user_id<>u OR old.environment<>p_environment OR old.stripe_customer_id<>p_subscription->>'stripe_customer_id' THEN RAISE EXCEPTION 'subscription_binding_mismatch'; END IF;
+ IF NOT coalesce((p_subscription->>'invoice_refresh')::boolean,false) AND (old.last_event_created>p_event_created OR old.last_event_id=p_event_id) THEN RETURN jsonb_build_object('ok',true,'applied',false); END IF;
  -- Equal-second competing snapshots cannot safely undo a terminal state.
- IF old.last_event_created=p_event_created AND old.status='canceled' AND p_subscription->>'status'<>'canceled' THEN RETURN jsonb_build_object('ok',true,'applied',false); END IF;
+ IF NOT coalesce((p_subscription->>'invoice_refresh')::boolean,false) AND old.last_event_created=p_event_created AND old.status='canceled' AND p_subscription->>'status'<>'canceled' THEN RETURN jsonb_build_object('ok',true,'applied',false); END IF;
  END IF;
  INSERT INTO public.subscriptions(user_id,stripe_subscription_id,stripe_customer_id,product_id,price_id,status,current_period_start,current_period_end,cancel_at_period_end,environment,last_event_created,last_event_id)
  VALUES(u,p_subscription->>'stripe_subscription_id',p_subscription->>'stripe_customer_id',p_subscription->>'product_id',p_subscription->>'price_id',p_subscription->>'status',(p_subscription->>'current_period_start')::timestamptz,(p_subscription->>'current_period_end')::timestamptz,coalesce((p_subscription->>'cancel_at_period_end')::boolean,false),p_environment,p_event_created,p_event_id)
@@ -60,7 +60,7 @@ BEGIN
  SELECT * INTO old FROM public.team_subscription_ledger WHERE stripe_subscription_id=p_subscription->>'stripe_subscription_id' FOR UPDATE;
  IF FOUND THEN
  IF old.user_id<>u OR old.team_id<>tid OR old.environment<>p_environment OR old.stripe_customer_id<>p_subscription->>'stripe_customer_id' THEN RAISE EXCEPTION 'team_subscription_binding_mismatch'; END IF;
- IF old.last_event_created>p_event_created OR old.last_event_id=p_event_id OR (old.last_event_created=p_event_created AND old.status='canceled' AND p_subscription->>'status'<>'canceled') THEN RETURN jsonb_build_object('ok',true,'applied',false); END IF;
+ IF NOT coalesce((p_subscription->>'invoice_refresh')::boolean,false) AND (old.last_event_created>p_event_created OR old.last_event_id=p_event_id OR (old.last_event_created=p_event_created AND old.status='canceled' AND p_subscription->>'status'<>'canceled')) THEN RETURN jsonb_build_object('ok',true,'applied',false); END IF;
  ELSIF t.stripe_subscription_id=p_subscription->>'stripe_subscription_id' AND t.stripe_customer_id IS NOT NULL AND t.stripe_customer_id<>p_subscription->>'stripe_customer_id' THEN RAISE EXCEPTION 'team_customer_binding_mismatch'; END IF;
  INSERT INTO public.team_subscription_ledger VALUES(p_subscription->>'stripe_subscription_id',tid,u,p_environment,p_subscription->>'stripe_customer_id',p_subscription->>'status',(p_subscription->>'seat_count')::integer,(p_subscription->>'current_period_start')::timestamptz,(p_subscription->>'current_period_end')::timestamptz,p_event_created,p_event_id)
  ON CONFLICT(stripe_subscription_id) DO UPDATE SET status=excluded.status,seat_count=excluded.seat_count,current_period_start=excluded.current_period_start,current_period_end=excluded.current_period_end,last_event_created=excluded.last_event_created,last_event_id=excluded.last_event_id;
@@ -98,10 +98,10 @@ BEGIN
  ON CONFLICT(invoice_id) DO UPDATE SET amount_refunded=greatest(subscription_invoice_ledger.amount_refunded,excluded.amount_refunded),last_event_id=excluded.last_event_id;
  -- Refresh existing authoritative state even when the provider event's timestamp is older.
  IF s.stripe_subscription_id IS NOT NULL THEN
- PERFORM public.sync_subscription_event(jsonb_build_object('user_id',s.user_id,'stripe_subscription_id',s.stripe_subscription_id,'stripe_customer_id',s.stripe_customer_id,'product_id',s.product_id,'price_id',s.price_id,'status',s.status,'current_period_start',s.current_period_start,'current_period_end',s.current_period_end,'cancel_at_period_end',s.cancel_at_period_end),p_environment,s.last_event_created+1,'invoice:'||p_event_id);
+ PERFORM public.sync_subscription_event(jsonb_build_object('invoice_refresh',true,'user_id',s.user_id,'stripe_subscription_id',s.stripe_subscription_id,'stripe_customer_id',s.stripe_customer_id,'product_id',s.product_id,'price_id',s.price_id,'status',s.status,'current_period_start',s.current_period_start,'current_period_end',s.current_period_end,'cancel_at_period_end',s.cancel_at_period_end),p_environment,greatest(s.last_event_created,1),coalesce(s.last_event_id,'legacy'));
  END IF;
  IF ts.stripe_subscription_id IS NOT NULL THEN
- PERFORM public.sync_team_subscription_event(jsonb_build_object('user_id',ts.user_id,'team_id',ts.team_id,'stripe_subscription_id',ts.stripe_subscription_id,'stripe_customer_id',ts.stripe_customer_id,'seat_count',ts.seat_count,'status',ts.status,'current_period_start',ts.current_period_start,'current_period_end',ts.current_period_end),p_environment,ts.last_event_created+1,'invoice:'||p_event_id);
+ PERFORM public.sync_team_subscription_event(jsonb_build_object('invoice_refresh',true,'user_id',ts.user_id,'team_id',ts.team_id,'stripe_subscription_id',ts.stripe_subscription_id,'stripe_customer_id',ts.stripe_customer_id,'seat_count',ts.seat_count,'status',ts.status,'current_period_start',ts.current_period_start,'current_period_end',ts.current_period_end),p_environment,ts.last_event_created,ts.last_event_id);
  END IF;
  RETURN jsonb_build_object('ok',true);
 END $$;
