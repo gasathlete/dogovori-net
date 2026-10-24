@@ -239,7 +239,7 @@ pages.push({
   bodyHtml: `<div class="min-h-dvh" data-home-shell="true">${HOME_SHELL_HEADER}<main data-home-variant="responsive">${HOME_SHELL_HERO}<section class="container max-w-3xl py-10 text-sm leading-relaxed text-muted-foreground">
       <h2 class="font-serif text-xl font-bold text-foreground">Dogovori.net — образци за ежедневните задачи</h2>
       <p>Намерете подходящия образец, разберете какво Ви е необходимо и подгответе следващата стъпка — за лични въпроси, работа и бизнес.</p>
-      <p>Разглеждането е достъпно. Новото генериране и проверката са в подготовка; покупките още не са активни.</p>
+      <p>Разглеждането е достъпно без регистрация. За работа със собствен документ изберете подходящата услуга и проверете условията преди започване.</p>
       <h2>Категории</h2>
       <ul>${CATALOG.map((c) => `<li><a href="/kategoria/${c.id}">${escapeHtml(c.title)}</a> — ${c.documents.length} шаблона</li>`).join("")}</ul>
       <h2>Еднократни продукти за един документ</h2>
