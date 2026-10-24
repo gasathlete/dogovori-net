@@ -1,12 +1,13 @@
 import type { WebhookDeps, StripeEnv } from "../payments-webhook/handlers.ts";
 import { syncSubscriptionEvent } from "./subscription-event.ts";
+import { isStaffUser } from "./sandbox-guard.ts";
 
 type ObjectRecord = Record<string, any>;
 type ProviderPage = { data: ObjectRecord[]; has_more: boolean };
 const id = (value: any): string | undefined => typeof value === "string" ? value : value?.id;
 
 /** Hydrate provider facts, including split invoice payments; never infer a full invoice refund from one charge. */
-export async function reconcileInvoice(d: WebhookDeps, invoiceId: string, env: StripeEnv, event: { id?: string; created?: number }) {
+export async function reconcileInvoice(d: WebhookDeps, invoiceId: string, env: StripeEnv, event: { id?: string; created?: number }, newSettlement = false) {
   const stripe = d.createStripe(env);
   const invoice = await stripe.invoices.retrieve(invoiceId);
   if (invoice.livemode !== (env === "live")) throw new Error("invoice_environment_mismatch");
@@ -15,6 +16,7 @@ export async function reconcileInvoice(d: WebhookDeps, invoiceId: string, env: S
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
   if (subscription.livemode !== (env === "live") || id(subscription.customer) !== id(invoice.customer)) throw new Error("invoice_subscription_binding_mismatch");
   if (!subscription.metadata?.userId) throw new Error("invoice_owner_missing");
+  if (newSettlement && env === "sandbox" && !await isStaffUser(d.db, subscription.metadata.userId)) throw new Error("sandbox_forbidden");
   // Payments and lines are paginated. An incomplete provider response never becomes a permission fact.
   let cursor: string | undefined;
   let paid = 0, refunded = 0;

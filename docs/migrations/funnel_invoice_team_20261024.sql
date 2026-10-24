@@ -122,3 +122,20 @@ BEGIN
  RAISE EXCEPTION 'Имате активен индивидуален абонамент.' USING ERRCODE='check_violation'; END IF;
  RETURN NEW;
 END $$;
+CREATE OR REPLACE FUNCTION public.consume_team_quota(_team_id uuid) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE t public.teams%ROWTYPE; usage public.team_usage%ROWTYPE; cap integer;
+BEGIN
+ IF auth.uid() IS NULL THEN RAISE EXCEPTION 'unauthenticated' USING ERRCODE='28000'; END IF;
+ IF NOT public.is_team_member(auth.uid(),_team_id) THEN RAISE EXCEPTION 'not_team_member' USING ERRCODE='42501'; END IF;
+ SELECT * INTO t FROM public.teams WHERE id=_team_id FOR UPDATE;
+ IF NOT FOUND OR t.environment<>'live' OR t.status<>'active' OR (t.current_period_end IS NOT NULL AND t.current_period_end<=now()) THEN RETURN jsonb_build_object('ok',false,'reason','team_inactive'); END IF;
+ cap := t.seat_count*100;
+ SELECT * INTO usage FROM public.team_usage WHERE team_id=_team_id FOR UPDATE;
+ IF NOT FOUND THEN INSERT INTO public.team_usage(team_id) VALUES(_team_id) RETURNING * INTO usage; END IF;
+ IF now()-usage.period_start>=interval '30 days' THEN UPDATE public.team_usage SET ops_used=0,period_start=now(),updated_at=now() WHERE team_id=_team_id; usage.ops_used:=0; END IF;
+ IF usage.ops_used>=cap THEN RETURN jsonb_build_object('ok',false,'reason','team_limit_reached','ops_used',usage.ops_used,'cap',cap); END IF;
+ UPDATE public.team_usage SET ops_used=ops_used+1,lifetime_ops=lifetime_ops+1,updated_at=now() WHERE team_id=_team_id;
+ RETURN jsonb_build_object('ok',true,'ops_used',usage.ops_used+1,'cap',cap,'lifetime_ops',usage.lifetime_ops+1);
+END $$;
+REVOKE ALL ON FUNCTION public.consume_team_quota(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.consume_team_quota(uuid) TO authenticated,service_role;

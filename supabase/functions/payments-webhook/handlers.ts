@@ -848,6 +848,10 @@ export async function dispatchEvent(
     return;
   }
 
+  if (event.type === "invoice.paid") {
+    await reconcileInvoice(d, event.data.object.id, env, event, true);
+    return;
+  }
   if (env === "sandbox" && !(await sandboxEntitlementAllowed(d, event.type, event.data.object))) {
     return;
   }
@@ -876,9 +880,6 @@ export async function dispatchEvent(
     case "checkout.session.completed":
     case "checkout.session.async_payment_succeeded":
       await handleCheckoutCompleted(d, event.data.object, env, eventProofFrom(event));
-      break;
-    case "invoice.paid":
-      await reconcileInvoice(d, event.data.object.id, env, event);
       break;
     case "invoice.payment_failed":
       if (event.id && event.created) {

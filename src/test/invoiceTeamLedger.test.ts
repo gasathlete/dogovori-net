@@ -11,6 +11,9 @@ beforeAll(async()=>{
  CREATE TABLE topup_purchases(id uuid DEFAULT gen_random_uuid(),user_id uuid,price_id text,ops_added integer,amount_eur numeric,stripe_session_id text UNIQUE,environment text);
  CREATE TABLE teams(id uuid PRIMARY KEY,owner_id uuid,environment text,status text,stripe_subscription_id text,stripe_customer_id text,seat_count integer,current_period_start timestamptz,current_period_end timestamptz,updated_at timestamptz);
  CREATE TABLE team_members(team_id uuid,user_id uuid);
+ CREATE SCHEMA auth; CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$SELECT '${U}'::uuid$$;
+ CREATE FUNCTION public.is_team_member(uuid,uuid) RETURNS boolean LANGUAGE sql AS $$SELECT true$$;
+ CREATE TABLE team_usage(team_id uuid PRIMARY KEY,ops_used integer DEFAULT 0,period_start timestamptz DEFAULT now(),lifetime_ops integer DEFAULT 0,updated_at timestamptz);
  INSERT INTO download_quota(user_id) VALUES('${U}'); INSERT INTO teams(id,owner_id,environment,status) VALUES('${T}','${U}','sandbox','pending');`);
  await db.exec(readFileSync('docs/migrations/funnel_billing_ledger_20261024.sql','utf8'));
  await db.exec(readFileSync('docs/migrations/funnel_invoice_team_20261024.sql','utf8'));
@@ -61,4 +64,9 @@ it('invoice-before-subscription refund tombstone prevents later access',async()=
  await rec({...invoice,invoice_id:'in_early',stripe_subscription_id:'sub_early',amount_refunded:1290},'sandbox');
  await sync({...sub,stripe_subscription_id:'sub_early'},'sandbox',120);
  expect((await db.query<{status:string}>("SELECT status FROM subscriptions WHERE stripe_subscription_id='sub_early'")).rows[0].status).toBe('refunded');
+});
+it('sandbox team never consumes the customer team usage ledger',async()=>{
+ const result=await db.query<{r:{ok:boolean,reason:string}}>('SELECT consume_team_quota($1) r',[T]);
+ expect(result.rows[0].r).toEqual({ok:false,reason:'team_inactive'});
+ expect((await db.query<{n:number}>('SELECT count(*)::int n FROM team_usage')).rows[0].n).toBe(0);
 });
