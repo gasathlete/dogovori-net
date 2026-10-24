@@ -1215,6 +1215,27 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_reversal_tombstones: {
+        Row: {
+          created_at: string
+          environment: string
+          payment_intent_id: string
+          stripe_session_id: string
+        }
+        Insert: {
+          created_at?: string
+          environment: string
+          payment_intent_id: string
+          stripe_session_id: string
+        }
+        Update: {
+          created_at?: string
+          environment?: string
+          payment_intent_id?: string
+          stripe_session_id?: string
+        }
+        Relationships: []
+      }
       billing_test_balances: {
         Row: {
           ops_balance: number
