@@ -150,3 +150,15 @@ This section supersedes earlier claims that invoice/team code remains unimplemen
 | productEmbeddedAvailability | subscriptions were deliberately opened by owner | assert subscription checkout mounts; product state not toggled |
 
 **Security shield:** `body-parser` 2.3.0 → **2.4.0** via `overrides` (transitive through MCP SDK/express); lock regenerated with exact Bun 1.4.2 (`bun install --lockfile-only`, 2-line lock diff, lockfileVersion 3, frozen install OK). `zod` 3.25.76: advisory fix only in 4.x (major API change, used by forms/resolvers) — **not fixed, not suppressed**; needs a separate tested zod 4 migration.
+
+## Final closeout — 2026-10-24 ~10:00 UTC
+
+**Owned fixture (real, current preview):** after Root's provider verify (HTTP 303 → dogovori.net), sign-in consumed the durable handoff: 5 consents incl. marketing=true, bonus +3 once; second sign-in unchanged (5 rows, balance 3).
+
+**Stripe TEST E2E (real provider, staff self session via `lovable auth-session --self`, role moderator):** entry pack `five_operations` 2.90 € paid with test card in embedded checkout → return URL → signed webhook credited **isolated** `billing_test_balances` +5; shared customer quota unchanged (2). Full refund via Stripe sandbox API → signed `charge.refunded` webhook set `reversed_at`, bound payment intent, test balance 5→0; shared quota still 2. Not exercised end-to-end: provider-side webhook redelivery/replay (covered by unit/PGlite tests only), subscription refunds, OAuth.
+
+**Wording correction:** `sc-domain:dogovori.net` was selected by the assistant as the same-domain audit scope, not an explicit owner choice.
+
+**Root commits:** CI workflow 4f9dbaf present in this tree. Sitemap/indexability commits 592e142, a12ed2f, 8c361a3 are **not present** in this workspace history yet (local `public/sitemap-static.xml` has no `/plans`), so they could not be verified here; nothing was overwritten. Verify after sync.
+
+**Hosted 404:** remains a platform limitation of Classic SPA fallback; no migration attempted.
