@@ -6460,6 +6460,54 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_invoice_ledger: {
+        Row: {
+          amount_paid: number
+          amount_refunded: number
+          created_at: string
+          currency: string
+          environment: string
+          invoice_id: string
+          last_event_id: string
+          period_end: string
+          period_start: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          team_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_paid: number
+          amount_refunded?: number
+          created_at?: string
+          currency: string
+          environment: string
+          invoice_id: string
+          last_event_id: string
+          period_end: string
+          period_start: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          team_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_paid?: number
+          amount_refunded?: number
+          created_at?: string
+          currency?: string
+          environment?: string
+          invoice_id?: string
+          last_event_id?: string
+          period_end?: string
+          period_start?: string
+          stripe_customer_id?: string
+          stripe_subscription_id?: string
+          team_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
@@ -6472,6 +6520,7 @@ export type Database = {
           last_event_id: string | null
           price_id: string | null
           product_id: string | null
+          provider_status: string | null
           status: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -6489,6 +6538,7 @@ export type Database = {
           last_event_id?: string | null
           price_id?: string | null
           product_id?: string | null
+          provider_status?: string | null
           status?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -6506,6 +6556,7 @@ export type Database = {
           last_event_id?: string | null
           price_id?: string | null
           product_id?: string | null
+          provider_status?: string | null
           status?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -6654,6 +6705,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      team_subscription_ledger: {
+        Row: {
+          current_period_end: string | null
+          current_period_start: string | null
+          environment: string
+          last_event_created: number
+          last_event_id: string
+          provider_status: string | null
+          seat_count: number
+          status: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment: string
+          last_event_created: number
+          last_event_id: string
+          provider_status?: string | null
+          seat_count: number
+          status: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
+          last_event_created?: number
+          last_event_id?: string
+          provider_status?: string | null
+          seat_count?: number
+          status?: string
+          stripe_customer_id?: string
+          stripe_subscription_id?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       team_usage: {
         Row: {
@@ -7567,6 +7663,7 @@ export type Database = {
           last_event_id: string | null
           price_id: string | null
           product_id: string | null
+          provider_status: string | null
           status: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -8346,6 +8443,10 @@ export type Database = {
         Args: { _key: string; _max: number; _window_s: number }
         Returns: Json
       }
+      reconcile_subscription_invoice: {
+        Args: { p_environment: string; p_event_id: string; p_invoice: Json }
+        Returns: Json
+      }
       record_article_review: {
         Args: {
           _current_hash: string
@@ -8681,6 +8782,15 @@ export type Database = {
       }
       sync_plans_into_prompts: { Args: never; Returns: undefined }
       sync_subscription_event: {
+        Args: {
+          p_environment: string
+          p_event_created: number
+          p_event_id: string
+          p_subscription: Json
+        }
+        Returns: Json
+      }
+      sync_team_subscription_event: {
         Args: {
           p_environment: string
           p_event_created: number
