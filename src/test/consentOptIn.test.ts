@@ -12,6 +12,7 @@ const { upsertMock, getUserMock } = vi.hoisted(() => ({
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: { getUser: getUserMock },
+    rpc: vi.fn().mockResolvedValue({ data: { ok: true }, error: null }),
     from: () => ({ upsert: upsertMock }),
   },
 }));
@@ -38,6 +39,8 @@ beforeEach(() => {
 
 /** Точната форма на доказателството при регистрация. */
 const VALID = {
+  user_id: "u1",
+  authenticated_choice: true,
   terms: true,
   privacy: true,
   age_18: true,

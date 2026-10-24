@@ -9,10 +9,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "@/icons";
 import { translateAuthError } from "@/lib/authErrors";
+import { observeRecovery, isRecoveryOwner, finishRecovery } from "@/lib/passwordRecovery";
+import { safeReturnPath } from "@/lib/safeRoute";
+import { useRef } from "react";
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
   const [password, setPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [recovery, setRecovery] = useState(false);
+  const requestLock = useRef(false);
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
   const [nonce, setNonce] = useState("");
@@ -37,14 +43,16 @@ export default function ResetPasswordPage() {
 
     // Listen for PASSWORD_RECOVERY event triggered after the hash is parsed
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
+      observeRecovery(event, session?.user.id);
+      if (session) {
+        setRecovery(isRecoveryOwner(session.user.id));
         setReady(true);
       }
     });
 
     // Also check existing session in case the event fired before mount
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
+      if (data.session) { setReady(true); setRecovery(isRecoveryOwner(data.session.user.id)); }
     });
 
     // A timeout never creates an authenticated recovery session.
@@ -66,7 +74,8 @@ export default function ResetPasswordPage() {
     if (password.length < 8) {
       return toast.error("Паролата трябва да е поне 8 символа");
     }
-    if (busy || !ready || linkError || (needsNonce && !nonce.trim())) return;
+    if (requestLock.current || !ready || linkError || (needsNonce && !nonce.trim()) || (!recovery && !currentPassword)) return;
+    requestLock.current = true;
     setBusy(true);
     try {
       // Verify with Auth immediately before the mutation; local session metadata is not proof.
@@ -76,7 +85,7 @@ export default function ResetPasswordPage() {
         setLinkError("Невалиден или изтекъл линк.");
         return;
       }
-      const { error } = await supabase.auth.updateUser({ password, ...(needsNonce ? { nonce: nonce.trim() } : {}) });
+      const { error } = await supabase.auth.updateUser({ password, ...(!isRecoveryOwner(data.user.id) ? { current_password: currentPassword } : {}), ...(needsNonce ? { nonce: nonce.trim() } : {}) });
       if (error) {
         if (error.code === "reauthentication_needed" || error.code === "reauthentication_not_valid") {
           setNeedsNonce(true);
@@ -88,10 +97,14 @@ export default function ResetPasswordPage() {
       toast.error("Няма връзка със сървъра. Опитайте отново.");
       return;
     } finally {
+      requestLock.current = false;
       setBusy(false);
     }
     toast.success("Паролата е обновена");
-    navigate("/account");
+    finishRecovery();
+    let destination = "/account";
+    try { destination = safeReturnPath(sessionStorage.getItem("post_login_redirect"), "/account"); sessionStorage.removeItem("post_login_redirect"); } catch { /* default */ }
+    navigate(destination === "/reset-password" ? "/account" : destination);
   };
 
   const requestCode = async () => {
@@ -133,6 +146,10 @@ export default function ResetPasswordPage() {
             </div>
           ) : (
             <form onSubmit={handle} className="mt-4 space-y-3">
+              {!recovery && ready ? <div>
+                <Label htmlFor="current-password">Текуща парола</Label>
+                <Input id="current-password" type="password" required autoComplete="current-password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
+              </div> : null}
               <div>
                 <Label htmlFor="np">Нова парола</Label>
                 <Input

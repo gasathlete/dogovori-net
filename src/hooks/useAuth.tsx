@@ -6,6 +6,8 @@ import { flushPendingConsents } from "@/lib/consents";
 import { sanitizeReturnPath } from "@/lib/safeRoute";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { observeRecovery } from "@/lib/passwordRecovery";
+import { ConfirmedConsentDialog } from "@/components/auth/ConfirmedConsentDialog";
 
 interface AuthContextValue {
   user: User | null;
@@ -73,13 +75,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      observeRecovery(event, s?.user.id);
       setSession(s);
       setLoading(false);
       if (event === "SIGNED_IN" && s) {
         // Leave the auth callback before awaiting SDK calls. Flush explicit
         // signup evidence before navigation so a reload cannot lose the grant.
         setTimeout(() => {
-          void flushPendingConsents().catch(() => undefined).finally(applyPostAuthRedirect);
+          void flushPendingConsents().then(result => { if (result?.reason !== "authenticated-choice-required") applyPostAuthRedirect(); }).catch(() => undefined);
         }, 0);
       }
 
@@ -102,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       syncAssistantContextOwner(data.session?.user?.id ?? null);
       // Същото правило и когато сесията вече е налична при зареждане —
       // потребителят не бива да остава на празен екран с „залепнала" цел.
-      if (data.session) void flushPendingConsents().catch(() => undefined).finally(applyPostAuthRedirect);
+      if (data.session) void flushPendingConsents().then(result => { if (result?.reason !== "authenticated-choice-required") applyPostAuthRedirect(); }).catch(() => undefined);
     });
     return () => sub.subscription.unsubscribe();
   }, []);
@@ -114,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{ user: session?.user ?? null, session, loading, signOut }}>
       {children}
+      <ConfirmedConsentDialog />
     </AuthContext.Provider>
   );
 }

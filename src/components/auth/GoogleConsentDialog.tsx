@@ -18,9 +18,10 @@ interface GoogleConsentDialogProps {
   onOpenChange: (open: boolean) => void;
   onConfirm: (marketing: boolean) => void;
   busy?: boolean;
+  authenticated?: boolean;
 }
 
-export function GoogleConsentDialog({ open, onOpenChange, onConfirm, busy }: GoogleConsentDialogProps) {
+export function GoogleConsentDialog({ open, onOpenChange, onConfirm, busy, authenticated }: GoogleConsentDialogProps) {
   const [age, setAge] = useState(false);
   const [terms, setTerms] = useState(false);
   const [privacy, setPrivacy] = useState(false);
@@ -46,9 +47,9 @@ export function GoogleConsentDialog({ open, onOpenChange, onConfirm, busy }: Goo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Продължи с Google</DialogTitle>
+          <DialogTitle>{authenticated ? "Потвърдете избора за Вашия профил" : "Продължи с Google"}</DialogTitle>
           <DialogDescription>
-            Ако нямате профил, ще създадем нов с вашия Google имейл. Моля, потвърдете задължителните условия, преди да продължите.
+            {authenticated ? "Входът е успешен. Потвърдете условията за този профил; маркетингът остава по желание." : "Ако нямате профил, ще създадем нов с вашия Google имейл. Моля, потвърдете задължителните условия, преди да продължите."}
           </DialogDescription>
         </DialogHeader>
 
@@ -115,7 +116,7 @@ export function GoogleConsentDialog({ open, onOpenChange, onConfirm, busy }: Goo
           className="btn-sheen w-full bg-gradient-gold text-navy hover:shadow-gold disabled:opacity-50"
         >
           {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Продължи с Google
+          {authenticated ? "Запази избора" : "Продължи с Google"}
         </Button>
         <p className="text-[10px] text-center text-muted-foreground">
           Ако вече имате профил, ще влезете директно — запазваме само изрично потвърдените тук съгласия.

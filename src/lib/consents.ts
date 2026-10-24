@@ -96,11 +96,12 @@ export async function hasConsent(type: ConsentType): Promise<boolean> {
       .eq("user_id", user.id)
       .eq("consent_type", type)
       .eq("document_version", CONSENT_VERSIONS[type])
-      .eq("granted", true)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
       .limit(1)
       .maybeSingle();
     if (error) return false;
-    return !!data;
+    return data?.granted === true;
   } catch {
     return false;
   }
@@ -166,6 +167,16 @@ export function parsePending(raw: string): Record<string, unknown> | null {
  * `granted = false`.
  */
 export async function flushPendingConsents() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, reason: "no-user" as const };
+  // Server owns email signup evidence and identity. Never assign an old local
+  // signup checkbox payload to whichever account happened to sign in next.
+  const { data: handoff, error: handoffError } = await supabase.rpc("consume_signup_handoff" as never);
+  if (handoffError) return { ok: false as const, reason: "handoff-unavailable" as const };
+  const result = handoff as { ok?: boolean; return_path?: string } | null;
+  if (result?.return_path) {
+    try { if (!sessionStorage.getItem("post_login_redirect")) sessionStorage.setItem("post_login_redirect", result.return_path); } catch { /* navigation may be unavailable */ }
+  }
   let raw: string | null = null;
   try {
     raw = sessionStorage.getItem(PENDING_CONSENTS_KEY);
@@ -178,6 +189,16 @@ export async function flushPendingConsents() {
   if (!data) {
     try { sessionStorage.removeItem(PENDING_CONSENTS_KEY); } catch { /* ignore */ }
     return { ok: false as const, reason: "malformed" as const };
+  }
+  if (data.user_id !== user.id || data.authenticated_choice !== true) {
+    // Unbound legacy/OAuth evidence is never proof for this user. OAuth must
+    // collect a fresh authenticated consent instead of silently transferring it.
+    try { sessionStorage.removeItem(PENDING_CONSENTS_KEY); } catch { /* ignore */ }
+    if (data.oauth_pending === true && typeof window !== "undefined") {
+      window.dispatchEvent(new Event("dogovori:confirm-account-consent"));
+      return { ok: true as const, reason: "authenticated-choice-required" as const };
+    }
+    return { ok: true as const, reason: "unbound-evidence-discarded" as const };
   }
 
   // A stable batch id makes the retry idempotent. Persist the enriched payload
@@ -206,8 +227,8 @@ export async function flushPendingConsents() {
   // Explicit opt-in only. No record means no marketing consent.
   if (data.marketing === true) records.push({ consent_type: "marketing", granted: true });
 
-  const result = await recordConsents(records, { eventId });
-  if (!result.ok) return result;
+  const recorded = await recordConsents(records, { eventId });
+  if (!recorded.ok) return recorded;
 
   try { sessionStorage.removeItem(PENDING_CONSENTS_KEY); } catch { /* ignore */ }
   return { ok: true as const, eventId };
