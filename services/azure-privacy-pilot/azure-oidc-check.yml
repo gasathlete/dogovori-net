@@ -1,0 +1,35 @@
+# Source-only example. Copy to .github/workflows/ only after the Azure
+# federated credential and least-privilege access have been reviewed.
+# No paid Azure resources are created by this workflow.
+name: Azure privacy pilot - read-only OIDC check
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  azure-identity-check:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      id-token: write
+    steps:
+      - name: Require Azure identity variables
+        env:
+          AZURE_CLIENT_ID: ${{ vars.AZURE_PILOT_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_PILOT_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_PILOT_SUBSCRIPTION_ID }}
+        run: |
+          test -n "$AZURE_CLIENT_ID"
+          test -n "$AZURE_TENANT_ID"
+          test -n "$AZURE_SUBSCRIPTION_ID"
+      - name: Sign in with GitHub OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_PILOT_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_PILOT_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_PILOT_SUBSCRIPTION_ID }}
+      - name: Show selected Azure scope
+        run: az account show --query '{tenantId:tenantId,subscriptionId:id}' --output json
