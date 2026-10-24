@@ -2,6 +2,7 @@ import type { WebhookDeps, StripeEnv } from "../payments-webhook/handlers.ts";
 import { syncSubscriptionEvent } from "./subscription-event.ts";
 
 type ObjectRecord = Record<string, any>;
+type ProviderPage = { data: ObjectRecord[]; has_more: boolean };
 const id = (value: any): string | undefined => typeof value === "string" ? value : value?.id;
 
 /** Hydrate provider facts, including split invoice payments; never infer a full invoice refund from one charge. */
@@ -18,7 +19,7 @@ export async function reconcileInvoice(d: WebhookDeps, invoiceId: string, env: S
   let cursor: string | undefined;
   let paid = 0, refunded = 0;
   do {
-    const page = await stripe.invoicePayments.list({ invoice: invoiceId, limit: 100, ...(cursor ? { starting_after: cursor } : {}) });
+    const page: ProviderPage = await stripe.invoicePayments.list({ invoice: invoiceId, limit: 100, ...(cursor ? { starting_after: cursor } : {}) });
     for (const payment of page.data) {
       if (id(payment.invoice) !== invoiceId || payment.livemode !== (env === "live")) throw new Error("invoice_payment_binding_mismatch");
       if (payment.status !== "paid") continue;
@@ -43,7 +44,7 @@ export async function reconcileInvoice(d: WebhookDeps, invoiceId: string, env: S
   const lines: ObjectRecord[] = [];
   cursor = undefined;
   do {
-    const page = await stripe.invoices.listLineItems(invoiceId, { limit: 100, ...(cursor ? { starting_after: cursor } : {}) });
+    const page: ProviderPage = await stripe.invoices.listLineItems(invoiceId, { limit: 100, ...(cursor ? { starting_after: cursor } : {}) });
     for (const line of page.data) {
       const lineSub = id(line.subscription ?? line.parent?.subscription_item_details?.subscription);
       if (lineSub === subscriptionId && line.amount > 0 && !line.proration && !line.parent?.subscription_item_details?.proration) lines.push(line);
@@ -75,7 +76,7 @@ export async function reconcileRefundedInvoice(d: WebhookDeps, charge: ObjectRec
   const invoices = new Set<string>();
   let cursor: string | undefined;
   do {
-    const page = await stripe.invoicePayments.list({ payment: { type: "payment_intent", payment_intent: pi }, limit: 100, ...(cursor ? { starting_after: cursor } : {}) });
+    const page: ProviderPage = await stripe.invoicePayments.list({ payment: { type: "payment_intent", payment_intent: pi }, limit: 100, ...(cursor ? { starting_after: cursor } : {}) });
     for (const payment of page.data) {
       if (id(payment.payment?.payment_intent) !== pi || payment.livemode !== (env === "live")) throw new Error("refund_invoice_binding_mismatch");
       const invoice = id(payment.invoice);

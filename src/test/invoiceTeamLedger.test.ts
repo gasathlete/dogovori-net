@@ -33,6 +33,10 @@ it('replayed paid event cannot undo full refund and cross-environment binding is
 it('another active subscription survives an old invoice refund',async()=>{
  await sync({...sub,stripe_subscription_id:'sub_two'},'live',102); await rec({...invoice,amount_refunded:1290}); expect(await plan()).toBe('pro');
 });
+it('new paid invoice for the exact refunded period restores only verified access without moving signed event time',async()=>{
+ await rec({...invoice,invoice_id:'in_repaid'});
+ expect((await db.query<{status:string,last_event_created:number}>("SELECT status,last_event_created FROM subscriptions WHERE stripe_subscription_id='sub_one'")).rows[0]).toEqual({status:'active',last_event_created:101});
+});
 it('later renewal and manual extension are not revoked by old refunded period',async()=>{
  await sync({...sub,current_period_start:'2099-01-01T00:00:00Z',current_period_end:'2100-01-01T00:00:00Z'},'live',103);
  expect((await db.query<{status:string}>("SELECT status FROM subscriptions WHERE stripe_subscription_id='sub_one'")).rows[0].status).toBe('active');
