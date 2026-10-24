@@ -103,7 +103,7 @@ export default function ResetPasswordPage() {
     toast.success("Паролата е обновена");
     finishRecovery();
     let destination = "/account";
-    try { destination = safeReturnPath(sessionStorage.getItem("post_login_redirect"), "/account"); sessionStorage.removeItem("post_login_redirect"); } catch { /* default */ }
+    try { destination = safeReturnPath(sessionStorage.getItem("post_login_redirect"), "/account"); sessionStorage.removeItem("post_login_redirect"); sessionStorage.removeItem("post_login_redirect_fallback"); } catch { /* default */ }
     navigate(destination === "/reset-password" ? "/account" : destination);
   };
 

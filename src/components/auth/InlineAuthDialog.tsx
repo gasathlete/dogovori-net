@@ -1,3 +1,4 @@
+import { setPostLoginDestination, clearPostLoginDestination } from "@/lib/postLoginDestination";
 import { MarketingOptIn } from "@/components/auth/MarketingOptIn";
 import { flushPendingConsents } from "@/lib/consents";
 import { trackMetric } from "@/lib/metrics";
@@ -134,7 +135,7 @@ export function InlineAuthDialog() {
     try {
       // Пълното OAuth пренасочване връща потребителя на същия адрес —
       // черновата в уизарда се възстановява автоматично.
-      sessionStorage.setItem("post_login_redirect", currentReturnPath());
+      setPostLoginDestination(currentReturnPath(), true);
       sessionStorage.setItem(
         "pending_consents",
         JSON.stringify({
@@ -155,7 +156,7 @@ export function InlineAuthDialog() {
     });
     if (result.error) {
       sessionStorage.removeItem("pending_consents");
-      sessionStorage.removeItem("post_login_redirect");
+      clearPostLoginDestination();
       toast.error("Неуспешен вход с Google", { description: String(result.error) });
       return;
     }

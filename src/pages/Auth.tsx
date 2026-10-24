@@ -21,6 +21,7 @@ import { GoogleConsentDialog } from "@/components/auth/GoogleConsentDialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "@/icons";
 import { buildAuthRedirectUrl, safeReturnPath } from "@/lib/safeRoute";
+import { setPostLoginDestination, clearPostLoginDestination } from "@/lib/postLoginDestination";
 import { BrandLogo } from "@/components/BrandLogo";
 import { signupHandoff } from "@/lib/signupHandoff";
 
@@ -48,6 +49,9 @@ export default function AuthPage() {
   const rawRedirect =
     rawRedirectParam || (hasAnalysisSession ? "/analiz" : "/account");
   const redirect = safeReturnPath(rawRedirect, "/account");
+  // `/account` is the default landing page: a server-captured signup handoff
+  // may replace it. Any other sanitized target (query intent or draft) is explicit.
+  const redirectExplicit = redirect !== "/account";
   // Абсолютният адрес за имейл потвърждение се строи само от доверения origin.
   const emailRedirectTo = buildAuthRedirectUrl(redirect, "/account");
 
@@ -102,7 +106,7 @@ export default function AuthPage() {
 
   const handleVerifyCode = async () => {
     if (!confirmEmail || !/^\d{6}$/.test(confirmCode.trim())) return toast.error("Въведете 6-цифрения код");
-    sessionStorage.setItem("post_login_redirect", redirect);
+    setPostLoginDestination(redirect, redirectExplicit);
     const { error } = await supabase.auth.verifyOtp({
       email: confirmEmail,
       token: confirmCode.trim(),
@@ -124,12 +128,12 @@ export default function AuthPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      sessionStorage.setItem("post_login_redirect", redirect);
+      setPostLoginDestination(redirect, redirectExplicit);
     } catch { /* storage unavailable */ }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       try {
-        sessionStorage.removeItem("post_login_redirect");
+        clearPostLoginDestination();
       } catch { /* storage unavailable */ }
       return toast.error("Грешка при вход", { description: translateAuthError(error.message) });
     }
@@ -150,7 +154,7 @@ export default function AuthPage() {
       email, password, options: { emailRedirectTo, data: { display_name: name, signup_handoff: signupHandoff(acceptMarketing, redirect) } },
     });
     if (error) {
-      try { sessionStorage.removeItem("pending_consents"); sessionStorage.removeItem("post_login_redirect"); } catch { /* unavailable */ }
+      try { sessionStorage.removeItem("pending_consents"); clearPostLoginDestination(); } catch { /* unavailable */ }
       return toast.error("Грешка при регистрация", { description: translateAuthError(error.message) });
     }
 
@@ -163,7 +167,7 @@ export default function AuthPage() {
 
   const startGoogleOAuth = async (marketing: boolean) => {
     try {
-      sessionStorage.setItem("post_login_redirect", redirect);
+      setPostLoginDestination(redirect, redirectExplicit);
       // Always stash consents — the write is idempotent per consent event, and
       // ensures new accounts created via Google have the required
       // terms/privacy/age records. Marketing is passed through only when the
@@ -188,7 +192,7 @@ export default function AuthPage() {
       extraParams: { prompt: "select_account" },
     });
     if (result.error) {
-      sessionStorage.removeItem("pending_consents"); sessionStorage.removeItem("post_login_redirect");
+      sessionStorage.removeItem("pending_consents"); clearPostLoginDestination();
       return toast.error("Грешка с Google", { description: String(result.error) });
     }
     if (result.redirected) return;
