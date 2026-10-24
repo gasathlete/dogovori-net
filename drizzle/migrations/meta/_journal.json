@@ -239,6 +239,13 @@
       "when": 1792833243109,
       "tag": "0033_signup_confirmation_handoff",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792833353900,
+      "tag": "0034_funnel_billing_event_ledger",
+      "breakpoints": true
     }
   ]
 }

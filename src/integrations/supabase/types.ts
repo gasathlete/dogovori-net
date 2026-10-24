@@ -1215,6 +1215,21 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_test_balances: {
+        Row: {
+          ops_balance: number
+          user_id: string
+        }
+        Insert: {
+          ops_balance?: number
+          user_id: string
+        }
+        Update: {
+          ops_balance?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       blog_comments: {
         Row: {
           content: string
@@ -2019,6 +2034,8 @@ export type Database = {
           pro_period_start: string
           pro_until: string | null
           signup_at: string
+          subscription_managed: boolean
+          subscription_managed_until: string | null
           templates_used: number
           topup_ops_balance: number
           total_used: number
@@ -2048,6 +2065,8 @@ export type Database = {
           pro_period_start?: string
           pro_until?: string | null
           signup_at?: string
+          subscription_managed?: boolean
+          subscription_managed_until?: string | null
           templates_used?: number
           topup_ops_balance?: number
           total_used?: number
@@ -2077,6 +2096,8 @@ export type Database = {
           pro_period_start?: string
           pro_until?: string | null
           signup_at?: string
+          subscription_managed?: boolean
+          subscription_managed_until?: string | null
           templates_used?: number
           topup_ops_balance?: number
           total_used?: number
@@ -6426,6 +6447,8 @@ export type Database = {
           current_period_start: string | null
           environment: string
           id: string
+          last_event_created: number
+          last_event_id: string | null
           price_id: string | null
           product_id: string | null
           status: string | null
@@ -6441,6 +6464,8 @@ export type Database = {
           current_period_start?: string | null
           environment?: string
           id?: string
+          last_event_created?: number
+          last_event_id?: string | null
           price_id?: string | null
           product_id?: string | null
           status?: string | null
@@ -6456,6 +6481,8 @@ export type Database = {
           current_period_start?: string | null
           environment?: string
           id?: string
+          last_event_created?: number
+          last_event_id?: string | null
           price_id?: string | null
           product_id?: string | null
           status?: string | null
@@ -6877,7 +6904,9 @@ export type Database = {
           environment: string
           id: string
           ops_added: number
+          payment_intent_id: string | null
           price_id: string
+          reversed_at: string | null
           stripe_session_id: string | null
           user_id: string
         }
@@ -6887,7 +6916,9 @@ export type Database = {
           environment?: string
           id?: string
           ops_added: number
+          payment_intent_id?: string | null
           price_id: string
+          reversed_at?: string | null
           stripe_session_id?: string | null
           user_id: string
         }
@@ -6897,7 +6928,9 @@ export type Database = {
           environment?: string
           id?: string
           ops_added?: number
+          payment_intent_id?: string | null
           price_id?: string
+          reversed_at?: string | null
           stripe_session_id?: string | null
           user_id?: string
         }
@@ -7312,6 +7345,8 @@ export type Database = {
           pro_period_start: string
           pro_until: string | null
           signup_at: string
+          subscription_managed: boolean
+          subscription_managed_until: string | null
           templates_used: number
           topup_ops_balance: number
           total_used: number
@@ -7507,6 +7542,8 @@ export type Database = {
           current_period_start: string | null
           environment: string
           id: string
+          last_event_created: number
+          last_event_id: string | null
           price_id: string | null
           product_id: string | null
           status: string | null
@@ -8450,6 +8487,14 @@ export type Database = {
         Returns: Json
       }
       retention_due_counts: { Args: never; Returns: Json }
+      reverse_topup_payment: {
+        Args: {
+          p_environment: string
+          p_payment_intent: string
+          p_session_id: string
+        }
+        Returns: Json
+      }
       review_grant_nonce_consume: {
         Args: {
           p_aud: string
@@ -8614,6 +8659,15 @@ export type Database = {
         Returns: Json
       }
       sync_plans_into_prompts: { Args: never; Returns: undefined }
+      sync_subscription_event: {
+        Args: {
+          p_environment: string
+          p_event_created: number
+          p_event_id: string
+          p_subscription: Json
+        }
+        Returns: Json
+      }
       top_blog_articles: {
         Args: { _limit?: number }
         Returns: {
