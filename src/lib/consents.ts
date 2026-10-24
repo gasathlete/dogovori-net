@@ -194,6 +194,9 @@ export async function flushPendingConsents() {
     // Unbound legacy/OAuth evidence is never proof for this user. OAuth must
     // collect a fresh authenticated consent instead of silently transferring it.
     try { sessionStorage.removeItem(PENDING_CONSENTS_KEY); } catch { /* ignore */ }
+    if (data.oauth_pending === true && typeof window !== "undefined") {
+      window.dispatchEvent(new Event("dogovori:confirm-account-consent"));
+    }
     return { ok: true as const, reason: "unbound-evidence-discarded" as const };
   }
 

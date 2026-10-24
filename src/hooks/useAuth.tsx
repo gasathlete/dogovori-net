@@ -7,6 +7,7 @@ import { sanitizeReturnPath } from "@/lib/safeRoute";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { observeRecovery } from "@/lib/passwordRecovery";
+import { ConfirmedConsentDialog } from "@/components/auth/ConfirmedConsentDialog";
 
 interface AuthContextValue {
   user: User | null;
@@ -116,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{ user: session?.user ?? null, session, loading, signOut }}>
       {children}
+      <ConfirmedConsentDialog />
     </AuthContext.Provider>
   );
 }
