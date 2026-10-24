@@ -4,6 +4,7 @@ import { GoogleConsentDialog } from "./GoogleConsentDialog";
 import { recordConsents } from "@/lib/consents";
 import { useAuthAction } from "@/hooks/useAuthAction";
 import { toast } from "sonner";
+import { safeReturnPath } from "@/lib/safeRoute";
 
 /** Fresh choices after the provider identifies the account; never replay another person's pre-login choices. */
 export function ConfirmedConsentDialog() {
@@ -24,6 +25,11 @@ export function ConfirmedConsentDialog() {
     ]);
     if (!result.ok) { toast.error("Изборът Ви не е записан. Опитайте отново."); return; }
     setOpen(false);
+    try {
+      const target = safeReturnPath(sessionStorage.getItem("post_login_redirect"), "/account");
+      sessionStorage.removeItem("post_login_redirect");
+      window.location.replace(target);
+    } catch { /* no storage: stay on the current authenticated page */ }
   };
   return <GoogleConsentDialog open={open} onOpenChange={setOpen} busy={busy} onConfirm={choice => { void run(() => confirm(choice)); }} authenticated />;
 }

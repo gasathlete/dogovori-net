@@ -17,6 +17,7 @@ beforeAll(async()=>{
  `);
  await db.exec(readFileSync("docs/migrations/funnel_confirmation_handoff_20261024.sql","utf8"));
  await db.exec(readFileSync("docs/migrations/funnel_billing_ledger_20261024.sql","utf8"));
+ await db.exec(readFileSync("docs/migrations/funnel_refund_replay_20261024.sql","utf8"));
 },30000);
 afterAll(async()=>{await db?.close();});
 const as=async(u:string)=>{await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)",[u]);};
@@ -69,4 +70,8 @@ it("concurrent replay grants once and refunds once in isolated sandbox ledger",a
  const reverse=()=>db.query("SELECT reverse_topup_payment('cs_test','pi_test','sandbox')");await Promise.all([reverse(),reverse()]);await credit();
  expect((await db.query<{n:number}>("SELECT ops_balance n FROM billing_test_balances WHERE user_id=$1",[U])).rows[0].n).toBe(0);
  expect((await db.query<{n:number}>("SELECT topup_ops_balance n FROM download_quota WHERE user_id=$1",[U])).rows[0].n).toBe(0);
+});
+it("refund arriving before paid webhook prevents later grant",async()=>{
+ await db.query("SELECT reverse_topup_payment('cs_reordered','pi_reordered','sandbox')");
+ await expect(db.query("SELECT credit_topup_ops($1,'five_operations',5,2.9,'cs_reordered','sandbox')",[U])).rejects.toThrow("payment_already_reversed");
 });

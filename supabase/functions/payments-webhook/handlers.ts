@@ -876,6 +876,17 @@ export async function dispatchEvent(
       await handleCheckoutCompleted(d, event.data.object, env, eventProofFrom(event));
       break;
     case "invoice.payment_failed":
+      if (event.id && event.created) {
+        const invoice = event.data.object;
+        const subId = invoice.subscription || invoice.parent?.subscription_details?.subscription;
+        if (subId) {
+          const current = await d.createStripe(env).subscriptions.retrieve(subId);
+          if (current.metadata?.userId && !current.metadata?.teamId) {
+            // Stripe's current snapshot, not a stale failure payload, owns status.
+            await syncSubscriptionEvent(d, current, env, event); break;
+          }
+        }
+      }
       await handleInvoicePaymentFailed(d, event.data.object, env);
       break;
     default:
