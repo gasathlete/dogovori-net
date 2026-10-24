@@ -185,7 +185,7 @@ describe("началото на купуването — стъпки и гей�
 
   it("Stripe и заявката се отварят само след всички гейтове", () => {
     const src = read("src/pages/ProductCheckout.tsx");
-    expect(src).toContain("if (!user || !prepared || !canPay) return;");
+    expect(src).toContain("if (!user || !prepared || !canPay || payInFlight.current) return;");
     // Плащането се монтира само при наличен clientSecret от сървъра.
     const stripeAt = src.indexOf("<StripeEmbeddedCheckout");
     expect(src.slice(0, stripeAt)).toContain("locked = clientSecret !== null");

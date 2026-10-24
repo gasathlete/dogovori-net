@@ -18,7 +18,7 @@ describe("канонично правило за безплатните опер
     expect(FREE_OPS_ON_SIGNUP).toBe(5);
     expect(FREE_OPS_PER_MONTH).toBe(2);
     expect(FREE_OPS_SIGNUP_DAYS).toBe(30);
-    expect(FREE_OFFER_RULE).toBe("5 действия по документи през първите 30 дни, след това 2 месечно");
+    expect(FREE_OFFER_RULE).toBe("2 действия месечно; с изрично съгласие за имейл маркетинг — еднократно още 3 действия");
     expect(FREE_OFFER_RULE.endsWith(".")).toBe(false);
   });
 

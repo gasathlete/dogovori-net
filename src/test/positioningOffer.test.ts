@@ -72,7 +72,7 @@ describe("оферта: еднократно срещу абонамент", () 
   it("страницата предлага и двата режима на плащане", () => {
     expect(plans).toContain("Платете според начина,");
     expect(plans).toContain("Конкретен документ");
-    expect(plans).toContain("Работите редовно");
+    expect(plans).toContain("Абонамент — когато договорите са редовна работа");
     expect(plans).toContain("Една задача");
     expect(plans).toContain('href="#plan-cards"');
   });
