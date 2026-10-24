@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 const h = vi.hoisted(() => ({
@@ -90,7 +90,8 @@ describe("UploadContractDialog: локален PDF/DOCX и дисклеймър 
       type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     });
     await act(async () => { fireEvent.change(screen.getByLabelText(/Изберете PDF или Word/), { target: { files: [f] } }); });
-    expect((area as HTMLTextAreaElement).value).toContain("Локално извлечен");
+    // Extraction is async (file signature read + extractor); wait instead of assuming one tick.
+    await waitFor(() => expect((area as HTMLTextAreaElement).value).toContain("Локално извлечен"), { timeout: 3000 });
     expect(h.upload).not.toHaveBeenCalled();
     expect(h.invoke).not.toHaveBeenCalled();
   });
