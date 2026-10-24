@@ -190,7 +190,7 @@ export async function flushPendingConsents() {
     try { sessionStorage.removeItem(PENDING_CONSENTS_KEY); } catch { /* ignore */ }
     return { ok: false as const, reason: "malformed" as const };
   }
-  if (data.user_id !== user.id) {
+  if (data.user_id !== user.id || data.authenticated_choice !== true) {
     // Unbound legacy/OAuth evidence is never proof for this user. OAuth must
     // collect a fresh authenticated consent instead of silently transferring it.
     try { sessionStorage.removeItem(PENDING_CONSENTS_KEY); } catch { /* ignore */ }

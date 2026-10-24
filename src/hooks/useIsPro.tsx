@@ -81,7 +81,8 @@ export function useIsPro(): ProState {
         .limit(1)
         .maybeSingle(),
     ]);
-    const isPro =
+    const activeSubscription = Boolean(sub && (!sub.current_period_end || new Date(sub.current_period_end)>new Date()) && sub.status !== "canceled") || Boolean(sub?.status === "canceled" && sub.current_period_end && new Date(sub.current_period_end)>new Date());
+    const isPro = activeSubscription ||
       (q as any)?.plan === "pro" ||
       Boolean((q as any)?.pro_until && new Date((q as any).pro_until) > new Date());
     const t: any = tm;

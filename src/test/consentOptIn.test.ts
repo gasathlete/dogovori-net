@@ -40,6 +40,7 @@ beforeEach(() => {
 /** Точната форма на доказателството при регистрация. */
 const VALID = {
   user_id: "u1",
+  authenticated_choice: true,
   terms: true,
   privacy: true,
   age_18: true,
