@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           draftRoute: draft ? sanitizeReturnPath(draft.route) : null,
           isAuthLanding,
         });
-        if (decision.consumeDestination) sessionStorage.removeItem("post_login_redirect");
+        if (decision.consumeDestination) { sessionStorage.removeItem("post_login_redirect"); sessionStorage.removeItem("post_login_redirect_fallback"); }
         if (decision.target) window.location.replace(decision.target);
       } catch { /* ignore */ }
 

@@ -21,6 +21,7 @@ import { GoogleConsentDialog } from "@/components/auth/GoogleConsentDialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "@/icons";
 import { buildAuthRedirectUrl, safeReturnPath } from "@/lib/safeRoute";
+import { setPostLoginDestination, clearPostLoginDestination } from "@/lib/postLoginDestination";
 import { BrandLogo } from "@/components/BrandLogo";
 import { signupHandoff } from "@/lib/signupHandoff";
 
@@ -48,8 +49,9 @@ export default function AuthPage() {
   const rawRedirect =
     rawRedirectParam || (hasAnalysisSession ? "/analiz" : "/account");
   const redirect = safeReturnPath(rawRedirect, "/account");
-  // Explicit only when the URL named a destination that survived sanitizing.
-  const redirectExplicit = Boolean(rawRedirect) && safeReturnPath(rawRedirect, "") === redirect;
+  // `/account` is the default landing page: a server-captured signup handoff
+  // may replace it. Any other sanitized target (query intent or draft) is explicit.
+  const redirectExplicit = redirect !== "/account";
   // Абсолютният адрес за имейл потвърждение се строи само от доверения origin.
   const emailRedirectTo = buildAuthRedirectUrl(redirect, "/account");
 

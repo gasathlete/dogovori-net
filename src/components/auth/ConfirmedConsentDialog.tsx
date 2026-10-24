@@ -27,7 +27,7 @@ export function ConfirmedConsentDialog() {
     setOpen(false);
     try {
       const target = safeReturnPath(sessionStorage.getItem("post_login_redirect"), "/account");
-      sessionStorage.removeItem("post_login_redirect");
+      sessionStorage.removeItem("post_login_redirect"); sessionStorage.removeItem("post_login_redirect_fallback");
       window.location.replace(target);
     } catch { /* no storage: stay on the current authenticated page */ }
   };
