@@ -37,6 +37,7 @@ import { PRODUCT_MAX_SOURCE_CHARS } from "../_shared/product-source.ts";
 import { mustAffectRows, mustSucceed } from "../_shared/db-guard.ts";
 import { recordStaticPaid, reverseStaticPaid, type StaticDeps } from "../_shared/static-catalog.ts";
 import { syncSubscriptionEvent, reverseTopup } from "../_shared/subscription-event.ts";
+import { reconcileInvoice, reconcileRefundedInvoice } from "../_shared/invoice-reconciliation.ts";
 
 const staticDeps = (d: WebhookDeps, env: StripeEnv): StaticDeps => ({ db: d.db, stripe: () => d.createStripe(env), env: () => undefined });
 
@@ -810,6 +811,7 @@ export async function dispatchEvent(
   // only new sandbox purchases require the owner's current staff permission.
   if (event.type === "charge.refunded") {
     const charge = event.data.object;
+    if (event.id && event.created) await reconcileRefundedInvoice(d, charge, env, event);
     if (
       typeof charge?.amount === "number" && charge.amount > 0 &&
       typeof charge?.amount_refunded === "number" &&
@@ -852,19 +854,19 @@ export async function dispatchEvent(
 
   switch (event.type) {
     case "customer.subscription.created":
-      if (!event.data.object.metadata?.teamId && event.id && event.created) {
+      if (event.id && event.created) {
         await syncSubscriptionEvent(d, event.data.object, env, event); break;
       }
       await handleSubscriptionCreated(d, event.data.object, env);
       break;
     case "customer.subscription.updated":
-      if (!event.data.object.metadata?.teamId && event.id && event.created) {
+      if (event.id && event.created) {
         await syncSubscriptionEvent(d, event.data.object, env, event); break;
       }
       await handleSubscriptionUpdated(d, event.data.object, env);
       break;
     case "customer.subscription.deleted":
-      if (!event.data.object.metadata?.teamId && event.id && event.created) {
+      if (event.id && event.created) {
         await syncSubscriptionEvent(d, { ...event.data.object, status: "canceled" }, env, event); break;
       }
       await handleSubscriptionDeleted(d, event.data.object, env);
@@ -875,13 +877,16 @@ export async function dispatchEvent(
     case "checkout.session.async_payment_succeeded":
       await handleCheckoutCompleted(d, event.data.object, env, eventProofFrom(event));
       break;
+    case "invoice.paid":
+      await reconcileInvoice(d, event.data.object.id, env, event);
+      break;
     case "invoice.payment_failed":
       if (event.id && event.created) {
         const invoice = event.data.object;
         const subId = invoice.subscription || invoice.parent?.subscription_details?.subscription;
         if (subId) {
           const current = await d.createStripe(env).subscriptions.retrieve(subId);
-          if (current.metadata?.userId && !current.metadata?.teamId) {
+          if (current.metadata?.userId) {
             // Stripe's current snapshot, not a stale failure payload, owns status.
             await syncSubscriptionEvent(d, current, env, event); break;
           }

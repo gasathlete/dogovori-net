@@ -67,8 +67,9 @@ export function useIsPro(): ProState {
       fetchQuotaCached(user.id),
       supabase
         .from("team_members")
-        .select("team_id, teams!inner(status)")
+        .select("team_id, teams!inner(status,environment,current_period_end)")
         .eq("user_id", user.id)
+        .eq("teams.environment", getStripeEnvironment())
         .limit(1)
         .maybeSingle(),
       supabase
@@ -86,7 +87,7 @@ export function useIsPro(): ProState {
       (q as any)?.plan === "pro" ||
       Boolean((q as any)?.pro_until && new Date((q as any).pro_until) > new Date());
     const t: any = tm;
-    const isTeam = Boolean(t && t.teams?.status === "active");
+    const isTeam = Boolean(t && t.teams?.status === "active" && (!t.teams.current_period_end || new Date(t.teams.current_period_end) > new Date()));
     const signupAt: string | null = (q as any)?.signup_at ?? null;
     // Derive cap for paid users from price_id (with grandfathered override),
     // otherwise free monthly cap (10 ops/mo for registered users).

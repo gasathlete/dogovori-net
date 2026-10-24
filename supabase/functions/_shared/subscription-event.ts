@@ -7,9 +7,10 @@ export async function syncSubscriptionEvent(d: WebhookDeps, subscription: Record
   const userId = subscription.metadata?.userId;
   if (!userId || !event.id || !event.created) throw new Error("subscription_proof_missing");
   const iso = (v: number | undefined) => v ? new Date(v*1000).toISOString() : null;
-  const { data, error } = await d.db.rpc("sync_subscription_event", {
+  const teamId = subscription.metadata?.teamId;
+  const { data, error } = await d.db.rpc(teamId ? "sync_team_subscription_event" : "sync_subscription_event", {
     p_subscription: {
-      user_id: userId, stripe_subscription_id: subscription.id, stripe_customer_id: subscription.customer,
+      user_id: userId, team_id: teamId, seat_count: item?.quantity, stripe_subscription_id: subscription.id, stripe_customer_id: typeof subscription.customer === "string" ? subscription.customer : subscription.customer?.id,
       product_id: typeof item?.price?.product === "string" ? item.price.product : item?.price?.product?.id,
       price_id: item?.price?.lookup_key || item?.price?.metadata?.lovable_external_id || item?.price?.id,
       status: subscription.status,
