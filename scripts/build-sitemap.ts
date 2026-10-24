@@ -20,6 +20,7 @@ const SITE = "https://dogovori.net";
 const staticEntries: SitemapEntry[] = [
   { loc: "/" },
   { loc: "/produkti" },
+  { loc: "/plans" },
   ...[...ONE_TIME_PRODUCT_PATHS, "/catalog", "/paketi",
   ...SECTOR_PACKAGES.map((p) => `/paketi/${p.slug}`),
   "/komplekti", ...DOCUMENT_KITS.map((k) => `/komplekti/${k.id}`),
