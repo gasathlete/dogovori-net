@@ -1,5 +1,5 @@
 export type IndexabilityIssue = { level: "error" | "warning"; rule: string; message: string };
-export const PUBLIC_SEO_ROUTES = ["/", "/catalog", "/blog", "/contacts", "/produkti", "/paketi", "/komplekti",
+export const PUBLIC_SEO_ROUTES = ["/", "/plans", "/catalog", "/blog", "/contacts", "/produkti", "/paketi", "/komplekti",
   "/paketi/naemi", "/paketi/uslugi-svobodni-profesii", "/paketi/ueb-digitalni-agentsii", "/paketi/sluzhiteli-rabotodateli",
   "/komplekti/naem-zhilishte", "/blog/opis-na-obzavezhdane-pri-naem",
   "/blog/obhvat-na-usluga-predi-oferta", "/blog/predavane-na-ueb-proekt-dostapi",
