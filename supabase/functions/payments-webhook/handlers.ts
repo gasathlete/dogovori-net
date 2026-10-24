@@ -36,6 +36,7 @@ import {
 import { PRODUCT_MAX_SOURCE_CHARS } from "../_shared/product-source.ts";
 import { mustAffectRows, mustSucceed } from "../_shared/db-guard.ts";
 import { recordStaticPaid, reverseStaticPaid, type StaticDeps } from "../_shared/static-catalog.ts";
+import { syncSubscriptionEvent, reverseTopup } from "../_shared/subscription-event.ts";
 
 const staticDeps = (d: WebhookDeps, env: StripeEnv): StaticDeps => ({ db: d.db, stripe: () => d.createStripe(env), env: () => undefined });
 
@@ -817,6 +818,7 @@ export async function dispatchEvent(
       const reversal = reversalLookupDeps(d, env);
       await reverseStaticPaid(staticDeps(reversal, env), charge, env, "refund_full", eventProofFrom(event));
       await handleProductReversal(reversal, charge, env, "refund_full", eventProofFrom(event));
+      await reverseTopup(reversal, charge, env);
     } else {
       console.log("product reversal ignored — refund is not full");
     }
@@ -850,12 +852,21 @@ export async function dispatchEvent(
 
   switch (event.type) {
     case "customer.subscription.created":
+      if (!event.data.object.metadata?.teamId && event.id && event.created) {
+        await syncSubscriptionEvent(d, event.data.object, env, event); break;
+      }
       await handleSubscriptionCreated(d, event.data.object, env);
       break;
     case "customer.subscription.updated":
+      if (!event.data.object.metadata?.teamId && event.id && event.created) {
+        await syncSubscriptionEvent(d, event.data.object, env, event); break;
+      }
       await handleSubscriptionUpdated(d, event.data.object, env);
       break;
     case "customer.subscription.deleted":
+      if (!event.data.object.metadata?.teamId && event.id && event.created) {
+        await syncSubscriptionEvent(d, { ...event.data.object, status: "canceled" }, env, event); break;
+      }
       await handleSubscriptionDeleted(d, event.data.object, env);
       break;
     // Двата пътя до платена сесия минават през ЕДИН guarded handler:

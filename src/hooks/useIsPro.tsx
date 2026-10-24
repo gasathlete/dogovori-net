@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchQuotaCached } from "@/hooks/useQuota";
+import { getStripeEnvironment } from "@/lib/stripe";
 
 export interface FreeQuota {
   opsUsed: number;
@@ -74,7 +75,8 @@ export function useIsPro(): ProState {
         .from("subscriptions")
         .select("price_id, status, current_period_end")
         .eq("user_id", user.id)
-        .in("status", ["active", "trialing", "past_due"])
+        .eq("environment", getStripeEnvironment())
+        .in("status", ["active", "trialing", "past_due", "canceled"])
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
