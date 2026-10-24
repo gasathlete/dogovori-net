@@ -196,6 +196,7 @@ export async function flushPendingConsents() {
     try { sessionStorage.removeItem(PENDING_CONSENTS_KEY); } catch { /* ignore */ }
     if (data.oauth_pending === true && typeof window !== "undefined") {
       window.dispatchEvent(new Event("dogovori:confirm-account-consent"));
+      return { ok: true as const, reason: "authenticated-choice-required" as const };
     }
     return { ok: true as const, reason: "unbound-evidence-discarded" as const };
   }
