@@ -11,7 +11,7 @@ const rpc = vi.fn();
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     rpc: (...a: unknown[]) => rpc(...a),
-    auth: { getUser: vi.fn(async () => ({ data: { user: null } })) },
+    auth: { getUser: vi.fn(async () => ({ data: { user: { id: "500d7da4-8b8b-48bd-aae0-32dbd2ce1c9f" } } })) },
     from: vi.fn(),
   },
 }));
