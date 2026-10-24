@@ -6,6 +6,7 @@ import { flushPendingConsents } from "@/lib/consents";
 import { sanitizeReturnPath } from "@/lib/safeRoute";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { observeRecovery } from "@/lib/passwordRecovery";
 
 interface AuthContextValue {
   user: User | null;
@@ -73,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      observeRecovery(event, s?.user.id);
       setSession(s);
       setLoading(false);
       if (event === "SIGNED_IN" && s) {

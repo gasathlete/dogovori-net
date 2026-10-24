@@ -10,7 +10,7 @@ CREATE OR REPLACE FUNCTION public.capture_signup_handoff() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 DECLARE e jsonb := NEW.raw_user_meta_data->'signup_handoff'; r text;
 BEGIN
- IF jsonb_typeof(e) IS DISTINCT FROM 'object' OR e->>'event_id' !~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+ IF jsonb_typeof(e) IS DISTINCT FROM 'object' OR coalesce(e->>'event_id','') !~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
  OR e->'terms' IS DISTINCT FROM 'true'::jsonb OR e->'privacy' IS DISTINCT FROM 'true'::jsonb
  OR e->'age_18' IS DISTINCT FROM 'true'::jsonb OR e->'operational_notifications' IS DISTINCT FROM 'true'::jsonb
  OR (e ? 'marketing' AND e->'marketing' NOT IN ('true'::jsonb,'false'::jsonb)) THEN RETURN NEW; END IF;

@@ -17,6 +17,7 @@ import {
 } from "../_shared/sandbox-guard.ts";
 import { consentMetadata, readConsent } from "../_shared/purchase-consent.ts";
 import { requireAppReturnUrl } from "../_shared/return-destination.ts";
+import { requireSubscriptionPrice } from "../_shared/canonical-subscription.ts";
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCors(req);
@@ -90,6 +91,8 @@ Deno.serve(async (req) => {
     if (priceId === ENTRY_PACK_LOOKUP_KEY) {
       // Входният пакет: приемаме само active, one_time, EUR, 290 центa.
       price = requireEntryPackPrice(prices.data as any);
+    } else if (SUBSCRIPTION_LOOKUP_KEYS.includes(priceId)) {
+      price = requireSubscriptionPrice(prices.data, priceId, body.quantity ?? 1);
     } else {
       const active = prices.data.find((p: any) => p.active === true);
       if (!active) throw new EntryPriceError("price_not_found");

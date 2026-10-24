@@ -23,7 +23,7 @@ describe("inline auth confirmation and consent", () => {
     fireEvent.change(screen.getByLabelText("Парола", { exact: true }), { target: { value: "fixture-password" } });
     fireEvent.click(screen.getByRole("button", { name: "Създай профил и продължи" }));
     await screen.findByRole("button", { name: "Вече потвърдих — вход" });
-    expect(JSON.parse(sessionStorage.getItem("pending_consents") ?? "{}").marketing).toBe(false);
+    expect(mocks.signup.mock.calls[0][0].options.data.signup_handoff.marketing).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "Вече потвърдих — вход" }));
     await screen.findByRole("button", { name: "Вход и продължаване" });
     expect(screen.getByLabelText("Парола", { exact: true })).toBeInTheDocument();
