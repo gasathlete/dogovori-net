@@ -22,6 +22,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "@/icons";
 import { buildAuthRedirectUrl, safeReturnPath } from "@/lib/safeRoute";
 import { BrandLogo } from "@/components/BrandLogo";
+import { signupHandoff } from "@/lib/signupHandoff";
 
 const RISKY_BG_EMAIL_DOMAINS = ["abv.bg", "mail.bg", "dir.bg"];
 function isRiskyBgEmail(value: string): boolean {
@@ -145,28 +146,8 @@ export default function AuthPage() {
       toast.error("Паролата трябва да е поне 8 символа");
       return;
     }
-    // Store explicit evidence before signup can emit a session.
-    try {
-      sessionStorage.setItem(
-        "pending_consents",
-        JSON.stringify({
-          event_id: crypto.randomUUID(),
-          marketing: acceptMarketing,
-          operational_notifications: acceptNotifications,
-          terms: true,
-          privacy: true,
-          age_18: true,
-          display_name: name,
-          ts: Date.now(),
-        }),
-      );
-      sessionStorage.setItem("post_login_redirect", redirect);
-    } catch {
-      toast.error("Не успяхме да запазим избора Ви. Разрешете съхранението в браузъра и опитайте отново.");
-      return;
-    }
     const { error } = await supabase.auth.signUp({
-      email, password, options: { emailRedirectTo, data: { display_name: name } },
+      email, password, options: { emailRedirectTo, data: { display_name: name, signup_handoff: signupHandoff(acceptMarketing, redirect) } },
     });
     if (error) {
       try { sessionStorage.removeItem("pending_consents"); sessionStorage.removeItem("post_login_redirect"); } catch { /* unavailable */ }
@@ -192,6 +173,7 @@ export default function AuthPage() {
         "pending_consents",
         JSON.stringify({
           event_id: crypto.randomUUID(),
+          oauth_pending: true,
           marketing,
           operational_notifications: true,
           terms: true,

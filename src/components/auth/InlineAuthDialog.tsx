@@ -14,6 +14,7 @@ import { INLINE_AUTH_EVENT, takeInlineAuthSuccess, type InlineAuthDetail } from 
 import { trackAuthPromptShown } from "@/lib/docFunnel";
 import { FREE_OFFER_RULE } from "@/lib/pricing";
 import { buildAuthRedirectUrl, currentReturnPath } from "@/lib/safeRoute";
+import { signupHandoff } from "@/lib/signupHandoff";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -103,22 +104,12 @@ export function InlineAuthDialog() {
       toast.error("Паролата трябва да съдържа поне 8 символа");
       return;
     }
-    // Preserve the explicit checkbox choice before a session can be emitted.
-    try {
-      sessionStorage.setItem("pending_consents", JSON.stringify({
-        event_id: crypto.randomUUID(), marketing, terms, privacy, age_18: age,
-        operational_notifications: notifications, ts: Date.now(),
-      }));
-    } catch {
-      toast.error("Не успяхме да запазим избора Ви. Разрешете съхранението в браузъра и опитайте отново.");
-      return;
-    }
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       // Имейл линкът връща към текущия екран, но само като доверен origin +
       // изчистен относителен път (без hash, без ab_/utm_ параметри).
-      options: { emailRedirectTo: buildAuthRedirectUrl(currentReturnPath()) },
+      options: { emailRedirectTo: buildAuthRedirectUrl(currentReturnPath()), data: { signup_handoff: signupHandoff(marketing, currentReturnPath()) } },
     });
     if (error) {
       try { sessionStorage.removeItem("pending_consents"); } catch { /* unavailable */ }
@@ -148,6 +139,7 @@ export function InlineAuthDialog() {
         "pending_consents",
         JSON.stringify({
           event_id: crypto.randomUUID(),
+          oauth_pending: true,
           marketing: confirmedMarketing,
           operational_notifications: mode === "signup" ? notifications : true,
           terms: mode === "signup" ? terms : true,
