@@ -36,13 +36,13 @@ describe("CI dependency lock invariants", () => {
     expect(lock.overrides.postcss).toEqual({ nanoid: "^3.3.19" });
   });
 
-  it("resolves all MCP SDK instances to the minimal fixed version 1.31.0", () => {
+  it("resolves all MCP SDK instances to the version pinned by package.json overrides (1.32.1)", () => {
     const instances = Object.entries(lock.packages).filter(
       ([name]) => name === "@modelcontextprotocol/sdk" || name.endsWith("/@modelcontextprotocol/sdk"),
     );
     expect(instances.length).toBeGreaterThan(0);
     for (const [, [version]] of instances) {
-      expect(version).toBe("@modelcontextprotocol/sdk@1.31.0");
+      expect(version).toBe("@modelcontextprotocol/sdk@1.32.1");
     }
   });
 });

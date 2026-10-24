@@ -10,11 +10,11 @@ vi.mock("@/lib/stripe", () => ({ getStripe: () => null }));
 vi.mock("@/lib/metrics", () => ({ trackCheckoutStarted: vi.fn(), trackCheckoutFailed: vi.fn(), trackCheckoutAbandoned: vi.fn() }));
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 afterEach(() => { cleanup(); mounted.mockClear(); });
-it("one-time product mounts payment while subscriptions remain closed", () => {
+it("one-time product mounts payment", () => {
   render(<StripeEmbeddedCheckout clientSecret="test_secret" analyticsSource="product_checkout" analyticsBilling="one_time" />);
   expect(mounted).toHaveBeenCalledTimes(1);
 });
-it("subscription payment remains closed", () => {
+it("subscription payment mounts now that subscriptions are open", () => {
   render(<StripeEmbeddedCheckout clientSecret="test_secret" analyticsSource="team" analyticsBilling="yearly" />);
-  expect(mounted).not.toHaveBeenCalled();
+  expect(mounted).toHaveBeenCalledTimes(1);
 });

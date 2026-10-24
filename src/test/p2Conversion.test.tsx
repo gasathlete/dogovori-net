@@ -28,8 +28,8 @@ describe("Hero — едно основно действие към безпла�
     expect(src.match(/btn-gold/g)?.length ?? 0).toBe(1);
   });
 
-  it("„Вижте демонстрацията“ отваря демо стори, не навигира", () => {
-    expect(src).toContain("Вижте демонстрацията");
+  it("„Вижте как работи“ отваря демо стори, не навигира", () => {
+    expect(src).toContain("Вижте как работи");
     expect(src).toContain("openStartStory");
     expect(src).toContain('trackFunnelEvent("home_demo_story_opened"');
   });
@@ -81,24 +81,18 @@ describe("StartStoryOverlay — опционално демо без автон�
     expect(src).not.toContain("SIGNUP_HREF");
   });
 
-  it("финалният CTA е „Започни документ“ към /start с source:\"cta\"", () => {
-    expect(src).toContain('const START_HREF = "/start"');
-    expect(src).toContain("Започни документ");
-    expect(src).toContain('trackFunnelEvent("story_cta_click", { target: "start", source })');
-    expect(src).toContain('goToStart("cta")');
-  });
-
-  it("входът пази намерението /start", () => {
-    expect(src).toContain('const LOGIN_HREF = "/auth?redirect=%2Fstart"');
+  it("финалът е регистрационно действие с безопасна дестинация /build", () => {
+    expect(src).toContain('<RegistrationCTA source="story" destination="/build"');
   });
 
   it("затварянето никога не навигира", () => {
-    const closeFn = src.slice(src.indexOf("const close = useCallback"), src.indexOf("const goToStart"));
+    const closeFn = src.slice(src.indexOf("const close = "), src.indexOf("return <Dialog"));
+    expect(closeFn.length).toBeGreaterThan(0);
     expect(closeFn).not.toContain("navigate(");
   });
 
   it("отвъд последната карта goto не навигира", () => {
-    expect(src).toContain("if (nextIdx >= total) return;");
+    expect(src).toContain("Math.min(SCENES.length - 1, next)");
   });
 });
 
