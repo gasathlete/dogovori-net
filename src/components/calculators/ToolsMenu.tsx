@@ -67,7 +67,7 @@ export function ToolsMenu({ variant = "desktop", onNavigate }: Props) {
       <PopoverContent
         align="end"
         sideOffset={10}
-        className="w-[min(480px,calc(100vw-2rem))] border-border bg-popover p-3 text-popover-foreground"
+        className="w-[min(560px,calc(100vw-2rem))] border-border bg-popover p-3 text-popover-foreground"
       >
         <div className="mb-2 px-2 pb-2 text-sm font-semibold text-foreground">
           Правни калкулатори
@@ -85,7 +85,7 @@ export function ToolsMenu({ variant = "desktop", onNavigate }: Props) {
                     <Icon className="h-4 w-4" strokeWidth={1.6} />
                   </div>
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-foreground group-hover:text-gold">
+                    <div className="text-sm font-semibold leading-snug text-foreground [overflow-wrap:anywhere] group-hover:text-gold">
                       {c.shortTitle}
                     </div>
                     <div className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">

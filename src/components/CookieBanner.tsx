@@ -41,7 +41,7 @@ export function CookieBanner() {
     <div
       role="dialog"
       aria-label="Бисквитки — управление по категории"
-      className="fixed inset-x-0 bottom-0 z-[45] border-t border-gold/20 bg-navy/95 shadow-lg backdrop-blur-md animate-in fade-in slide-in-from-bottom-6 duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:animate-none sm:inset-x-3 sm:bottom-3 sm:rounded-lg sm:border"
+      className="fixed inset-x-0 bottom-0 z-[45] border-t border-gold/20 bg-card text-card-foreground shadow-xl animate-in fade-in slide-in-from-bottom-6 duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:animate-none sm:inset-x-3 sm:bottom-3 sm:rounded-lg sm:border"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       {!showSettings ? (
@@ -92,7 +92,7 @@ export function CookieBanner() {
           </div>
 
           <div className="space-y-3">
-            <div className="rounded-md border border-border/60 bg-card/40 p-3">
+            <div className="rounded-md border border-border/60 bg-muted p-3">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-semibold">Строго необходими</Label>
                 <Switch checked disabled />
@@ -102,7 +102,7 @@ export function CookieBanner() {
               </p>
             </div>
 
-            <div className="rounded-md border border-border/60 bg-card/40 p-3">
+            <div className="rounded-md border border-border/60 bg-muted p-3">
               <div className="flex items-center justify-between">
                 <Label htmlFor="cookie-analytics" className="cursor-pointer text-xs font-semibold">
                   Аналитични
@@ -118,7 +118,7 @@ export function CookieBanner() {
               </p>
             </div>
 
-            <div className="rounded-md border border-border/60 bg-card/40 p-3">
+            <div className="rounded-md border border-border/60 bg-muted p-3">
               <div className="flex items-center justify-between">
                 <Label htmlFor="cookie-marketing" className="cursor-pointer text-xs font-semibold">
                   Маркетинг
