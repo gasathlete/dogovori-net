@@ -58,9 +58,7 @@ export function ProductComparisonList() {
               </span>
               <span className="flex shrink-0 flex-col items-start gap-1">
                 <ProductPrice id={p.id} size="sm" />
-                <span className="text-sm font-medium text-muted-foreground">
-                  еднократно
-                </span>
+
               </span>
             </span>
 

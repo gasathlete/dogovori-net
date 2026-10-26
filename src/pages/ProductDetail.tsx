@@ -12,6 +12,8 @@ import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
 import { SeoFooter } from "@/components/SeoFooter";
 import { ProductResultPreview } from "@/components/products/ProductResultPreview";
+import { OfferBenefits } from "@/components/products/OfferPresentation";
+import { Button } from "@/components/ui/button";
 import { ProductPrice } from "@/components/products/ProductPrice";
 import { PlanAlternativeNote } from "@/components/products/PlanAlternativeNote";
 import { ReviewerContentHub } from "@/components/analysis/ReviewerContentHub";
@@ -127,45 +129,28 @@ export default function ProductDetail() {
                 {product.page.intro}
               </p>
 
-              <div className="mt-6 flex max-w-xl flex-col gap-2 border-y border-border py-5">
+              <div className="mt-6 max-w-xl rounded-md border border-border bg-card p-5 sm:p-6">
+                <p className="mb-5 text-base font-medium leading-relaxed text-foreground">{product.shortOutcome}</p>
                 <ProductPrice id={product.id} size="lg" showLabel />
-                <span className="text-sm text-muted-foreground">
-                  еднократно · без абонамент
-                </span>
+                <OfferBenefits items={product.page.youReceive.slice(0, 3)} className="mt-5 border-t border-border pt-5" />
+                <div className="mt-6">
+                  {ONE_TIME_PURCHASES_AVAILABLE ? (
+                    <Button asChild size="lg" className="h-auto min-h-12 w-full whitespace-normal py-3 text-center">
+                      <Link to={product.ctaHref} onClick={() =>
+                        trackFunnelEvent(PRODUCT_EVENTS.productSelected, {
+                          product: product.id, source: "product_detail", variant: "detail",
+                        })}>
+                        {product.ctaLabel}<ArrowRight className="h-4 w-4 shrink-0" />
+                      </Link>
+                    </Button>
+                  ) : (
+                    <span data-testid="product-prelaunch-status" role="status" className="block rounded border border-border px-4 py-3 text-center text-sm font-semibold">
+                      Покупките предстоят
+                    </span>
+                  )}
+                </div>
               </div>
-
-              <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:items-center">
-                {ONE_TIME_PURCHASES_AVAILABLE ? (
-                  <Link
-                    to={product.ctaHref}
-                    onClick={() =>
-                      trackFunnelEvent(PRODUCT_EVENTS.productSelected, {
-                        product: product.id,
-                        source: "product_detail",
-                        variant: "detail",
-                      })
-                    }
-                    className="btn-gold btn-press inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl px-6 text-[15px] font-bold tracking-tight"
-                  >
-                    {product.ctaLabel}
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                ) : (
-                  <span
-                    data-testid="product-prelaunch-status"
-                    role="status"
-                    className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-gold/35 bg-gold/[0.07] px-6 text-[15px] font-semibold text-foreground"
-                  >
-                    Покупките предстоят
-                  </span>
-                )}
-                <Link
-                  to="/produkti"
-                  className="link-ink inline-flex min-h-[44px] items-center text-sm font-medium"
-                >
-                  Вижте другите продукти
-                </Link>
-              </div>
+              <Link to="/produkti" className="link-ink mt-3 inline-flex min-h-11 items-center text-sm font-medium">Вижте другите продукти</Link>
               <div className="mt-4 max-w-xl border-l-2 border-gold pl-3 text-sm leading-relaxed">
                 <p className="font-semibold">Получавате: {product.page.youReceive[0]}</p>
                 <p className="mt-2 text-muted-foreground">Първо разглеждате, след това влизате или създавате профил, за да свържем документа и резултата с Вас. Подготвяте текста и потвърждавате условията преди плащане.</p>
@@ -336,9 +321,7 @@ export default function ProductDetail() {
                   className="flex min-h-[56px] items-center justify-between gap-5 border-t border-border py-4 hover:underline underline-offset-4"
                 >
                   <span className="text-[14px] font-semibold">{p.name}</span>
-                  <span className="font-serif text-[15px] font-bold tabular-nums text-gold">
-                    {productPriceLabel(p.id)}
-                  </span>
+                  <ProductPrice id={p.id} size="sm" className="shrink-0" />
                 </Link>
               </li>
             ))}

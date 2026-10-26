@@ -69,7 +69,7 @@ export default function Products() {
               преговори — плащате веднъж, без абонамент.
             </p>
             <p className="mt-5 inline-flex items-baseline gap-3">
-              <span className="font-serif text-[22px] font-bold tabular-nums text-gold">
+              <span className="font-sans text-[22px] font-bold tabular-nums text-success">
                 от {lowestOneTimePriceLabel()}
               </span>
               <span className="text-sm text-muted-foreground">

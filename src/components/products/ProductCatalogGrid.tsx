@@ -1,6 +1,7 @@
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { ArrowRight, FileSearch, FilePen, Handshake } from "@/icons";
 import type { LucideIcon } from "@/icons";
+import { OfferBenefits } from "./OfferPresentation";
 import { ProductPrice } from "@/components/products/ProductPrice";
 import { ProductResultPreview } from "@/components/products/ProductResultPreview";
 import { trackFunnelEvent } from "@/lib/funnel";
@@ -92,11 +93,6 @@ export function ProductCatalogGrid({ source }: { source: string }) {
                 className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
               />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
-              {featured && (
-                <span className="absolute bottom-3 left-3 inline-flex min-h-7 items-center rounded-full border border-gold/35 bg-card/90 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-gold backdrop-blur-sm sm:left-4">
-                  Най-предпочитан
-                </span>
-              )}
             </div>
 
             <div className="flex flex-1 flex-col p-3 sm:p-4">
@@ -110,11 +106,6 @@ export function ProductCatalogGrid({ source }: { source: string }) {
               </div>
 
               <div className={cn("mt-4", !featured && "min-h-[10.5rem] sm:min-h-[9rem] lg:min-h-[12.5rem]")}>
-                {product.badge && !featured && (
-                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-gold">
-                    {product.badge}
-                  </p>
-                )}
                 <h3 className="font-serif text-lg font-bold leading-tight text-foreground sm:text-xl">
                   <Link
                     to={productPath(product)}
@@ -132,16 +123,9 @@ export function ProductCatalogGrid({ source }: { source: string }) {
                 </p>
               </div>
 
-              <ProductPrice id={product.id} size="sm" className="mt-3" />
+              <ProductPrice id={product.id} size="md" className="mt-3 border-t border-border pt-4" />
 
-              <div className="mt-4 border-t border-border/60 pt-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                  Какво получавате
-                </p>
-                <p className="mt-1 text-base leading-snug text-foreground">
-                  {RECEIVE_COPY[product.id]}
-                </p>
-              </div>
+              <OfferBenefits items={product.page.youReceive.slice(0, 2)} className="mt-4" />
             </div>
 
             <div

@@ -1,26 +1,15 @@
-/**
- * Едно място, което показва цената на еднократен продукт: стара цена
- * задраскана, текуща цена и точният процент намаление.
- *
- * Числата и процентите идват единствено от `@/lib/products` — тук няма
- * литерали, брояч, краен срок или измислена икономия.
- */
+/** Canonical one-off price, payment cadence and verified reference-price saving. */
 import {
-  PRICE_INTRO_LABEL,
-  productDiscountLabel,
+  getProduct,
   productPreviousPriceLabel,
-  productPriceLabel,
   type OneTimeProductId,
 } from "@/lib/products";
+import { fmtEur } from "@/lib/pricing";
+import { offerSaving } from "@/lib/offerPresentation";
+import { OfferAmount, type OfferSize } from "./OfferPresentation";
 import { cn } from "@/lib/utils";
 
-export type ProductPriceSize = "sm" | "md" | "lg";
-
-const CURRENT: Record<ProductPriceSize, string> = {
-  sm: "text-[20px]",
-  md: "text-[26px] sm:text-[28px]",
-  lg: "text-[36px] sm:text-[42px]",
-};
+export type ProductPriceSize = OfferSize;
 
 export function ProductPrice({
   id,
@@ -30,44 +19,33 @@ export function ProductPrice({
 }: {
   id: OneTimeProductId;
   size?: ProductPriceSize;
-  /** Показва тихия етикет „Въвеждаща цена“ под сумите. */
+  /** Adds tax/subscription terms in detailed contexts. */
   showLabel?: boolean;
   className?: string;
 }) {
-  const discount = productDiscountLabel(id);
+  const product = getProduct(id);
+  const saving = offerSaving(product.priceEur, product.previousPriceEur);
 
   return (
     <span
       data-testid={`product-price-${id}`}
-      className={cn("flex flex-col items-start gap-0.5", className)}
+      className={cn("flex flex-col items-start gap-3", className)}
     >
-      <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span
-          className={cn(
-            "price-figure font-serif",
-            CURRENT[size],
-          )}
-        >
-          {productPriceLabel(id)}
-        </span>
+      <OfferAmount amount={product.priceEur} size={size} period="еднократно" />
+      {saving > 0 && <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs">
         <s
           data-testid={`product-previous-price-${id}`}
-          className="text-[13px] font-medium tabular-nums text-muted-foreground"
+          className="font-medium tabular-nums text-muted-foreground"
         >
           {productPreviousPriceLabel(id)}
         </s>
-        {discount && (
-          <span
-            data-testid={`product-discount-${id}`}
-            className="price-save tabular-nums"
-          >
-            {discount}
-          </span>
-        )}
-      </span>
+        <span data-testid={`product-saving-${id}`} className="font-medium tabular-nums text-success">
+          Спестявате {fmtEur(saving)}
+        </span>
+      </span>}
       {showLabel && (
         <span className="text-[12px] font-medium text-muted-foreground">
-          {PRICE_INTRO_LABEL}
+          С включен ДДС · без абонамент
         </span>
       )}
     </span>

@@ -28,9 +28,9 @@ describe("/plans при отворени абонаменти", () => {
       <HelmetProvider><QueryClientProvider client={new QueryClient()}><MemoryRouter initialEntries={["/plans"]}><Plans /></MemoryRouter></QueryClientProvider></HelmetProvider>,
     );
     expect(screen.queryByLabelText("Покупките предстоят")).toBeNull();
-    const pro = screen.getAllByRole("link", { name: /Избери Професионалист/ })[0];
+    const pro = screen.getAllByRole("link", { name: /Изберете Професионалист/ })[0];
     expect(pro.getAttribute("href")).toContain(encodeURIComponent("/account?tab=subscription&plan=professional"));
-    expect(screen.getAllByRole("link", { name: /Избери Предприемач/ }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /Изберете Предприемач/ }).length).toBeGreaterThan(0);
     expect(screen.queryAllByRole("button", { name: "Извести ме при пускане" }).length).toBeLessThanOrEqual(1); // само входният пакет
   });
 });

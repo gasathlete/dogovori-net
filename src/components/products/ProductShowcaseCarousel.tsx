@@ -16,6 +16,7 @@ import { ArrowLeft, ArrowRight } from "@/icons";
 import { Pause, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { OfferBenefits } from "./OfferPresentation";
 import { ProductPrice } from "@/components/products/ProductPrice";
 import { ProductResultPreview } from "@/components/products/ProductResultPreview";
 import { trackFunnelEvent } from "@/lib/funnel";
@@ -289,6 +290,7 @@ export function ProductShowcaseCarousel({
         </div>
       </div>
 
+      <OfferBenefits items={active.page.youReceive.slice(0, 2)} className="mt-5 border-t border-border pt-4 sm:grid-cols-2" />
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
         <Link
           to={ONE_TIME_PURCHASES_AVAILABLE ? active.ctaHref : productPath(active)}
