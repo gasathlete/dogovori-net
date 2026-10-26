@@ -82,7 +82,7 @@ export function AuthGateModal() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-h-[92vh] max-w-md overflow-y-auto border-gold/30 bg-card p-0 sm:max-w-lg">
+      <DialogContent className="max-h-[92vh] max-w-md overflow-y-auto border-gold/30 bg-card p-0 sm:max-w-lg [&>.dialog-close]:hidden">
         {/* Skip / close — explicit & always visible */}
         <button
           type="button"
