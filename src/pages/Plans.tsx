@@ -12,7 +12,7 @@ import { OfferAmount, OfferBenefits } from "@/components/products/OfferPresentat
 import { PlansAuroraHero } from "@/components/plans/PlansAuroraHero";
 import { PlanScaleSlider } from "@/components/plans/PlanScaleSlider";
 import { PlanStoryStage } from "@/components/plans/PlanStoryStage";
-import { categorize } from "@/lib/planCategories";
+import { categorize, PLAN_HERO_BENEFIT } from "@/lib/planCategories";
 import { AnalysisRecommendationBanner } from "@/components/funnel/AnalysisRecommendationBanner";
 import { TrustGuaranteeBar } from "@/components/funnel/TrustGuaranteeBar";
 import { SoftCapPanel } from "@/components/paywall/SoftCapPanel";
@@ -57,11 +57,10 @@ import { entryPackCtaHref } from "@/lib/entryPack";
 const SUBS_OPEN = isFeatureAvailable("subscription");
 
 
-const PLAN_ICON: Record<PlanId, React.ComponentType<{ className?: string }>> = {
-  free: FileText,
-  professional: Zap,
-  entrepreneur: Crown,
-  team: Users,
+const OFFER_FEATURES: Partial<Record<PlanId, readonly RegExp[]>> = {
+  professional: [/двуезични договори/i, /Без воден знак/i],
+  entrepreneur: [/Всичко от Професионалист/i, /Приоритетна AI обработка/i],
+  team: [/Споделена работна среда/i, /Корпоративна библиотека/i],
 };
 
 function buildCta(planId: PlanId, billing: Billing, isAuthed: boolean): {
@@ -136,6 +135,7 @@ function BillingToggle({
       className="relative inline-flex items-center rounded border border-hairline bg-card/80 p-1  shadow-soft"
     >
       <Button
+        variant="ghost"
         role="tab"
         aria-selected={billing === "monthly"}
         onClick={() => setBilling("monthly")}
@@ -149,6 +149,7 @@ function BillingToggle({
         Месечно
       </Button>
       <Button
+        variant="ghost"
         role="tab"
         aria-selected={billing === "yearly"}
         onClick={() => setBilling("yearly")}
@@ -324,11 +325,13 @@ export default function Plans() {
 
             {plans.filter((p) => p.id !== "free").map((plan, idx) => {
 
-              const Icon = PLAN_ICON[plan.id];
               const price = billing === "yearly" ? plan.yearly : plan.monthly;
               const effectivePrice = price ?? plan.yearly;
-              const teamMonthlyDisabled = plan.id === "team" && billing === "monthly";
               const isRecommended = recommended === plan.id;
+              const included = (OFFER_FEATURES[plan.id] ?? []).flatMap((pattern) => {
+                const match = (plan.features ?? []).find((feature) => pattern.test(feature));
+                return match ? [match] : [];
+              });
               return (
                 <article
                   key={plan.id}
@@ -341,9 +344,11 @@ export default function Plans() {
                   style={{ animationDelay: `${idx * 80}ms` }}
                 >
 
-                  {isRecommended && <p className="mb-3 text-sm font-medium text-success">За избрания от Вас обем</p>}
+                  <div className="min-h-7 text-sm font-medium text-success">
+                    {isRecommended && "За избрания от Вас обем"}
+                  </div>
                   <h2 className="font-serif text-xl leading-tight text-foreground">{plan.name}</h2>
-                  <p className="mt-2 min-h-12 text-sm leading-relaxed text-muted-foreground">{plan.tagline}</p>
+                  <p className="mt-2 min-h-12 text-sm leading-relaxed text-muted-foreground">{PLAN_HERO_BENEFIT[plan.id]?.title ?? plan.tagline}</p>
 
                   <div className="mt-5 border-y border-border bg-secondary/40 px-4 py-5">
                     <OfferAmount amount={effectivePrice?.price ?? 0} size="lg"
@@ -354,11 +359,11 @@ export default function Plans() {
                         : billing === "yearly" ? `Общо ${fmtEur(effectivePrice?.price ?? 0)} за година` : `Общо ${fmtEur(effectivePrice?.price ?? 0)} на месец`}
                       {" · с включен ДДС"}
                     </p>
-                    {effectivePrice?.note && plan.id !== "team" && <p className="mt-2 text-xs text-muted-foreground">{effectivePrice.note}</p>}
+                    {billing === "yearly" && plan.id !== "team" && effectivePrice && <p className="mt-2 text-xs text-muted-foreground">Еквивалент на {fmtEur(effectivePrice.price / 12)} / месец; плащате годишно.</p>}
                   </div>
                   <OfferBenefits className="mt-5" items={[
                     ...(plan.ops_cap_monthly ? [`${plan.ops_cap_monthly} действия месечно${plan.id === "team" ? " на място" : ""}`] : []),
-                    ...(plan.features ?? []).slice(0, 2),
+                    ...included,
                   ]} />
 
                   <div className="relative z-10 mt-6 space-y-3">
