@@ -63,11 +63,25 @@ export function Header() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
+  // Shared, cleanup-safe signal so floating chrome (DogovaryAI) hides while the main menu is open.
+  useEffect(() => {
+    if (!open) return;
+    const root = document.documentElement;
+    root.setAttribute("data-main-menu-open", "");
+    window.dispatchEvent(new CustomEvent("main-menu:change", { detail: true }));
+    return () => {
+      root.removeAttribute("data-main-menu-open");
+      window.dispatchEvent(new CustomEvent("main-menu:change", { detail: false }));
+    };
+  }, [open]);
   const { user, signOut } = useAuth();
   const { count: unreadCount } = useUnreadNotifications();
   const navigate = useNavigate();
   const location = useLocation();
   const scrolled = useScrolled(8);
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     function onDoc(e: MouseEvent) {

@@ -745,8 +745,17 @@ export function DogovAIBubble() {
   }, [open, user]);
 
   const bubbleRef = useRef<HTMLButtonElement | null>(null);
+  const [menuOpen, setMenuOpen] = useState<boolean>(
+    () => typeof document !== "undefined" && document.documentElement.hasAttribute("data-main-menu-open"),
+  );
   useEffect(() => {
-    if (!open && !chooserOpen) return;
+    const onChange = (e: Event) => setMenuOpen(Boolean((e as CustomEvent<boolean>).detail));
+    window.addEventListener("main-menu:change", onChange);
+    setMenuOpen(document.documentElement.hasAttribute("data-main-menu-open"));
+    return () => window.removeEventListener("main-menu:change", onChange);
+  }, []);
+  useEffect(() => {
+    if ((!open && !chooserOpen) || menuOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (!shouldHandleEscape(e)) return;
       e.preventDefault();
@@ -755,7 +764,7 @@ export function DogovAIBubble() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, chooserOpen]);
+  }, [open, chooserOpen, menuOpen]);
 
   useEffect(() => {
     setOpen(false);
@@ -783,7 +792,13 @@ export function DogovAIBubble() {
     : "fixed right-6";
 
   return (
-    <>
+    <div
+      data-dogovai-chrome
+      aria-hidden={menuOpen ? true : undefined}
+      // inert removes hit targets, tab stops and a11y tree while the main menu is open; state stays mounted.
+      {...(menuOpen ? { inert: "" as unknown as boolean } : {})}
+      className={cn(menuOpen && "invisible pointer-events-none")}
+    >
       {/* Bubble — translucent at rest, opaque on hover */}
       <button
         type="button"
@@ -938,6 +953,6 @@ export function DogovAIBubble() {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
