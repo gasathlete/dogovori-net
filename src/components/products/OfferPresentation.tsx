@@ -22,7 +22,7 @@ export function OfferAmount({ amount, period, size = "md", className }: {
       <span className={cn("font-bold leading-none tabular-nums text-success", AMOUNT_SIZE[size])}>
         {fmtEur(amount).replace(/ €$/, "")}
       </span>
-      <span className="text-lg font-semibold text-success">€</span>
+      {" "}<span className="text-lg font-semibold text-success">€</span>
       {period && <span className="text-sm font-medium text-muted-foreground">{period}</span>}
     </span>
   );
