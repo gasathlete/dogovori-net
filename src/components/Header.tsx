@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { ToolsMenu } from "@/components/calculators/ToolsMenu";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { prefetchHandlers } from "@/lib/routePrefetch";
+import { shouldHandleEscape } from "@/lib/escapeLayer";
 
 // „Продукти" е първата основна навигационна точка — оттам започва
 // откриването на продукта. „Планове" стои непосредствено до нея: двата
@@ -50,6 +51,18 @@ export function Header() {
   const [open, setOpen] = useState(false);
   const [guestOpen, setGuestOpen] = useState(false);
   const guestRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!shouldHandleEscape(e)) return;
+      e.preventDefault();
+      setOpen(false);
+      menuButtonRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
   const { user, signOut } = useAuth();
   const { count: unreadCount } = useUnreadNotifications();
   const navigate = useNavigate();
@@ -252,6 +265,7 @@ export function Header() {
           <Button
             variant="outline"
             type="button"
+            ref={menuButtonRef}
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Затвори менюто" : "Отвори менюто"}
             aria-expanded={open}

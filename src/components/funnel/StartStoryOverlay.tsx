@@ -6,6 +6,7 @@ import { RegistrationCTA } from "./RegistrationCTA";
 import { StoryCapabilityDemo } from "./StoryCapabilityDemo";
 import { drainBufferedEvents } from "@/lib/bufferedEvents";
 import { START_STORY_EVENT } from "@/lib/startStory";
+import { clearBufferedEvents } from "@/lib/bufferedEvents";
 import { trackMetric } from "@/lib/metrics";
 import { CATALOG_REVIEW_STATUS } from "@/lib/templateReviewStatus";
 export { openStartStory } from "@/lib/startStory";
@@ -30,16 +31,25 @@ export function StartStoryOverlay() {
   const opened = useRef(false);
   const touch = useRef<{ x: number; y: number } | null>(null);
   useEffect(() => {
-    const show = () => {
+    const handledSignals = new Set<string>();
+    const show = (detail?: unknown) => {
+      clearBufferedEvents(START_STORY_EVENT);
+      // LazyOnSignal re-sends one click several times while loading; one click opens once.
+      const signalId = detail && typeof detail === "object" ? (detail as { __signalId?: unknown }).__signalId : undefined;
+      if (typeof signalId === "string") {
+        if (handledSignals.has(signalId)) return;
+        handledSignals.add(signalId);
+      }
       if (opened.current) return;
       opened.current = true;
       originFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       setScene(0); setBranded(true); completed.current = false; setOpen(true);
       trackMetric("story_opened", { source: "hero" });
     };
-    window.addEventListener(START_STORY_EVENT, show);
+    const onEvent = (event: Event) => show((event as CustomEvent).detail);
+    window.addEventListener(START_STORY_EVENT, onEvent);
     drainBufferedEvents(START_STORY_EVENT, show);
-    return () => window.removeEventListener(START_STORY_EVENT, show);
+    return () => window.removeEventListener(START_STORY_EVENT, onEvent);
   }, []);
   const move = (next: number) => {
     const bounded = Math.max(0, Math.min(SCENES.length - 1, next));

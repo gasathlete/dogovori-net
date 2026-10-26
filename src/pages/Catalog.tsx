@@ -454,7 +454,7 @@ export default function CatalogPage() {
 
 
       {/* Sticky sector nav — replaces previous per-category nav */}
-      <nav id="catalog-sectors" aria-label="Сектори" className="sticky top-16 z-30 scroll-mt-16 border-b border-border/60 bg-navy/85 backdrop-blur-xl">
+      <nav id="catalog-sectors" aria-label="Сектори" className="sticky top-16 z-30 scroll-mt-16 border-b border-border/60 bg-background shadow-sm">
         <div className="relative">
           <DragScrollRow>
             {SECTOR_META.map((s) => (

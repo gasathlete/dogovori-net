@@ -54,8 +54,8 @@ export function Hero() {
       <div className="container grid w-full gap-8 py-5 sm:py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-10 lg:py-14">
         <div className="min-w-0 text-left">
           <p className="text-sm text-muted-foreground">Тестов период</p>
-          <h1 className="mt-4 max-w-[17ch] font-serif text-[38px] font-bold leading-[1.08] text-foreground sm:text-[52px] lg:text-[64px]">
-            {copy.heroHeadline.lead}{" "}<span className="block text-gold">{copy.heroHeadline.accent}{copy.heroHeadline.tail}</span>
+          <h1 className="mt-4 max-w-[17ch] font-serif text-[38px] font-bold leading-[1.08] text-foreground [text-wrap:balance] sm:text-[52px] lg:text-[54px] xl:text-[64px]">
+            {copy.heroHeadline.lead}{" "}<span className="block text-gold [text-wrap:balance]">{copy.heroHeadline.accent}{copy.heroHeadline.tail}</span>
           </h1>
           <p className="mt-5 max-w-[48ch] text-base leading-relaxed text-muted-foreground sm:text-lg">
             {copy.heroSub}

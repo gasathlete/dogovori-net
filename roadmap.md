@@ -90,3 +90,4 @@
 - [x] Owner correction 20.10 09:13: uniform whole-catalog review status on catalog/category/sector/template/static-store surfaces; browsing and paid rights unchanged; 1 focused test + catalog/category/sector/template/static-store browser checks passed; harness build OK; no publish.
 - [x] Paid release: role-independent refunds, genuine improve/PDF/DOCX and premium/refinement tests; LIVE catalog/events/token verified; unified frontend prepared without publishing.
 - [ ] ROOT release: authenticated UI readback after final refined-result fix, full CI/review, then coordinated LIVE row and publish; waits on next authorized TEST fixture/release review.
+- [x] Desktop audit fixes 26.10: swatches, opaque cookie/catalog bars, AI launcher overlap, Escape layering, Tools names, hero wrap; mock AI/signup visual tests; no publish.

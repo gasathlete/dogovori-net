@@ -32,3 +32,4 @@
 - New LIVE product checkout requires the private service-controlled launch row on every request; missing/error means closed, sandbox retains staff authentication, and existing fulfillment never depends on this gate.
 - Existing product reversals bind authoritative Stripe environment/payment-intent/session to locked paid ledgers, never the owner's mutable staff role; revocation must not preserve refunded access.
 - Refinement models return allowlisted narrative patches; the server preserves source and evidence from the paid base and validates the merged result — avoids regenerating immutable evidence and oversized output.
+- Hand-rolled overlays handle Escape only via src/lib/escapeLayer.ts and restore focus to their trigger; Radix layers own their own Escape — prevents one key closing several layers. Lazy re-sent open signals must be deduplicated by __signalId so a closed overlay does not reopen.

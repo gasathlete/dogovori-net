@@ -39,3 +39,8 @@ export function drainBufferedEvents(
     try { handler(e.detail); } catch { /* ignore */ }
   }
 }
+
+/** Drops buffered copies of `name` once a live listener has handled it, so a later mount cannot replay a stale request. */
+export function clearBufferedEvents(name: string): void {
+  buffers.delete(name);
+}
