@@ -6,6 +6,7 @@ import { RegistrationCTA } from "./RegistrationCTA";
 import { StoryCapabilityDemo } from "./StoryCapabilityDemo";
 import { drainBufferedEvents } from "@/lib/bufferedEvents";
 import { START_STORY_EVENT } from "@/lib/startStory";
+import { clearBufferedEvents } from "@/lib/bufferedEvents";
 import { trackMetric } from "@/lib/metrics";
 import { CATALOG_REVIEW_STATUS } from "@/lib/templateReviewStatus";
 export { openStartStory } from "@/lib/startStory";
@@ -31,6 +32,7 @@ export function StartStoryOverlay() {
   const touch = useRef<{ x: number; y: number } | null>(null);
   useEffect(() => {
     const show = () => {
+      clearBufferedEvents(START_STORY_EVENT);
       if (opened.current) return;
       opened.current = true;
       originFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;

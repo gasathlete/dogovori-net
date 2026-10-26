@@ -85,7 +85,7 @@ export function ToolsMenu({ variant = "desktop", onNavigate }: Props) {
                     <Icon className="h-4 w-4" strokeWidth={1.6} />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-sm font-semibold leading-snug text-foreground [overflow-wrap:anywhere] group-hover:text-gold">
+                    <div className="text-sm font-semibold leading-snug text-foreground group-hover:text-gold">
                       {c.shortTitle}
                     </div>
                     <div className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
