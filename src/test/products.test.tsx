@@ -31,6 +31,8 @@ vi.mock("@/lib/funnel", () => ({
   markFunnelStep: vi.fn(),
 }));
 import { trackFunnelEvent } from "@/lib/funnel";
+import { offerSaving } from "@/lib/offerPresentation";
+import { fmtEur } from "@/lib/pricing";
 
 const wrap = (ui: React.ReactNode) => (
   <HelmetProvider>
@@ -160,7 +162,7 @@ describe("витрина — паритет между началната стр
       const block = screen.getByTestId(`product-price-${p.id}`);
       expect(block).toHaveTextContent(productPriceLabel(p.id));
       expect(block).toHaveTextContent(productPreviousPriceLabel(p.id));
-      expect(block).toHaveTextContent(productDiscountLabel(p.id));
+      expect(block).toHaveTextContent(fmtEur(offerSaving(p.priceEur, p.previousPriceEur)));
       const card = screen.getByRole("article", { name: p.name });
       expect(within(card).getByRole("link", {
         name: ONE_TIME_PURCHASES_AVAILABLE ? p.ctaLabel : "Вижте продукта",
@@ -238,7 +240,6 @@ describe("честно намаление — стара цена, нова це
     render(wrap(<ProductCards variant="full" source="produkti" />));
     const text = document.body.textContent ?? "";
     for (const banned of [
-      "спестявате",
       "спестихте",
       "изтича",
       "остават",

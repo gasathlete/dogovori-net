@@ -11,6 +11,8 @@ import {
   productPriceLabel,
 } from "@/lib/products";
 import { PREVIEW_NOTE, PREVIEW_TITLE } from "@/components/products/previewData";
+import { offerSaving } from "@/lib/offerPresentation";
+import { fmtEur } from "@/lib/pricing";
 
 vi.mock("@/lib/funnel", () => ({
   trackFunnelEvent: vi.fn(() => true),
@@ -34,7 +36,7 @@ describe("каталожна продуктова витрина", () => {
       expect(card).toHaveTextContent(product.name);
       expect(card).toHaveTextContent(productPriceLabel(product.id));
       expect(card).toHaveTextContent(productPreviousPriceLabel(product.id));
-      expect(card).toHaveTextContent(productDiscountLabel(product.id));
+      expect(card).toHaveTextContent(fmtEur(offerSaving(product.priceEur, product.previousPriceEur)));
       expect(within(card).getByRole("link", { name: product.name })).toHaveAttribute(
         "href",
         productPath(product),
