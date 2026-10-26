@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { ToolsMenu } from "@/components/calculators/ToolsMenu";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { prefetchHandlers } from "@/lib/routePrefetch";
+import { shouldHandleEscape } from "@/lib/escapeLayer";
 
 // „Продукти" е първата основна навигационна точка — оттам започва
 // откриването на продукта. „Планове" стои непосредствено до нея: двата
@@ -264,6 +265,7 @@ export function Header() {
           <Button
             variant="outline"
             type="button"
+            ref={menuButtonRef}
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Затвори менюто" : "Отвори менюто"}
             aria-expanded={open}
