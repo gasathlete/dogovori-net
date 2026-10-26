@@ -54,7 +54,7 @@ export function DocumentWorkflowStage() {
           {step === 1 && (
             <div className="grid gap-3">
               <p className="workspace-hint text-sm font-medium">Акцентен цвят</p>
-              <div className="workspace-brand-row flex flex-wrap gap-2"><div className="flex gap-2" role="radiogroup" aria-label="Акцентен цвят">
+              <div className="workspace-brand-row flex flex-wrap gap-2"><div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Акцентен цвят">
                 {ACCENTS.map((a) => (
                   <button key={a.id} type="button" role="radio" aria-checked={accent === a.id} aria-label={a.label} onClick={() => { setAccent(a.id); ping("brand"); }} className="workspace-swatch" data-on={accent === a.id}>
                     <span style={{ background: `hsl(${a.token})` }} aria-hidden="true" /><span className="workspace-swatch-label">{a.label}</span>
