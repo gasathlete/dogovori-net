@@ -50,6 +50,18 @@ export function Header() {
   const [open, setOpen] = useState(false);
   const [guestOpen, setGuestOpen] = useState(false);
   const guestRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!shouldHandleEscape(e)) return;
+      e.preventDefault();
+      setOpen(false);
+      menuButtonRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
   const { user, signOut } = useAuth();
   const { count: unreadCount } = useUnreadNotifications();
   const navigate = useNavigate();
