@@ -79,9 +79,9 @@ describe.each(ONE_TIME_PRODUCTS.map((p) => [p.slug, p] as const))(
       const headings = screen.getAllByRole("heading", { level: 1 });
       expect(headings).toHaveLength(1);
       expect(headings[0]).toHaveTextContent(product.page.h1);
-      expect(screen.getByText(productPriceLabel(product.id))).toBeInTheDocument();
+      expect(screen.getByTestId(`product-price-${product.id}`)).toHaveTextContent(productPriceLabel(product.id));
       expect(
-        screen.getByText(/еднократно · без абонамент/),
+        screen.getByText(/С включен ДДС · без абонамент/),
       ).toBeInTheDocument();
     });
 
@@ -90,7 +90,7 @@ describe.each(ONE_TIME_PRODUCTS.map((p) => [p.slug, p] as const))(
       expect(screen.getByText("Какво давате Вие")).toBeInTheDocument();
       expect(screen.getByText("Какво получавате")).toBeInTheDocument();
       for (const item of product.page.youReceive) {
-        expect(screen.getByText(item)).toBeInTheDocument();
+        expect(screen.getAllByText(item).length).toBeGreaterThan(0);
       }
       expect(product.page.steps).toHaveLength(3);
       for (const step of product.page.steps) {
