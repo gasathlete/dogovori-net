@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Rework public offer presentation across shared product prices/cards/detail, plans and one-task alternatives; verify screenshots in both themes/desktop/mobile/125%, targeted pricing tests and automatic build; no publication.
 - [x] Invoice/team reconciliation implemented; migration0036 and webhook deployed,72 app/71 edge tests passed. Owned alias ordinary signup HTTP200 unconfirmed; zero consent/bonus before confirmation. No historical bulk changes.
 - [ ] Native Search Console access verified (GET sites HTTP200); sitemap/five inspections await owner selection between sc-domain:dogovori.net and https://dogovori.net/ under required multiple-property rule. Evidence added to existing audit; primary release tasks unchanged.
 - [x] 24 October implemented confirmation/recovery/exact legacy subscription prices/ordered individual events/isolated TEST credit and full topup refund replay guards; migrations0033–0035 and checkout/webhook deployed,128 app/71 edge/14 proof tests passed; mobile15 combinations/link18/live timing sample. Existing audit updated.
