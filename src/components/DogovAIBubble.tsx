@@ -1,5 +1,7 @@
 import { ensureFeatureDisclaimer } from "@/lib/aiDisclaimerGate";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { shouldHandleEscape } from "@/lib/escapeLayer";
+import { useLauncherOffset } from "@/hooks/useLauncherOffset";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { X, Send, Loader2, Sparkles, FileText, Scale, ExternalLink, Maximize2, MessageSquare } from "@/icons";
 // react-markdown (~40KB gz) is only needed after the first assistant message renders.
@@ -742,14 +744,18 @@ export function DogovAIBubble() {
     }
   }, [open, user]);
 
+  const bubbleRef = useRef<HTMLButtonElement | null>(null);
   useEffect(() => {
-    if (!open) return;
+    if (!open && !chooserOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (!shouldHandleEscape(e)) return;
+      e.preventDefault();
+      if (open) setOpen(false); else setChooserOpen(false);
+      window.setTimeout(() => bubbleRef.current?.focus(), 0);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [open, chooserOpen]);
 
   useEffect(() => {
     setOpen(false);
@@ -761,25 +767,31 @@ export function DogovAIBubble() {
     return () => window.removeEventListener("dogovai:open", onOpen);
   }, []);
 
+  const isWizardRoute = pathname.startsWith("/wizard");
+  const hiddenRoute = HIDDEN_PREFIXES.some((p) => pathname.startsWith(p));
+  const launcher = useLauncherOffset(!loading && !hiddenRoute && !isWizardRoute);
   if (loading) return null;
   if (HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) return null;
 
   // Center at the bottom only inside the wizard fill-in flow on mobile.
   // Everywhere else (and on desktop) keep the original bottom-right position.
-  const isWizardRoute = pathname.startsWith("/wizard");
   const bubblePosition = isWizardRoute
     ? "fixed bottom-20 left-1/2 -translate-x-1/2 sm:bottom-6 sm:left-auto sm:right-6 sm:translate-x-0"
-    : "fixed bottom-6 right-6";
+    : "fixed right-6";
   const chooserPosition = isWizardRoute
     ? "fixed bottom-32 left-1/2 -translate-x-1/2 sm:bottom-20 sm:left-auto sm:right-6 sm:translate-x-0"
-    : "fixed bottom-20 right-6";
+    : "fixed right-6";
 
   return (
     <>
       {/* Bubble — translucent at rest, opaque on hover */}
       <button
         type="button"
+        ref={bubbleRef}
         onClick={handleBubbleClick}
+        style={isWizardRoute ? undefined : { bottom: launcher.bottom }}
+        aria-hidden={!isWizardRoute && launcher.hidden && !open ? true : undefined}
+        tabIndex={!isWizardRoute && launcher.hidden && !open ? -1 : undefined}
         aria-label={open ? "Затвори DogovaryAI" : "Отвори DogovaryAI чат"}
         title="DogovaryAI"
         className={cn(
@@ -787,11 +799,11 @@ export function DogovAIBubble() {
           "z-40",
           "group flex items-center gap-2 rounded-full",
           "h-11 w-11 justify-center p-0 sm:h-12 sm:w-auto sm:justify-start sm:pl-2 sm:pr-3.5",
-          "bg-card/55 backdrop-blur-md text-foreground ring-1 ring-gold/30",
+          "bg-card text-foreground ring-1 ring-gold/40",
           "shadow-lg shadow-navy/10",
-          "opacity-70 hover:opacity-100 hover:bg-card/90 hover:ring-gold/60 hover:shadow-gold",
+          "hover:ring-gold/70 hover:shadow-gold",
           "transition-all hover:scale-[1.04] active:scale-95",
-          open && "opacity-0 pointer-events-none translate-y-2",
+          (open || (!isWizardRoute && launcher.hidden)) && "opacity-0 pointer-events-none translate-y-2",
         )}
       >
         <img
@@ -812,6 +824,7 @@ export function DogovAIBubble() {
         <div
           role="dialog"
           aria-label="Избери размер на DogovaryAI"
+          style={isWizardRoute ? undefined : { bottom: launcher.bottom + 56 }}
           className={cn(
             chooserPosition,
             "z-40 w-[min(320px,calc(100vw-2rem))] rounded-2xl border border-gold/30 bg-card p-3 shadow-2xl",
