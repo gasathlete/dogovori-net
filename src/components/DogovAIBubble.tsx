@@ -745,8 +745,17 @@ export function DogovAIBubble() {
   }, [open, user]);
 
   const bubbleRef = useRef<HTMLButtonElement | null>(null);
+  const [menuOpen, setMenuOpen] = useState<boolean>(
+    () => typeof document !== "undefined" && document.documentElement.hasAttribute("data-main-menu-open"),
+  );
   useEffect(() => {
-    if (!open && !chooserOpen) return;
+    const onChange = (e: Event) => setMenuOpen(Boolean((e as CustomEvent<boolean>).detail));
+    window.addEventListener("main-menu:change", onChange);
+    setMenuOpen(document.documentElement.hasAttribute("data-main-menu-open"));
+    return () => window.removeEventListener("main-menu:change", onChange);
+  }, []);
+  useEffect(() => {
+    if ((!open && !chooserOpen) || menuOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (!shouldHandleEscape(e)) return;
       e.preventDefault();
