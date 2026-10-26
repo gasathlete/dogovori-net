@@ -1,13 +1,32 @@
-# Publication status: no action required
+# Десктоп визуален одит — 26.10.2026 (само преглед, без промени)
 
-Checked read-only at 20:52 UTC on 28.09.2026.
+Проверка с реален браузер (Playwright, localhost preview) при 1280x800, 1366x768, 1440x900, 1920x1080 за `/`, `/catalog`, `/plans`, `/produkti/proverka-predi-podpis`, `/auth` + DOM проверка за преливане и fixed/sticky слоеве.
 
-- dogovori.net returns 200 with header `x-deployment-id: psr2.a26860c8-3f03-498c-8b33-60ed631b1fcc...`, which is the pending deployment.
-- www.dogovori.net and dogovori-net.lovable.app redirect (302) to dogovori.net and serve the same deployment.
-- The page script is `/assets/index-DJHVHHGu.js` (returns 200). The old `index-DY4Rau34.js` is gone.
-- The served HTML contains `unsafe-eval` 0 times.
-- Publish settings: published, public.
+## Доказано визуално
 
-Limitation: the available tools do not show the deployment's internal status or build logs. The evidence comes only from what the public hosts return. The old files seen at 20:51 were most likely just the rollout still in progress.
+1. **Cookie лента пропуска съдържанието отдолу** — всички страници, всички ширини. Тежест: висока.
+   Фонът е полупрозрачен (`bg-navy/95` + `backdrop-blur`), текстът под лентата („Какъв документ търсите?“, бутони в /plans) личи през нея и се слива с текста на лентата. При 1280x800 и 1366x768 лентата покрива полето за търсене в hero и бутона „Виж абонаментите“.
+   Файл: `src/components/CookieBanner.tsx:44`. Корекция: плътен фон (`bg-card` или `bg-navy` без прозрачност), без blur.
 
-Next step: none. Do not start another deployment.
+2. **Бутонът DogovaryAI е под cookie лентата** — всички ширини. Тежест: средна.
+   Бутонът (`z-40`, bottom-6 right-6) е в зоната на лентата (`z-[45]`) и се вижда като „призрачен“ надпис в десния край на лентата.
+   Файл: `src/components/DogovAIBubble.tsx`. Корекция: скриване на бутона или изместване нагоре, докато cookie лентата е видима.
+
+3. **Невидим fixed слой на DogovaryAI с височина ~590 px** (`fixed z-[55] sm:z-40 inset-x-0 top-0 bottom-0`) отчетен като видим правоъгълник от ~290 px до дъното. Тежест: средна, непотвърдена — трябва проверка дали прихваща кликове в дясната част.
+   Файл: `src/components/DogovAIBubble.tsx`. Корекция: `pointer-events-none` на контейнера, `pointer-events-auto` само на панела.
+
+## Без проблем при четирите ширини
+- Няма хоризонтално преливане на страниците (scrollWidth = ширината на прозореца). Елементите извън екрана в начална страница и /catalog са в собствени хоризонтални редове/карусели.
+- Хедърът (sticky, z-40) и sticky филтрите в каталога (top-16, z-30) не се застъпват със съдържанието в снимките.
+- Hero, демото „Покана за сътрудничество“ и „Комплекти“ са с ясни граници.
+
+## Дребни бележки
+- H2 „Как да платите“ (/plans) и „Вход и регистрация в Dogovori.net“ (/auth) имат текст по-широк от кутията си при скрито преливане — вероятно скрито заглавие за екранни четци; не се вижда. Тежест: ниска, да се потвърди в `src/pages/Plans.tsx` и `src/pages/Auth.tsx`.
+- H1 при 1280 се пренася на 4 реда с „Вас.“ сам на ред. Тежест: ниска (стил).
+
+## Визуално непроверено
+- „Вижте как работи“ story модалът, отвореното меню, отвореният DogovaryAI панел и състоянието след приемане на бисквитките не са отваряни.
+- Футърът е сниман само при 1280 и 1920.
+
+## Следваща стъпка (при одобрение)
+Допълнителен кратък браузърен пас само за непроверените точки, после — само ако одобрите — минималните корекции в т.1–3. Без публикуване.
