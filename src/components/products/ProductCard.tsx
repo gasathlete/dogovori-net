@@ -3,8 +3,10 @@
  * Бизнес копието идва изцяло от `@/lib/products`, за да няма дублиране.
  */
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
-import { ArrowRight, Check } from "@/icons";
+import { ArrowRight } from "@/icons";
 import { ProductResultPreview } from "@/components/products/ProductResultPreview";
+import { OfferBenefits } from "./OfferPresentation";
+import { Button } from "@/components/ui/button";
 import { ProductPrice } from "@/components/products/ProductPrice";
 import {
   isFeaturedProduct,
@@ -56,11 +58,6 @@ export function ProductCard({
 
         <header className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            {product.badge && (
-              <span className="mb-2 block text-sm font-medium text-muted-foreground">
-                {product.badge}
-              </span>
-            )}
             <h3
               id={headingId}
               className="font-serif text-[17px] font-bold leading-tight text-foreground sm:text-lg"
@@ -73,11 +70,6 @@ export function ProductCard({
               </Link>
             </h3>
           </div>
-          <ProductPrice
-            id={product.id}
-            size={compact ? "sm" : "md"}
-            className="shrink-0 items-end text-right"
-          />
         </header>
 
         <p className="text-[13px] leading-relaxed text-muted-foreground">
@@ -88,23 +80,17 @@ export function ProductCard({
           <ProductResultPreview productId={product.id} size="compact" />
         )}
 
-        <ul className="space-y-1.5">
-          {outcomes.map((o) => (
-            <li key={o} className="flex items-start gap-2 text-[12.5px] leading-snug text-foreground/85">
-              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
-              <span>{o}</span>
-            </li>
-          ))}
-        </ul>
-
-        <p className="mt-auto text-[11px] font-medium text-muted-foreground">
-          {ONE_TIME_TERMS}
-        </p>
+        <div className="mt-auto border-t border-border pt-5">
+          <ProductPrice id={product.id} size={compact ? "sm" : "md"} />
+          <OfferBenefits items={compact ? outcomes.slice(0, 2) : outcomes} className="mt-4" />
+        </div>
+        <p className="text-[11px] font-medium text-muted-foreground">{ONE_TIME_TERMS}</p>
 
         {!ONE_TIME_PURCHASES_AVAILABLE && (
           <LaunchPurchaseBanner compact source="product_card" productId={product.id} />
         )}
 
+        <Button asChild variant="outline" className="h-auto min-h-11 w-full whitespace-normal border-gold/40 py-3 text-center">
         <Link
           to={productPath(product)}
           onClick={() =>
@@ -114,11 +100,11 @@ export function ProductCard({
               variant,
             })
           }
-          className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-gold/40 px-5 py-3 text-[14px] font-bold text-gold transition-colors hover:bg-gold/10"
         >
           {ONE_TIME_PURCHASES_AVAILABLE ? product.ctaLabel : "Вижте продукта"}
           <ArrowRight className="h-4 w-4" />
         </Link>
+        </Button>
       </article>
     </li>
   );

@@ -7,8 +7,9 @@ import {
   ONE_TIME_PRODUCTS,
   ONE_TIME_TERMS,
   productPath,
-  productPriceLabel,
 } from "@/lib/products";
+import { ProductPrice } from "./ProductPrice";
+import { ArrowRight } from "@/icons";
 import { cn } from "@/lib/utils";
 
 export const ONE_TASK_HEADING = "Само за една задача?";
@@ -18,7 +19,7 @@ export function OneTaskAlternative({ className }: { className?: string }) {
     <aside
       aria-label="Еднократни продукти за една задача"
       className={cn(
-        "rounded-2xl border border-hairline bg-card/40 px-4 py-3.5 sm:px-5",
+        "py-2",
         className,
       )}
     >
@@ -26,17 +27,19 @@ export function OneTaskAlternative({ className }: { className?: string }) {
       <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
         Плащате само за конкретния резултат, без абонамент.
       </p>
-      <ul className="mt-2.5 flex flex-col gap-1.5">
+      <ul className="mt-4 grid gap-0 divide-y divide-border">
         {ONE_TIME_PRODUCTS.map((p) => (
           <li key={p.id}>
             <Link
               to={productPath(p)}
-              className="flex min-h-[44px] items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-[13px] font-medium text-foreground/90 hover:bg-muted/50 hover:text-gold"
+              className="grid min-h-11 gap-4 py-4 text-sm text-foreground transition-colors hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[1fr_auto]"
             >
-              <span className="min-w-0 truncate">{p.name}</span>
-              <span className="shrink-0 tabular-nums font-bold text-success">
-                {productPriceLabel(p.id)}
+              <span className="min-w-0">
+                <span className="block font-semibold">{p.name}</span>
+                <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{p.shortOutcome}</span>
+                <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-gold">Вижте продукта <ArrowRight className="size-3.5" /></span>
               </span>
+              <ProductPrice id={p.id} size="sm" />
             </Link>
           </li>
         ))}

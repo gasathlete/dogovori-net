@@ -8,7 +8,7 @@ import { PlansHeroAnimation } from "@/components/PlansHeroAnimation";
 import { ExpandableCard } from "@/components/ui/ExpandableCard";
 import { TopupPacks } from "@/components/TopupPacks";
 import { PlanCategoryAccordion } from "@/components/plans/PlanCategoryAccordion";
-import { PlanHeroBenefit } from "@/components/plans/PlanHeroBenefit";
+import { OfferAmount, OfferBenefits } from "@/components/products/OfferPresentation";
 import { PlansAuroraHero } from "@/components/plans/PlansAuroraHero";
 import { PlanScaleSlider } from "@/components/plans/PlanScaleSlider";
 import { PlanStoryStage } from "@/components/plans/PlanStoryStage";
@@ -71,27 +71,27 @@ function buildCta(planId: PlanId, billing: Billing, isAuthed: boolean): {
   if (planId === "free") {
     return isAuthed
       ? { href: "/account", label: "Към моя профил" }
-      : { href: "/auth?tab=signup", label: "Започни безплатно" };
+      : { href: "/auth?tab=signup", label: "Започнете безплатно" };
   }
   if (planId === "team") {
     // Team is yearly-only — always link to team creation.
     const target = `/team`;
     return isAuthed
-      ? { href: target, label: "Създай екип" }
-      : { href: `/auth?tab=signup&redirect=${encodeURIComponent(target)}&intent=plan_team`, label: "Създай екип" };
+      ? { href: target, label: "Създайте екип" }
+      : { href: `/auth?tab=signup&redirect=${encodeURIComponent(target)}&intent=plan_team`, label: "Създайте екип" };
   }
   const target = `/account?tab=subscription&plan=${planId}&billing=${billing}`;
   const planLabel = planId === "entrepreneur" ? "Предприемач" : "Професионалист";
   if (isAuthed) {
     return {
       href: target,
-      label: `Активирай ${planLabel}`,
+      label: `Активирайте ${planLabel}`,
     };
   }
   const redirect = encodeURIComponent(target);
   return {
     href: `/auth?tab=signup&redirect=${redirect}&intent=plan_${planId}`,
-    label: `Избери ${planLabel}`,
+    label: `Изберете ${planLabel}`,
   };
 }
 
@@ -135,7 +135,7 @@ function BillingToggle({
       aria-label="Период на фактуриране"
       className="relative inline-flex items-center rounded border border-hairline bg-card/80 p-1  shadow-soft"
     >
-      <button
+      <Button
         role="tab"
         aria-selected={billing === "monthly"}
         onClick={() => setBilling("monthly")}
@@ -147,8 +147,8 @@ function BillingToggle({
         )}
       >
         Месечно
-      </button>
-      <button
+      </Button>
+      <Button
         role="tab"
         aria-selected={billing === "yearly"}
         onClick={() => setBilling("yearly")}
@@ -160,15 +160,8 @@ function BillingToggle({
         )}
       >
         Годишно
-        <span
-          className={cn(
-            "inline-flex rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors",
-            billing === "yearly" ? "bg-white/15 text-white" : "bg-brand/15 text-brand",
-          )}
-        >
-          −17%
-        </span>
-      </button>
+
+      </Button>
     </div>
   );
 }
@@ -341,101 +334,34 @@ export default function Plans() {
                   key={plan.id}
                   id={`plan-${plan.id}`}
                   className={cn(
-                    "group relative flex flex-col scroll-mt-28 overflow-hidden rounded-3xl border bg-card/85 p-6  transition-all duration-500  sm:p-7",
-                    plan.highlight
-                      ? "border-brand/50 shadow-brand ring-1 ring-brand/20"
-                      : "border-hairline hover:border-brand/30",
+                    "group relative flex min-w-0 flex-col scroll-mt-28 rounded-md border border-hairline bg-card p-5 sm:p-6",
                     isRecommended && "border-brand ring-2 ring-brand/40",
                     preselected === plan.id && "border-brand ring-2 ring-brand/40",
                   )}
                   style={{ animationDelay: `${idx * 80}ms` }}
                 >
 
-                  {/* Един ред бейджове — без наслагване върху рамката */}
-                  {(plan.highlight || isRecommended || plan.id === "entrepreneur") && (
-                    <div className="relative z-10 mb-4 flex flex-wrap items-center gap-2">
-                      {plan.id === "entrepreneur" && (
-                        <span className="inline-flex rounded bg-gradient-brand px-2.5 py-1 text-xs font-semibold text-white shadow-brand">
-                          Препоръчан план
-                        </span>
-                      )}
-                      {plan.highlight && plan.id !== "entrepreneur" && (
-                        <span className="inline-flex rounded bg-gradient-brand px-2.5 py-1 text-xs font-semibold text-white shadow-brand">
-                          {plan.badge}
-                        </span>
-                      )}
-                      {plan.id === "entrepreneur" && copy.planBadge && (
-                        <span className="inline-flex rounded border border-brand/40 bg-brand/10 px-2.5 py-1 text-xs font-medium text-brand">
-                          {copy.planBadge}
-                        </span>
-                      )}
+                  {isRecommended && <p className="mb-3 text-sm font-medium text-success">За избрания от Вас обем</p>}
+                  <h2 className="font-serif text-xl leading-tight text-foreground">{plan.name}</h2>
+                  <p className="mt-2 min-h-12 text-sm leading-relaxed text-muted-foreground">{plan.tagline}</p>
 
-                      {isRecommended && (
-                        <span className="inline-flex rounded border border-brand/40 bg-brand/10 px-2.5 py-1 text-xs font-medium text-brand">
-                          За вашия обем
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="relative z-10 flex items-center gap-3">
-                    <div
-                      className={cn(
-                        "hidden",
-                        plan.highlight
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-brand/10 text-brand",
-                      )}
-                    >
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <h2 className="font-serif text-xl leading-tight text-foreground">{plan.name}</h2>
-                      <p className="truncate text-xs text-muted-foreground">{plan.tagline}</p>
-                    </div>
+                  <div className="mt-5 border-y border-border bg-secondary/40 px-4 py-5">
+                    <OfferAmount amount={effectivePrice?.price ?? 0} size="lg"
+                      period={plan.id === "team" ? "/ място / година" : billing === "yearly" ? "/ година" : "/ месец"} />
+                    <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                      {plan.id === "team"
+                        ? `Само годишно · минимум ${plan.seat_min ?? PRICING_PLANS.team.seatMin} места · общо ${fmtEur((effectivePrice?.price ?? 0) * (plan.seat_min ?? PRICING_PLANS.team.seatMin ?? 1))} / година`
+                        : billing === "yearly" ? `Общо ${fmtEur(effectivePrice?.price ?? 0)} за година` : `Общо ${fmtEur(effectivePrice?.price ?? 0)} на месец`}
+                      {" · с включен ДДС"}
+                    </p>
+                    {effectivePrice?.note && plan.id !== "team" && <p className="mt-2 text-xs text-muted-foreground">{effectivePrice.note}</p>}
                   </div>
-
-
-                  <div className="relative z-10 mt-6">
-                    {effectivePrice && effectivePrice.price > 0 ? (
-                      <>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="price-figure font-serif text-[44px] leading-none sm:text-5xl">
-                            {fmtEur(effectivePrice.price).replace(/ €$/, "")}
-                          </span>
-                          <span className="text-sm text-muted-foreground">{effectivePrice.suffix}</span>
-                        </div>
-                        {teamMonthlyDisabled && (
-                          <p className="mt-1.5 text-xs font-medium text-brand">Само годишно</p>
-                        )}
-                        {effectivePrice.note && (
-                          <p className="mt-1.5 text-xs text-muted-foreground">{effectivePrice.note}</p>
-                        )}
-                      </>
-
-                    ) : (
-                      <div className="flex items-baseline gap-1">
-                        <span className="price-figure font-serif text-[44px] leading-none sm:text-5xl">
-                          0
-                        </span>
-                        <span className="text-sm text-muted-foreground">€ — завинаги</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {plan.highlight && effectivePrice && effectivePrice.price > 0 && (
-                    <div className="relative z-10 mt-3 space-y-1 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-2 text-left">
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                        {copy.priceFrame}
-                      </p>
-                      <p className="text-[12px] leading-snug text-muted-foreground">
-                        {copy.valueLine}
-                      </p>
-                    </div>
-                  )}
+                  <OfferBenefits className="mt-5" items={[
+                    ...(plan.ops_cap_monthly ? [`${plan.ops_cap_monthly} действия месечно${plan.id === "team" ? " на място" : ""}`] : []),
+                    ...(plan.features ?? []).slice(0, 2),
+                  ]} />
 
                   <div className="relative z-10 mt-6 space-y-3">
-                    <PlanHeroBenefit planId={plan.id} highlight={plan.highlight} />
                     <PlanCategoryAccordion
                       planId={plan.id}
                       groups={categorize(plan.features)}
@@ -487,9 +413,8 @@ export default function Plans() {
                     <FileText className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-serif text-lg leading-tight text-foreground">
-                      {free.name} · <span className="text-success">0 €</span>
-                    </h3>
+                    <h3 className="font-serif text-lg leading-tight text-foreground">Безплатен старт</h3>
+                    <OfferAmount className="mt-3" amount={PRICING_PLANS.free.monthly ?? 0} size="sm" period="/ месец" />
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
                       Основни функции за малкия бизнес · {FREE_OFFER_RULE}. Без карта.
                     </p>
@@ -620,7 +545,7 @@ export default function Plans() {
           subtitle="Еднократните продукти са за един конкретен документ. Абонаментът е за редовна работа по документи — включените действия и цените са описани по-долу."
         >
 
-          <div className="rounded-2xl border border-hairline bg-card/60 p-5  sm:p-6">
+          <div className="border-t border-hairline py-5 sm:py-6">
             <div className="mx-auto max-w-3xl">
               <RoiSavingsBanner />
             </div>
