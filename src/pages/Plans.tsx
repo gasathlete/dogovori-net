@@ -400,7 +400,7 @@ export default function Plans() {
                     {effectivePrice && effectivePrice.price > 0 ? (
                       <>
                         <div className="flex items-baseline gap-1.5">
-                          <span className="font-serif text-[44px] font-semibold leading-none text-foreground sm:text-5xl">
+                          <span className="price-figure font-serif text-[44px] leading-none sm:text-5xl">
                             {fmtEur(effectivePrice.price).replace(/ €$/, "")}
                           </span>
                           <span className="text-sm text-muted-foreground">{effectivePrice.suffix}</span>
@@ -415,7 +415,7 @@ export default function Plans() {
 
                     ) : (
                       <div className="flex items-baseline gap-1">
-                        <span className="font-serif text-[44px] font-semibold leading-none text-foreground sm:text-5xl">
+                        <span className="price-figure font-serif text-[44px] leading-none sm:text-5xl">
                           0
                         </span>
                         <span className="text-sm text-muted-foreground">€ — завинаги</span>
@@ -488,7 +488,7 @@ export default function Plans() {
                   </div>
                   <div className="min-w-0">
                     <h3 className="font-serif text-lg leading-tight text-foreground">
-                      {free.name} · <span className="text-brand">0 €</span>
+                      {free.name} · <span className="text-success">0 €</span>
                     </h3>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
                       Основни функции за малкия бизнес · {FREE_OFFER_RULE}. Без карта.
@@ -780,7 +780,7 @@ function Cell({ value, highlight }: { value: string; highlight?: boolean }) {
       {isNo ? (
         <X className="mx-auto h-4 w-4 text-muted-foreground/60" />
       ) : value === "Да" ? (
-        <Check className={cn("mx-auto h-4 w-4", highlight ? "text-brand" : "text-brand/80")} />
+        <Check className="mx-auto h-4 w-4 text-success" />
       ) : (
         value
       )}
