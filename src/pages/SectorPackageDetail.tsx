@@ -58,7 +58,7 @@ export default function SectorPackageDetailPage() {
             <ul className="mt-3 space-y-2">{guides.map((post) => <li key={post.slug}><Link to={`/blog/${post.slug}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-gold underline-offset-4 hover:underline">{post.title}</Link></li>)}</ul>
           </section>}
           <div className="mt-12 grid gap-8 border-t border-border py-8 sm:grid-cols-2">
-            <div><h2 className="flex items-center gap-2 font-serif text-xl font-bold"><CheckCircle2 className="size-5 text-gold" />Какво можете да разгледате</h2><p className="mt-2 text-sm leading-relaxed text-muted-foreground">Всеки публикуван документ води към съществуващата му страница с описание и пример. Това не е покупка и не създава нов документ.</p></div>
+            <div><h2 className="flex items-center gap-2 font-serif text-xl font-bold"><CheckCircle2 className="size-5 text-success" />Какво можете да разгледате</h2><p className="mt-2 text-sm leading-relaxed text-muted-foreground">Всеки публикуван документ води към съществуващата му страница с описание и пример. Това не е покупка и не създава нов документ.</p></div>
             <div><h2 className="font-serif text-xl font-bold">Свързан комплект</h2><p className="mt-2 text-sm text-muted-foreground">За конкретна ситуация вижте подбрания комплект и неговите документи.</p><Link to={`/komplekti/${item.relatedKitId}`} className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-gold">Разгледайте комплекта <ArrowRight className="size-4" /></Link></div>
           </div>
         </section>
