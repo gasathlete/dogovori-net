@@ -49,7 +49,7 @@ const SCENARIO_IMAGE: Record<string, string> = {
   unsure: unsureImage,
 };
 
-const FEATURED_IDS = ["rent-out", "freelance", "digital", "hire", "buy-sell-re", "vehicle"] as const;
+const FEATURED_IDS = ["rent-out", "freelance", "digital", "hire", "buy-sell-re", "vehicle", "start-biz", "ecommerce", "nda", "gdpr", "inheritance", "collect"] as const;
 const FEATURED = FEATURED_IDS.map((id) => LIFE_SCENARIOS.find((scenario) => scenario.id === id)).filter((scenario): scenario is (typeof LIFE_SCENARIOS)[number] => Boolean(scenario));
 
 /**

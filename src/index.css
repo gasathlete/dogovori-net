@@ -31,7 +31,7 @@
     --destructive: 0 70% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 145 55% 45%;
+    --success: 156 46% 54%;
     --success-foreground: 0 0% 100%;
     --warning: 38 90% 55%;
     --danger: 0 75% 58%;
@@ -117,7 +117,7 @@
     --destructive: 0 68% 46%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 55% 30%;
+    --success: 158 54% 27%;
     --success-foreground: 0 0% 100%;
     --warning: 36 82% 42%;
     --danger: 0 72% 45%;
@@ -1438,3 +1438,11 @@ html.dark .brand-platform-preview {
   .workspace-field { font-size: 13px; }
   .brand-footer .footer-directory { column-gap: 18px; }
 }
+
+/* Зелен акцент за цени и включени предимства (емералд/градински зелен). */
+.price-figure { color: hsl(var(--success)); font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.price-unit { font-size: .55em; font-weight: 500; color: hsl(var(--muted-foreground)); margin-left: .15em; }
+.price-save { display: inline-flex; align-items: center; border-radius: 999px; padding: 1px 8px; font-size: 12px; font-weight: 600; color: hsl(var(--success)); background: hsl(var(--success) / .12); border: 1px solid hsl(var(--success) / .3); }
+.browse-shelf { grid-auto-columns: calc((100% - 60px) / 3.35); }
+@media (max-width: 1023px) { .browse-shelf { grid-auto-columns: calc((100% - 20px) / 2.25); } }
+@media (max-width: 639px) { .browse-shelf { grid-auto-columns: 80%; } }

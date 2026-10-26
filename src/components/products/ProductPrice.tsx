@@ -17,9 +17,9 @@ import { cn } from "@/lib/utils";
 export type ProductPriceSize = "sm" | "md" | "lg";
 
 const CURRENT: Record<ProductPriceSize, string> = {
-  sm: "text-[17px]",
-  md: "text-[22px] sm:text-[24px]",
-  lg: "text-[30px] sm:text-[34px]",
+  sm: "text-[20px]",
+  md: "text-[26px] sm:text-[28px]",
+  lg: "text-[36px] sm:text-[42px]",
 };
 
 export function ProductPrice({
@@ -44,7 +44,7 @@ export function ProductPrice({
       <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <span
           className={cn(
-            "font-serif font-bold tabular-nums text-foreground",
+            "price-figure font-serif",
             CURRENT[size],
           )}
         >
@@ -59,7 +59,7 @@ export function ProductPrice({
         {discount && (
           <span
             data-testid={`product-discount-${id}`}
-            className="text-[12px] font-medium tabular-nums text-muted-foreground"
+            className="price-save tabular-nums"
           >
             {discount}
           </span>

@@ -46,6 +46,15 @@ export default function CatalogPage() {
   const activeVid = (searchParams.get("vid") as DocumentTypeId | null) ?? null;
   const bilingualOnly = searchParams.get("bilingual") === "1";
   const dynamicOnly   = searchParams.get("dynamic") === "1";
+  const activeSector = SECTOR_META.some((s) => s.id === searchParams.get("sektor")) ? searchParams.get("sektor") : null;
+  const setSector = (id: string | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (id) next.set("sektor", id);
+    else next.delete("sektor");
+    setSearchParams(next);
+    if (id) setTimeout(() => document.getElementById(`sector-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
+  const sectorCategories = activeSector ? CATALOG.filter((c) => ((c as { sectorId?: string }).sectorId ?? "services") === activeSector) : [];
   // ?q= е източникът на истина за търсенето: хидратира полето и следва назад/напред.
   const urlQuery = searchParams.get("q") ?? "";
   const [query, setQueryState] = useState(urlQuery);
@@ -110,8 +119,9 @@ export default function CatalogPage() {
           d.keyClause.toLowerCase().includes(q)
         );
       }),
-    })).filter((c) => c.documents.length > 0);
-  }, [query, activeVid, bilingualOnly, dynamicOnly]);
+    })).filter((c) => c.documents.length > 0)
+      .filter((c) => !activeSector || ((c as { sectorId?: string }).sectorId ?? "services") === activeSector);
+  }, [query, activeVid, bilingualOnly, dynamicOnly, activeSector]);
 
   // Server-side suggestions (Postgres FTS, BG/Latin cross-script).
   const { hits: searchHits, loading: searchLoading } = useTemplateSearch(query, {
@@ -457,18 +467,42 @@ export default function CatalogPage() {
       <nav id="catalog-sectors" aria-label="Сектори" className="sticky top-16 z-30 scroll-mt-16 border-b border-border/60 bg-background shadow-sm">
         <div className="relative">
           <DragScrollRow>
+            <button
+              type="button"
+              onClick={() => setSector(null)}
+              aria-pressed={!activeSector}
+              className={`inline-flex min-h-11 shrink-0 snap-start items-center whitespace-nowrap rounded-full border px-4 font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${!activeSector ? "border-gold bg-gold/15 text-foreground" : "border-border/60 bg-card text-muted-foreground hover:border-gold/50 hover:text-foreground"}`}
+            >
+              Всички сектори
+            </button>
             {SECTOR_META.map((s) => (
-              <a
+              <button
                 key={s.id}
-                href={`#sector-${s.id}`}
-                className="group inline-flex min-h-11 shrink-0 snap-start items-center whitespace-nowrap rounded-full border border-border/60 bg-card/40 px-4 font-medium text-muted-foreground transition-colors duration-200 hover:border-gold/50 hover:bg-gold/5 hover:text-gold"
+                type="button"
+                onClick={() => setSector(activeSector === s.id ? null : s.id)}
+                aria-pressed={activeSector === s.id}
+                className={`inline-flex min-h-11 shrink-0 snap-start items-center whitespace-nowrap rounded-full border px-4 font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${activeSector === s.id ? "border-gold bg-gold/15 text-foreground" : "border-border/60 bg-card text-muted-foreground hover:border-gold/50 hover:text-foreground"}`}
               >
                 {s.title}
-              </a>
+              </button>
             ))}
           </DragScrollRow>
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-navy/95 to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background to-transparent" />
         </div>
+        {activeSector && sectorCategories.length > 0 && (
+          <div className="container flex flex-wrap items-center gap-2 border-t border-border/60 py-3 text-sm">
+            <span className="mr-1 font-semibold text-foreground">Изберете категория:</span>
+            {sectorCategories.map((c) => (
+              <Link
+                key={c.id}
+                to={`/kategoria/${c.id}`}
+                className="inline-flex min-h-9 items-center rounded-md border border-border bg-card px-3 text-foreground transition-colors hover:border-gold hover:bg-gold/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {c.title}
+              </Link>
+            ))}
+          </div>
+        )}
       </nav>
 
       {/* Sectors grid — categories are grouped under their parent sector and shown
@@ -479,6 +513,7 @@ export default function CatalogPage() {
           filtered={filtered}
           downloadCounts={downloadCounts}
           forceExpandAll={!!query.trim()}
+          activeSector={activeSector}
         />
 
         {filtered.length === 0 && (
@@ -541,13 +576,17 @@ function DragScrollRow({ children }: { children: React.ReactNode }) {
     const el = ref.current;
     if (!el) return;
     state.current = { down: true, moved: false, startX: e.clientX, startScroll: el.scrollLeft };
-    el.setPointerCapture(e.pointerId);
   };
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const el = ref.current;
     if (!el || !state.current.down) return;
     const dx = e.clientX - state.current.startX;
-    if (Math.abs(dx) > 4) state.current.moved = true;
+    if (!state.current.moved && Math.abs(dx) > 6) {
+      state.current.moved = true;
+      // Capture only for a real drag, so a plain click still reaches the chip.
+      try { el.setPointerCapture(e.pointerId); } catch { /* noop */ }
+    }
+    if (!state.current.moved) return;
     el.scrollLeft = state.current.startScroll - dx;
   };
   const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -757,10 +796,12 @@ function SectorCatalogGrid({
   filtered,
   downloadCounts,
   forceExpandAll,
+  activeSector,
 }: {
   filtered: FilteredCategory[];
   downloadCounts: Map<string, number>;
   forceExpandAll: boolean;
+  activeSector: string | null;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -781,17 +822,17 @@ function SectorCatalogGrid({
         // Rank: TOP first, then NEW, then in-order.
         const rank = (b?: string) => (b === "TOP" ? 0 : b === "NEW" ? 1 : 2);
         docs.sort((a, b) => rank((a.doc as any).badge) - rank((b.doc as any).badge));
-        return { sector: s, docs, totalCats: cats.length };
+        return { sector: s, docs, totalCats: cats.length, cats };
       })
       .filter((b) => b.docs.length > 0);
   }, [filtered]);
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-5">
-      {buckets.map(({ sector: s, docs, totalCats }) => {
+      {buckets.map(({ sector: s, docs, totalCats, cats }) => {
         const Icon = (Icons as any)[s.icon] ?? Icons.FileText;
         const bg = SECTOR_IMAGES[s.id];
-        const isOpen = forceExpandAll || expandedId === s.id;
+        const isOpen = forceExpandAll || expandedId === s.id || activeSector === s.id;
         const preview = docs.slice(0, SECTOR_PREVIEW_LIMIT);
         const remaining = docs.length - preview.length;
 
@@ -861,6 +902,19 @@ function SectorCatalogGrid({
                 />
               </div>
             </button>
+
+            {/* Категориите са отделни връзки извън бутона на сектора (без вложени елементи). */}
+            <div className="flex flex-wrap gap-1.5 px-6 pb-5 sm:px-7">
+              {cats.map((c) => (
+                <Link
+                  key={c.id}
+                  to={`/kategoria/${c.id}`}
+                  className="inline-flex min-h-8 items-center rounded-md border border-border/70 bg-background/70 px-2.5 text-xs font-medium text-foreground transition-colors hover:border-gold hover:bg-gold/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {c.title}
+                </Link>
+              ))}
+            </div>
 
             {/* Expanded body — first 5 documents from this sector. */}
             {isOpen && (

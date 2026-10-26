@@ -96,7 +96,7 @@ export function PlanCategoryAccordion({ planId, groups }: Props) {
                           className="flex items-start gap-2 text-[13px] text-foreground/90 opacity-0 animate-[planFadeUp_320ms_ease-out_forwards]"
                           style={{ animationDelay: `${i * 45}ms` }}
                         >
-                          <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand text-success" />
+                          <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
                           <span className="leading-snug">{it}</span>
                         </li>
                       ))}
