@@ -34,7 +34,7 @@ export function OneTaskAlternative({ className }: { className?: string }) {
               className="flex min-h-[44px] items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-[13px] font-medium text-foreground/90 hover:bg-muted/50 hover:text-gold"
             >
               <span className="min-w-0 truncate">{p.name}</span>
-              <span className="shrink-0 tabular-nums font-semibold">
+              <span className="shrink-0 tabular-nums font-bold text-success">
                 {productPriceLabel(p.id)}
               </span>
             </Link>
