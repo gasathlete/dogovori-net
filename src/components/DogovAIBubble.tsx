@@ -764,7 +764,7 @@ export function DogovAIBubble() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, chooserOpen]);
+  }, [open, chooserOpen, menuOpen]);
 
   useEffect(() => {
     setOpen(false);
@@ -792,7 +792,13 @@ export function DogovAIBubble() {
     : "fixed right-6";
 
   return (
-    <>
+    <div
+      data-dogovai-chrome
+      aria-hidden={menuOpen ? true : undefined}
+      // inert removes hit targets, tab stops and a11y tree while the main menu is open; state stays mounted.
+      {...(menuOpen ? { inert: "" as unknown as boolean } : {})}
+      className={cn(menuOpen && "invisible pointer-events-none")}
+    >
       {/* Bubble — translucent at rest, opaque on hover */}
       <button
         type="button"
@@ -947,6 +953,6 @@ export function DogovAIBubble() {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
