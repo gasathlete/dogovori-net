@@ -113,6 +113,13 @@ Deno.serve(async (req: Request) => {
       const { data: u } = await admin.auth.getUser(authHeader.replace("Bearer ", ""));
       userId = u?.user?.id ?? null;
     }
+    // AI generation requires a verified account (owner decision 29.10.2026).
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: "auth_required", message: "Влезте в профила си, за да изготвите документ." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     const ipHash = await hashIp(clientIp(req));
 
