@@ -125,6 +125,24 @@ serve(async (req) => {
     const days = Math.min(Math.max(Number(expires_in_days) || 14, 1), 60);
     const expiresAt = new Date(Date.now() + days * 86400_000).toISOString();
 
+    // Daily invitation cap per owner: limits unsolicited email abuse.
+    const DAILY_SIGNER_LIMIT = 50;
+    const since = new Date(Date.now() - 86400_000).toISOString();
+    const { data: recentReqs } = await admin.from("signing_requests")
+      .select("id").eq("owner_id", userId).gte("created_at", since);
+    const recentIds = (recentReqs ?? []).map((r: { id: string }) => r.id);
+    let recentSigners = 0;
+    if (recentIds.length > 0) {
+      const { count } = await admin.from("signing_request_signers")
+        .select("id", { count: "exact", head: true }).in("request_id", recentIds);
+      recentSigners = count ?? 0;
+    }
+    if (recentSigners + signers.length > DAILY_SIGNER_LIMIT) {
+      return new Response(JSON.stringify({ error: "daily_invite_limit", message: "Достигнахте дневния лимит за покани за подпис. Опитайте отново утре." }), {
+        status: 429, headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+
     const { data: env, error: envErr } = await admin.from("signing_requests").insert({
       owner_id: userId,
       team_id: team_id || null,
