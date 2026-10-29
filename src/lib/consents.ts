@@ -196,6 +196,10 @@ export async function flushPendingConsents() {
     // collect a fresh authenticated consent instead of silently transferring it.
     try { sessionStorage.removeItem(PENDING_CONSENTS_KEY); } catch { /* ignore */ }
     if (data.oauth_pending === true && typeof window !== "undefined") {
+      // Returning accounts already hold current server-side consent: never ask twice.
+      const required: ConsentType[] = ["terms", "privacy", "age_18", "operational_notifications"];
+      const held = await Promise.all(required.map(t => hasConsent(t)));
+      if (held.every(Boolean)) return { ok: true as const, reason: "already-consented" as const };
       window.dispatchEvent(new Event("dogovori:confirm-account-consent"));
       return { ok: true as const, reason: "authenticated-choice-required" as const };
     }
