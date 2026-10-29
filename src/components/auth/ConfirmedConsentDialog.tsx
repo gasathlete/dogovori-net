@@ -31,5 +31,17 @@ export function ConfirmedConsentDialog() {
       window.location.replace(target);
     } catch { /* no storage: stay on the current authenticated page */ }
   };
-  return <GoogleConsentDialog open={open} onOpenChange={setOpen} busy={busy} onConfirm={choice => { void run(() => confirm(choice)); }} authenticated />;
+  const onOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (next) return;
+    // Dismissed without consent: record nothing, but don't strand the user on "/".
+    try {
+      const raw = sessionStorage.getItem("post_login_redirect");
+      if (!raw) return;
+      const target = safeReturnPath(raw, "/account");
+      sessionStorage.removeItem("post_login_redirect"); sessionStorage.removeItem("post_login_redirect_fallback");
+      if (target !== window.location.pathname + window.location.search) window.location.replace(target);
+    } catch { /* no storage */ }
+  };
+  return <GoogleConsentDialog open={open} onOpenChange={onOpenChange} busy={busy} onConfirm={choice => { void run(() => confirm(choice)); }} authenticated />;
 }
