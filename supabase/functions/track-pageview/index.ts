@@ -128,13 +128,16 @@ Deno.serve(async (req) => {
     // Duration updates target the newest pageview row of (session_id, path).
     // Serialised to keep write ordering deterministic per session.
     for (const upd of durationUpdates) {
-      const { data: existing } = await admin
+      let lookup = admin
         .from("page_views")
         .select("id")
         .eq("session_id", session_id)
         .eq("visitor_day_hash", visitor_day_hash)
         .eq("path", upd.path)
-        .eq("event", "pageview")
+        .eq("event", "pageview");
+      // Bind to the caller: signed-in rows only by their owner, anonymous rows only anonymously.
+      lookup = user_id ? lookup.eq("user_id", user_id) : lookup.is("user_id", null);
+      const { data: existing } = await lookup
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
