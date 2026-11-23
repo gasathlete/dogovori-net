@@ -1,7 +1,6 @@
 // Create a multi-party signing envelope.
 // Auth: requires Bearer JWT from owner. Pro plan required.
 import { DTRUST_EVIDENCE_VERSION, documentDigest } from "../_shared/signing-evidence.ts";
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCors, clientIp, hashIp } from "../_shared/cors.ts";
 import { sendAppEmail } from "../_shared/transactional-email-templates/send-and-log.ts";
@@ -18,7 +17,7 @@ interface SignerInput {
   role?: string;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const cors = buildCors(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
@@ -128,13 +127,23 @@ serve(async (req) => {
     // Daily invitation cap per owner: limits unsolicited email abuse.
     const DAILY_SIGNER_LIMIT = 50;
     const since = new Date(Date.now() - 86400_000).toISOString();
-    const { data: recentReqs } = await admin.from("signing_requests")
+    const { data: recentReqs, error: recentError } = await admin.from("signing_requests")
       .select("id").eq("owner_id", userId).gte("created_at", since);
+    if (recentError) {
+      return new Response(JSON.stringify({ error: "invite_limit_unavailable", message: "Не успяхме да проверим лимита за покани. Опитайте отново по-късно." }), {
+        status: 503, headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
     const recentIds = (recentReqs ?? []).map((r: { id: string }) => r.id);
     let recentSigners = 0;
     if (recentIds.length > 0) {
-      const { count } = await admin.from("signing_request_signers")
+      const { count, error: countError } = await admin.from("signing_request_signers")
         .select("id", { count: "exact", head: true }).in("request_id", recentIds);
+      if (countError || count === null) {
+        return new Response(JSON.stringify({ error: "invite_limit_unavailable", message: "Не успяхме да проверим лимита за покани. Опитайте отново по-късно." }), {
+          status: 503, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
       recentSigners = count ?? 0;
     }
     if (recentSigners + signers.length > DAILY_SIGNER_LIMIT) {

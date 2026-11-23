@@ -74,6 +74,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     };
 
+    let pendingConsentUser: string | null = null;
+    let flushingUser: string | null = null;
+    const finishSignIn = (userId: string) => {
+      // getSession and SIGNED_IN can report the same OAuth session. A second
+      // flush must not consume the redirect while its consent dialog is open.
+      if (pendingConsentUser === userId || flushingUser === userId) return;
+      flushingUser = userId;
+      void flushPendingConsents().then(result => {
+        if (flushingUser !== userId) return;
+        if (result?.reason === "authenticated-choice-required") pendingConsentUser = userId;
+        else applyPostAuthRedirect();
+      }).catch(() => undefined).finally(() => {
+        if (flushingUser === userId) flushingUser = null;
+      });
+    };
+
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       observeRecovery(event, s?.user.id);
       setSession(s);
@@ -82,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Leave the auth callback before awaiting SDK calls. Flush explicit
         // signup evidence before navigation so a reload cannot lose the grant.
         setTimeout(() => {
-          void flushPendingConsents().then(result => { if (result?.reason !== "authenticated-choice-required") applyPostAuthRedirect(); }).catch(() => undefined);
+          finishSignIn(s.user.id);
         }, 0);
       }
 
@@ -90,6 +106,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // е безполезен без сесия, а съдържанието в таба не бива да се вижда от
       // следващия потребител на същото устройство.
       if (event === "SIGNED_OUT") {
+        pendingConsentUser = null;
+        flushingUser = null;
         redirectHandledRef.current = false;
         lastUserIdRef.current = null;
         try { clearAssistantDocumentContext(); } catch { /* ignore */ }
@@ -105,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       syncAssistantContextOwner(data.session?.user?.id ?? null);
       // Същото правило и когато сесията вече е налична при зареждане —
       // потребителят не бива да остава на празен екран с „залепнала" цел.
-      if (data.session) void flushPendingConsents().then(result => { if (result?.reason !== "authenticated-choice-required") applyPostAuthRedirect(); }).catch(() => undefined);
+      if (data.session) finishSignIn(data.session.user.id);
     });
     return () => sub.subscription.unsubscribe();
   }, []);

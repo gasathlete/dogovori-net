@@ -139,9 +139,11 @@ T("generate-contract (вписан): записан резултат се въз
   assert(!calls.some(forbidden));
 });
 
-T("generate-contract (анонимен): нов документ при OFF → 503, без anon резервация/модел", async () => {
+T("generate-contract (анонимен): изисква вход → 401, без anon резервация/модел", async () => {
   const { res, payload, calls } = await run(GC, GC_BODY, "absent", false);
-  assertEquals(res.status, 503, JSON.stringify(payload));
+  assertEquals(res.status, 401, JSON.stringify(payload));
+  assertEquals(payload.error, "auth_required");
+  assertEquals(payload.message, "Влезте в профила си, за да изготвите документ.");
   assert(!calls.some(forbidden), JSON.stringify(calls));
 });
 

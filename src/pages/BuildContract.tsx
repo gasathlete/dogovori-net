@@ -623,7 +623,7 @@ export default function BuildContractPage({ presetOverride, variant = "generic" 
         const gen = classifyGenerationError({ error, data: data ?? null });
         if (gen.code === "requires_login") {
           trackGenerate("blocked", { source: "build", doc_key: documentType, reason: gen.code, ...genMeta });
-          toast.error(data?.error || "Влезте, за да изградите договора", {
+          toast.error("Влезте в профила си, за да изготвите документ.", {
             description: "Въведените данни остават запазени.",
           });
           goAuth({ action: "Изготвяне на документа", onSuccess: () => handleGenerate(userConfirmed) });
