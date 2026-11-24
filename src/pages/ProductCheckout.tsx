@@ -1,6 +1,11 @@
 import { PRODUCT_MAX_SOURCE_CHARS } from "@/lib/productSource";
 import { trackMetric } from "@/lib/metrics";
-import { ensureFeatureDisclaimer } from "@/lib/aiDisclaimerGate";
+import { DISCLAIMER_BODY, DISCLAIMER_LIMITS, DISCLAIMER_VERSION, setFeatureDisclaimer } from "@/lib/aiDisclaimerGate";
+import { recordConsents } from "@/lib/consents";
+import { getOpSessionId } from "@/lib/opSession";
+import { useProductPurchaseStatus } from "@/hooks/useProductPurchaseStatus";
+import { ProductPurchaseClosed } from "@/components/products/ProductPurchaseClosed";
+import { PRODUCT_CHECKOUT_TECHNICAL_FAILURE, PRODUCT_CLOSED_MESSAGES, refusalMessage } from "@/lib/productPurchaseStatus";
 /**
  * Купуване на един еднократен продукт за един документ.
  *
@@ -85,7 +90,7 @@ async function readBlockedReason(error: unknown): Promise<string | null> {
   try {
     const body = await res.clone().json();
     const b = body as { error?: unknown; message?: unknown } | null;
-    return productBlockedMessage(b?.error, b?.message);
+    return refusalMessage(b?.error) ?? productBlockedMessage(b?.error, b?.message);
   } catch {
     return null;
   }
@@ -96,6 +101,7 @@ export default function ProductCheckout() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const product = getProductBySlug(slug);
+  const purchase = useProductPurchaseStatus();
 
   // Един и същ requestId при повторен опит в същата сесия — така не се създава
   // втора заявка и втора Stripe сесия.
@@ -120,6 +126,8 @@ export default function ProductCheckout() {
     termsAccepted: false, aiAckAccepted: false,
     immediatePerformanceConsent: false, withdrawalLossAcknowledged: false,
   });
+  /** Бившият диалог „Преди да започнете“ — сега отделна, неотметната отметка в същата стъпка. */
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const userRef = useRef(user?.id);
   userRef.current = user?.id;
   const textAttemptRef = useRef<{ userId: string; title: string; text: string; id: string } | null>(null);
@@ -141,14 +149,14 @@ export default function ProductCheckout() {
   useEffect(() => {
     setPrepared(null); setPasted(""); setTitle(""); setFile(null);
     setRole(""); setObjective(""); setCounterparty(""); setClientSecret(null); setBlocked(null);
-    setConsents({ termsAccepted: false, aiAckAccepted: false, immediatePerformanceConsent: false, withdrawalLossAcknowledged: false });
+    setConsents({ termsAccepted: false, aiAckAccepted: false, immediatePerformanceConsent: false, withdrawalLossAcknowledged: false }); setDisclaimerAccepted(false);
     textAttemptRef.current = null;
     requestIdRef.current = crypto.randomUUID();
   }, [user?.id]);
 
   const needsObjective = product?.id !== "contract_check";
   const needsCounterparty = product?.id === "negotiation_package";
-  const allConsents = Object.values(consents).every((value) => value === true);
+  const allConsents = Object.values(consents).every((value) => value === true) && disclaimerAccepted;
   // Плащаме само когато имаме всичко, което продуктът реално ползва.
   const contextReady =
     role.trim().length > 1 &&
@@ -184,7 +192,7 @@ export default function ProductCheckout() {
     );
   }
 
-  if (!ONE_TIME_PURCHASES_AVAILABLE) {
+  if (purchase.status !== "available") {
     return (
       <>
         <Seo
@@ -199,14 +207,15 @@ export default function ProductCheckout() {
             role="status"
             className="rounded-2xl border border-gold/35 bg-card p-6 sm:p-8"
           >
-            <p className="text-sm font-semibold text-gold">Предстои</p>
+            <p className="text-sm font-semibold text-gold">{purchase.status === "loading" ? "Проверяваме" : "Скоро"}</p>
             <h1 className="mt-2 text-2xl font-semibold">{product.name}</h1>
             <div className="mt-4">
               <ProductPrice id={product.id} size="md" showLabel />
             </div>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              {ONE_TIME_PRELAUNCH_MESSAGE} Не е извършено плащане и не е нужно да
-              изпращате документ.
+              {purchase.status === "loading"
+                ? "Проверяваме дали покупките са отворени…"
+                : `${PRODUCT_CLOSED_MESSAGES[purchase.reason]} Не е извършено плащане и не е нужно да изпращате документ.`}
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Button
@@ -217,7 +226,7 @@ export default function ProductCheckout() {
                   openPrelaunchWaitlist("one_time_product", { source: "product_start", productId: product.id })
                 }
               >
-                {PRELAUNCH_LABELS.cta}
+                Извести ме при пускане
               </Button>
               <Button asChild variant="outline" className="min-h-11">
                 <Link to={productPath(product)}>Вижте продукта</Link>
@@ -231,7 +240,6 @@ export default function ProductCheckout() {
 
   const handlePrepare = async () => {
     if (!user || !file) return;
-    try { await ensureFeatureDisclaimer("product"); } catch { return; }
     setBusy(true);
     try {
       const result = await prepareProductDocument({
@@ -280,7 +288,6 @@ export default function ProductCheckout() {
 
   const handlePreparePasted = async () => {
     if (!user) return;
-    try { await ensureFeatureDisclaimer("product"); } catch { return; }
     setBusy(true);
     try {
       const uid = user.id;
@@ -302,7 +309,7 @@ export default function ProductCheckout() {
   };
 
   const changeDocument = () => {
-    setConsents({ termsAccepted: false, aiAckAccepted: false, immediatePerformanceConsent: false, withdrawalLossAcknowledged: false });
+    setConsents({ termsAccepted: false, aiAckAccepted: false, immediatePerformanceConsent: false, withdrawalLossAcknowledged: false }); setDisclaimerAccepted(false);
     textAttemptRef.current = null;
     requestIdRef.current = crypto.randomUUID();
     setPasted("");
@@ -317,7 +324,7 @@ export default function ProductCheckout() {
     requestIdRef.current = crypto.randomUUID();
     setClientSecret(null);
     changeDocument();
-    setConsents({ termsAccepted: false, aiAckAccepted: false, immediatePerformanceConsent: false, withdrawalLossAcknowledged: false });
+    setConsents({ termsAccepted: false, aiAckAccepted: false, immediatePerformanceConsent: false, withdrawalLossAcknowledged: false }); setDisclaimerAccepted(false);
     setOpenStep(null);
   };
 
@@ -334,6 +341,13 @@ export default function ProductCheckout() {
         setBlocked("Сесията се промени. Влезте отново и подгответе документа.");
         return;
       }
+      // Запис на вече изрично отметнатата бележка (както правеше диалогът).
+      setFeatureDisclaimer("product");
+      void recordConsents([{
+        consent_type: "ai_disclaimer",
+        granted: true,
+        metadata: { feature: "product", disclaimer_version: DISCLAIMER_VERSION, session_id: getOpSessionId() },
+      }]).catch(() => undefined);
       const { data, error } = await supabase.functions.invoke("create-product-checkout", {
         headers: { Authorization: `Bearer ${auth.session.access_token}` },
         body: {
@@ -363,7 +377,7 @@ export default function ProductCheckout() {
       if (userRef.current === uid) setClientSecret(data.clientSecret as string);
       trackMetric("product_purchase_start", { product: product.id, source: "product_checkout" });
     } catch (e) {
-      setBlocked("Не успяхме да отворим плащането. Данните остават в този раздел. Опитайте отново със същата заявка.");
+      setBlocked(PRODUCT_CHECKOUT_TECHNICAL_FAILURE);
       trackMetric("product_checkout_error", { product: product.id, reason: "session_unavailable" });
       console.error(e);
     } finally {
@@ -443,7 +457,7 @@ export default function ProductCheckout() {
         noindex
       />
       <Header />
-      <main className="mx-auto max-w-2xl px-4 pb-28 pt-8 md:pb-16 [&_input]:text-base [&_textarea]:text-base">
+      <main className="mx-auto max-w-2xl px-4 pb-[max(7rem,var(--cookie-banner-space,0px))] pt-8 md:pb-[max(4rem,var(--cookie-banner-space,0px))] [&_input]:text-base [&_textarea]:text-base">
         <p className="truncate text-sm text-muted-foreground">
           <Link to={productPath(product)} className="underline">{product.name}</Link>
         </p>
@@ -729,6 +743,20 @@ export default function ProductCheckout() {
                 Заменете личните идентификатори при Вас с [ЕГН], [IBAN] или
                 [номер на лична карта]. При разпознати ограничени идентификатори
                 заявката се отказва преди плащане. Проверете внимателно преди подписване.
+              </div>
+
+              <div data-testid="product-disclaimer-inline" className="rounded-xl border border-border p-3">
+                <p className="font-medium text-foreground">{DISCLAIMER_LIMITS.product.title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-foreground/90">{DISCLAIMER_BODY}</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
+                  {DISCLAIMER_LIMITS.product.limits.map((l) => <li key={l}>{l}</li>)}
+                </ul>
+                <label className="mt-2 flex min-h-11 items-start gap-3">
+                  <Checkbox checked={disclaimerAccepted} disabled={locked}
+                    aria-label="Прочетох и разбирам горната информация"
+                    onCheckedChange={(value) => setDisclaimerAccepted(value === true)} />
+                  <span>Прочетох и разбирам горната информация и{" "}<Link to="/terms" target="_blank" rel="noopener noreferrer" className="underline">Условията</Link>.</span>
+                </label>
               </div>
 
               <label className="flex min-h-11 items-start gap-3">

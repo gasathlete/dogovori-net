@@ -39,23 +39,28 @@ async function pasteDocument() {
   fireEvent.change(screen.getByLabelText("Пълен текст на документа"), { target: { value: "Синтетичен текст за проверка. ".repeat(5) } });
   await userEvent.click(screen.getByRole("button", { name: /^Продължете$/ }));
 }
-it("requires four independent unchecked confirmations and sends their actual values", async () => {
+it("requires the inline disclaimer plus four independent unchecked confirmations and sends their actual values", async () => {
   render(<Harness />);
   await pasteDocument();
   fireEvent.change(await screen.findByLabelText(/Коя страна сте по документа/), { target: { value: "наемател" } });
   await userEvent.click(screen.getByRole("button", { name: /^Продължете$/ }));
   const boxes = screen.getAllByRole("checkbox");
   const pay = screen.getByRole("button", { name: /Към плащане/ });
-  expect(boxes).toHaveLength(4);
+  // Бележката „Преди да започнете“ е в същата стъпка — пета отделна отметка.
+  expect(boxes).toHaveLength(5);
+  expect(screen.getByTestId("product-disclaimer-inline")).toBeInTheDocument();
   for (const box of boxes) expect(box).toHaveAttribute("data-state", "unchecked");
-  for (const box of boxes.slice(0, 3)) await userEvent.click(box);
+  for (const box of boxes.slice(0, 4)) await userEvent.click(box);
   expect(pay).toBeDisabled();
   expect(mocks.invoke).not.toHaveBeenCalled();
-  await userEvent.click(boxes[3]);
+  await userEvent.click(boxes[4]);
   expect(pay).toBeEnabled();
-  await userEvent.click(boxes[1]);
+  await userEvent.click(boxes[0]);
   expect(pay).toBeDisabled();
-  await userEvent.click(boxes[1]);
+  await userEvent.click(boxes[0]);
+  await userEvent.click(boxes[2]);
+  expect(pay).toBeDisabled();
+  await userEvent.click(boxes[2]);
   fireEvent.click(pay);
   fireEvent.click(pay);
   await waitFor(() => expect(mocks.invoke).toHaveBeenCalledTimes(1));

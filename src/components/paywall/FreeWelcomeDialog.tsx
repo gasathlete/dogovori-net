@@ -7,7 +7,8 @@
  */
 import { useEffect, useState } from "react";
 import { FREE_OFFER_RULE } from "@/lib/pricing";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { isWelcomeSuppressedPath } from "@/lib/welcomeSuppression";
 import {
   Dialog,
   DialogContent,
@@ -35,19 +36,22 @@ const STORAGE_KEY_PREFIX = "dgv:free-welcome:v1:";
 
 const PILLARS = [
   { icon: MessageSquare, title: "AI Асистент", desc: `Правен чат с достъп до ${CATALOG_DOCUMENT_COUNT} шаблона.` },
-  { icon: ShieldCheck, title: "Пълен Risk Analysis", desc: "Детайли, цитати и препоръки за всяка клауза." },
+  { icon: ShieldCheck, title: "Проверка на качен документ", desc: "Анализ на текста с цитати от самия документ." },
   { icon: Languages, title: "Двуезични договори", desc: "Паралелен EN превод с правна терминология." },
   { icon: PenTool, title: "e-Подпис", desc: "Изпрати за подпис с проследяване." },
   { icon: Layers, title: "Комплекти документи", desc: "Обединени пакети + автоматични напомняния." },
-  { icon: Wrench, title: "Неограничени корекции", desc: "AI прилага всички препоръки с един клик." },
+  { icon: Wrench, title: "Повече действия всеки месец", desc: "Лимитът на плана е описан на страницата „Планове“." },
 ];
 
 export function FreeWelcomeDialog() {
   const { user } = useAuth();
   const { isPro, loading } = useIsPro();
   const [open, setOpen] = useState(false);
+  const { pathname } = useLocation();
+  const suppressed = isWelcomeSuppressedPath(pathname);
 
   useEffect(() => {
+    if (suppressed) { setOpen(false); return; }
     if (loading || !user?.id || isPro) return;
     const key = STORAGE_KEY_PREFIX + user.id;
     try {
@@ -60,7 +64,7 @@ export function FreeWelcomeDialog() {
       trackEvent("free_welcome_shown", { user_id: user.id });
     }, 1200);
     return () => clearTimeout(t);
-  }, [loading, user?.id, isPro]);
+  }, [loading, user?.id, isPro, suppressed]);
 
   const dismiss = () => {
     try {

@@ -139,7 +139,7 @@ describe("продуктови страници — първи изглед и �
 describe("началото на купуването — стъпки и гейтове", () => {
   it("предстартовият frontend е fail-closed преди качване и checkout", () => {
     const src = read("src/pages/ProductCheckout.tsx");
-    const prelaunch = src.indexOf("if (!ONE_TIME_PURCHASES_AVAILABLE)");
+    const prelaunch = src.indexOf('if (purchase.status !== "available")');
     const prepare = src.indexOf("const handlePrepare");
     const checkout = src.indexOf('supabase.functions.invoke("create-product-checkout"');
     expect(prelaunch).toBeGreaterThan(-1);

@@ -145,6 +145,8 @@ Deno.serve(async (req) => {
     const returnUrl = productReturnUrl(
       Deno.env.get("APP_BASE_URL") ?? undefined,
       `/produkti/rezultat?session_id={CHECKOUT_SESSION_ID}&type=product&product=${spec.id}`,
+      req.headers.get("Origin"),
+      environment,
     );
 
     // Sandbox плащанията дават реален entitlement — само за staff.

@@ -14,6 +14,8 @@ import { SeoFooter } from "@/components/SeoFooter";
 import { ProductResultPreview } from "@/components/products/ProductResultPreview";
 import { OfferBenefits } from "@/components/products/OfferPresentation";
 import { Button } from "@/components/ui/button";
+import { ProductPurchaseClosed } from "@/components/products/ProductPurchaseClosed";
+import { useProductPurchaseStatus } from "@/hooks/useProductPurchaseStatus";
 import { ProductPrice } from "@/components/products/ProductPrice";
 import { PlanAlternativeNote } from "@/components/products/PlanAlternativeNote";
 import { ReviewerContentHub } from "@/components/analysis/ReviewerContentHub";
@@ -88,6 +90,7 @@ function buildJsonLd(product: OneTimeProduct) {
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
   const product = getProductBySlug(slug);
+  const purchase = useProductPurchaseStatus();
 
   if (!product) {
     // Изтеглените стари адреси водят към каноничната страница, не към списъка.
@@ -134,7 +137,7 @@ export default function ProductDetail() {
                 <ProductPrice id={product.id} size="lg" showLabel />
                 <OfferBenefits items={product.page.youReceive.slice(0, 3)} className="mt-5 border-t border-border pt-5" />
                 <div className="mt-6">
-                  {ONE_TIME_PURCHASES_AVAILABLE ? (
+                  {purchase.status === "available" ? (
                     <Button asChild size="lg" className="h-auto min-h-12 w-full whitespace-normal py-3 text-center">
                       <Link to={product.ctaHref} onClick={() =>
                         trackFunnelEvent(PRODUCT_EVENTS.productSelected, {
@@ -143,10 +146,12 @@ export default function ProductDetail() {
                         {product.ctaLabel}<ArrowRight className="h-4 w-4 shrink-0" />
                       </Link>
                     </Button>
-                  ) : (
-                    <span data-testid="product-prelaunch-status" role="status" className="block rounded border border-border px-4 py-3 text-center text-sm font-semibold">
-                      Покупките предстоят
+                  ) : purchase.status === "loading" ? (
+                    <span data-testid="product-purchase-loading" role="status" className="block min-h-12 rounded border border-border px-4 py-3 text-center text-sm text-muted-foreground">
+                      Проверяваме дали покупките са отворени…
                     </span>
+                  ) : (
+                    <ProductPurchaseClosed reason={purchase.reason} productId={product.id} source="product_detail" />
                   )}
                 </div>
               </div>

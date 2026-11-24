@@ -34,3 +34,13 @@ import { DISCLAIMER_FEATURES, setFeatureDisclaimer } from "@/lib/aiDisclaimerGat
 __beforeEachDisclaimer(() => {
   if (typeof window !== "undefined") DISCLAIMER_FEATURES.forEach((f) => setFeatureDisclaimer(f));
 });
+
+// Тестовете не викат живия сървърен статус за покупки: по подразбиране
+// следва клиентския флаг; отделни тестове подменят hook-а при нужда.
+vi.mock("@/hooks/useProductPurchaseStatus", async () => {
+  const { ONE_TIME_PURCHASES_AVAILABLE } = await vi.importActual<typeof import("@/lib/products")>("@/lib/products");
+  return {
+    useProductPurchaseStatus: () =>
+      ONE_TIME_PURCHASES_AVAILABLE ? { status: "available" } : { status: "closed", reason: "prelaunch" },
+  };
+});

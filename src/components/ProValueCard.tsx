@@ -81,7 +81,7 @@ export function ProValueCard({ source = "generic", alwaysShow = false }: Props) 
                 <Zap className="h-3 w-3 text-gold" /> 100 операции/мес
               </li>
               <li className="flex items-center gap-1.5">
-                <Sparkles className="h-3 w-3 text-gold" /> Неограничени корекции
+                <Sparkles className="h-3 w-3 text-gold" /> Анализ и поправки на документи
               </li>
               <li className="flex items-center gap-1.5">
                 <Trophy className="h-3 w-3 text-gold" /> Loyalty: 5–15% доживот

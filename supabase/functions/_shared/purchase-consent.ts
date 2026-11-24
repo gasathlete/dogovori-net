@@ -91,6 +91,31 @@ export const ALLOWED_RETURN_ORIGINS: readonly string[] = Object.freeze([
   "http://localhost:8080",
 ]);
 
+const LIVE_RETURN_ORIGINS = new Set([
+  "https://dogovori.net",
+  "https://www.dogovori.net",
+  "https://dogovori-net.lovable.app",
+]);
+const SANDBOX_RETURN_ORIGINS = new Set([
+  "https://id-preview--6b2da12e-e1d6-4f97-8549-b632fb66ddd1.lovable.app",
+  "http://localhost:8080",
+]);
+
+/**
+ * Връща потребителя в същата среда, от която е тръгнал: Origin заглавието се
+ * приема само ако е точно собствен адрес на СЪЩАТА среда (preview → sandbox,
+ * публичен домейн → live). Всичко друго → null и се ползва конфигурацията.
+ */
+export function sameEnvironmentReturnOrigin(
+  requestOrigin: string | null | undefined,
+  environment: "sandbox" | "live" | undefined,
+): string | null {
+  if (typeof requestOrigin !== "string" || !environment) return null;
+  const o = normalizeOrigin(requestOrigin.trim());
+  const allowed = environment === "live" ? LIVE_RETURN_ORIGINS : SANDBOX_RETURN_ORIGINS;
+  return allowed.has(o) && ALLOWED_RETURN_ORIGINS.includes(o) ? o : null;
+}
+
 /** Основният адрес, от който градим продуктовите return пътища. */
 export const DEFAULT_PRODUCT_ORIGIN = "https://dogovori.net";
 
@@ -123,7 +148,14 @@ export function buildProductReturnUrl(origin: unknown, path: string): string {
  * на приложението, ако е в точния списък, иначе основния публичен адрес.
  * Никога не зависи от заглавие или тяло на заявката.
  */
-export function productReturnUrl(configuredBase: string | undefined, path: string): string {
+export function productReturnUrl(
+  configuredBase: string | undefined,
+  path: string,
+  requestOrigin?: string | null,
+  environment?: "sandbox" | "live",
+): string {
+  const fromRequest = sameEnvironmentReturnOrigin(requestOrigin, environment);
+  if (fromRequest) return buildProductReturnUrl(fromRequest, path);
   const base = configuredBase ? normalizeOrigin(configuredBase) : "";
   const origin = ALLOWED_RETURN_ORIGINS.includes(base) ? base : DEFAULT_PRODUCT_ORIGIN;
   return buildProductReturnUrl(origin, path);

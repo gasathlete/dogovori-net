@@ -78,3 +78,5 @@ verify_jwt = false
 
 [functions.static-catalog]
 verify_jwt = false
+  [functions.product-purchase-status]
+    verify_jwt = false

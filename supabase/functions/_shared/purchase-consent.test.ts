@@ -43,3 +43,13 @@ Deno.test("продуктовият адрес се гради от конфиг
     "https://dogovori.net/produkti/rezultat",
   );
 });
+
+Deno.test("връщането е към същата среда, от която е тръгнал потребителят", async () => {
+  const { productReturnUrl } = await import("./purchase-consent.ts");
+  const preview = "https://id-preview--6b2da12e-e1d6-4f97-8549-b632fb66ddd1.lovable.app";
+  assertEquals(productReturnUrl("https://dogovori.net", "/r", preview, "sandbox"), `${preview}/r`);
+  assertEquals(productReturnUrl("https://dogovori.net", "/r", "https://www.dogovori.net", "live"), "https://www.dogovori.net/r");
+  // Preview origin с LIVE и обратно не се приемат — пада към конфигурацията.
+  assertEquals(productReturnUrl("https://dogovori.net", "/r", preview, "live"), "https://dogovori.net/r");
+  assertEquals(productReturnUrl("https://dogovori.net", "/r", "https://evil.example", "sandbox"), "https://dogovori.net/r");
+});

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Cookie, X } from "@/icons";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,20 @@ export function CookieBanner() {
     }
   }, []);
 
+  // Публикува височината на лентата, за да могат страници с важен бутон
+  // (напр. плащане) да оставят място отдолу и лентата да не го закрива.
+  const bannerRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const root = document.documentElement;
+    const el = bannerRef.current;
+    if (!open || !el) { root.style.removeProperty("--cookie-banner-space"); return; }
+    const update = () => root.style.setProperty("--cookie-banner-space", `${Math.ceil(el.getBoundingClientRect().height) + 24}px`);
+    update();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;
+    ro?.observe(el);
+    return () => { ro?.disconnect(); root.style.removeProperty("--cookie-banner-space"); };
+  }, [open, showSettings]);
+
   if (!open) return null;
 
   const persist = (a: boolean, m: boolean) => {
@@ -41,6 +55,7 @@ export function CookieBanner() {
     <div
       role="dialog"
       aria-label="Бисквитки — управление по категории"
+      ref={bannerRef}
       data-cookie-banner="true"
       className="fixed inset-x-0 bottom-0 z-[45] border-t border-gold/20 bg-card text-card-foreground shadow-xl animate-in fade-in slide-in-from-bottom-6 duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:animate-none sm:inset-x-3 sm:bottom-3 sm:rounded-lg sm:border"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
