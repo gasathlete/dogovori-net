@@ -200,6 +200,7 @@ export default function CatalogPage() {
       />
       <Header />
 
+      <main id="main-content">
       {/* Hero */}
       <section className="relative border-b border-border/60 [&>div:not(.container)]:pointer-events-none">
         <div className="absolute inset-0 bg-gradient-hero opacity-90" />
@@ -273,7 +274,7 @@ export default function CatalogPage() {
                                 </span>
                               )}
                             </div>
-                            <CatalogReviewNotice />
+
                             <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{s.purpose}</div>
                             <div className="mt-1 text-xs text-muted-foreground">{s.category_title}</div>
                           </Link>
@@ -508,7 +509,7 @@ export default function CatalogPage() {
       {/* Sectors grid — categories are grouped under their parent sector and shown
           as illustrated tiles. Each tile expands inline to reveal the first 5
           documents from that sector. */}
-      <main className="container py-10 md:py-14">
+      <div className="container py-10 md:py-14">
         <SectorCatalogGrid
           filtered={filtered}
           downloadCounts={downloadCounts}
@@ -528,7 +529,7 @@ export default function CatalogPage() {
             className="mt-10"
           />
         )}
-      </main>
+      </div>
 
       {/* Затварящ ред — една стъпка напред, без излишни обещания. */}
       <section className="container pb-16">
@@ -545,7 +546,7 @@ export default function CatalogPage() {
           </a>
         </div>
       </section>
-
+      </main>
 
       <SeoFooter />
     </div>
@@ -674,7 +675,7 @@ function CategoryDocs({ cat, forceExpanded, downloadCounts }: { cat: any; forceE
                         {doc.name}
                       </Link>
                       {doc.badge && <Badge label={doc.badge} />}
-                      <CatalogReviewNotice />
+
                       {doc.bilingual && (
                         <>
                           <span className="inline-block shrink-0 rounded-sm border border-gold/40 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-gold">BG/EN</span>
@@ -751,7 +752,7 @@ function CategoryDocs({ cat, forceExpanded, downloadCounts }: { cat: any; forceE
                     </span>
                   )}
                 </div>
-                <CatalogReviewNotice />
+
                 <p className="mt-2 text-sm text-muted-foreground">{doc.purpose}</p>
                 <p className="mt-2 text-xs italic text-gold/90">⚖ {doc.keyClause}</p>
                 <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-gold">
@@ -963,7 +964,7 @@ function SectorCatalogGrid({
                               </span>
                             )}
                           </div>
-                          <CatalogReviewNotice />
+
                           <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{doc.purpose}</p>
                           <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground/80">
                             <Link

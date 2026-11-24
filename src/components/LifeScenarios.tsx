@@ -5,7 +5,6 @@ import { ArrowRight, ChevronDown } from "@/icons";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { LIFE_SCENARIOS } from "@/data/lifeScenarios";
 import { getKit } from "@/data/documentKits";
-import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
 import rentOutImage from "@/assets/scenarios/sc-rent-out.jpg";
 import buySellRealEstateImage from "@/assets/scenarios/sc-buy-sell-re.jpg";
 import startBusinessImage from "@/assets/scenarios/sc-start-biz.jpg";
@@ -106,7 +105,6 @@ export function LifeScenarios() {
           </Link>
         </div>
 
-        <LaunchPurchaseBanner className="mt-6" source="kit_catalog" productId="kit_catalog" />
       </div>
     </section>
   );

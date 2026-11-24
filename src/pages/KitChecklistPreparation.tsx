@@ -4,7 +4,6 @@ import { Link, Navigate, useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
-import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
 import { ArrowRight, FileText } from "@/icons";
 import { allTemplates } from "@/lib/templateIndex";
 import { KIT_GUIDES } from "@/lib/catalogMatrix";
@@ -84,7 +83,6 @@ export default function KitChecklistPreparation() {
             <p className="mt-3 text-xs text-muted-foreground">Списъкът е ориентир, не правен съвет. Данните въвеждате във всеки документ.</p>
             <Link to={`/komplekti/${def.kitId}`} className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-gold">Целият комплект <ArrowRight className="size-4" /></Link>
           </section>
-          <LaunchPurchaseBanner className="mt-8" source="kit_detail" productId={`kit_${def.kitId.replace(/-/g, "_")}`} />
         </div>
       </main>
       <SeoFooter />

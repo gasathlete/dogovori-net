@@ -26,7 +26,7 @@ describe("registration intent", () => {
     auth.user = { id: "synthetic" };
     view.rerender(<MemoryRouter><RegistrationCTA source="header" /></MemoryRouter>);
     expect(screen.getByRole("link")).toHaveAttribute("href", "/build");
-    expect(screen.queryByRole("link", { name: "Регистрирай се безплатно" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Регистрирайте се безплатно" })).toBeNull();
   });
   it("never shows signup while auth is loading", () => {
     auth.loading = true; wrap(<RegistrationCTA source="hero" />);
@@ -57,7 +57,7 @@ describe("voluntary story", () => {
     expect(screen.queryByLabelText("Примерен монограм")).toBeNull();
     for (let index = 0; index < 8; index++) fireEvent.keyDown(dialog, { key: "ArrowRight" });
     expect(screen.getByText("7 / 7")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Регистрирай се безплатно" })).toHaveAttribute("href", registrationTarget("/build"));
+    expect(screen.getByRole("link", { name: "Регистрирайте се безплатно" })).toHaveAttribute("href", registrationTarget("/build"));
     fireEvent.click(screen.getByRole("button", { name: "Затвори" }));
     expect(screen.queryByRole("dialog")).toBeNull();
   });
@@ -78,7 +78,7 @@ describe("voluntary story", () => {
     expect(screen.getByRole("button", { name: "Секторен пакет" })).toHaveAttribute("aria-pressed", "true");
     expect(requests).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Към началото с Ваш документ" }));
-    expect(screen.getByRole("link", { name: "Регистрирай се безплатно" })).toHaveAttribute("href", registrationTarget("/build"));
+    expect(screen.getByRole("link", { name: "Регистрирайте се безплатно" })).toHaveAttribute("href", registrationTarget("/build"));
     requests.mockRestore();
   });
   it("keeps the signed-in story finale on creation", async () => {
@@ -88,7 +88,7 @@ describe("voluntary story", () => {
     await screen.findByRole("dialog");
     fireEvent.click(screen.getByRole("button", { name: "Към началото с Ваш документ" }));
     expect(screen.getByRole("link", { name: "Изгответе документ" })).toHaveAttribute("href", "/build");
-    expect(screen.queryByRole("link", { name: "Регистрирай се безплатно" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Регистрирайте се безплатно" })).toBeNull();
   });
   it("marketing checkbox can remain unchecked with no granting action", () => {
     const change = vi.fn(); wrap(<MarketingOptIn id="test-consent" checked={false} onCheckedChange={change} />);

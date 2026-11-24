@@ -2,7 +2,7 @@ import { ArrowRight } from "@/icons";
 import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
 import { SeoFooter } from "@/components/SeoFooter";
-import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
+import { PackagePurchaseNote } from "@/components/prelaunch/LaunchPurchaseBanner";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
 import { getSectorPackageAvailability, SECTOR_PACKAGES } from "@/data/sectorPackages";
 import { allTemplates } from "@/lib/templateIndex";
@@ -19,7 +19,7 @@ export default function SectorPackagesPage() {
           <div className="container py-12 sm:py-16">
             <h1 className="max-w-3xl font-serif text-3xl font-bold leading-tight sm:text-5xl">Работният цикъл, подреден в документи</h1>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">Всеки пакет следва повтарящ процес в един бизнес сектор. Можете да разгледате наличните документи и ясно отбелязаните планирани позиции.</p>
-            <LaunchPurchaseBanner className="mt-7 max-w-4xl" source="package_catalog" productId="package_catalog" />
+            <PackagePurchaseNote className="mt-7 max-w-4xl" source="package_catalog" productId="package_catalog" />
           </div>
         </section>
         <section className="container py-10 sm:py-14">

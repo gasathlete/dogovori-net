@@ -45,7 +45,7 @@ function Item({ item, open }: { item: StaticCatalogItem; open: boolean }) {
         <h2 className="text-lg font-semibold text-foreground">{title}</h2>
         <p className="text-lg font-semibold text-foreground">{formatEur(item.amount_cents)} <span className="text-sm font-normal text-muted-foreground">с ДДС</span></p>
       </header>
-      <CatalogReviewNotice />
+
       <p className="text-sm text-muted-foreground">
         Сваляте точно файла <strong className="text-foreground">{item.filename}</strong>, версия {item.version}
         {" "}({item.mime_type === "application/pdf" ? "PDF" : "DOCX"}).

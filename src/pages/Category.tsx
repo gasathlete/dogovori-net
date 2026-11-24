@@ -129,7 +129,7 @@ export default function CategoryPage() {
                     {doc.name}
                   </h2>
                 </div>
-                <CatalogReviewNotice />
+
                 <p className="text-xs leading-relaxed text-muted-foreground">{doc.purpose}</p>
                 <p className="mt-2 text-xs italic leading-relaxed text-gold/80">⚖ {doc.keyClause}</p>
               </Link>
@@ -156,7 +156,7 @@ export default function CategoryPage() {
                     <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-gold" />
                     <Link to={`/shablon/${h.slug}`} className="text-foreground/90 transition-colors hover:text-gold">
                       {h.anchor}
-                      <CatalogReviewNotice />
+
                     </Link>
                   </li>
                 ))}

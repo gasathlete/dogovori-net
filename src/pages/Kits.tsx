@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import * as Icons from "@/icons";
 import { ArrowRight, Sparkles, Package } from "@/icons";
 import { Header } from "@/components/Header";
-import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
+import { PackagePurchaseNote } from "@/components/prelaunch/LaunchPurchaseBanner";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { breadcrumbSchema } from "@/lib/jsonLd";
@@ -30,6 +30,8 @@ const KIT_COVERS: Record<DocumentKit["group"], string> = {
 
 export default function KitsPage() {
   const [group, setGroup] = useState<DocumentKit["group"] | "all">("all");
+  // Phone only: after MOBILE_KIT_LIMIT cards the rest stay in the DOM but are visually collapsed.
+  const [showAll, setShowAll] = useState(false);
   const { user } = useAuth();
   const [myKits, setMyKits] = useState<UserKit[]>([]);
 
@@ -101,7 +103,7 @@ export default function KitsPage() {
                 </a>
               </div>
             </div>
-            <LaunchPurchaseBanner className="mt-4" source="kit_catalog" productId="kit_catalog" />
+            <PackagePurchaseNote className="mt-4" source="kit_catalog" productId="kit_catalog" />
           </div>
         </section>
 
@@ -156,16 +158,32 @@ export default function KitsPage() {
         {/* Kits grid */}
         <section id="kits-grid" className="container py-10">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-5">
-            {visible.map((kit) => (
-              <KitCard key={kit.id} kit={kit} />
+            {visible.map((kit, i) => (
+              <div key={kit.id} data-kit-collapsed={!showAll && i >= MOBILE_KIT_LIMIT ? "true" : undefined} className={!showAll && i >= MOBILE_KIT_LIMIT ? "max-md:hidden" : undefined}>
+                <KitCard kit={kit} />
+              </div>
             ))}
           </div>
+          {visible.length > MOBILE_KIT_LIMIT && (
+            <button
+              type="button"
+              data-testid="kits-show-more"
+              aria-expanded={showAll}
+              aria-controls="kits-grid"
+              onClick={() => setShowAll((v) => !v)}
+              className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-border px-4 text-sm font-medium text-foreground hover:border-gold md:hidden"
+            >
+              {showAll ? "Покажи по-малко" : `Покажи още (${visible.length - MOBILE_KIT_LIMIT})`}
+            </button>
+          )}
         </section>
       </main>
       <SeoFooter />
     </>
   );
 }
+
+const MOBILE_KIT_LIMIT = 6;
 
 function FilterPill({
   active, onClick, children,

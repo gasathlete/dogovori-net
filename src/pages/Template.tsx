@@ -15,6 +15,7 @@ import { Seo } from "@/components/Seo";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { GENERAL_ASSISTANCE_NOTE, getPrelaunchStatus, isFeatureAvailable } from "@/lib/prelaunch";
 import { CatalogReviewNotice } from "@/components/CatalogReviewNotice";
+import { RegistrationInvite } from "@/components/funnel/RegistrationInvite";
 import { getRelatedTemplates, getTemplateBySlug } from "@/lib/templateIndex";
 import { slugify } from "@/lib/slugify";
 import { TEMPLATE_CONTENT_META } from "@/data/templateContentMeta";
@@ -398,6 +399,11 @@ export default function TemplatePage() {
         )}
 
 
+
+        <RegistrationInvite
+          source="template_detail"
+          text="Безплатен профил – запазвате попълнения документ и продължавате по-късно от всяко устройство."
+        />
 
         {(() => {
           const rel = RELATED_TEMPLATES[entry.slug];

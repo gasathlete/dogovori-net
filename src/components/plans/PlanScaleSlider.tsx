@@ -55,7 +55,7 @@ export function PlanScaleSlider({ plans, billing, isAuthed, onRecommend }: Props
         ? { href: "/team", label: "Създай екип" }
         : {
             href: "/auth?tab=signup&redirect=%2Fteam&intent=plan_team",
-            label: "Регистрирай се за Екип",
+            label: "Регистрирайте се за Екип",
           };
     }
     const target = `/account?tab=subscription&plan=${rec.planId}&billing=${billing}`;

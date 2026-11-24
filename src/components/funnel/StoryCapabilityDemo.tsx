@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CHECK_FINDINGS } from "@/components/products/previewData";
-import { CATALOG_REVIEW_STATUS } from "@/lib/templateReviewStatus";
 
 const QUESTIONS = [
   { question: "Какво да уточним за проекта?", answer: "Опишете резултата, срока, възнаграждението и начина за приемане на работата. Отбележете как ще се уговарят допълнителните задачи." },
@@ -42,6 +41,5 @@ export function StoryCapabilityDemo({ kind }: { kind: "analysis" | "assistant" |
       <Button variant={selected === 1 ? "secondary" : "outline"} aria-pressed={selected === 1} className="min-h-11" onClick={() => setSelected(1)}>Секторен пакет</Button>
     </div>
     <div className="mt-4" aria-live="polite">{selected === 0 ? <><h3 className="font-serif text-xl font-bold">Договор за изработка</h3><p className="mt-2">Отворете образеца в каталога и прегледайте условията, преди да го адаптирате.</p></> : <><h3 className="font-serif text-xl font-bold">Услуги и свободни професии</h3><p className="mt-2">Разгледайте документите и последователността за сектора. Предстоящите позиции са означени отделно.</p></>}</div>
-    <p className="mt-4 border-t border-border pt-3 text-muted-foreground">{CATALOG_REVIEW_STATUS.notice}</p>
   </section>;
 }

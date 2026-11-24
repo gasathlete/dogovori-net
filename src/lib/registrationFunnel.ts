@@ -1,6 +1,6 @@
 import { safeReturnPath } from "@/lib/safeRoute";
 
-export const SIGNUP_LABEL = "Регистрирай се безплатно";
+export const SIGNUP_LABEL = "Регистрирайте се безплатно";
 export const REGISTRATION_DISMISS_KEY = "funnel_sticky_dismissed_v2";
 
 /** Keep the intended product/workflow; never create an auth-to-auth loop. */

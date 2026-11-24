@@ -85,7 +85,7 @@ describe("подготовка „Какво ми трябва?“", () => {
     expect(changed.find((i) => i.docName.startsWith("Подробно пълномощно"))!.decision).toBe("needed");
   });
 
-  it("страницата обновява списъка, не пише в localStorage и пази заключената покупка", () => {
+  it("страницата обновява списъка, не пише в localStorage и без кутия за покупка на детайла", () => {
     const spy = vi.spyOn(Storage.prototype, "setItem");
     render(<HelmetProvider><MemoryRouter initialEntries={["/komplekti/nasledstvo-paket/podgotovka"]}><Routes><Route path="/komplekti/:slug/podgotovka" element={<KitChecklistPreparation />} /></Routes></MemoryRouter></HelmetProvider>);
     const item = () => screen.getByText("Декларация за отказ от наследство").closest("li")!;
@@ -94,7 +94,7 @@ describe("подготовка „Какво ми трябва?“", () => {
     fireEvent.click(group.querySelector("button")!);
     expect(item().getAttribute("data-decision")).toBe("needed");
     expect(screen.getByRole("link", { name: /Декларация за отказ от наследство/ }).getAttribute("href")).toMatch(/^\/shablon\//);
-    expect(screen.getByRole("button", { name: "Извести ме при пускане" })).toBeInTheDocument();
+    expect(screen.queryByTestId("launch-purchase-banner")).toBeNull();
     expect(spy.mock.calls.filter(([k]) => !String(k).startsWith("sb-") && !/consent|theme|locale/i.test(String(k)))).toHaveLength(0);
     spy.mockRestore();
   });

@@ -256,7 +256,7 @@ export default function SectorPage() {
                             {doc.name}
                           </h4>
                         </div>
-                        <CatalogReviewNotice />
+
                         <p className="text-xs leading-relaxed text-muted-foreground">
                           {doc.purpose}
                         </p>

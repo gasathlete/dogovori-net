@@ -1,7 +1,6 @@
 import { BrowseShelf } from "@/components/home/BrowseShelf";
 import { ArrowRight } from "@/icons";
 import { PrefetchLink as Link } from "@/components/PrefetchLink";
-import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
 import { getDeclaredSectorPackageAvailability, SECTOR_PACKAGES } from "@/data/sectorPackages";
 import rentImage from "@/assets/kits/kit-real-estate.jpg";
 import servicesImage from "@/assets/scenarios/sc-freelance.jpg";
@@ -52,7 +51,6 @@ export function SectorPackages() {
             })}
           </BrowseShelf>
         </div>
-        <LaunchPurchaseBanner className="mt-8" source="package_catalog" productId="package_catalog" />
       </div>
     </section>
   );

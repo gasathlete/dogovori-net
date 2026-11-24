@@ -385,7 +385,7 @@ export default function AuthPage() {
                   className="btn-sheen w-full bg-gradient-gold text-navy hover:shadow-gold disabled:opacity-50"
                 >
                   {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Регистрирай се безплатно
+                  Регистрирайте се безплатно
                 </Button>
                 <p className="text-[10px] leading-relaxed text-muted-foreground">
                   Документите, генерирани от платформата, са образци, създадени с изкуствен интелект, и не представляват правен съвет.

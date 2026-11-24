@@ -7,13 +7,11 @@ import { Search, ArrowRight, FileUp } from "@/icons";
 import { HeroProductRail } from "@/components/products/HeroProductRail";
 import { useAuth } from "@/hooks/useAuth";
 import { useAudience } from "@/hooks/useAudience";
-import { CATALOG_REVIEW_STATUS } from "@/lib/templateReviewStatus";
 
 import { DocumentWorkflowStage } from "@/components/home/DocumentWorkflowStage";
 import { Button } from "@/components/ui/button";
 import { RegistrationCTA } from "@/components/funnel/RegistrationCTA";
 import { openStartStory } from "@/lib/startStory";
-import { TaskChooser } from "@/components/home/TaskChooser";
 
 /** Бързи търсения — водят към реалното търсене в каталога (/catalog?q=…). */
 const QUICK_QUERIES = ["наем", "услуги", "пълномощно", "трудов договор"] as const;
@@ -53,15 +51,12 @@ export function Hero() {
     <section className="brand-hero commerce-hero border-b border-border">
       <div className="container grid w-full gap-8 py-5 sm:py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-10 lg:py-14">
         <div className="min-w-0 text-left">
-          <p className="text-sm text-muted-foreground">Тестов период</p>
-          <h1 className="mt-4 max-w-[17ch] font-serif text-[38px] font-bold leading-[1.08] text-foreground [text-wrap:balance] sm:text-[52px] lg:text-[54px] xl:text-[64px]">
+          <h1 className="max-w-[17ch] font-serif text-[38px] font-bold leading-[1.08] text-foreground [text-wrap:balance] sm:text-[52px] lg:text-[54px] xl:text-[64px]">
             {copy.heroHeadline.lead}{" "}<span className="block text-gold [text-wrap:balance]">{copy.heroHeadline.accent}{copy.heroHeadline.tail}</span>
           </h1>
           <p className="mt-5 max-w-[48ch] text-base leading-relaxed text-muted-foreground sm:text-lg">
             {copy.heroSub}
           </p>
-
-          <div className="mt-5"><RegistrationCTA source="hero" id="hero-registration-cta" className="btn-gold min-h-12 w-full px-6 text-base sm:w-auto" /><p className="mt-2 text-sm text-muted-foreground">Безплатен профил · без карта. Платените услуги се избират отделно.</p></div>
 
           <form role="search" action="/catalog" method="get" onSubmit={onSubmit} className="mt-4 max-w-xl sm:mt-8">
             <label htmlFor="hero-search" className="mb-2 block text-sm font-semibold text-foreground">
@@ -86,8 +81,7 @@ export function Hero() {
                 type="submit"
                 data-testid="hero-primary-cta"
                 data-href="/catalog"
-                variant="outline"
-                className="inline-flex min-h-14 items-center justify-center gap-2 px-7 text-base"
+                className="btn-gold inline-flex min-h-14 items-center justify-center gap-2 px-7 text-base"
               >
                 Намерете документ
                 <ArrowRight className="h-[18px] w-[18px]" />
@@ -102,9 +96,12 @@ export function Hero() {
               ))}
             </p>
           </form>
-          <TaskChooser />
+          <div className="mt-4 max-w-xl" data-testid="hero-registration">
+            <RegistrationCTA source="hero" id="hero-registration-cta" variant="outline" className="min-h-12 w-full border-foreground/50 px-6 text-base sm:w-auto" />
+            <p className="mt-2 text-sm text-muted-foreground">Безплатен профил – запазвате документите си и продължавате по-късно.</p>
+          </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-x-6 text-sm">
+          <div className="mt-4 flex flex-wrap items-center gap-x-6 text-sm" data-testid="hero-secondary-links">
             <Link to="/build" {...prefetchHandlers("/build")} className="link-ink inline-flex min-h-11 items-center gap-1.5">
               <Search className="h-4 w-4" /> {isFeatureAvailable("document_generation") ? "Изгответе документ" : "Изготвяне · В подготовка"}
             </Link>
@@ -126,7 +123,7 @@ export function Hero() {
         </div>
       </div>
 
-      <div className="hero-offer-band border-t border-border"><div className="container py-6 sm:py-8"><HeroProductRail /><p className="mt-4 text-xs leading-relaxed text-muted-foreground">{CATALOG_REVIEW_STATUS.notice}</p></div></div>
+      <div className="hero-offer-band border-t border-border"><div className="container py-6 sm:py-8"><HeroProductRail /></div></div>
     </section>
   );
 }

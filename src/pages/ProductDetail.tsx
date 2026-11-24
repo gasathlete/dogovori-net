@@ -151,17 +151,18 @@ export default function ProductDetail() {
                 </div>
               </div>
               <Link to="/produkti" className="link-ink mt-3 inline-flex min-h-11 items-center text-sm font-medium">Вижте другите продукти</Link>
-              <div className="mt-4 max-w-xl border-l-2 border-gold pl-3 text-sm leading-relaxed">
-                <p className="font-semibold">Получавате: {product.page.youReceive[0]}</p>
-                <p className="mt-2 text-muted-foreground">Първо разглеждате, след това влизате или създавате профил, за да свържем документа и резултата с Вас. Подготвяте текста и потвърждавате условията преди плащане.</p>
-              </div>
-
               {!ONE_TIME_PURCHASES_AVAILABLE && (
                 <>
                   <LaunchPurchaseBanner className="mt-4 max-w-xl" source="product_detail" productId={product.id} />
                   <p className="mt-3 max-w-xl text-[13px] leading-relaxed text-muted-foreground">{ONE_TIME_PRELAUNCH_MESSAGE}</p>
                 </>
               )}
+              <details data-testid="product-terms" className="group mt-4 max-w-xl border-l-2 border-gold pl-3 text-sm leading-relaxed">
+                <summary className="flex min-h-11 cursor-pointer list-none flex-col items-start gap-1 py-1 font-semibold sm:flex-row sm:items-center sm:justify-between sm:gap-3 [&::-webkit-details-marker]:hidden">
+                  <span>Получавате: {product.page.youReceive[0]}</span>
+                  <span className="shrink-0 text-xs font-medium text-muted-foreground underline underline-offset-4"><span className="group-open:hidden">Условия и ограничения</span><span className="hidden group-open:inline">Скрийте условията</span></span>
+                </summary>
+                <p className="mt-2 text-muted-foreground">Първо разглеждате, след това влизате или създавате профил, за да свържем документа и резултата с Вас. Подготвяте текста и потвърждавате условията преди плащане.</p>
 
               <p className="mt-3 text-[11.5px] font-medium text-muted-foreground">
                 {ONE_TIME_TERMS}
@@ -181,6 +182,7 @@ export default function ProductDetail() {
                   Плащате за този един документ. Резултатът не е правен съвет.
                 </li>
               </ul>
+              </details>
 
               <PlanAlternativeNote className="mt-5 max-w-md" />
             </div>

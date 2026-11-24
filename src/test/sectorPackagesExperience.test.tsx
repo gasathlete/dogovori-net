@@ -9,7 +9,7 @@ import { allTemplates } from "@/lib/templateIndex";
 import SectorPackagesPage from "@/pages/SectorPackages";
 import SectorPackageDetailPage from "@/pages/SectorPackageDetail";
 import KitDetailPage from "@/pages/KitDetail";
-import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
+import { PackagePurchaseNote } from "@/components/prelaunch/LaunchPurchaseBanner";
 
 vi.mock("@/components/Header", () => ({ Header: () => null }));
 vi.mock("@/components/SeoFooter", () => ({ SeoFooter: () => null }));
@@ -79,7 +79,7 @@ describe("пакети и комплекти в предварителен ре�
   it("заключената покупка отваря заявката без checkout или запис", () => {
     const listener = vi.fn();
     window.addEventListener("dogovori:prelaunch-waitlist", listener);
-    render(<MemoryRouter><LaunchPurchaseBanner source="package_detail" productId="package_rentals" /></MemoryRouter>);
+    render(<MemoryRouter><PackagePurchaseNote source="package_catalog" productId="package_catalog" /></MemoryRouter>);
     fireEvent.click(screen.getByRole("button", { name: "Извести ме при пускане" }));
     expect(listener).toHaveBeenCalledOnce();
     const detail = (listener.mock.calls[0]?.[0] as CustomEvent).detail;
@@ -93,6 +93,8 @@ describe("пакети и комплекти в предварителен ре�
     expect(screen.getByRole("heading", { name: /Депозит и плащане/ })).toBeInTheDocument();
     expect(screen.getByText("Протокол за окончателно връщане на имота и ключовете").closest("a")).toBeNull();
     expect(screen.queryByRole("button", { name: /Стартирай комплекта/ })).toBeNull();
-    expect(screen.getByRole("button", { name: "Извести ме при пускане" })).toBeInTheDocument();
+    // Detail pages carry no purchase box; the quiet note lives only on the list page.
+    expect(screen.queryByTestId("launch-purchase-banner")).toBeNull();
+    expect(screen.queryByTestId("package-purchase-note")).toBeNull();
   });
 });

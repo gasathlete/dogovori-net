@@ -62,7 +62,7 @@ describe("task-first furnished rental", () => {
     const src = readFileSync("src/pages/RentalPreparation.tsx", "utf8") + readFileSync("src/lib/taskPreparation/rentalPreparation.ts", "utf8");
     const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
     expect(code).not.toMatch(/checkout|stripe|functions\.invoke|localStorage|sessionStorage|supabase/i);
-    expect(src).toMatch(/LaunchPurchaseBanner/);
+    expect(src).not.toMatch(/checkout/i);
     expect(src).toMatch(/trackFunnelEvent\("task_preparation_step", \{ task: "furnished-rental", step: n \}\)/);
   });
 });

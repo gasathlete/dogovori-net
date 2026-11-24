@@ -6,7 +6,6 @@ import { ArrowRight, CheckCircle2, Clock, FileText } from "@/icons";
 import { Header } from "@/components/Header";
 import { Seo } from "@/components/Seo";
 import { SeoFooter } from "@/components/SeoFooter";
-import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
 import { getSectorPackage } from "@/data/sectorPackages";
 import { allTemplates } from "@/lib/templateIndex";
 
@@ -31,7 +30,6 @@ export default function SectorPackageDetailPage() {
               <span className="hidden shrink-0 pt-1 text-muted-foreground sm:inline-flex"><Icon className="size-6" /></span>
               <div><h1 className="font-serif text-3xl font-bold leading-tight sm:text-5xl">{item.title}</h1><p className="mt-3 text-base text-muted-foreground">{item.audience}</p><p className="mt-2 max-w-2xl text-base leading-relaxed text-foreground/85">{item.outcome}</p></div>
             </div>
-            <LaunchPurchaseBanner className="mt-7 max-w-4xl" source="package_detail" productId={item.id} />
           </div>
         </section>
         <section className="container py-10 sm:py-14">

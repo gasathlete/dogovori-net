@@ -6,7 +6,6 @@ import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
 import { breadcrumbSchema } from "@/lib/jsonLd";
-import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
 import { getKit, type KitItem } from "@/data/documentKits";
 import { getKitSections, type KitLifecycleStage } from "@/data/featuredKitStages";
 import { RelatedSectorPackages } from "@/components/RelatedSectorPackages";
@@ -102,7 +101,6 @@ export default function KitDetailPage() {
                 </Link>
               </div>
             )}
-            <LaunchPurchaseBanner className="mt-7" source="kit_detail" productId={`kit_${kit.id.replace(/-/g, "_")}`} />
           </div>
         </section>
 

@@ -8,7 +8,6 @@ import { drainBufferedEvents } from "@/lib/bufferedEvents";
 import { START_STORY_EVENT } from "@/lib/startStory";
 import { clearBufferedEvents } from "@/lib/bufferedEvents";
 import { trackMetric } from "@/lib/metrics";
-import { CATALOG_REVIEW_STATUS } from "@/lib/templateReviewStatus";
 export { openStartStory } from "@/lib/startStory";
 
 const SCENES = [
@@ -96,7 +95,6 @@ export function StartStoryOverlay() {
             <p className="mt-4 border-t border-border pt-3 text-muted-foreground">Адаптиран фиктивен пример — не е реално партньорство или готов за подпис документ.</p>
           </div>}
         </div>
-        {scene === 5 && <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{CATALOG_REVIEW_STATUS.notice}</p>}
       </div>
       <div className="border-t border-border pt-4">
         {scene === SCENES.length - 1 ? <div onClick={close}><RegistrationCTA source="story" destination="/build" className="btn-gold mb-3 min-h-12 w-full text-base" /></div> : <Button variant="link" className="mb-2 min-h-11 w-full text-sm" onClick={() => move(SCENES.length - 1)}>Към началото с Ваш документ<ArrowRight className="ml-2 size-4" /></Button>}

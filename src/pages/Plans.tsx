@@ -305,6 +305,15 @@ export default function Plans() {
         {/* Сравнение по честота на работа — само с числа от каноничните източници. */}
         <section className="relative z-10 mx-auto max-w-6xl px-4 pb-8 sm:pb-10">
           <FrequencyCompare />
+          {/* Слято: „Един документ или редовна работа“ + „Разгледайте плановете спокойно“ (24.11). */}
+          <div data-testid="plans-merged-choice" className="mx-auto mt-6 max-w-3xl border-t border-hairline pt-5">
+            <h2 className="font-serif text-xl text-foreground sm:text-2xl">Един документ или редовна работа</h2>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              Еднократните продукти са за един конкретен документ. Абонаментът е за редовна работа по документи — включените действия и цените са описани по-долу. Разгледайте плановете спокойно: {SUBS_OPEN ? "изберете план или започнете безплатно без карта." : "покупките още не са отворени, а безплатният старт остава достъпен без карта."}
+            </p>
+            <div className="mt-4"><RoiSavingsBanner /></div>
+            <Link to="/catalog" className="link-ink mt-3 inline-flex min-h-11 items-center text-sm font-medium">Разгледайте каталога</Link>
+          </div>
         </section>
 
 
@@ -496,7 +505,12 @@ export default function Plans() {
           title="Как се разходват действията по документи — стъпка по стъпка"
           subtitle="Един готов документ отнема средно 3 действия. Затова 100 действия в план Предприемач покриват около 30 документа месечно."
         >
-          <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <details data-testid="plans-ops-details" className="group rounded-2xl border border-hairline bg-card/40 p-4 sm:p-5">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-foreground [&::-webkit-details-marker]:hidden">
+            <span>Вижте разхода по стъпки</span>
+            <span className="text-xs text-muted-foreground underline underline-offset-4"><span className="group-open:hidden">Покажете</span><span className="hidden group-open:inline">Скрийте</span></span>
+          </summary>
+          <ol className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               {
                 n: "Избор на образец",
@@ -540,22 +554,10 @@ export default function Plans() {
             Действията се изразходват само при генериране, изтегляне, качване с анализ и всяко
             съобщение до AI асистента. Вълна авто-корекции = 1 действие на всеки 5 корекции.
           </p>
+          </details>
         </PlanStoryStage>
 
 
-        {/* 04 — Какво включва абонаментът */}
-        <PlanStoryStage
-          index="04"
-          title="Един документ или редовна работа"
-          subtitle="Еднократните продукти са за един конкретен документ. Абонаментът е за редовна работа по документи — включените действия и цените са описани по-долу."
-        >
-
-          <div className="border-t border-hairline py-5 sm:py-6">
-            <div className="mx-auto max-w-3xl">
-              <RoiSavingsBanner />
-            </div>
-          </div>
-        </PlanStoryStage>
 
         <section className="relative z-10 mx-auto max-w-7xl px-4 pb-12 sm:pb-16">
           {/* Top-up пакети */}
@@ -644,29 +646,6 @@ export default function Plans() {
         </section>
 
 
-        <section className="relative z-10 mx-auto max-w-4xl px-4 pb-20">
-          <div className="brand-platform-band border-t border-border p-8 sm:p-12">
-            <div className="relative z-10">
-              <h2 className="font-serif text-2xl text-foreground sm:text-3xl">
-                Разгледайте плановете спокойно
-              </h2>
-              <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-                {SUBS_OPEN ? "Изберете план или започнете безплатно без карта." : "Покупките още не са отворени. Безплатният старт остава достъпен без карта."}
-              </p>
-              <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                {SUBS_OPEN ? (
-                  <Link to={buildCta("entrepreneur", "monthly" as Billing, isAuthed).href} className="inline-flex min-h-11 items-center justify-center rounded border border-gold/50 bg-background/20 px-6 text-sm font-medium text-foreground hover:bg-gold/10">{buildCta("entrepreneur", "monthly" as Billing, isAuthed).label}</Link>
-                ) : <Button type="button" variant="outline" className="min-h-11 border-gold/50 bg-background/20 text-foreground hover:bg-gold/10" onClick={() => openPrelaunchWaitlist("subscription", { source: "plans", productId: "subscription_entrepreneur" })}>Извести ме при пускане</Button>}
-                <Link
-                  to="/catalog"
-                  className="inline-flex items-center justify-center gap-2 rounded border border-border px-6 py-3 text-sm font-medium text-foreground transition-all hover:border-gold hover:bg-accent"
-                >
-                  Разгледай каталога
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
 
         {/* FAQ moved to the very bottom */}
         <section className="relative z-10 mx-auto max-w-3xl px-4 py-16 sm:py-24">

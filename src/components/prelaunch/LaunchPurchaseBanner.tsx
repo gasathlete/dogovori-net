@@ -1,7 +1,7 @@
 import { Bell, Lock } from "@/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { getPrelaunchStatus, type PrelaunchFeature } from "@/lib/prelaunch";
+import { getPrelaunchStatus, isFeatureAvailable, type PrelaunchFeature } from "@/lib/prelaunch";
 import { openPrelaunchWaitlist, type WaitlistSource } from "@/lib/prelaunchWaitlist";
 
 interface LaunchPurchaseBannerProps {
@@ -19,6 +19,8 @@ export function LaunchPurchaseBanner({
   compact = false,
   className,
 }: LaunchPurchaseBannerProps) {
+  // Shown only while the feature is really closed; open features get no banner.
+  if (isFeatureAvailable(feature)) return null;
   const status = getPrelaunchStatus(feature);
   return (
     <aside
@@ -51,5 +53,28 @@ export function LaunchPurchaseBanner({
         Извести ме при пускане
       </Button>
     </aside>
+  );
+}
+
+/**
+ * Packages and kits are browse-only compositions without a separate purchase.
+ * One quiet line on the list page (/paketi, /komplekti) — never a box, never on cards or details.
+ */
+export function PackagePurchaseNote({ source, productId, className }: {
+  source: WaitlistSource;
+  productId: string;
+  className?: string;
+}) {
+  return (
+    <p data-testid="package-purchase-note" className={cn("text-sm leading-relaxed text-muted-foreground", className)}>
+      Отделна покупка на пакет или комплект още не се предлага; документите се разглеждат и изготвят поотделно.{" "}
+      <button
+        type="button"
+        className="inline-flex min-h-11 items-center underline underline-offset-4 hover:text-foreground"
+        onClick={() => openPrelaunchWaitlist("one_time_product", { source, productId })}
+      >
+        Извести ме при пускане
+      </button>
+    </p>
   );
 }

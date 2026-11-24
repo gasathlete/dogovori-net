@@ -7,7 +7,6 @@ import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { SeoFooter } from "@/components/SeoFooter";
 import { Seo } from "@/components/Seo";
-import { LaunchPurchaseBanner } from "@/components/prelaunch/LaunchPurchaseBanner";
 import { ArrowRight, FileText, Package } from "@/icons";
 import { allTemplates } from "@/lib/templateIndex";
 import { trackFunnelEvent } from "@/lib/funnel";
@@ -236,7 +235,6 @@ export default function RentalPreparationPage() {
 
               <button type="button" onClick={clearAll} className="min-h-[44px] text-sm font-semibold text-muted-foreground underline hover:text-foreground">Изчисти данните от подготовката</button>
 
-              <LaunchPurchaseBanner source="kit_detail" productId="kit_naem_zhilishte" />
             </div>
           )}
         </div>

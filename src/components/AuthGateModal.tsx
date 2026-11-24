@@ -107,7 +107,7 @@ export function AuthGateModal() {
               <Sparkles className="h-5 w-5" />
             </div>
             <DialogTitle className="text-center font-serif text-xl leading-tight">
-              Регистрирай се за да продължиш
+              Регистрирайте се, за да продължите
             </DialogTitle>
             <DialogDescription className="text-center text-[13px]">
               {detail.action ? (

@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { BrandLockup } from "./BrandLockup";
 import { ONE_TIME_PRODUCTS, productPath } from "@/lib/products";
 import { CATALOG_DOCUMENT_COUNT } from "@/lib/catalogStats";
-import { CATALOG_REVIEW_STATUS } from "@/lib/templateReviewStatus";
 import FOOTER_ANCHOR_SLUGS from "@/data/footerAnchors.generated.json";
 
 
@@ -83,9 +82,6 @@ export function SeoFooter() {
             <Link to="/" aria-label="Договори.нет — начало" className="inline-flex min-h-11 items-center"><BrandLockup /></Link>
             <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground lg:mt-0">
               Помощ в ежедневната бюрокрация за хората и малкия и средния бизнес. {CATALOG_DOCUMENT_COUNT} образеца за лични въпроси, работа и бизнес.
-            </p>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground lg:col-start-2">
-              {CATALOG_REVIEW_STATUS.notice}
             </p>
             <a
               href="https://im-development.imot.bg"
