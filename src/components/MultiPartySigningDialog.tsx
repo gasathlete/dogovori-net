@@ -1,4 +1,5 @@
 // Owner-side dialog to create a multi-party signing envelope.
+import { signingFailure } from "@/lib/signingErrors";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -61,14 +62,14 @@ export function MultiPartySigningDialog(p: Props) {
     });
     setBusy(false);
     if (error || data?.error) {
-      const code = data?.error ?? error?.message;
+      const { code, message } = await signingFailure(data, error);
       trackSign("fail", { source: "multi_party", doc_key: p.title, reason: String(code ?? "unknown").slice(0, 120) });
       if (code === "pro_required") {
         toast.error("Безплатният онлайн подпис вече е използван", {
           description: "Активирайте Pro за неограничен брой заявки за подпис.",
         });
       } else {
-        toast.error(code ?? "Грешка");
+        toast.error(message);
       }
       return;
     }

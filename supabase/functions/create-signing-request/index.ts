@@ -124,68 +124,44 @@ Deno.serve(async (req) => {
     const days = Math.min(Math.max(Number(expires_in_days) || 14, 1), 60);
     const expiresAt = new Date(Date.now() + days * 86400_000).toISOString();
 
-    // Daily invitation cap per owner: limits unsolicited email abuse.
+    // Daily invitation cap per owner (50 signers / rolling 24h). The check and
+    // the inserts run in ONE database operation under a per-owner advisory
+    // lock, so concurrent requests cannot jointly exceed the cap.
     const DAILY_SIGNER_LIMIT = 50;
-    const since = new Date(Date.now() - 86400_000).toISOString();
-    const { data: recentReqs, error: recentError } = await admin.from("signing_requests")
-      .select("id").eq("owner_id", userId).gte("created_at", since);
-    if (recentError) {
-      return new Response(JSON.stringify({ error: "invite_limit_unavailable", message: "Не успяхме да проверим лимита за покани. Опитайте отново по-късно." }), {
-        status: 503, headers: { ...cors, "Content-Type": "application/json" },
-      });
-    }
-    const recentIds = (recentReqs ?? []).map((r: { id: string }) => r.id);
-    let recentSigners = 0;
-    if (recentIds.length > 0) {
-      const { count, error: countError } = await admin.from("signing_request_signers")
-        .select("id", { count: "exact", head: true }).in("request_id", recentIds);
-      if (countError || count === null) {
-        return new Response(JSON.stringify({ error: "invite_limit_unavailable", message: "Не успяхме да проверим лимита за покани. Опитайте отново по-късно." }), {
-          status: 503, headers: { ...cors, "Content-Type": "application/json" },
-        });
-      }
-      recentSigners = count ?? 0;
-    }
-    if (recentSigners + signers.length > DAILY_SIGNER_LIMIT) {
-      return new Response(JSON.stringify({ error: "daily_invite_limit", message: "Достигнахте дневния лимит за покани за подпис. Опитайте отново утре." }), {
-        status: 429, headers: { ...cors, "Content-Type": "application/json" },
-      });
-    }
-
-    const { data: env, error: envErr } = await admin.from("signing_requests").insert({
-      owner_id: userId,
-      team_id: team_id || null,
-      saved_document_id: saved_document_id || null,
-      uploaded_contract_id: uploaded_contract_id || null,
-      title: cleanTitle,
-      document_snapshot,
-      metadata: { evidence_version: DTRUST_EVIDENCE_VERSION, document_sha256: documentSha256 },
-      order_mode,
-      expires_at: expiresAt,
-      status: "pending",
-    }).select().single();
-    if (envErr || !env) {
-      return new Response(JSON.stringify({ error: envErr?.message ?? "create_failed" }), {
-        status: 500, headers: { ...cors, "Content-Type": "application/json" },
-      });
-    }
-
     const signerRows = cleanSigners.map((s, i) => ({
-      request_id: env.id,
       name: s.name,
       email: s.email,
       role: s.role ?? null,
       order_idx: i,
       sign_token: token(),
     }));
-    const { data: createdSigners, error: sErr } = await admin
-      .from("signing_request_signers").insert(signerRows).select();
-    if (sErr) {
-      await admin.from("signing_requests").delete().eq("id", env.id);
-      return new Response(JSON.stringify({ error: sErr.message }), {
-        status: 500, headers: { ...cors, "Content-Type": "application/json" },
+    const { data: capped, error: cappedErr } = await admin.rpc("create_signing_envelope_capped", {
+      p_owner: userId,
+      p_request: {
+        team_id: team_id || null,
+        saved_document_id: saved_document_id || null,
+        uploaded_contract_id: uploaded_contract_id || null,
+        title: cleanTitle,
+        document_snapshot,
+        metadata: { evidence_version: DTRUST_EVIDENCE_VERSION, document_sha256: documentSha256 },
+        order_mode,
+        expires_at: expiresAt,
+      },
+      p_signers: signerRows,
+      p_limit: DAILY_SIGNER_LIMIT,
+    });
+    if (cappedErr || !capped) {
+      return new Response(JSON.stringify({ error: "invite_limit_unavailable", message: "Не успяхме да проверим лимита за покани. Опитайте отново по-късно." }), {
+        status: 503, headers: { ...cors, "Content-Type": "application/json" },
       });
     }
+    if (capped.ok !== true) {
+      return new Response(JSON.stringify({ error: "daily_invite_limit", message: "Достигнахте дневния лимит за покани за подпис. Опитайте отново утре." }), {
+        status: 429, headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+    const env = capped.request;
+    const createdSigners = capped.signers ?? [];
 
     await admin.from("signing_audit_events").insert({
       request_id: env.id,

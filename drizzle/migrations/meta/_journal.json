@@ -260,6 +260,13 @@
       "when": 1792834184784,
       "tag": "0036_funnel_invoice_team_reconciliation",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1795544283137,
+      "tag": "0037_atomic_signing_invite_cap",
+      "breakpoints": true
     }
   ]
 }

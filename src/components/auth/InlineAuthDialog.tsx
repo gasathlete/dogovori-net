@@ -1,6 +1,6 @@
 import { setPostLoginDestination, clearPostLoginDestination } from "@/lib/postLoginDestination";
 import { MarketingOptIn } from "@/components/auth/MarketingOptIn";
-import { flushPendingConsents } from "@/lib/consents";
+import { flushPendingConsents, waitForAccountConsent } from "@/lib/consents";
 import { trackMetric } from "@/lib/metrics";
 import { useAuthAction } from "@/hooks/useAuthAction";
 import { GoogleConsentDialog } from "@/components/auth/GoogleConsentDialog";
@@ -150,10 +150,12 @@ export function InlineAuthDialog() {
         }),
       );
     } catch { throw new Error("consent_storage_unavailable"); }
+    const consent = waitForAccountConsent();
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
       extraParams: { prompt: "select_account" },
     });
+    if (result.error || result.redirected) consent.cancel();
     if (result.error) {
       sessionStorage.removeItem("pending_consents");
       clearPostLoginDestination();
@@ -161,6 +163,10 @@ export function InlineAuthDialog() {
       return;
     }
     if (result.redirected) return;
+    // Popup: wait for the shared consent step (held → immediate; new account →
+    // one confirmation). Dismissal records nothing and does not continue the task.
+    const outcome = await consent.promise;
+    if (!outcome.confirmed) { setOpen(false); return; }
     toast.success("Успешен вход");
     finish();
   };

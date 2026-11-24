@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { GoogleConsentDialog } from "./GoogleConsentDialog";
-import { recordConsents } from "@/lib/consents";
+import { recordConsents, settleAccountConsent } from "@/lib/consents";
 import { useAuthAction } from "@/hooks/useAuthAction";
 import { toast } from "sonner";
 import { safeReturnPath } from "@/lib/safeRoute";
@@ -25,6 +25,7 @@ export function ConfirmedConsentDialog() {
     ]);
     if (!result.ok) { toast.error("Изборът Ви не е записан. Опитайте отново."); return; }
     setOpen(false);
+    settleAccountConsent(true);
     try {
       const target = safeReturnPath(sessionStorage.getItem("post_login_redirect"), "/account");
       sessionStorage.removeItem("post_login_redirect"); sessionStorage.removeItem("post_login_redirect_fallback");
@@ -35,6 +36,7 @@ export function ConfirmedConsentDialog() {
     setOpen(next);
     if (next) return;
     // Dismissed without consent: record nothing, but don't strand the user on "/".
+    settleAccountConsent(false);
     try {
       const raw = sessionStorage.getItem("post_login_redirect");
       if (!raw) return;

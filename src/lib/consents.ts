@@ -167,6 +167,27 @@ export function parsePending(raw: string): Record<string, unknown> | null {
  * An unchecked box records nothing at all; a later unsubscribe action records
  * `granted = false`.
  */
+/** Fired once the post-OAuth consent step is resolved (held, confirmed or dismissed). */
+export const ACCOUNT_CONSENT_SETTLED = "dogovori:account-consent-settled";
+export type AccountConsentOutcome = { confirmed: boolean };
+export function settleAccountConsent(confirmed: boolean) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent<AccountConsentOutcome>(ACCOUNT_CONSENT_SETTLED, { detail: { confirmed } }));
+}
+/**
+ * Popup sign-in must wait for the same consent step as the redirect flow.
+ * Register BEFORE starting OAuth so the outcome cannot be missed.
+ */
+export function waitForAccountConsent(): { promise: Promise<AccountConsentOutcome>; cancel: () => void } {
+  let cancel = () => {};
+  const promise = new Promise<AccountConsentOutcome>(resolve => {
+    const listener = (e: Event) => { cancel(); resolve((e as CustomEvent<AccountConsentOutcome>).detail ?? { confirmed: false }); };
+    window.addEventListener(ACCOUNT_CONSENT_SETTLED, listener);
+    cancel = () => window.removeEventListener(ACCOUNT_CONSENT_SETTLED, listener);
+  });
+  return { promise, cancel };
+}
+
 export async function flushPendingConsents() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, reason: "no-user" as const };

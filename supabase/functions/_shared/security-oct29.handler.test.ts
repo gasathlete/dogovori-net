@@ -37,7 +37,9 @@ async function run(path: string, body: unknown, mock: typeof fetch, user = OWNER
     keys.forEach((key, index) => { const value = previous[index]; if (value === undefined) Deno.env.delete(key); else Deno.env.set(key, value); });
   }
 }
-type Call = { url: URL; method: string; body: unknown };
+type Call = { url: URL; method: string; body: any };
+// The cap is enforced by one atomic DB operation; this mock models its contract
+// (per-owner rolling count, all-or-nothing insert) so handler mapping is tested.
 function signingMock(count: number, owner: string, fail = "") {
   const calls: Call[] = [];
   const mock: typeof fetch = async (input, init) => {
@@ -47,50 +49,44 @@ function signingMock(count: number, owner: string, fail = "") {
     calls.push({ url, method, body });
     if (url.pathname === "/auth/v1/user") return json({ id: owner, email: "owner@example.test" });
     if (url.pathname.endsWith("download_quota")) return json({ plan: "pro", free_signing_used: true });
-    if (url.pathname.endsWith("signing_requests") && method === "GET") {
-      if (fail === "requests") return json({ message: "synthetic read failure" }, 500);
-      assertEquals(url.searchParams.get("owner_id"), `eq.${owner}`);
-      const since = Date.parse((url.searchParams.get("created_at") ?? "").slice(4));
-      assert(Math.abs(since - (Date.now() - 24 * 60 * 60 * 1000)) < 2000, "rolling 24h window");
-      return json(owner === OWNER ? [{ id: ENVELOPE }] : []);
+    if (url.pathname.endsWith("/rpc/create_signing_envelope_capped")) {
+      if (fail === "rpc") return json({ message: "synthetic failure" }, 500);
+      assertEquals(body.p_owner, owner); assertEquals(body.p_limit, 50);
+      const recent = owner === OWNER ? count : 0;
+      if (recent + body.p_signers.length > body.p_limit) return json({ ok: false, error: "daily_invite_limit", recent });
+      return json({ ok: true, request: { id: ENVELOPE, title: body.p_request.title, expires_at: body.p_request.expires_at }, signers: [] });
     }
-    if (url.pathname.endsWith("signing_request_signers") && method === "HEAD") {
-      if (fail === "count") return json({ message: "synthetic count failure" }, 500);
-      return new Response(null, { headers: { "content-range": `*/${count}` } });
-    }
-    if (url.pathname.endsWith("signing_requests") && method === "POST") return json({ id: ENVELOPE, title: "Синтетичен документ" }, 201);
-    // Keep invitation delivery empty; assert submitted signers separately below.
-    if (url.pathname.endsWith("signing_request_signers") && method === "POST") return json([], 201);
+    if (url.pathname.endsWith("signing_requests") || url.pathname.endsWith("signing_request_signers")) throw new Error("Direct non-atomic signing write");
     if (url.pathname.endsWith("signing_audit_events")) return json(null, 201);
     if (url.pathname.endsWith("profiles")) return json({ display_name: "Тест" });
     throw new Error(`Unexpected test dependency: ${url.pathname}`);
   };
   return { mock, calls };
 }
+const rpcCall = (calls: Call[]) => calls.find(call => call.url.pathname.endsWith("/rpc/create_signing_envelope_capped"));
 const signingBody = { title: "Синтетичен документ", document_snapshot: { text: "Локален тест" }, signers: [{ name: "Тест", email: "signer@example.test" }] };
-test("signing: 49 existing + 1 passes at exactly 50 in rolling 24h", async () => {
+test("signing: 49 existing + 1 passes at exactly 50 via one atomic operation", async () => {
   const { mock, calls } = signingMock(49, OWNER);
   const result = await run("../create-signing-request/index.ts", signingBody, mock);
   assertEquals(result.status, 200);
-  const insertion = calls.find(call => call.method === "POST" && call.url.pathname.endsWith("signing_request_signers"));
-  assertEquals((insertion?.body as unknown[])?.length, 1);
+  assertEquals(rpcCall(calls)?.body.p_signers.length, 1);
 });
-test("signing: 50 existing + 1 denied with clear message and no writes", async () => {
+test("signing: 50 existing + 1 denied with clear message and no audit write", async () => {
   const { mock, calls } = signingMock(50, OWNER);
   const result = await run("../create-signing-request/index.ts", signingBody, mock);
   assertEquals(result.status, 429); assertEquals(result.body.error, "daily_invite_limit");
   assertEquals(result.body.message, "Достигнахте дневния лимит за покани за подпис. Опитайте отново утре.");
-  assert(!calls.some(call => call.method === "POST"));
+  assert(!calls.some(call => call.url.pathname.endsWith("signing_audit_events")));
 });
 test("signing: another account does not inherit the first owner's 50 invitations", async () => {
   const { mock } = signingMock(50, OTHER);
   assertEquals((await run("../create-signing-request/index.ts", signingBody, mock, OTHER)).status, 200);
 });
-for (const failure of ["requests", "count"]) test(`signing: ${failure} lookup error fails closed without email/write`, async () => {
-  const { mock, calls } = signingMock(49, OWNER, failure);
+test("signing: atomic operation error fails closed without email/audit", async () => {
+  const { mock, calls } = signingMock(49, OWNER, "rpc");
   const result = await run("../create-signing-request/index.ts", signingBody, mock);
   assertEquals(result.status, 503); assertEquals(result.body.error, "invite_limit_unavailable");
-  assert(!calls.some(call => call.method === "POST"));
+  assert(!calls.some(call => call.url.pathname.endsWith("signing_audit_events")));
 });
 
 async function visitorHash(ip: string) {

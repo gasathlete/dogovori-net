@@ -1,5 +1,6 @@
 // Bulk signing dialog for kits — collects signers once and creates a
 // separate signing envelope for every eligible item in the kit.
+import { signingFailure } from "@/lib/signingErrors";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -152,9 +153,11 @@ export function KitBulkSigningDialog(p: Props) {
         },
       });
       if (error || data?.error) {
-        const reason = data?.error ?? error?.message ?? "Грешка";
-        trackSign("fail", { source: "kit_bulk", doc_key: row.title, reason: String(reason).slice(0, 120) });
-        out.push({ itemId: row.item.id, title: row.title, error: reason });
+        const { code, message } = await signingFailure(data, error);
+        trackSign("fail", { source: "kit_bulk", doc_key: row.title, reason: String(code).slice(0, 120) });
+        out.push({ itemId: row.item.id, title: row.title, error: message });
+        // The cap is per account: later items would be refused the same way.
+        if (code === "daily_invite_limit") { toast.error(message); setResults([...out]); break; }
       } else {
         trackSign("requested", { source: "kit_bulk", doc_key: row.title, signers: signers.length, order_mode: orderMode });
         out.push({ itemId: row.item.id, title: row.title, requestId: data.request.id });

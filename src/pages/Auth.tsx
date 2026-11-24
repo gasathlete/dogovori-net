@@ -195,8 +195,9 @@ export default function AuthPage() {
       sessionStorage.removeItem("pending_consents"); clearPostLoginDestination();
       return toast.error("Грешка с Google", { description: String(result.error) });
     }
+    // Popup sign-in: the auth provider applies the same consent step and
+    // destination as the redirect flow; navigating here would skip it.
     if (result.redirected) return;
-    navigate(redirect);
   };
 
   const handleGoogle = async () => {

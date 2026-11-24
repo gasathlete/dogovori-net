@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState, ReactNode } fro
 import { clearAllDraftStorage, readPointer } from "@/lib/activationDraft";
 import { clearAssistantDocumentContext } from "@/lib/assistantDocumentContext";
 import { isAuthLandingPath, resolvePostAuthRedirect } from "@/lib/postAuthRedirect";
-import { flushPendingConsents } from "@/lib/consents";
+import { settleAccountConsent, flushPendingConsents } from "@/lib/consents";
 import { sanitizeReturnPath } from "@/lib/safeRoute";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -84,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       void flushPendingConsents().then(result => {
         if (flushingUser !== userId) return;
         if (result?.reason === "authenticated-choice-required") pendingConsentUser = userId;
-        else applyPostAuthRedirect();
+        else { settleAccountConsent(true); applyPostAuthRedirect(); }
       }).catch(() => undefined).finally(() => {
         if (flushingUser === userId) flushingUser = null;
       });

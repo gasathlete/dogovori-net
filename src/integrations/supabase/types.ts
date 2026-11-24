@@ -8105,6 +8105,15 @@ export type Database = {
         Args: { p_batch_id: string; p_result_ref: Json; p_user_id: string }
         Returns: Json
       }
+      create_signing_envelope_capped: {
+        Args: {
+          p_limit?: number
+          p_owner: string
+          p_request: Json
+          p_signers: Json
+        }
+        Returns: Json
+      }
       credit_topup_ops: {
         Args: {
           p_amount: number

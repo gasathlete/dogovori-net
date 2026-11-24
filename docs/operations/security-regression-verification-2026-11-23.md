@@ -67,3 +67,11 @@
   отделният production pipeline от `package.json` не са стартирани ръчно,
   защото правилата на средата възлагат build/typecheck на harness.
   Не се твърди успешен production build или финален CI на новия SHA.
+## Допълнение 24.11.2026 — целева поправка
+
+- **Атомарен лимит за покани:** нова сървърна операция `create_signing_envelope_capped` (миграция `drizzle/migrations/0037_atomic_signing_invite_cap.sql`). Проверката (50 подписващи / 24 ч / акаунт) и създаването на заявката и подписващите са в една транзакция под advisory lock по `owner_id`. Изпълнение само за `service_role`; правата и RLS на таблиците не са променени. `create-signing-request` вече не пише директно в таблиците.
+- **Диалози за подпис:** индивидуалният и комплектният диалог показват „Достигнахте дневния лимит за покани за подпис. Опитайте отново утре.“ при 429 `daily_invite_limit` (тялото се чете от non-2xx отговора); комплектът спира следващите покани.
+- **Popup Google вход:** `Auth.tsx` и `InlineAuthDialog.tsx` вече не продължават преди стъпката за съгласие в `useAuth`. Общ сигнал `dogovori:account-consent-settled`: налични съгласия → продължава веднага; нов акаунт → един диалог; затваряне → нищо не се записва, inline задачата не продължава, връщане към началната дестинация.
+- **Тестове:** нови `src/test/signingInviteCap.pglite.test.ts` (2), `src/test/signingDailyLimitDialogs.test.tsx` (2), `src/test/googlePopupConsentFlow.test.tsx` (5); обновен Deno `security-oct29.handler.test.ts` (4). Целеви клиентски набор: 10 файла / 51 теста; Deno signing: 6 теста — всички минаха. `tsgo --noEmit` без грешки.
+- **Deploy:** само `create-signing-request`, source SHA-256 `bbf05f865a30489b46d2deccb3033a5adb4638739f1b72804965f929bc5c258a` (файл `index.ts`: `4654e5b5…05b6`).
+- **Непроверено:** реален Google OAuth popup; истински паралелни връзки към Postgres (PGlite сериализира заявките — проверено е правилото, не реална конкуренция; заключването е по дизайн); реален 429 от hosted функцията; ръчен production build (средата го изпълнява автоматично). Frontend не е публикуван.

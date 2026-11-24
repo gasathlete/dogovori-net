@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ signup: vi.fn(), oauth: vi.fn(), login: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { auth: { signUp: mocks.signup, signInWithPassword: mocks.login } } }));
 vi.mock("@/integrations/lovable/index", () => ({ lovable: { auth: { signInWithOAuth: mocks.oauth } } }));
-vi.mock("@/lib/consents", () => ({ flushPendingConsents: vi.fn() }));
+vi.mock("@/lib/consents", () => ({ flushPendingConsents: vi.fn(), waitForAccountConsent: () => ({ promise: Promise.resolve({ confirmed: true }), cancel: vi.fn() }) }));
 vi.mock("@/lib/metrics", () => ({ trackMetric: vi.fn() }));
 vi.mock("@/lib/docFunnel", () => ({ trackAuthPromptShown: vi.fn() }));
 import { InlineAuthDialog } from "@/components/auth/InlineAuthDialog";
