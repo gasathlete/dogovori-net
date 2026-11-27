@@ -1,0 +1,1007 @@
+import { CatalogReviewNotice } from "@/components/CatalogReviewNotice";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { PrefetchLink as Link } from "@/components/PrefetchLink";
+import { useSearchParams } from "react-router-dom";
+import * as Icons from "@/icons";
+import { ArrowRight, Search, ListChecks, BookOpen, ChevronDown, ChevronUp, X, Filter, Check, Languages, Package, Zap, Download } from "@/icons";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Header } from "@/components/Header";
+import { SeoFooter } from "@/components/SeoFooter";
+import { Input } from "@/components/ui/input";
+import { CATALOG } from "@/data/catalog";
+import { CompanionChip } from "@/components/CompanionChip";
+import { Seo } from "@/components/Seo";
+import { allTemplates } from "@/lib/templateIndex";
+import { slugify } from "@/lib/slugify";
+import { DOCUMENT_TYPES, DOCUMENT_TYPE_GROUPS, getDocumentType, type DocumentTypeId } from "@/lib/documentReferences";
+import { inferDocumentType } from "@/lib/documentTypeInference";
+import { DYNAMIC_GRAPH_SLUG_SET } from "@/data/questionGraphs/slugs.generated";
+import { useDownloadCounts, getDisplayCount } from "@/hooks/useDownloadCounts";
+import { useTemplateSearch } from "@/hooks/useTemplateSearch";
+import { SECTOR_META } from "@/data/sectorsMeta";
+import { SECTOR_IMAGES } from "@/lib/sectorImages";
+import { WorkStateShell } from "@/components/workspace/WorkStateShell";
+
+/**
+ * Slugs that have a registered dynamic question graph (Sprint 1+2).
+ * Идва от лек генериран списък — самите графи се зареждат само в Wizard-а.
+ */
+const DYNAMIC_SLUGS = DYNAMIC_GRAPH_SLUG_SET;
+
+
+
+/** Sets/removes ?q= while preserving every other catalog filter. */
+export function withCatalogQuery(params: URLSearchParams, q: string): URLSearchParams {
+  const next = new URLSearchParams(params);
+  if (q.trim()) next.set("q", q);
+  else next.delete("q");
+  return next;
+}
+
+export default function CatalogPage() {
+  const [showAll, setShowAll] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [docTypeOpen, setDocTypeOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeVid = (searchParams.get("vid") as DocumentTypeId | null) ?? null;
+  const bilingualOnly = searchParams.get("bilingual") === "1";
+  const dynamicOnly   = searchParams.get("dynamic") === "1";
+  const activeSector = SECTOR_META.some((s) => s.id === searchParams.get("sektor")) ? searchParams.get("sektor") : null;
+  const setSector = (id: string | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (id) next.set("sektor", id);
+    else next.delete("sektor");
+    setSearchParams(next);
+    if (id) setTimeout(() => document.getElementById(`sector-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
+  const sectorCategories = activeSector ? CATALOG.filter((c) => ((c as { sectorId?: string }).sectorId ?? "services") === activeSector) : [];
+  // ?q= е източникът на истина за търсенето: хидратира полето и следва назад/напред.
+  const urlQuery = searchParams.get("q") ?? "";
+  const [query, setQueryState] = useState(urlQuery);
+  useEffect(() => { setQueryState(urlQuery); }, [urlQuery]);
+  const setQuery = (q: string) => {
+    setQueryState(q);
+    setSearchParams(withCatalogQuery(searchParams, q), { replace: true });
+  };
+
+  const setVid = (vid: DocumentTypeId | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (vid) next.set("vid", vid);
+    else next.delete("vid");
+    setSearchParams(next, { replace: true });
+    setDocTypeOpen(false);
+  };
+
+  const setBilingual = (on: boolean) => {
+    const next = new URLSearchParams(searchParams);
+    if (on) next.set("bilingual", "1");
+    else next.delete("bilingual");
+    setSearchParams(next, { replace: true });
+  };
+
+  const setDynamic = (on: boolean) => {
+    const next = new URLSearchParams(searchParams);
+    if (on) next.set("dynamic", "1");
+    else next.delete("dynamic");
+    setSearchParams(next, { replace: true });
+  };
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+    if (window.location.hash) {
+      const id = window.location.hash.replace("#", "");
+      setTimeout(() => {
+        document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  }, []);
+
+  // Sprint 3 — trust signal lookups.
+  const downloadCounts = useDownloadCounts();
+
+  const docMatchesVid = (name: string, explicit?: DocumentTypeId) => {
+    if (!activeVid) return true;
+    return (explicit ?? inferDocumentType(name)) === activeVid;
+  };
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return CATALOG.map((cat) => ({
+      ...cat,
+      documents: cat.documents.filter((d) => {
+        if (bilingualOnly && !d.bilingual) return false;
+        if (dynamicOnly && !DYNAMIC_SLUGS.has(slugify(d.name))) return false;
+        if (!docMatchesVid(d.name, d.documentType)) return false;
+        if (!q) return true;
+        return (
+          d.name.toLowerCase().includes(q) ||
+          d.purpose.toLowerCase().includes(q) ||
+          d.keyClause.toLowerCase().includes(q)
+        );
+      }),
+    })).filter((c) => c.documents.length > 0)
+      .filter((c) => !activeSector || ((c as { sectorId?: string }).sectorId ?? "services") === activeSector);
+  }, [query, activeVid, bilingualOnly, dynamicOnly, activeSector]);
+
+  // Server-side suggestions (Postgres FTS, BG/Latin cross-script).
+  const { hits: searchHits, loading: searchLoading } = useTemplateSearch(query, {
+    enabled: query.trim().length >= 2,
+    bilingualOnly,
+    dynamicOnly,
+    limit: 12,
+    sort: "relevance",
+  });
+  const suggestions = searchHits;
+  const visibleSuggestions = showAll ? suggestions : suggestions.slice(0, 5);
+  const remaining = suggestions.length - visibleSuggestions.length;
+
+  const totalDocs = CATALOG.reduce((s, c) => s + c.documents.length, 0);
+
+  const countsByVid = useMemo(() => {
+    const m = new Map<DocumentTypeId, number>();
+    for (const cat of CATALOG) {
+      for (const d of cat.documents) {
+        const t = d.documentType ?? inferDocumentType(d.name);
+        m.set(t, (m.get(t) ?? 0) + 1);
+      }
+    }
+    return m;
+  }, []);
+
+  const filteredCount = useMemo(
+    () => filtered.reduce((s, c) => s + c.documents.length, 0),
+    [filtered],
+  );
+
+  const activeVidDef = activeVid ? getDocumentType(activeVid) : null;
+
+  const itemListLd = useMemo(() => ({
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: activeVidDef
+      ? `${activeVidDef.label} — каталог на български`
+      : "Каталог на договори и бланки на български",
+    numberOfItems: allTemplates().length,
+    itemListElement: allTemplates().map((t, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      url: `https://dogovori.net/shablon/${t.slug}`,
+      name: t.doc.name,
+    })),
+  }), [activeVidDef]);
+
+  const breadcrumbsLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Начало", item: "https://dogovori.net/" },
+      { "@type": "ListItem", position: 2, name: "Каталог", item: "https://dogovori.net/catalog" },
+      ...(activeVidDef
+        ? [{ "@type": "ListItem", position: 3, name: activeVidDef.label, item: `https://dogovori.net/catalog?vid=${activeVid}` }]
+        : []),
+    ],
+  };
+
+  const seoTitle = activeVidDef
+    ? `${activeVidDef.label} — ${filteredCount} бланки на български | Dogovori.net`
+    : `Каталог: ${totalDocs}+ договора и бланки на български | Dogovori.net`;
+  const seoDesc = activeVidDef
+    ? `${filteredCount} професионални образци на „${activeVidDef.label}" – ${activeVidDef.description}. Готови за попълване, PDF/DOCX.`.slice(0, 160)
+    : `Пълен каталог на ${totalDocs}+ професионални договори и правни бланки на български – трудови, наем, IT, NDA, GDPR. Готови за попълване.`;
+  const seoCanonical = activeVid ? `/catalog?vid=${activeVid}` : "/catalog";
+
+  return (
+    <div className="min-h-dvh">
+      <Seo
+        title={seoTitle}
+        description={seoDesc}
+        canonical={seoCanonical}
+        jsonLd={[itemListLd, breadcrumbsLd]}
+      />
+      <Header />
+
+      <main id="main-content">
+      {/* Hero */}
+      <section className="relative border-b border-border/60 [&>div:not(.container)]:pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-hero opacity-90" />
+        <div className="absolute inset-0 bg-fine-grid opacity-50" />
+        <div className="absolute inset-x-0 top-0 hairline-x" />
+        <div className="container relative py-9 md:py-14">
+          <div className="max-w-3xl text-left">
+            <h1 className="font-serif text-[28px] font-bold leading-[1.12] text-balance md:text-5xl anim-rise" style={{ animationDelay: "80ms" }}>
+              {totalDocs}+ професионални договора и бланки
+            </h1>
+            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-muted-foreground md:text-base anim-rise" style={{ animationDelay: "160ms" }}>
+              Изберете вид документ или потърсете по име. Каталогът е подреден по
+              сектори — трудови и наемни отношения, IT, корпоративни документи.
+            </p>
+            <CatalogReviewNotice catalog />
+            <div className="relative mt-6 max-w-xl">
+              <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                aria-label="Търсене в каталога с договори и бланки"
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setShowAll(false);
+                  setOpen(true);
+                }}
+                onInput={() => setOpen(true)}
+                onKeyDown={() => setOpen(true)}
+                onCompositionUpdate={() => setOpen(true)}
+                onFocus={() => setOpen(true)}
+                onBlur={() => setTimeout(() => setOpen(false), 150)}
+                autoFocus
+                placeholder="Търсете: NDA, наем, ремонт, фактура…"
+                className="h-14 border-gold/30 bg-card/70 pl-11 text-base text-foreground backdrop-blur transition-colors focus-visible:border-gold/60"
+              />
+              {open && query.trim().length >= 2 && suggestions.length > 0 && (
+                <div
+                  className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-lg border border-gold/30 bg-card/95 text-left shadow-elegant backdrop-blur-xl"
+                  onMouseDown={(e) => e.preventDefault()}
+                >
+                  <ul
+                    className="max-h-[280px] overflow-y-auto overscroll-contain"
+                    style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+                    onWheel={(e) => e.stopPropagation()}
+                  >
+                    {suggestions.map((s) => {
+                      const href = `/shablon/${s.slug}`;
+                      return (
+                        <li key={s.slug}>
+                          <Link
+                            to={href}
+                            className="block border-b border-border/40 px-4 py-3 transition-colors last:border-0 hover:bg-gold/[0.06]"
+                          >
+                            <div className="flex items-start gap-2">
+                              <div className="flex-1 font-serif text-sm font-bold text-foreground">
+                                {s.name}
+                                {s.bilingual && (
+                                  <>
+                                    <span className="ml-2 inline-block rounded-sm border border-gold/40 px-1.5 py-px text-[9px] uppercase tracking-wider text-gold">BG/EN</span>
+                                    <span className="ml-1 inline-block rounded-sm bg-gradient-gold px-1.5 py-px text-[9px] font-bold uppercase tracking-wider text-navy">PRO</span>
+                                  </>
+                                )}
+                                {s.has_dynamic_wizard && (
+                                  <span className="ml-2 inline-flex items-center gap-0.5 rounded-sm border border-emerald-400/40 bg-emerald-400/10 px-1.5 py-px text-[9px] uppercase tracking-wider text-emerald-300">
+                                    <Zap className="h-2.5 w-2.5" /> Динамичен
+                                  </span>
+                                )}
+                              </div>
+                              {s.downloads > 0 && (
+                                <span className="inline-flex shrink-0 items-center gap-0.5 text-[10px] text-muted-foreground">
+                                  <Download className="h-2.5 w-2.5" /> {s.downloads}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{s.purpose}</div>
+                            <div className="mt-1 text-xs text-muted-foreground">{s.category_title}</div>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {suggestions.length > 3 && (
+                    <div className="border-t border-border/60 bg-navy-light/40 px-4 py-1.5 text-center text-xs text-muted-foreground">
+                      {suggestions.length} съвпадения · скролни за още
+                    </div>
+                  )}
+                </div>
+              )}
+              {open && query.trim().length >= 2 && suggestions.length === 0 && (
+                <div
+                  data-testid={searchLoading ? "catalog-search-loading" : "catalog-search-empty"}
+                  aria-live="polite"
+                  className="absolute left-0 right-0 top-full z-50 mt-2 rounded-lg border border-border/60 bg-card/95 px-4 py-3 text-left text-sm text-muted-foreground shadow-elegant backdrop-blur-xl"
+                >
+                  {searchLoading ? "Търсим в каталога…" : <>Няма съвпадения за „{query}"</>}
+                </div>
+              )}
+            </div>
+            <div className="mt-4 flex flex-wrap items-center justify-start gap-2">
+              <span className="text-sm text-muted-foreground">
+                Често търсено
+              </span>
+              {["наем", "трудов договор", "NDA", "пълномощно", "заем", "фактура"].map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => {
+                    setQuery(q);
+                    setShowAll(false);
+                    setOpen(true);
+                  }}
+                  className="min-h-11 rounded border border-border/60 bg-card/60 px-3 py-1.5 text-sm text-foreground/85 transition-colors hover:border-gold/50 hover:text-gold"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="absolute inset-x-0 bottom-0 hairline-x opacity-60" />
+      </section>
+
+      {/* Вид документ — compact dropdown filter */}
+      <section className="border-b border-border/60 bg-navy-light/20">
+        <div className="container py-4 md:py-5">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <Filter className="h-3.5 w-3.5 text-gold/80" />
+              Вид документ
+            </div>
+
+            <Popover open={docTypeOpen} onOpenChange={setDocTypeOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className={
+                    "inline-flex min-h-11 items-center justify-between gap-3 rounded-md border px-3 py-1.5 text-sm transition-colors sm:min-w-[200px] " +
+                    (activeVid
+                      ? "border-gold/60 bg-gold/10 text-gold hover:bg-gold/15"
+                      : "border-border/70 bg-card/40 text-foreground hover:border-gold/40")
+                  }
+                >
+                  <span className="truncate">
+                    {activeVid ? getDocumentType(activeVid).label : "Всички видове"}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-[min(420px,calc(100vw-2rem))] max-h-[70vh] overflow-y-auto p-2">
+                <button
+                  type="button"
+                  onClick={() => setVid(null)}
+                  className={
+                    "flex w-full items-center justify-between gap-2 rounded-sm px-2.5 py-1.5 text-left text-sm transition-colors " +
+                    (!activeVid ? "bg-gold/10 text-gold" : "hover:bg-muted/60")
+                  }
+                >
+                  <span className="font-medium">Всички видове</span>
+                  <span className="text-[11px] text-muted-foreground">{totalDocs}</span>
+                </button>
+                <div className="my-1 h-px bg-border/60" />
+                {DOCUMENT_TYPE_GROUPS.map((g) => {
+                  const items = DOCUMENT_TYPES.filter((d) => d.group === g.id);
+                  if (items.length === 0) return null;
+                  return (
+                    <div key={g.id} className="mb-1.5 last:mb-0">
+                      <div className="px-2 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
+                        {g.label}
+                      </div>
+                      {items.map((d) => {
+                        const active = activeVid === d.id;
+                        const count = countsByVid.get(d.id) ?? 0;
+                        return (
+                          <button
+                            key={d.id}
+                            type="button"
+                            onClick={() => setVid(active ? null : d.id)}
+                            disabled={count === 0}
+                            title={d.description}
+                            className={
+                              "flex w-full items-center justify-between gap-2 rounded-sm px-2.5 py-1.5 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 " +
+                              (active ? "bg-gold/10 text-gold" : "hover:bg-muted/60")
+                            }
+                          >
+                            <span className="flex items-center gap-2 truncate">
+                              {active && <Check className="h-3.5 w-3.5 shrink-0 text-success" />}
+                              <span className={active ? "" : "pl-[22px]"}>{d.shortLabel}</span>
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">{count}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </PopoverContent>
+            </Popover>
+
+            {activeVid && (
+              <>
+                <span className="text-xs text-muted-foreground">
+                  {filteredCount} от {totalDocs}
+                </span>
+                <button
+                  onClick={() => setVid(null)}
+                  className="inline-flex min-h-11 items-center gap-1 rounded-md border border-border/60 px-3 py-1 text-[12px] text-muted-foreground transition-colors hover:border-gold/40 hover:text-gold"
+                >
+                  <X className="h-3 w-3" /> Изчисти
+                </button>
+              </>
+            )}
+
+            <span className="mx-1 hidden h-5 w-px bg-border/60 md:inline-block" aria-hidden />
+
+            <button
+              type="button"
+              onClick={() => setBilingual(!bilingualOnly)}
+              aria-pressed={bilingualOnly}
+              title="Покажи само двуезични документи (BG/EN)"
+              className={
+                "inline-flex min-h-11 items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors " +
+                (bilingualOnly
+                  ? "border-gold/60 bg-gold/10 text-gold hover:bg-gold/15"
+                  : "border-border/70 bg-card/40 text-foreground hover:border-gold/40 hover:text-gold")
+              }
+            >
+            <Languages className="h-3.5 w-3.5" />
+              Двуезичен документ
+              {bilingualOnly && <Check className="h-3.5 w-3.5 text-success" />}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setDynamic(!dynamicOnly)}
+              aria-pressed={dynamicOnly}
+              title="Покажи само документи с динамичен уизард (адаптира клаузите според отговорите)"
+              className={
+                "inline-flex min-h-11 items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors " +
+                (dynamicOnly
+                  ? "border-emerald-400/60 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/15"
+                  : "border-border/70 bg-card/40 text-foreground hover:border-emerald-400/40 hover:text-emerald-300")
+              }
+            >
+              <Zap className="h-3.5 w-3.5" />
+              Динамичен уизард
+              {dynamicOnly && <Check className="h-3.5 w-3.5 text-success" />}
+            </button>
+
+            <span className="mx-1 hidden h-5 w-px bg-border/60 md:inline-block" aria-hidden />
+
+            <Link
+              to="/komplekti"
+              className="inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-card/40 px-3 py-1.5 text-sm text-foreground transition-colors hover:border-gold/40 hover:text-gold"
+            >
+              <Package className="h-3.5 w-3.5" />
+              Комплекти
+            </Link>
+          </div>
+        </div>
+      </section>
+
+
+
+      {/* Sticky sector nav — replaces previous per-category nav */}
+      <nav id="catalog-sectors" aria-label="Сектори" className="sticky top-16 z-30 scroll-mt-16 border-b border-border/60 bg-background shadow-sm">
+        <div className="relative">
+          <DragScrollRow>
+            <button
+              type="button"
+              onClick={() => setSector(null)}
+              aria-pressed={!activeSector}
+              className={`inline-flex min-h-11 shrink-0 snap-start items-center whitespace-nowrap rounded-full border px-4 font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${!activeSector ? "border-gold bg-gold/15 text-foreground" : "border-border/60 bg-card text-muted-foreground hover:border-gold/50 hover:text-foreground"}`}
+            >
+              Всички сектори
+            </button>
+            {SECTOR_META.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setSector(activeSector === s.id ? null : s.id)}
+                aria-pressed={activeSector === s.id}
+                className={`inline-flex min-h-11 shrink-0 snap-start items-center whitespace-nowrap rounded-full border px-4 font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${activeSector === s.id ? "border-gold bg-gold/15 text-foreground" : "border-border/60 bg-card text-muted-foreground hover:border-gold/50 hover:text-foreground"}`}
+              >
+                {s.title}
+              </button>
+            ))}
+          </DragScrollRow>
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background to-transparent" />
+        </div>
+        {activeSector && sectorCategories.length > 0 && (
+          <div className="container flex flex-wrap items-center gap-2 border-t border-border/60 py-3 text-sm">
+            <span className="mr-1 font-semibold text-foreground">Изберете категория:</span>
+            {sectorCategories.map((c) => (
+              <Link
+                key={c.id}
+                to={`/kategoria/${c.id}`}
+                className="inline-flex min-h-9 items-center rounded-md border border-border bg-card px-3 text-foreground transition-colors hover:border-gold hover:bg-gold/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {c.title}
+              </Link>
+            ))}
+          </div>
+        )}
+      </nav>
+
+      {/* Sectors grid — categories are grouped under their parent sector and shown
+          as illustrated tiles. Each tile expands inline to reveal the first 5
+          documents from that sector. */}
+      <div className="container py-10 md:py-14">
+        <SectorCatalogGrid
+          filtered={filtered}
+          downloadCounts={downloadCounts}
+          forceExpandAll={!!query.trim()}
+          activeSector={activeSector}
+        />
+
+        {filtered.length === 0 && (
+          <WorkStateShell
+            testId="catalog-empty"
+            eyebrow="Няма резултати"
+            title={`Не намерихме документи за „${query}"`}
+            description="Опитайте с по-кратка ключова дума или изчистете филтрите."
+            icon={<Search className="size-6" />}
+            actionLabel="Изчисти филтри"
+            onAction={() => { setQuery(""); setVid(null); }}
+            className="mt-10"
+          />
+        )}
+      </div>
+
+      {/* Затварящ ред — една стъпка напред, без излишни обещания. */}
+      <section className="container pb-16">
+        <div className="relative overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-7 text-center shadow-elegant md:p-10">
+          <div className="absolute inset-x-0 top-0 hairline-x" />
+          <h2 className="font-serif text-[22px] font-bold leading-tight text-balance md:text-[30px]">
+            Не намирате точния документ?
+          </h2>
+          <p className="mx-auto mt-2 max-w-xl text-balance text-[15px] leading-relaxed text-muted-foreground">
+            Изберете сектор и попълнете документа стъпка по стъпка.
+          </p>
+          <a href="#catalog-sectors" className="btn-gold btn-sheen mt-5 min-h-11">
+            Изберете сектор <ArrowRight className="h-4 w-4" />
+          </a>
+        </div>
+      </section>
+      </main>
+
+      <SeoFooter />
+    </div>
+  );
+}
+
+function Badge({ label }: { label: string }) {
+  const styles =
+    label === "TOP"
+      ? "border-gold/40 bg-gold/10 text-gold"
+      : label === "NEW"
+        ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300"
+        : "border-purple-400/40 bg-purple-400/10 text-purple-300";
+  return (
+    <span
+      className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${styles}`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function DragScrollRow({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const state = useRef({ down: false, moved: false, startX: 0, startScroll: 0 });
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = ref.current;
+    if (!el) return;
+    state.current = { down: true, moved: false, startX: e.clientX, startScroll: el.scrollLeft };
+  };
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = ref.current;
+    if (!el || !state.current.down) return;
+    const dx = e.clientX - state.current.startX;
+    if (!state.current.moved && Math.abs(dx) > 6) {
+      state.current.moved = true;
+      // Capture only for a real drag, so a plain click still reaches the chip.
+      try { el.setPointerCapture(e.pointerId); } catch { /* noop */ }
+    }
+    if (!state.current.moved) return;
+    el.scrollLeft = state.current.startScroll - dx;
+  };
+  const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = ref.current;
+    if (!el) return;
+    state.current.down = false;
+    try { el.releasePointerCapture(e.pointerId); } catch {}
+  };
+  // Suppress click after drag so links don't trigger on release.
+  const onClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (state.current.moved) {
+      e.preventDefault();
+      e.stopPropagation();
+      state.current.moved = false;
+    }
+  };
+
+  return (
+    <div
+      ref={ref}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      onClickCapture={onClickCapture}
+      className="container flex gap-2 overflow-x-auto py-3 text-xs select-none cursor-grab active:cursor-grabbing [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
+      {children}
+    </div>
+  );
+}
+
+const INITIAL_DOCS = 5;
+
+function CategoryDocs({ cat, forceExpanded, downloadCounts }: { cat: any; forceExpanded: boolean; downloadCounts: Map<string, number> }) {
+  const [expanded, setExpanded] = useState(false);
+  const isOpen = expanded || forceExpanded;
+
+  const ordered = useMemo(() => {
+    const rank = (b?: string) => (b === "TOP" ? 0 : b === "NEW" ? 1 : 2);
+    const idx = cat.documents.map((d: any, i: number) => ({ d, i }));
+    idx.sort((a: any, b: any) => rank(a.d.badge) - rank(b.d.badge) || a.i - b.i);
+    return idx.map((x: any) => x.d);
+  }, [cat]);
+
+  const visible = isOpen ? ordered : ordered.slice(0, INITIAL_DOCS);
+  const remaining = ordered.length - INITIAL_DOCS;
+
+  return (
+    <>
+      <div className="overflow-hidden rounded-xl border border-border/60 bg-gradient-card shadow-soft">
+        <table className="hidden w-full md:table">
+          <thead>
+            <tr className="border-b border-border/60 bg-navy-light/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
+              <th className="px-5 py-3 font-medium">Документ</th>
+              <th className="px-5 py-3 font-medium">Цел</th>
+              <th className="px-5 py-3 font-medium">Ключова клауза</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map((doc: any) => {
+              const docSlug = slugify(doc.name);
+              const hasDynamic = DYNAMIC_SLUGS.has(docSlug);
+              const downloads = getDisplayCount(downloadCounts, docSlug);
+              const wizardHref = hasDynamic
+                ? `/wizard-graph/${docSlug}`
+                : doc.bilingual
+                  ? `/wizard-bilingual/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`
+                  : `/wizard/${cat.sectorId}?doc=${encodeURIComponent(doc.name)}`;
+              const shablonHref = `/shablon/${docSlug}`;
+              return (
+                <tr
+                  key={doc.name}
+                  onClick={() => (window.location.href = shablonHref)}
+                  style={{ contentVisibility: "auto", containIntrinsicSize: "80px" } as React.CSSProperties}
+                  className="cursor-pointer border-b border-border/40 transition-colors last:border-0 hover:bg-gold/[0.04]"
+                >
+                  <td className="px-5 py-4 align-top">
+                    <div className="flex items-start gap-2">
+                      <Link
+                        to={shablonHref}
+                        className="font-serif text-sm font-bold text-foreground transition-colors hover:text-gold"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {doc.name}
+                      </Link>
+                      {doc.badge && <Badge label={doc.badge} />}
+
+                      {doc.bilingual && (
+                        <>
+                          <span className="inline-block shrink-0 rounded-sm border border-gold/40 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-gold">BG/EN</span>
+                          <span className="inline-block shrink-0 rounded-sm bg-gradient-gold px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-navy">PRO</span>
+                        </>
+                      )}
+                      {hasDynamic && (
+                        <span
+                          title="Динамичен уизард — клаузите се адаптират в реално време"
+                          className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300"
+                        >
+                          <Zap className="h-2.5 w-2.5" /> Динамичен
+                        </span>
+                      )}
+                    </div>
+                    {downloads > 0 && (
+                      <div className="mt-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                        <Download className="h-2.5 w-2.5" />
+                        {downloads.toLocaleString("bg-BG")} сваляния
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-5 py-4 align-top text-sm text-muted-foreground">{doc.purpose}</td>
+                  <td className="px-5 py-4 align-top text-sm italic text-gold/90">
+                    <div className="flex items-center justify-between gap-3">
+                      <span>{doc.keyClause}</span>
+                      <Link
+                        to={wizardHref}
+                        onClick={(e) => e.stopPropagation()}
+                        className="shrink-0 text-xs font-bold uppercase tracking-wider text-gold hover:underline"
+                      >
+                        Попълни →
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        <div className="divide-y divide-border/40 md:hidden">
+          {visible.map((doc: any) => {
+            const docSlug = slugify(doc.name);
+            const hasDynamic = DYNAMIC_SLUGS.has(docSlug);
+            const downloads = getDisplayCount(downloadCounts, docSlug);
+            return (
+              <Link
+                key={doc.name}
+                to={`/shablon/${docSlug}`}
+                style={{ contentVisibility: "auto", containIntrinsicSize: "150px" } as React.CSSProperties}
+                className="block p-5 transition-colors hover:bg-gold/[0.04]"
+              >
+                <div className="flex items-start gap-2">
+                  <h3 className="flex-1 font-serif text-base font-bold text-foreground">{doc.name}</h3>
+                  {doc.badge && <Badge label={doc.badge} />}
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  {doc.bilingual && (
+                    <>
+                      <span className="inline-block rounded-sm border border-gold/40 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-gold">BG/EN</span>
+                      <span className="inline-block rounded-sm bg-gradient-gold px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-navy">PRO</span>
+                    </>
+                  )}
+                  {hasDynamic && (
+                    <span className="inline-flex items-center gap-0.5 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300">
+                      <Zap className="h-2.5 w-2.5" /> Динамичен
+                    </span>
+                  )}
+                  {downloads > 0 && (
+                    <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <Download className="h-2.5 w-2.5" />
+                      {downloads.toLocaleString("bg-BG")}
+                    </span>
+                  )}
+                </div>
+
+                <p className="mt-2 text-sm text-muted-foreground">{doc.purpose}</p>
+                <p className="mt-2 text-xs italic text-gold/90">⚖ {doc.keyClause}</p>
+                <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-gold">
+                  Виж шаблона <ArrowRight className="h-3 w-3" />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      {!forceExpanded && remaining > 0 && (
+        <div className="mt-3 flex justify-center">
+          <button
+            onClick={() => setExpanded((e) => !e)}
+            className="inline-flex items-center gap-2 rounded-lg border border-gold/40 bg-gold/5 px-4 py-2 text-xs font-medium uppercase tracking-wider text-gold transition-all hover:bg-gold/10"
+          >
+            {expanded ? (
+              <>Свий <ChevronUp className="h-3.5 w-3.5" /></>
+            ) : (
+              <>Покажи още {remaining} документа <ChevronDown className="h-3.5 w-3.5" /></>
+            )}
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
+/* =====================================================================
+   SectorCatalogGrid — illustrated sector tiles (homepage-style grid) used
+   as the top-level structure of the catalog. Each tile groups all
+   categories that share `sectorId`, and expands inline (col-span-full) to
+   reveal the first 5 documents from that sector.
+   ===================================================================== */
+
+const SECTOR_PREVIEW_LIMIT = 5;
+
+type FilteredCategory = (typeof CATALOG)[number] & { documents: (typeof CATALOG)[number]["documents"] };
+
+function SectorCatalogGrid({
+  filtered,
+  downloadCounts,
+  forceExpandAll,
+  activeSector,
+}: {
+  filtered: FilteredCategory[];
+  downloadCounts: Map<string, number>;
+  forceExpandAll: boolean;
+  activeSector: string | null;
+}) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Group filtered categories by sectorId, preserving SECTOR_META order.
+  const buckets = useMemo(() => {
+    const byId = new Map<string, FilteredCategory[]>();
+    for (const cat of filtered) {
+      const sid = (cat as any).sectorId ?? "services";
+      if (!byId.has(sid)) byId.set(sid, []);
+      byId.get(sid)!.push(cat);
+    }
+    return SECTOR_META
+      .map((s) => {
+        const cats = byId.get(s.id) ?? [];
+        const docs = cats.flatMap((c) =>
+          c.documents.map((d) => ({ doc: d, cat: c })),
+        );
+        // Rank: TOP first, then NEW, then in-order.
+        const rank = (b?: string) => (b === "TOP" ? 0 : b === "NEW" ? 1 : 2);
+        docs.sort((a, b) => rank((a.doc as any).badge) - rank((b.doc as any).badge));
+        return { sector: s, docs, totalCats: cats.length, cats };
+      })
+      .filter((b) => b.docs.length > 0);
+  }, [filtered]);
+
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-5">
+      {buckets.map(({ sector: s, docs, totalCats, cats }) => {
+        const Icon = (Icons as any)[s.icon] ?? Icons.FileText;
+        const bg = SECTOR_IMAGES[s.id];
+        const isOpen = forceExpandAll || expandedId === s.id || activeSector === s.id;
+        const preview = docs.slice(0, SECTOR_PREVIEW_LIMIT);
+        const remaining = docs.length - preview.length;
+
+        return (
+          <section
+            key={s.id}
+            id={`sector-${s.id}`}
+            className={`group relative isolate overflow-hidden rounded-xl surface-elevated transition-all duration-300 scroll-mt-32 ${
+              isOpen ? "lg:col-span-3 md:col-span-2" : "hover:-translate-y-0.5 hover:border-gold/45"
+            }`}
+          >
+            {bg && (
+              <>
+                <img
+                  src={bg}
+                  alt=""
+                  aria-hidden="true"
+                  loading="lazy"
+                  width={1024}
+                  height={768}
+                  className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-[0.32] transition-opacity duration-500 group-hover:opacity-[0.48]"
+                />
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-card/75 via-card/65 to-card/85"
+                />
+              </>
+            )}
+
+            {/* Tile header — always visible. Click toggles the sector. */}
+            <button
+              type="button"
+              onClick={() => setExpandedId((cur) => (cur === s.id ? null : s.id))}
+              aria-expanded={isOpen}
+              aria-controls={`sector-body-${s.id}`}
+              className="block w-full p-6 text-left sm:p-7"
+            >
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/0 to-transparent transition-all duration-300 group-hover:via-gold/70" />
+              <div className="flex items-start gap-4">
+                <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gold/25 bg-gold/5 text-gold transition-all duration-200 group-hover:border-gold/50 group-hover:bg-gold/10">
+                  <Icon className="h-5 w-5" strokeWidth={1.6} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-serif text-lg font-bold leading-snug text-foreground sm:text-xl">
+                    {s.title}
+                  </h3>
+                  <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold/80">
+                    {s.subtitle}
+                  </p>
+                  <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+                    {s.description}
+                  </p>
+                  <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-gold/25 bg-gold/5 px-2 py-0.5 text-gold/90">
+                      {docs.length} документа
+                    </span>
+                    {totalCats > 1 && (
+                      <span>{totalCats} категории</span>
+                    )}
+                  </div>
+                </div>
+                <ChevronDown
+                  aria-hidden="true"
+                  className={`h-4 w-4 shrink-0 text-gold/70 transition-transform duration-300 ${
+                    isOpen ? "rotate-180" : "rotate-0"
+                  }`}
+                />
+              </div>
+            </button>
+
+            {/* Категориите са отделни връзки извън бутона на сектора (без вложени елементи). */}
+            <div className="flex flex-wrap gap-1.5 px-6 pb-5 sm:px-7">
+              {cats.map((c) => (
+                <Link
+                  key={c.id}
+                  to={`/kategoria/${c.id}`}
+                  className="inline-flex min-h-8 items-center rounded-md border border-border/70 bg-background/70 px-2.5 text-xs font-medium text-foreground transition-colors hover:border-gold hover:bg-gold/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {c.title}
+                </Link>
+              ))}
+            </div>
+
+            {/* Expanded body — first 5 documents from this sector. */}
+            {isOpen && (
+              <div id={`sector-body-${s.id}`} className="border-t border-gold/15 bg-card/85 px-5 pb-5 pt-4 sm:px-7 sm:pb-7">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                    Първите {Math.min(SECTOR_PREVIEW_LIMIT, preview.length)} документа
+                  </div>
+                  <Link
+                    to={`/sektor/${s.id}`}
+                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-gold transition-opacity hover:opacity-80"
+                  >
+                    Виж всички {docs.length > preview.length ? `(${docs.length})` : ""}
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+
+                <ul className="divide-y divide-border/40 overflow-hidden rounded-lg border border-border/50 bg-card/60">
+                  {preview.map(({ doc, cat }) => {
+                    const docSlug = slugify(doc.name);
+                    const hasDynamic = DYNAMIC_SLUGS.has(docSlug);
+                    const downloads = getDisplayCount(downloadCounts, docSlug);
+                    const wizardHref = hasDynamic
+                      ? `/wizard-graph/${docSlug}`
+                      : doc.bilingual
+                        ? `/wizard-bilingual/${(cat as any).sectorId}?doc=${encodeURIComponent(doc.name)}`
+                        : `/wizard/${(cat as any).sectorId}?doc=${encodeURIComponent(doc.name)}`;
+                    const shablonHref = `/shablon/${docSlug}`;
+                    return (
+                      <li key={doc.name} className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-gold/[0.05]">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Link
+                              to={shablonHref}
+                              className="font-serif text-sm font-bold text-foreground transition-colors hover:text-gold"
+                            >
+                              {doc.name}
+                            </Link>
+                            {(doc as any).badge && <Badge label={(doc as any).badge} />}
+                            {doc.bilingual && (
+                              <span className="inline-block shrink-0 rounded-sm border border-gold/40 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-gold">BG/EN</span>
+                            )}
+                            {hasDynamic && (
+                              <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300">
+                                <Zap className="h-2.5 w-2.5" /> Динамичен
+                              </span>
+                            )}
+                          </div>
+
+                          <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{doc.purpose}</p>
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground/80">
+                            <Link
+                              to={`/kategoria/${(cat as any).id}`}
+                              className="inline-flex items-center gap-1 rounded-sm border border-border/50 bg-background/40 px-1.5 py-0.5 uppercase tracking-wider transition-colors hover:border-gold/40 hover:text-gold"
+                            >
+                              {(cat as any).title}
+                            </Link>
+                            {downloads > 0 && (
+                              <span className="inline-flex items-center gap-1">
+                                <Download className="h-2.5 w-2.5" />
+                                {downloads.toLocaleString("bg-BG")} сваляния
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <Link
+                          to={wizardHref}
+                          className="shrink-0 self-center text-[11px] font-bold uppercase tracking-wider text-gold transition-opacity hover:opacity-80"
+                        >
+                          Попълни →
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                {remaining > 0 && (
+                  <div className="mt-3 text-center text-xs text-muted-foreground">
+                    + още {remaining} документа в сектора
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        );
+      })}
+    </div>
+  );
+}

@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.consume_assistant_message(uuid, integer) FROM PUBLIC, anon;

@@ -1,0 +1,49 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { GoogleConsentDialog } from "./GoogleConsentDialog";
+import { recordConsents, settleAccountConsent } from "@/lib/consents";
+import { useAuthAction } from "@/hooks/useAuthAction";
+import { toast } from "sonner";
+import { safeReturnPath } from "@/lib/safeRoute";
+
+/** Fresh choices after the provider identifies the account; never replay another person's pre-login choices. */
+export function ConfirmedConsentDialog() {
+  const [open, setOpen] = useState(false);
+  const { busy, run } = useAuthAction();
+  useEffect(() => {
+    const listener = () => setOpen(true);
+    window.addEventListener("dogovori:confirm-account-consent", listener);
+    return () => window.removeEventListener("dogovori:confirm-account-consent", listener);
+  }, []);
+  const confirm = async (marketing: boolean) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const result = await recordConsents([
+      { consent_type: "terms", granted: true }, { consent_type: "privacy", granted: true },
+      { consent_type: "age_18", granted: true }, { consent_type: "operational_notifications", granted: true },
+      ...(marketing ? [{ consent_type: "marketing" as const, granted: true }] : []),
+    ]);
+    if (!result.ok) { toast.error("Изборът Ви не е записан. Опитайте отново."); return; }
+    setOpen(false);
+    settleAccountConsent(true);
+    try {
+      const target = safeReturnPath(sessionStorage.getItem("post_login_redirect"), "/account");
+      sessionStorage.removeItem("post_login_redirect"); sessionStorage.removeItem("post_login_redirect_fallback");
+      window.location.replace(target);
+    } catch { /* no storage: stay on the current authenticated page */ }
+  };
+  const onOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (next) return;
+    // Dismissed without consent: record nothing, but don't strand the user on "/".
+    settleAccountConsent(false);
+    try {
+      const raw = sessionStorage.getItem("post_login_redirect");
+      if (!raw) return;
+      const target = safeReturnPath(raw, "/account");
+      sessionStorage.removeItem("post_login_redirect"); sessionStorage.removeItem("post_login_redirect_fallback");
+      if (target !== window.location.pathname + window.location.search) window.location.replace(target);
+    } catch { /* no storage */ }
+  };
+  return <GoogleConsentDialog open={open} onOpenChange={onOpenChange} busy={busy} onConfirm={choice => { void run(() => confirm(choice)); }} authenticated />;
+}

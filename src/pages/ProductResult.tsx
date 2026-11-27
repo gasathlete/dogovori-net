@@ -1,0 +1,794 @@
+/**
+ * Платеният резултат: проверка, поправки и пакет за преговори.
+ *
+ * Страницата показва само проверени сървърни данни за ТОЧНО тази покупка.
+ * Плащането е доказано двойно (платена поръчка + право за същата сесия), а
+ * резултатът се приема само ако е обвързан с точния платен документ.
+ * Няма примерни данни, няма „последната покупка“, няма мълчаливо отрязване.
+ */
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { Header } from "@/components/Header";
+import { Seo } from "@/components/Seo";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "@/icons";
+import { useAuth } from "@/hooks/useAuth";
+import { getProduct, isOneTimeProductId, productPathById } from "@/lib/products";
+import {
+  bindingFromEntitlement,
+  loadBoundSourceText,
+  loadPaidPurchase,
+  priceBg,
+  readPaidAccessRequest,
+  readPaidResult,
+  sha256Hex,
+  type PaidAccessRequest,
+  type PaidEntitlementRow,
+  type PaidPurchase,
+} from "@/lib/productPaidResult";
+import {
+  fetchProductResultState,
+  refineProductResult,
+  saveProductSelection,
+  startProductFulfillment,
+  type ProductResultStateResponse,
+  type ResultStateAccess,
+} from "@/lib/productResultApi";
+import {
+  clearProductOperationKey,
+  getOrCreateProductOperationKey,
+  productOperationScope,
+} from "@/lib/productOperationKey";
+import {
+  NOT_LEGAL_ADVICE,
+  buildChangeReportPdf,
+  buildCorrectedDocx,
+  buildCorrectedPdf,
+  buildNegotiationBriefPdf,
+  buildReviewReportPdf,
+  isProductResult,
+  safeFileName,
+} from "@/lib/productResultExports";
+import { ReviewResult } from "@/components/product-result/ReviewResult";
+import {
+  CorrectionWorkspace,
+  type SaveOutcome,
+} from "@/components/product-result/CorrectionWorkspace";
+import {
+  NegotiationWorkspace,
+  type RefineOutcome,
+} from "@/components/product-result/NegotiationWorkspace";
+import { ExportBar, type ExportAction } from "@/components/product-result/ExportBar";
+import {
+  isFulfillmentStage,
+  ProcessingProgress,
+  type FulfillmentStage,
+} from "@/components/product-result/ProcessingProgress";
+import { PurchaseBreakdown } from "@/components/product-result/PurchaseBreakdown";
+import { ManualClauseReview } from "@/components/product-result/ManualClauseReview";
+import {
+  trackCorrectedPreviewOpened,
+  trackCorrectionSelected,
+  trackExportCompleted,
+  trackFindingOpened,
+  trackQuietPlanLinkClicked,
+  trackRefinementCompleted,
+  trackRefinementFailed,
+  trackRefinementSubmitted,
+  trackResultProcessingSeen,
+  trackResultReadySeen,
+} from "@/lib/productResultAnalytics";
+import {
+  buildProductPatch,
+  ProductPatchError,
+  patchMessage,
+  type ProductPatchManifest,
+} from "../../supabase/functions/_shared/product-patch";
+import type { CorrectionDecision } from "../../supabase/functions/_shared/product-selections";
+import type { ReadyProductResult } from "../../supabase/functions/_shared/product-result-contract";
+
+/** Изчакваме ограничено, с нарастваща пауза, и продължаваме сами при прекъсване. */
+const MAX_ATTEMPTS = 30;
+const MAX_RETRYABLE = 4;
+/** Потвърждението на плащането идва отвън и може да закъснее с няколко секунди. */
+const CONFIRM_ATTEMPTS = 10;
+const FIRST_DELAY_MS = 1200;
+const MAX_DELAY_MS = 6000;
+
+type Phase =
+  | { readonly kind: "loading" }
+  | { readonly kind: "no_access" }
+  | { readonly kind: "confirming" }
+  | { readonly kind: "not_found" }
+  | {
+      readonly kind: "processing";
+      readonly productId: string;
+      readonly entitlement: PaidEntitlementRow;
+      readonly stage: FulfillmentStage | null;
+      readonly resuming: boolean;
+    }
+  | {
+      readonly kind: "failed";
+      readonly paused?: boolean;
+      readonly productId: string;
+      readonly entitlement: PaidEntitlementRow;
+    }
+  | { readonly kind: "conflict" }
+  | { readonly kind: "ready"; readonly purchase: PaidPurchase; readonly result: ReadyProductResult };
+
+const CONTACT = (
+  <>
+    Свържете се с нас на{" "}
+    <a href="mailto:support@dogovori.net" className="underline">
+      support@dogovori.net
+    </a>{" "}
+    — плащането Ви е записано.
+  </>
+);
+
+function accessFor(access: PaidAccessRequest, entitlementId: string): ResultStateAccess {
+  return access.mode === "checkout_return"
+    ? { mode: "checkout_return", entitlementId, sessionId: access.sessionId }
+    : { mode: "owner", entitlementId };
+}
+
+export default function ProductResult() {
+  const [params] = useSearchParams();
+  const { user, loading: authLoading } = useAuth();
+  const access = useMemo(() => readPaidAccessRequest(params), [params]);
+
+  const [phase, setPhase] = useState<Phase>({ kind: "loading" });
+  const [state, setState] = useState<ProductResultStateResponse | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const attemptsRef = useRef(0);
+  const retriesRef = useRef(0);
+  const stageRef = useRef<FulfillmentStage | null>(null);
+  const resumingRef = useRef(false);
+
+  /* ------------------------- зареждане и изчакване ------------------------- */
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+    if (!access) {
+      setPhase({ kind: "no_access" });
+      return;
+    }
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    attemptsRef.current = 0;
+    retriesRef.current = 0;
+    stageRef.current = null;
+    resumingRef.current = false;
+
+    const tick = async () => {
+      attemptsRef.current += 1;
+      const purchase = await loadPaidPurchase(user.id, access).catch(() => null);
+      if (cancelled) return;
+      if (!purchase) {
+        // Потвърждението на плащането може да закъснее — изчакваме, вместо да
+        // казваме, че покупка няма.
+        if (access.mode === "checkout_return" && attemptsRef.current <= CONFIRM_ATTEMPTS) {
+          setPhase({ kind: "confirming" });
+          timer = setTimeout(() => void tick(), Math.min(FIRST_DELAY_MS * attemptsRef.current, MAX_DELAY_MS));
+          return;
+        }
+        setPhase({ kind: "not_found" });
+        return;
+      }
+      const row = purchase.entitlement;
+      const outcome = readPaidResult(row);
+      if (outcome.ok === true) {
+        setPhase({ kind: "ready", purchase, result: outcome.result });
+        return;
+      }
+      if (row.status === "ready" && outcome.ok === false && outcome.reason !== "not_ready") {
+        // Плащането е налице, но резултатът не съвпада с документа — спираме.
+        setPhase({ kind: "conflict" });
+        return;
+      }
+      if (row.status === "failed" || row.status === "refunded") {
+        setPhase({ kind: "failed", productId: row.product_id, entitlement: row });
+        return;
+      }
+      setPhase({
+        kind: "processing",
+        productId: row.product_id,
+        entitlement: row,
+        stage: stageRef.current,
+        resuming: resumingRef.current,
+      });
+      if (attemptsRef.current >= MAX_ATTEMPTS) {
+        setPhase({ kind: "failed", paused: true, productId: row.product_id, entitlement: row });
+        return;
+      }
+
+      // Всяка заявка придвижва обработката с една стъпка. Повторното заявяване
+      // е безопасно: не плаща пак и не изразходва операции.
+      const fulfil = await startProductFulfillment(row.id);
+      if (cancelled) return;
+      if (fulfil.ok === true) {
+        resumingRef.current = false;
+        retriesRef.current = 0;
+        const stage = (fulfil.data as { stage?: unknown }).stage;
+        if (isFulfillmentStage(stage)) {
+          if (stage !== stageRef.current) attemptsRef.current = 0;
+          stageRef.current = stage;
+        }
+        if (fulfil.data.status === "ready") stageRef.current = "ready";
+      } else if (fulfil.failure.error === "failed_permanent") {
+        setPhase({ kind: "failed", productId: row.product_id, entitlement: row });
+        return;
+      } else if (fulfil.failure.error === "failed_retryable" || fulfil.failure.error === "network") {
+        // Преходно прекъсване: продължаваме сами, без нова покупка.
+        retriesRef.current += 1;
+        resumingRef.current = true;
+        if (retriesRef.current > MAX_RETRYABLE) {
+          setPhase({ kind: "failed", paused: true, productId: row.product_id, entitlement: row });
+          return;
+        }
+      }
+      setPhase({
+        kind: "processing",
+        productId: row.product_id,
+        entitlement: row,
+        stage: stageRef.current,
+        resuming: resumingRef.current,
+      });
+      const delay = Math.min(FIRST_DELAY_MS * attemptsRef.current, MAX_DELAY_MS);
+      timer = setTimeout(() => void tick(), delay);
+    };
+
+    void tick();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [user, authLoading, access, reloadKey]);
+
+  const entitlementId = phase.kind === "ready" ? phase.purchase.entitlement.id : null;
+
+  useEffect(() => {
+    if (phase.kind === "processing") trackResultProcessingSeen(phase.productId);
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase.kind !== "ready") return;
+    trackResultReadySeen(phase.result.product_id, phase.result.payload.findings.length);
+  }, [phase]);
+
+  // Състоянието на избора и на уточнението идва само от сървъра.
+  useEffect(() => {
+    if (!access || !entitlementId) return;
+    let cancelled = false;
+    void fetchProductResultState(accessFor(access, entitlementId)).then((outcome) => {
+      if (cancelled) return;
+      setState(outcome.ok ? outcome.data : null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [access, entitlementId, reloadKey]);
+
+  const reload = useCallback(() => {
+    retriesRef.current = 0;
+    resumingRef.current = false;
+    setReloadKey((v) => v + 1);
+    setPhase({ kind: "loading" });
+  }, []);
+
+  /* ------------------------------ поправките ------------------------------ */
+
+  const buildPatch = useCallback(
+    async (
+      result: ReadyProductResult,
+      purchase: PaidPurchase,
+      decisions: readonly CorrectionDecision[],
+    ): Promise<ProductPatchManifest> => {
+      const outcome = readPaidResult(purchase.entitlement);
+      if (outcome.ok === false) throw new Error("Документът се е променил. Презаредете страницата.");
+      const source = await loadBoundSourceText(outcome.binding);
+      if (source.ok === false) {
+        throw new Error(
+          source.reason === "not_found"
+            ? "Не намираме текста на документа за тази покупка."
+            : "Документът се е променил след плащането. Поправката не може да се приложи.",
+        );
+      }
+      if (result.product_id === "contract_check") {
+        throw new Error("Този продукт не съдържа поправки.");
+      }
+      try {
+        return await buildProductPatch(
+          {
+            sourceText: source.text,
+            sourceBinding: outcome.binding,
+            resultBinding: result.source,
+            corrections: result.payload.corrections,
+            decisions,
+          },
+          sha256Hex,
+        );
+      } catch (error) {
+        if (error instanceof ProductPatchError) throw new Error(patchMessage(error.reason));
+        throw error;
+      }
+    },
+    [],
+  );
+
+  const [manifest, setManifest] = useState<ProductPatchManifest | null>(null);
+
+  // Rebuild downloads from the persisted server selection after a reload.
+  useEffect(() => {
+    if (phase.kind !== "ready" || !state?.decisions.length || phase.result.product_id === "contract_check") {
+      setManifest(null);
+      return;
+    }
+    let cancelled = false;
+    setManifest(null);
+    void buildPatch(phase.result, phase.purchase, state.decisions).then(local => {
+      if (!cancelled && local.output_hash.toLowerCase() === state.patch_output_hash?.toLowerCase()) setManifest(local);
+    }).catch(() => { if (!cancelled) setManifest(null); });
+    return () => { cancelled = true; };
+  }, [phase, state?.decisions, state?.patch_output_hash, buildPatch]);
+
+  /* ---------------------------- ръчен преглед ----------------------------- */
+
+  type ManualSource =
+    | { readonly kind: "loading" }
+    | { readonly kind: "ready"; readonly text: string }
+    | { readonly kind: "error"; readonly message: string };
+
+  const [manual, setManual] = useState<ManualSource | null>(null);
+
+  /**
+   * Ръчният преглед ползва САМО точния платен текст. Ако документът не съвпада
+   * с платеното обвързване, не показваме нищо и казваме защо.
+   */
+  const openManualReview = useCallback(async (row: PaidEntitlementRow) => {
+    setManual({ kind: "loading" });
+    const binding = bindingFromEntitlement(row);
+    if (!binding) {
+      setManual({
+        kind: "error",
+        message: "Не намираме обвързания текст на документа за тази покупка.",
+      });
+      return;
+    }
+    const source = await loadBoundSourceText(binding).catch(() => null);
+    if (!source || source.ok === false) {
+      setManual({
+        kind: "error",
+        message:
+          source && source.reason === "source_changed"
+            ? "Документът се е променил след плащането, затова не показваме текста."
+            : "Не намираме текста на документа за тази покупка.",
+      });
+      return;
+    }
+    setManual({ kind: "ready", text: source.text });
+  }, []);
+
+  const saveSelection = useCallback(
+    async (decisions: readonly CorrectionDecision[]): Promise<SaveOutcome> => {
+      if (phase.kind !== "ready" || !access) {
+        return { ok: false, message: "Страницата трябва да се презареди." };
+      }
+      // Устойчив ключ: повторно щракване, презареждане или загубен отговор
+      // подават СЪЩАТА самоличност, затова сървърът повтаря записаното.
+      const expectedVersion = state?.selection_version ?? 0;
+      const selectionScope = await productOperationScope({
+        purpose: "product_selection",
+        entitlementId: phase.purchase.entitlement.id,
+        resultDigest: state?.result_digest ?? "",
+        version: expectedVersion,
+        input: decisions,
+      });
+      const outcome = await saveProductSelection(
+        accessFor(access, phase.purchase.entitlement.id),
+        {
+          decisions,
+          expectedVersion,
+          idempotencyKey: getOrCreateProductOperationKey("product_selection", selectionScope),
+        },
+      );
+      if (outcome.ok === false) {
+        const stale = outcome.failure.error === "selection_version_conflict";
+        if (stale) {
+          setState((prev) =>
+            prev && typeof outcome.failure.selection_version === "number"
+              ? { ...prev, selection_version: outcome.failure.selection_version }
+              : prev,
+          );
+        }
+        return {
+          ok: false,
+          message: stale
+            ? "Изборът е бил променен от друг раздел. Презаредете страницата и решете отново."
+            : outcome.failure.message,
+        };
+      }
+      // Файловете се строят локално: проверяваме, че нашият изход е същият.
+      try {
+        const local = await buildPatch(phase.result, phase.purchase, decisions);
+        if (local.output_hash.toLowerCase() !== outcome.data.output_hash.toLowerCase()) {
+          setManifest(null);
+          return {
+            ok: false,
+            message: "Поправеният текст не съвпада със записания. Презаредете страницата.",
+          };
+        }
+        setManifest(local);
+        setState((prev) =>
+          prev ? { ...prev, selection_version: outcome.data.selection_version, decisions } : prev,
+        );
+        return { ok: true, correctedText: local.corrected_text };
+      } catch (error) {
+        setManifest(null);
+        return {
+          ok: false,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Поправеният документ не можа да се подготви.",
+        };
+      }
+    },
+    [access, phase, state?.selection_version, buildPatch],
+  );
+
+  /* ------------------------------ уточнението ----------------------------- */
+
+  const refine = useCallback(
+    async (instruction: string): Promise<RefineOutcome> => {
+      if (phase.kind !== "ready" || !state) {
+        return { ok: false, message: "Страницата трябва да се презареди." };
+      }
+      const expectedRefinementVersion =
+        state.refinement?.current?.version ?? state.refinement?.used ?? 0;
+      // Точно ЕДНО включено уточнение: ключът е устойчив, за да не може повторна
+      // заявка след загубен отговор да поиска второ изпълнение.
+      const refineScope = await productOperationScope({
+        purpose: "product_refinement",
+        entitlementId: phase.purchase.entitlement.id,
+        resultDigest: state.result_digest,
+        version: expectedRefinementVersion,
+        input: instruction,
+      });
+      const outcome = await refineProductResult({
+        entitlementId: phase.purchase.entitlement.id,
+        instruction,
+        expectedResultDigest: state.result_digest,
+        expectedRefinementVersion,
+        idempotencyKey: getOrCreateProductOperationKey("product_refinement", refineScope),
+      });
+      if (outcome.ok === false) {
+        // Само доказан конфликт изчиства ключа. Временна грешка, изчакване и
+        // „за изясняване“ го запазват, за да няма второ платено изпълнение.
+        if (outcome.failure.error === "version_conflict") {
+          clearProductOperationKey("product_refinement", refineScope);
+        }
+        trackRefinementFailed(outcome.failure.error);
+        return { ok: false, message: outcome.failure.message };
+      }
+      clearProductOperationKey("product_refinement", refineScope);
+      trackRefinementCompleted();
+      reload();
+      return { ok: true };
+    },
+    [phase, state, reload],
+  );
+
+  /* -------------------------------- изгледи ------------------------------- */
+
+  const seo = (
+    <Seo
+      title="Вашият резултат"
+      description="Резултатът от платената проверка на конкретен документ."
+      noindex
+    />
+  );
+
+  const frame = (children: React.ReactNode) => (
+    <>
+      {seo}
+      <Header />
+      <main className="mx-auto max-w-3xl px-4 pb-28 pt-8 md:pb-16 md:pt-12">{children}</main>
+    </>
+  );
+
+  if (authLoading || phase.kind === "loading") {
+    return frame(
+      <div className="flex min-h-[40dvh] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-gold" aria-hidden />
+        <span className="sr-only">Зареждаме покупката.</span>
+      </div>,
+    );
+  }
+
+  if (phase.kind === "confirming") {
+    return frame(
+      <>
+        <h1 className="text-2xl font-semibold md:text-3xl">Потвърждаваме плащането</h1>
+        <Card className="mt-5 p-5">
+          <p className="flex items-center gap-3 text-sm font-medium" aria-live="polite">
+            <Loader2 className="h-4 w-4 animate-spin text-gold" aria-hidden />
+            Изчакваме потвърждението от платежния доставчик.
+          </p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Това отнема няколко секунди. Страницата продължава сама — не плащайте отново.
+          </p>
+        </Card>
+      </>,
+    );
+  }
+
+  if (phase.kind === "not_found") {
+    return frame(
+      <>
+        <h1 className="text-2xl font-semibold md:text-3xl">Не намираме потвърдено плащане</h1>
+        <p className="mt-3 text-muted-foreground">
+          Ако сумата е удържана, покупката Ви е записана. {CONTACT}
+        </p>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <Button type="button" className="min-h-11" onClick={reload}>
+            Проверете отново
+          </Button>
+          <Button asChild variant="ghost" className="min-h-11">
+            <Link to="/account?tab=documents">Вашите документи</Link>
+          </Button>
+        </div>
+      </>,
+    );
+  }
+
+
+  if (phase.kind === "no_access") {
+    return frame(
+      <>
+        <h1 className="text-2xl font-semibold md:text-3xl">Няма намерена покупка</h1>
+        <p className="mt-3 text-muted-foreground">
+          Отворете страницата от връзката, която получихте след плащането.
+        </p>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <Button asChild variant="outline" className="min-h-11">
+            <Link to="/produkti">Вижте продуктите</Link>
+          </Button>
+          <Button asChild variant="ghost" className="min-h-11">
+            <Link to="/account?tab=documents">Вашите документи</Link>
+          </Button>
+        </div>
+      </>,
+    );
+  }
+
+  if (phase.kind === "processing") {
+    const name = isOneTimeProductId(phase.productId) ? getProduct(phase.productId).name : "Продукт";
+    return frame(
+      <>
+        <h1 className="text-2xl font-semibold md:text-3xl">{name}</h1>
+        <PurchaseBreakdown entitlement={phase.entitlement} />
+        <ProcessingProgress
+          productId={phase.productId}
+          stage={phase.stage}
+          resuming={phase.resuming}
+        />
+      </>,
+    );
+  }
+
+  if (phase.kind === "failed") {
+    const failedRow = phase.entitlement;
+    return frame(
+      <>
+        <h1 className="text-2xl font-semibold md:text-3xl">{phase.paused ? "Обработката може да продължи" : "Не успяхме да завършим"}</h1>
+        <p className="mt-3 text-muted-foreground">
+          {phase.paused ? "Напредъкът е запазен. Можете да продължите без ново плащане." : <>Опитайте отново след малко. Ако проблемът остане, {CONTACT}</>}
+        </p>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <Button type="button" className="min-h-11" onClick={reload}>
+            {phase.paused ? "Продължете обработката" : "Опитайте отново"}
+          </Button>
+          {manual === null && (
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11"
+              onClick={() => void openManualReview(failedRow)}
+            >
+              Прегледайте клаузите ръчно
+            </Button>
+          )}
+        </div>
+        {manual?.kind === "loading" && (
+          <p className="mt-6 flex items-center gap-3 text-sm" aria-live="polite">
+            <Loader2 className="h-4 w-4 animate-spin text-gold" aria-hidden />
+            Зареждаме текста на документа.
+          </p>
+        )}
+        {manual?.kind === "error" && (
+          <Card className="mt-6 p-5">
+            <p className="text-sm">{manual.message}</p>
+          </Card>
+        )}
+        {manual?.kind === "ready" && (
+          <ManualClauseReview
+            title={
+              isOneTimeProductId(failedRow.product_id)
+                ? getProduct(failedRow.product_id).name
+                : "Документ"
+            }
+            sourceText={manual.text}
+          />
+        )}
+      </>,
+    );
+  }
+
+  if (phase.kind === "conflict") {
+    return frame(
+      <>
+        <h1 className="text-2xl font-semibold md:text-3xl">Резултатът не съвпада с документа</h1>
+        <p className="mt-3 text-muted-foreground">
+          Документът се е променил след плащането, затова не показваме остарял резултат. {CONTACT}
+        </p>
+      </>,
+    );
+  }
+
+  const { purchase } = phase;
+  const refined = state?.refined_result ? readPaidResult({ ...purchase.entitlement, result: state.refined_result }) : null;
+  const result = refined?.ok ? refined.result : phase.result;
+  const row = purchase.entitlement;
+  const title = result.payload.passport.title;
+  // Успокоение „нищо не е намерено“ само при доказана проверка върху целия текст.
+  const wholeDocumentCovered =
+    result.payload.absence_checks.length > 0 &&
+    result.payload.absence_checks.every((check) => check.coverage === "whole_document");
+
+  const review = (
+    <ReviewResult
+      result={result}
+      wholeDocumentCovered={wholeDocumentCovered}
+      onFindingOpened={(severity) => trackFindingOpened(result.product_id, severity)}
+    />
+  );
+
+  const reviewExport: ExportAction = {
+    kind: "review_pdf",
+    label: "Изтегли отчета от проверката (PDF)",
+    filename: safeFileName(title, "proverka", "pdf"),
+    build: () => buildReviewReportPdf(result),
+  };
+
+  const correctedExports: readonly ExportAction[] = manifest
+    ? [
+        {
+          kind: "corrected_docx",
+          label: "Поправен документ (DOCX)",
+          filename: safeFileName(title, "popraven", "docx"),
+          build: () => buildCorrectedDocx(title, manifest.corrected_text),
+        },
+        {
+          kind: "corrected_pdf",
+          label: "Поправен документ (PDF)",
+          filename: safeFileName(title, "popraven", "pdf"),
+          build: () => buildCorrectedPdf(title, manifest.corrected_text),
+        },
+        {
+          kind: "change_report_pdf",
+          label: "Отчет за промените (PDF)",
+          filename: safeFileName(title, "promeni", "pdf"),
+          build: () =>
+            buildChangeReportPdf({
+              title,
+              applied: manifest.applied,
+              rejected: manifest.rejected.map((id) => ({
+                id,
+                title:
+                  result.product_id === "contract_check"
+                    ? "Поправка"
+                    : (result.payload.corrections.find((c) => c.id === id)?.title ?? "Поправка"),
+              })),
+              corrections:
+                result.product_id === "contract_check" ? [] : result.payload.corrections,
+            }),
+        },
+      ]
+    : [];
+
+  const correctionExportsSlot = manifest ? (
+    <ExportBar
+      title="Изтеглете поправения документ"
+      note="Файлът съдържа текста с приетите поправки. Оформлението и таблиците от Вашия файл не се пренасят."
+      actions={correctedExports}
+      onCompleted={(kind) => trackExportCompleted(result.product_id, kind)}
+    />
+  ) : null;
+
+  const workspace =
+    result.product_id === "contract_check" ? null : (
+      <CorrectionWorkspace
+        corrections={result.payload.corrections}
+        savedDecisions={state?.decisions ?? []}
+        savedCorrectedText={manifest?.corrected_text ?? null}
+        onSave={saveSelection}
+        onDecision={(decision, strategy) =>
+          trackCorrectionSelected(result.product_id, strategy ?? "none", decision)
+        }
+        onPreviewOpened={() => trackCorrectedPreviewOpened(result.product_id)}
+        exportsSlot={correctionExportsSlot}
+      />
+    );
+
+  const documentSlot = (
+    <>
+      {review}
+      <ExportBar
+        title="Изтегляне"
+        actions={[reviewExport]}
+        onCompleted={(kind) => trackExportCompleted(result.product_id, kind)}
+      />
+      {workspace}
+    </>
+  );
+
+  return frame(
+    <>
+      <p className="text-sm text-muted-foreground">
+        {isOneTimeProductId(row.product_id) ? getProduct(row.product_id).name : "Продукт"} ·{" "}
+        {priceBg(row.amount_cents)}, еднократно
+      </p>
+      <p role="note" className="mt-3 rounded-lg border border-gold/30 bg-gold/5 p-3 text-sm text-muted-foreground">
+        {NOT_LEGAL_ADVICE}
+      </p>
+      <div className="mt-4">
+        {isProductResult(result, "negotiation_package") ? (
+          <NegotiationWorkspace
+            payload={result.payload}
+            documentSlot={documentSlot}
+            onRefine={refine}
+            onRefinementSubmitted={trackRefinementSubmitted}
+            exportsSlot={
+              <ExportBar
+                title="Материали за преговорите"
+                actions={[
+                  {
+                    kind: "negotiation_brief_pdf",
+                    label: "Записка за преговори (PDF)",
+                    filename: safeFileName(title, "pregovori", "pdf"),
+                    build: () => buildNegotiationBriefPdf(result),
+                  },
+                ]}
+                onCompleted={(kind) => trackExportCompleted(result.product_id, kind)}
+              />
+            }
+          />
+        ) : (
+          documentSlot
+        )}
+      </div>
+
+      {isOneTimeProductId(row.product_id) && (
+        <p className="mt-10 text-sm text-muted-foreground">
+          <Link to={productPathById(row.product_id)} className="underline">
+            Какво включва този продукт
+          </Link>
+        </p>
+      )}
+      <p className="mt-3 text-xs text-muted-foreground">
+        Ако работите с документи редовно,{" "}
+        <Link
+          to="/pricing"
+          className="underline"
+          onClick={() => trackQuietPlanLinkClicked(result.product_id)}
+        >
+          вижте плановете
+        </Link>
+        .
+      </p>
+    </>,
+  );
+}

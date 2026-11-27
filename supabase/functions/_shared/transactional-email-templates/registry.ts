@@ -1,0 +1,38 @@
+/// <reference types="npm:@types/react@^18.3.0" />
+import * as React from 'npm:react@18.3.1'
+
+export interface TemplateEntry {
+  component: React.ComponentType<any>
+  subject: string | ((data: Record<string, any>) => string)
+  to?: string
+  displayName?: string
+  previewData?: Record<string, any>
+}
+
+import { template as welcome } from './welcome.tsx'
+import { template as paymentReceipt } from './payment-receipt.tsx'
+import { template as proExpiring } from './pro-expiring.tsx'
+import { template as proExpired } from './pro-expired.tsx'
+import { template as teamInvitation } from './team-invitation.tsx'
+import { template as paymentFailed } from './payment-failed.tsx'
+import { template as illegalContentAlert } from './illegal-content-alert.tsx'
+import { template as signingInvitation } from './signing-invitation.tsx'
+import { template as signingOtp } from './signing-otp.tsx'
+import { template as signingCompleted } from './signing-completed.tsx'
+import { template as reminderDue } from './reminder-due.tsx'
+import { template as teamManagerContact } from './team-manager-contact.tsx'
+
+export const TEMPLATES: Record<string, TemplateEntry> = {
+  'welcome': welcome,
+  'payment-receipt': paymentReceipt,
+  'pro-expiring': proExpiring,
+  'pro-expired': proExpired,
+  'team-invitation': teamInvitation,
+  'payment-failed': paymentFailed,
+  'illegal-content-alert': illegalContentAlert,
+  'signing-invitation': signingInvitation,
+  'signing-otp': signingOtp,
+  'signing-completed': signingCompleted,
+  'reminder-due': reminderDue,
+  'team-manager-contact': teamManagerContact,
+}

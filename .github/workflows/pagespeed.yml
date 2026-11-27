@@ -1,0 +1,56 @@
+name: PageSpeed Insights
+
+on:
+  schedule:
+    # Daily at 04:30 UTC (07:30 EEST) — off-peak, before EU business hours
+    - cron: "30 4 * * *"
+  workflow_dispatch:
+    inputs:
+      strategy:
+        description: "mobile or desktop"
+        required: false
+        default: "mobile"
+      base_url:
+        description: "Origin to test"
+        required: false
+        default: "https://dogovori.net"
+
+permissions:
+  contents: read
+
+jobs:
+  psi:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        strategy_kind: [mobile, desktop]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+
+      - name: Install tsx runner
+        run: bun add -d tsx
+
+      - name: Run PageSpeed check (${{ matrix.strategy_kind }})
+        env:
+          PSI_API_KEY: ${{ secrets.PSI_API_KEY }}
+          PSI_BASE_URL: ${{ github.event.inputs.base_url || 'https://dogovori.net' }}
+          PSI_STRATEGY: ${{ matrix.strategy_kind }}
+          PSI_WEBHOOK_URL: ${{ secrets.SEO_ALERT_WEBHOOK }}
+          # Mobile is the stricter SEO signal; relax perf slightly for desktop.
+          PSI_MIN_PERF: ${{ matrix.strategy_kind == 'mobile' && '75' || '85' }}
+          PSI_MIN_SEO: "95"
+          PSI_MIN_A11Y: "90"
+          PSI_MIN_BP: "90"
+        run: bunx tsx scripts/pagespeed-check.ts
+
+      - name: Upload report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pagespeed-${{ matrix.strategy_kind }}
+          path: reports/pagespeed-*.json
+          retention-days: 30

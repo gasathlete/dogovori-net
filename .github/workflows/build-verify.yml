@@ -1,0 +1,79 @@
+name: Build & SEO Verification
+
+# Runs the full production build pipeline (Vite build + prerender + verify-build)
+# on every PR and push to main. Fails the check when:
+#   - vite build fails
+#   - scripts/prerender.ts cannot generate /ai or /karta static HTML
+#   - scripts/verify-build.ts finds a missing required JSON-LD @type
+#     (FAQPage / HowTo / BreadcrumbList / ItemList / CollectionPage)
+#     or any structural SEO regression in dist/.
+#
+# This catches "structured data disappeared" regressions BEFORE merge,
+# instead of after the next Google Search Console crawl.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-verify:
+    name: Production build + verify-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck application
+        run: bunx tsc --noEmit -p tsconfig.app.json
+
+      # 1) Run every generation/build stage from package.json's production build.
+      # Artifact and URL verification follow as separate visible gates.
+      - name: Vite build + prerender
+        env:
+          NODE_ENV: production
+        run: |
+          bun run scripts/generate-blog-meta.ts
+          bun run scripts/generate-footer-anchors.ts
+          bun run scripts/build-sitemap.ts
+          bunx vite build
+          bun run scripts/prerender.ts
+
+      # 2) Verify SEO artifacts in dist/. This is the gate: missing JSON-LD
+      #    types on /ai or /karta exit non-zero and fail the workflow.
+      - name: Verify build artifacts (JSON-LD, sitemap, robots)
+        run: bun run scripts/verify-build.ts
+
+      # 3) Verify internal SEO URLs / canonical / sitemap entries.
+      - name: Verify SEO URLs
+        run: bun run scripts/verify-seo-urls.ts
+
+      # On failure, upload dist/ai + dist/karta so the failure is debuggable
+      # without re-running the build locally.
+      - name: Upload SSG artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-ssg-debug
+          retention-days: 7
+          path: |
+            dist/ai/index.html
+            dist/karta/index.html
+            dist/sitemap.xml
+            dist/robots.txt
+            dist/index.html

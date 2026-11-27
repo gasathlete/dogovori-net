@@ -1,0 +1,1448 @@
+/* Fonts loaded via <link> tags in index.html for parallel download (instead of CSS @import which blocks). */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Navy & Gold premium legal palette — refined */
+    --background: 220 45% 7%;
+    --foreground: 42 35% 92%;
+
+    --card: 220 42% 10%;
+    --card-foreground: 42 35% 92%;
+
+    --popover: 220 42% 10%;
+    --popover-foreground: 42 35% 92%;
+
+    --primary: 43 55% 54%;
+    --primary-foreground: 220 45% 7%;
+
+    --secondary: 220 35% 15%;
+    --secondary-foreground: 42 35% 92%;
+
+    --muted: 220 30% 14%;
+    --muted-foreground: 42 15% 65%;
+
+    --accent: 43 70% 65%;
+    --accent-foreground: 220 45% 7%;
+
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 156 46% 54%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 90% 55%;
+    --danger: 0 75% 58%;
+
+    /* Refined hairline borders for premium feel */
+    --border: 220 30% 20%;
+    --input: 220 30% 16%;
+    --ring: 43 55% 54%;
+
+    --radius: 0.5rem;
+
+    --gold: 42.128 39.167% 52.941%;
+    --gold-light: 43 70% 70%;
+    --gold-dark: 43 60% 38%;
+    --brand-logo-dark: 0 0% 100%;
+
+    /* Brand emerald — used as accent on Plans/Pricing */
+    --brand: 152 60% 45%;
+    --brand-light: 150 65% 60%;
+    --brand-dark: 155 65% 30%;
+    --gradient-brand: linear-gradient(135deg, hsl(155 65% 32%) 0%, hsl(150 65% 50%) 100%);
+    --shadow-brand: 0 14px 40px -14px hsl(152 60% 38% / 0.45);
+    --navy: 219.13 41.818% 10.784%;
+    --navy-light: 220 38% 14%;
+
+    /* Elevated surface tokens for premium layering */
+    --surface-1: 220 40% 9%;
+    --surface-2: 220 38% 11%;
+    --surface-3: 220 36% 13%;
+    --hairline: 220 30% 20%;
+    --hairline-strong: 43 50% 50% / 0.35;
+
+    --gradient-hero: linear-gradient(135deg, hsl(220 50% 8%) 0%, hsl(220 42% 12%) 50%, hsl(220 38% 16%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(43 60% 48%) 0%, hsl(43 70% 62%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(220 38% 11%) 0%, hsl(220 42% 9%) 100%);
+    --gradient-radial: radial-gradient(ellipse at top, hsl(220 50% 14% / 0.8), transparent 70%);
+    --gradient-fine-noise: radial-gradient(circle at 1px 1px, hsl(43 55% 54% / 0.06) 1px, transparent 0);
+
+    --shadow-gold: 0 10px 40px -10px hsl(43 55% 54% / 0.35);
+    --shadow-elegant: 0 20px 60px -15px hsl(220 60% 4% / 0.6);
+    --shadow-soft: 0 4px 20px -4px hsl(220 60% 4% / 0.4);
+    --shadow-inset-line: inset 0 1px 0 hsl(43 55% 54% / 0.06);
+
+    --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+    --sidebar-background: 220 42% 9%;
+    --sidebar-foreground: 42 25% 80%;
+    --sidebar-primary: 43 55% 54%;
+    --sidebar-primary-foreground: 220 45% 7%;
+    --sidebar-accent: 220 35% 14%;
+    --sidebar-accent-foreground: 42 35% 92%;
+    --sidebar-border: 220 30% 18%;
+    --sidebar-ring: 43 55% 54%;
+  }
+
+  /* ============ LIGHT THEME — Paper & Gold ============
+     Activated by `html.light` (toggle in Header).
+     Default remains dark to preserve existing visual identity. */
+  html.light {
+    /* Editorial Light 2.0 — warmer cream, deeper gold, richer shadows */
+    --background: 40 32% 92%;
+    --foreground: 30 15% 14%;
+
+    --card: 40 42% 98%;
+    --card-foreground: 30 15% 14%;
+
+    --popover: 40 42% 98%;
+    --popover-foreground: 30 15% 14%;
+
+    /* Punchier gold — better presence on light backgrounds */
+    --primary: 40 62% 48%;
+    --primary-foreground: 30 25% 10%;
+
+    --secondary: 38 22% 88%;
+    --secondary-foreground: 30 15% 14%;
+
+    --muted: 38 22% 90%;
+    --muted-foreground: 30 12% 34%;
+
+    --accent: 40 65% 46%;
+    --accent-foreground: 30 25% 10%;
+
+    --destructive: 0 68% 46%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 158 54% 27%;
+    --success-foreground: 0 0% 100%;
+    --warning: 36 82% 42%;
+    --danger: 0 72% 45%;
+
+    --border: 34 18% 80%;
+    --input: 38 20% 88%;
+    --ring: 40 62% 48%;
+
+    --gold: 42.128 39.167% 52.941%;
+    --gold-light: 42 75% 60%;
+    --gold-dark: 36 68% 28%;
+
+    /* Brand emerald — Plans accent (light) */
+    --brand: 152 55% 34%;
+    --brand-light: 150 55% 48%;
+    --brand-dark: 155 65% 22%;
+    --gradient-brand: linear-gradient(135deg, hsl(155 62% 26%) 0%, hsl(150 55% 42%) 100%);
+    --shadow-brand: 0 18px 40px -14px hsl(152 55% 26% / 0.32);
+    /* `--navy` kept dark — used as text color on gold backgrounds. */
+    --navy: 219.13 41.818% 10.784%;
+    --navy-light: 30 12% 24%;
+
+    --surface-1: 40 36% 95%;
+    --surface-2: 40 42% 98%;
+    --surface-3: 38 24% 90%;
+    --hairline: 34 18% 78%;
+    --hairline-strong: 40 62% 44% / 0.45;
+
+    --gradient-hero: linear-gradient(180deg, hsl(42 40% 96%) 0%, hsl(40 30% 92%) 55%, hsl(36 22% 87%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(36 68% 40%) 0%, hsl(42 78% 62%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(40 46% 99%) 0%, hsl(40 30% 94%) 100%);
+    /* Layered ambient — warm gold glow top-left + cool cream vignette top-right */
+    --gradient-radial:
+      radial-gradient(ellipse 80% 60% at 15% 0%, hsl(42 70% 78% / 0.55), transparent 60%),
+      radial-gradient(ellipse 70% 55% at 90% 10%, hsl(30 45% 82% / 0.45), transparent 65%),
+      radial-gradient(ellipse 100% 60% at 50% 100%, hsl(38 30% 88% / 0.6), transparent 70%);
+    --gradient-fine-noise: radial-gradient(circle at 1px 1px, hsl(36 60% 30% / 0.06) 1px, transparent 0);
+
+    --shadow-gold: 0 18px 48px -14px hsl(36 68% 34% / 0.35);
+    --shadow-elegant: 0 30px 70px -22px hsl(30 30% 15% / 0.22), 0 2px 6px -2px hsl(30 30% 15% / 0.08);
+    --shadow-soft: 0 10px 30px -10px hsl(30 30% 15% / 0.14), 0 1px 2px hsl(30 30% 15% / 0.05);
+    --shadow-inset-line: inset 0 1px 0 hsl(0 0% 100% / 0.8), inset 0 -1px 0 hsl(30 25% 20% / 0.04);
+
+    --sidebar-background: 40 42% 98%;
+    --sidebar-foreground: 30 15% 18%;
+    --sidebar-primary: 40 62% 44%;
+    --sidebar-primary-foreground: 30 25% 10%;
+    --sidebar-accent: 40 28% 92%;
+    --sidebar-accent-foreground: 30 15% 14%;
+    --sidebar-border: 34 18% 82%;
+    --sidebar-ring: 40 62% 44%;
+  }
+
+  /* Light theme body — richer ambient background with a subtle warm gradient */
+  html.light body {
+    background-color: hsl(var(--background));
+    background-image: var(--gradient-radial);
+    background-attachment: fixed;
+    background-size: 100% 100%;
+  }
+  /* Very subtle warm noise layered above the ambient — adds paper texture */
+  html.light body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image: var(--gradient-fine-noise);
+    background-size: 3px 3px;
+    opacity: 0.5;
+    mix-blend-mode: multiply;
+  }
+  html.light #root { position: relative; z-index: 1; }
+
+  /* Cards get a soft gradient + inset highlight so they lift off the paper */
+  html.light .bg-card,
+  html.light .bg-card\/50,
+  html.light .bg-card\/60,
+  html.light .bg-card\/70,
+  html.light .bg-card\/80 {
+    background-image: var(--gradient-card);
+    box-shadow: var(--shadow-inset-line);
+  }
+
+  /* =====================================================================
+     LIGHT THEME — remap dark navy SURFACES to light surfaces.
+     `bg-navy*`, `from-navy`, `via-navy`, `to-navy` are used throughout the
+     app as background utilities. We keep `text-navy` (Tailwind text-color)
+     intact (it stays dark, used on gold buttons), and only override
+     background/gradient usages here.
+     =====================================================================*/
+  html.light .bg-navy { background-color: hsl(var(--card)); }
+  html.light .bg-navy\/60 { background-color: hsl(var(--card) / 0.85); }
+  html.light .bg-navy\/70 { background-color: hsl(var(--card) / 0.9); }
+  html.light .bg-navy\/80 { background-color: hsl(var(--card) / 0.92); }
+  html.light .bg-navy\/85 { background-color: hsl(var(--card) / 0.94); }
+  html.light .bg-navy\/90 { background-color: hsl(var(--card) / 0.96); }
+  html.light .bg-navy\/95 { background-color: hsl(var(--card) / 0.98); }
+
+  html.light .bg-navy-light { background-color: hsl(var(--muted)); }
+  html.light .bg-navy-light\/20 { background-color: hsl(var(--muted) / 0.5); }
+  html.light .bg-navy-light\/30 { background-color: hsl(var(--muted) / 0.6); }
+  html.light .bg-navy-light\/40 { background-color: hsl(var(--muted) / 0.7); }
+  html.light .bg-navy-light\/60 { background-color: hsl(var(--muted) / 0.85); }
+  html.light .bg-navy-light\/70 { background-color: hsl(var(--muted) / 0.9); }
+
+  /* Gradients that fade from navy → transparent (used as bottom overlays)
+     should fade from the light card surface in light mode. */
+  html.light .from-navy { --tw-gradient-from: hsl(var(--card)) var(--tw-gradient-from-position); --tw-gradient-to: hsl(var(--card) / 0) var(--tw-gradient-to-position); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+  html.light .via-navy { --tw-gradient-to: hsl(var(--card) / 0) var(--tw-gradient-to-position); --tw-gradient-stops: var(--tw-gradient-from), hsl(var(--card)) var(--tw-gradient-via-position), var(--tw-gradient-to); }
+  html.light .via-navy\/80 { --tw-gradient-to: hsl(var(--card) / 0) var(--tw-gradient-to-position); --tw-gradient-stops: var(--tw-gradient-from), hsl(var(--card) / 0.85) var(--tw-gradient-via-position), var(--tw-gradient-to); }
+  html.light .via-navy\/95 { --tw-gradient-to: hsl(var(--card) / 0) var(--tw-gradient-to-position); --tw-gradient-stops: var(--tw-gradient-from), hsl(var(--card) / 0.95) var(--tw-gradient-via-position), var(--tw-gradient-to); }
+  html.light .to-navy { --tw-gradient-to: hsl(var(--card)) var(--tw-gradient-to-position); }
+  html.light .to-navy\/0 { --tw-gradient-to: hsl(var(--card) / 0) var(--tw-gradient-to-position); }
+  html.light .to-navy\/95 { --tw-gradient-to: hsl(var(--card) / 0.95) var(--tw-gradient-to-position); }
+
+  /* Hard-coded HSL navy gradients in inline styles can be addressed where used;
+     here we tame any leftover dark backdrops on landing decorations. */
+  html.light [class*="bg-[radial-gradient"][class*="navy"] { background-image: none; }
+
+  /* Locally re-assert dark tokens for surfaces that stay dark by design
+     (e.g. CTA band with hardcoded navy gradient). Keeps text/muted/hairline
+     legible regardless of the active site theme. */
+  .cta-dark-scope {
+    --background: 220 45% 7%;
+    --foreground: 42 35% 92%;
+    --card: 220 42% 10%;
+    --card-foreground: 42 35% 92%;
+    --muted: 220 30% 14%;
+    --muted-foreground: 42 18% 72%;
+    --border: 220 30% 22%;
+    --primary: 43 55% 54%;
+    --primary-foreground: 220 45% 7%;
+    color: hsl(var(--foreground));
+  }
+  .cta-dark-scope .bg-card,
+  .cta-dark-scope .bg-card\/40,
+  .cta-dark-scope .bg-card\/50,
+  .cta-dark-scope .bg-card\/60,
+  .cta-dark-scope .bg-card\/70,
+  .cta-dark-scope .bg-card\/80 {
+    background-image: none;
+    background-color: hsl(var(--card) / 0.6);
+    box-shadow: none;
+  }
+}
+
+
+/* Isolate repeating card paints/layout so hover effects don't trigger
+   full-section reflows. Apply with `card-contain` utility. */
+@layer utilities {
+  .card-contain { contain: layout paint; }
+
+  /* Linear-style press feedback: subtle scale-down on active state.
+     Pair with the magnetic hover hook for tactile primary CTAs. */
+  .btn-press { transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms, background 200ms; }
+  .btn-press:active { transform: scale(0.97) !important; }
+
+  /* Card with gold hairline that brightens on hover — Linear card feel. */
+  .linear-card {
+    position: relative;
+    transition: border-color 200ms, transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 200ms;
+  }
+  .linear-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(var(--gold) / 0.5), transparent);
+    opacity: 0;
+    transition: opacity 250ms;
+    pointer-events: none;
+  }
+  .linear-card:hover::before { opacity: 1; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .btn-press, .linear-card { transition: none !important; }
+    .btn-press:active { transform: none !important; }
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-family: 'IBM Plex Sans Variable', 'IBM Plex Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-size: 17px;
+  }
+  @media (max-width: 640px) {
+    html { font-size: 16px; }
+  }
+
+  /* NOTE: do NOT set `scroll-behavior: smooth` on html (even via :focus-within).
+     In Chrome it makes every mouse-wheel tick restart a smooth animation, so
+     wheel scrolling feels stuck/broken. Smooth anchor scrolling is handled in
+     JS via scrollIntoView({ behavior: "smooth" }) in scrollToHash. */
+
+  html, body {
+    overflow-x: hidden;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    background-image: var(--gradient-radial);
+    background-attachment: scroll;
+    background-repeat: no-repeat;
+    font-feature-settings: "ss01", "cv11", "kern";
+    -webkit-tap-highlight-color: transparent;
+    font-size: 1rem;
+    line-height: 1.65;
+  }
+
+  /* Mobile guard: allow flex/grid children to shrink and truncate */
+  *:not(svg):not(path):not(circle):not(rect) { min-width: 0; }
+
+  img, video, table, pre { max-width: 100%; }
+  p, h1, h2, h3, h4 { overflow-wrap: break-word; }
+
+  /* Offscreen sections skip rendering work but reserve space */
+  /* LazyOnVisible reservation: follows breakpoints on rotate/resize. */
+  .lov-reserve { min-height: var(--lov-phone); }
+  @media (min-width: 768px) { .lov-reserve { min-height: var(--lov-tablet); } }
+  @media (min-width: 1024px) { .lov-reserve { min-height: var(--lov-desktop); } }
+
+  .cv-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 600px;
+  }
+
+  h1, h2, h3, h4, .font-serif {
+    font-family: 'Libre Baskerville Variable', 'Libre Baskerville', Georgia, serif;
+    letter-spacing: -0.015em;
+  }
+
+  h1 { letter-spacing: -0.025em; }
+  h2 { letter-spacing: -0.02em; }
+
+  /* Refined selection */
+  ::selection {
+    background: hsl(var(--gold) / 0.28);
+    color: hsl(var(--foreground));
+  }
+
+  /* Premium scrollbar — theme-aware */
+  ::-webkit-scrollbar { width: 12px; height: 12px; }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.5);
+    border-left: 1px solid hsl(var(--border));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.45);
+    border-radius: 999px;
+    border: 2px solid hsl(var(--background));
+  }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--gold) / 0.75); }
+  html { scrollbar-color: hsl(var(--muted-foreground) / 0.5) hsl(var(--muted) / 0.5); }
+
+  /* Light theme — stronger contrast so the scrollbar is clearly visible on cream backgrounds */
+  :root:not(.dark) ::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+    border-left: 1px solid hsl(var(--border));
+  }
+  :root:not(.dark) ::-webkit-scrollbar-thumb {
+    background: hsl(var(--foreground) / 0.35);
+    border: 2px solid hsl(var(--muted));
+  }
+  :root:not(.dark) ::-webkit-scrollbar-thumb:hover { background: hsl(var(--gold)); }
+  :root:not(.dark) { scrollbar-color: hsl(var(--foreground) / 0.4) hsl(var(--muted)); }
+
+
+  /* Elegant focus rings */
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--gold) / 0.55);
+    border-radius: calc(var(--radius) - 2px);
+  }
+
+  /* Image rendering */
+  img { -webkit-user-drag: none; }
+}
+
+
+@layer components {
+  .text-gold {
+    color: hsl(var(--gold));
+  }
+  .gold-gradient-text {
+    background: var(--gradient-gold);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .gold-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(var(--gold) / 0.6), transparent);
+  }
+  .legal-paper {
+    background: hsl(42 30% 96%);
+    color: hsl(220 30% 12%);
+    font-family: 'Libre Baskerville Variable', 'Libre Baskerville', Georgia, serif;
+  }
+  .legal-paper-strong {
+    color: hsl(220 35% 10%);
+  }
+  .legal-paper-divider {
+    border-color: hsl(220 20% 35% / 0.45);
+  }
+
+  /* Premium surface — subtle gradient + inner highlight line */
+  .surface-elevated {
+    background:
+      linear-gradient(180deg, hsl(var(--surface-2) / 0.85), hsl(var(--surface-1) / 0.75));
+    border: 1px solid hsl(var(--hairline));
+    box-shadow: var(--shadow-inset-line), 0 1px 0 0 hsl(0 0% 0% / 0.2);
+  }
+  .surface-elevated:hover {
+    border-color: hsl(43 50% 50% / 0.4);
+  }
+
+  /* Hairline divider — premium 1px gold tint */
+  .hairline-x {
+    background: linear-gradient(90deg, transparent, hsl(var(--gold) / 0.35), transparent);
+    height: 1px;
+  }
+
+  /* Eyebrow label — used everywhere for section labels */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-gold sm:text-[11px];
+  }
+
+  /* Fine grid texture (use as background-image utility) */
+  .bg-fine-grid {
+    background-image: var(--gradient-fine-noise);
+    background-size: 32px 32px;
+  }
+
+  /* Premium gold CTA — consistent across the app */
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-navy transition-all duration-200;
+    background: var(--gradient-gold);
+    box-shadow: var(--shadow-gold), inset 0 1px 0 hsl(43 90% 80% / 0.5);
+  }
+  .btn-gold:hover {
+    box-shadow: 0 18px 50px -12px hsl(43 70% 55% / 0.55), inset 0 1px 0 hsl(43 90% 85% / 0.6);
+    transform: translateY(-1px);
+  }
+  .btn-gold:active { transform: translateY(0); }
+
+  .btn-gold-inverse {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-gold transition-all duration-200;
+    background: hsl(var(--navy-light));
+    border: 1.5px solid hsl(var(--gold) / 0.45);
+    box-shadow: 0 10px 40px -10px hsl(43 55% 54% / 0.2), inset 0 1px 0 hsl(43 55% 54% / 0.08);
+  }
+  .btn-gold-inverse:hover {
+    background: hsl(220 38% 18%);
+    border-color: hsl(var(--gold) / 0.7);
+    box-shadow: 0 18px 50px -12px hsl(43 55% 54% / 0.3), inset 0 1px 0 hsl(43 55% 54% / 0.12);
+    transform: translateY(-1px);
+  }
+  .btn-gold-inverse:active { transform: translateY(0); }
+
+  .btn-ghost-gold {
+    @apply inline-flex items-center justify-center gap-2 rounded-md border border-gold/35 bg-gold/5 px-6 py-3 text-sm font-medium text-gold transition-colors duration-200 hover:bg-gold/10 hover:border-gold/55;
+  }
+
+  /* Card with subtle corner glow on hover */
+  .card-premium {
+    @apply rounded-xl surface-elevated transition-colors duration-200;
+  }
+
+  /* Decorative corner ticks for cards (aesop-style) */
+  .corner-ticks::before,
+  .corner-ticks::after {
+    content: "";
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-color: hsl(var(--gold) / 0.45);
+    border-style: solid;
+    transition: border-color 200ms;
+    pointer-events: none;
+  }
+  .corner-ticks::before { top: 8px; left: 8px; border-width: 1px 0 0 1px; }
+  .corner-ticks::after { bottom: 8px; right: 8px; border-width: 0 1px 1px 0; }
+  .corner-ticks:hover::before,
+  .corner-ticks:hover::after { border-color: hsl(var(--gold) / 0.85); }
+}
+
+@layer utilities {
+  /* Use for long-form prose sections */
+  .text-balance { text-wrap: balance; }
+  .text-pretty { text-wrap: pretty; }
+
+  /* Large highlighted numeric metric (gold gradient, serif) */
+  .metric-number {
+    font-family: 'Libre Baskerville Variable', 'Libre Baskerville', Georgia, serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    background: var(--gradient-gold);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* Elegant foreground → gold gradient accent for highlighted letters */
+  .text-accent-gradient {
+    background: linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--gold)) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    position: relative;
+  }
+  .text-accent-gradient::before {
+    content: '';
+    position: absolute;
+    top: 0.02em;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0.1em;
+    height: 0.1em;
+    background: linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--gold)) 100%);
+    border-radius: 50%;
+    opacity: 0.95;
+  }
+
+
+  /* Section divider — gold-tinted hairline */
+  .section-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(var(--gold) / 0.25), transparent);
+  }
+
+  /* Premium gold sheen sweep on hover (CSS-only, single pass) */
+  .btn-sheen {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .btn-sheen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent 30%, hsl(43 90% 85% / 0.35) 50%, transparent 70%);
+    transform: translateX(-120%);
+    transition: transform 800ms cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .btn-sheen:hover::after { transform: translateX(120%); }
+  @media (prefers-reduced-motion: reduce) {
+    .btn-sheen::after { display: none; }
+  }
+
+  /* Skeleton shimmer */
+  .shimmer-bar {
+    position: relative;
+    overflow: hidden;
+  }
+  .shimmer-bar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, hsl(var(--gold) / 0.08), transparent);
+    transform: translateX(-100%);
+    animation: shimmer-sweep 1.8s ease-in-out infinite;
+  }
+  @keyframes shimmer-sweep {
+    100% { transform: translateX(100%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .shimmer-bar::after { animation: none; }
+  }
+
+  /* Subtle gold text shimmer for hero accents — settles to solid gold */
+  .gold-shimmer {
+    background-image:
+      linear-gradient(hsl(var(--gold)), hsl(var(--gold))),
+      linear-gradient(
+        100deg,
+        transparent 38%,
+        hsl(43 95% 88%) 50%,
+        transparent 62%
+      );
+    background-size: 100% 100%, 220% 100%;
+    background-position: 0 0, 130% 0;
+    background-repeat: no-repeat;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: gold-sweep 2.4s ease-out 0.4s 1 both;
+  }
+  @keyframes gold-sweep {
+    to { background-position: 0 0, -130% 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .gold-shimmer {
+      animation: none;
+      background: none;
+      color: hsl(var(--gold));
+    }
+  }
+
+  /* Staggered entrance — only a handful of hero elements, so the
+     compositor hint cost is negligible. */
+  .anim-rise {
+    opacity: 0;
+    will-change: opacity;
+    animation: rise-in 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  @keyframes rise-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .anim-rise { opacity: 1; animation: none; }
+  }
+
+  /* Route fade-in */
+  .route-fade {
+    animation: route-fade-in 220ms ease-out both;
+  }
+  @keyframes route-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .route-fade { animation: none; }
+  }
+
+  /* ----- Modern progressive-disclosure utilities ----- */
+
+  /* Scroll-stagger: children fade/rise with auto-incrementing delays.
+     Parent toggles .is-visible (via Reveal / IntersectionObserver) to play. */
+  .scroll-stagger > * {
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 600ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .scroll-stagger.is-visible > * { opacity: 1; transform: translateY(0); }
+  .scroll-stagger > *:nth-child(1) { transition-delay: 0ms; }
+  .scroll-stagger > *:nth-child(2) { transition-delay: 70ms; }
+  .scroll-stagger > *:nth-child(3) { transition-delay: 140ms; }
+  .scroll-stagger > *:nth-child(4) { transition-delay: 210ms; }
+  .scroll-stagger > *:nth-child(5) { transition-delay: 280ms; }
+  .scroll-stagger > *:nth-child(6) { transition-delay: 350ms; }
+  @media (prefers-reduced-motion: reduce) {
+    .scroll-stagger > * { opacity: 1; transform: none; transition: none; }
+  }
+
+  /* Rotating gold border-beam */
+  .border-beam {
+    position: relative;
+    isolation: isolate;
+  }
+  .border-beam::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(
+      from var(--beam-angle, 0deg),
+      transparent 0deg,
+      hsl(var(--gold) / 0.9) 30deg,
+      hsl(var(--gold-light) / 0.6) 60deg,
+      transparent 90deg,
+      transparent 360deg
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: beam-spin 4s linear infinite;
+    pointer-events: none;
+    opacity: 0.85;
+  }
+  @property --beam-angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+  }
+  @keyframes beam-spin {
+    to { --beam-angle: 360deg; }
+  }
+  @supports not (background: conic-gradient(from 0deg, red, red)) {
+    .border-beam::before { animation: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .border-beam::before { animation: none; }
+  }
+
+  /* Animated gold gradient sweep — for CTA bands */
+  .gold-sweep-bg {
+    /* Position + overflow intentionally NOT set here so callers control them.
+       (Previously forced position:relative which broke absolute-positioned ambient layers.) */
+  }
+  .gold-sweep-bg::before {
+    content: "";
+    position: absolute;
+    inset: -50% -10%;
+    background: radial-gradient(
+      ellipse 40% 60% at 50% 50%,
+      hsl(43 70% 55% / 0.18) 0%,
+      transparent 60%
+    );
+    animation: gold-sweep-pan 9s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+  @keyframes gold-sweep-pan {
+    0%, 100% { transform: translateX(-20%); }
+    50%      { transform: translateX(20%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .gold-sweep-bg::before { animation: none; }
+  }
+
+  /* Vertical timeline rail (Process section) */
+  .timeline-rail {
+    position: relative;
+  }
+  .timeline-rail::before {
+    content: "";
+    position: absolute;
+    left: 19px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      hsl(var(--gold) / 0.45) 10%,
+      hsl(var(--gold) / 0.45) 90%,
+      transparent 100%
+    );
+  }
+  @media (min-width: 768px) {
+    .timeline-rail::before { left: 23px; }
+  }
+
+  /* Soft pulse arrow (scroll hint) */
+  .pulse-arrow {
+    animation: pulse-arrow 2.2s ease-in-out infinite;
+  }
+  @keyframes pulse-arrow {
+    0%, 100% { transform: translateY(0); opacity: 0.7; }
+    50%      { transform: translateY(4px); opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pulse-arrow { animation: none; }
+  }
+
+  /* Marquee row — used by Testimonials */
+  .marquee-track {
+    animation: marquee-x 50s linear infinite;
+  }
+  .marquee-track:hover { animation-play-state: paused; }
+  @keyframes marquee-x {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-track { animation: none; }
+  }
+
+  /* Partners marquee — smoothly scrolling logo cards */
+  .partners-marquee {
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, transparent, hsl(0 0% 0%) 10%, hsl(0 0% 0%) 90%, transparent);
+    mask-image: linear-gradient(90deg, transparent, hsl(0 0% 0%) 10%, hsl(0 0% 0%) 90%, transparent);
+  }
+  .partners-marquee__track {
+    animation: marquee-x 140s linear infinite;
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+  }
+  .partners-marquee:hover .partners-marquee__track,
+  .partners-marquee:focus-within .partners-marquee__track {
+    animation-play-state: paused;
+  }
+  @media (max-width: 640px) {
+    .partners-marquee__track {
+      animation-duration: 95s;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .partners-marquee__track { animation: none; }
+  }
+
+  /* ─── Social proof band: тънка технологична мрежа + златен glow ───── */
+  .proof-band {
+    border-top: 1px solid hsl(var(--border) / 0.5);
+    border-bottom: 1px solid hsl(var(--border) / 0.5);
+    background-color: hsl(var(--card) / 0.25);
+    background-image:
+      radial-gradient(60% 120% at 50% 0%, hsl(var(--gold) / 0.10), transparent 70%),
+      linear-gradient(to right, hsl(var(--border) / 0.35) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.35) 1px, transparent 1px);
+    background-size: 100% 100%, 56px 56px, 56px 56px;
+  }
+  .proof-band::before,
+  .proof-band::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(var(--gold) / 0.45), transparent);
+    pointer-events: none;
+  }
+  .proof-band::before { top: 0; }
+  .proof-band::after { bottom: 0; }
+
+  /* Logo card — плътна плака, пълноцветно лого + златен sheen при hover */
+  .proof-logo-card {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid hsl(var(--border) / 0.7);
+    background:
+      linear-gradient(180deg, hsl(0 0% 100% / 0.96), hsl(0 0% 100% / 0.88));
+    box-shadow:
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.9),
+      0 1px 0 0 hsl(var(--gold) / 0.18),
+      0 14px 30px -18px hsl(var(--foreground) / 0.45);
+    transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), border-color 260ms ease,
+      box-shadow 260ms ease;
+  }
+  /* Диагонален блясък, който минава при hover */
+  .proof-logo-card::after {
+    content: "";
+    position: absolute;
+    inset: -40% -60%;
+    background: linear-gradient(
+      100deg,
+      transparent 38%,
+      hsl(var(--gold-light, var(--gold)) / 0.5) 50%,
+      transparent 62%
+    );
+    transform: translateX(-120%);
+    transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+  }
+  .proof-logo-img {
+    filter: contrast(1.06) saturate(1.06);
+    transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  a:hover .proof-logo-card,
+  a:focus-visible .proof-logo-card,
+  .proof-logo-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    border-color: hsl(var(--gold) / 0.7);
+    box-shadow:
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.9),
+      0 0 0 1px hsl(var(--gold) / 0.35),
+      0 22px 44px -20px hsl(var(--gold) / 0.55);
+  }
+  a:hover .proof-logo-card::after,
+  a:focus-visible .proof-logo-card::after,
+  .proof-logo-card:hover::after {
+    transform: translateX(120%);
+  }
+  a:hover .proof-logo-img,
+  a:focus-visible .proof-logo-img,
+  .proof-logo-card:hover .proof-logo-img {
+    transform: scale(1.05);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .proof-logo-card,
+    .proof-logo-card::after,
+    .proof-logo-img { transition: none; }
+    a:hover .proof-logo-card, .proof-logo-card:hover { transform: none; }
+    .proof-logo-card::after { display: none; }
+  }
+
+}
+
+
+/* Prevent iOS auto-zoom on input focus by ensuring min 16px font-size */
+@media screen and (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* ─── Mobile-first utilities ─────────────────────────────────────── */
+html, body { overflow-x: clip; }
+
+/* Safe-area helpers (iOS notch / Android gesture bar) */
+.pb-safe   { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
+.pt-safe   { padding-top:    max(0.5rem, env(safe-area-inset-top)); }
+.pl-safe   { padding-left:   max(0.5rem, env(safe-area-inset-left)); }
+.pr-safe   { padding-right:  max(0.5rem, env(safe-area-inset-right)); }
+.mb-safe   { margin-bottom:  env(safe-area-inset-bottom); }
+
+/* Reserve space at the bottom of the page so MobileBottomNav (h-14 + safe-area)
+   never covers content. Active only below `lg` breakpoint. */
+@media (max-width: 1023px) {
+  body { padding-bottom: calc(3.5rem + env(safe-area-inset-bottom)); }
+}
+
+/* Remove hover-only effects on touch devices — they cause "sticky hover"
+   on iOS Safari and feel laggy. */
+@media (hover: none) {
+  .hover\:-translate-y-0\.5:hover { transform: none !important; }
+  .hover\:shadow-gold:hover       { box-shadow: var(--shadow-soft) !important; }
+}
+
+/* Faster taps — eliminate 300ms delay on legacy mobile browsers */
+button, a, [role="button"], input[type="submit"], input[type="button"] {
+  touch-action: manipulation;
+}
+
+/* Hero "Комплекти" bullet → pulse the LifeScenarios section briefly */
+@keyframes hero-kits-pulse-anim {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--gold) / 0); }
+  40% { box-shadow: 0 0 0 6px hsl(var(--gold) / 0.18); }
+}
+.hero-kits-pulse {
+  border-radius: 1rem;
+  animation: hero-kits-pulse-anim 1.4s ease-out;
+}
+.hero-kits-pulse ul > li > a {
+  transform: translateY(-2px);
+  border-color: hsl(var(--gold) / 0.55) !important;
+  transition: transform 300ms ease, border-color 300ms ease;
+}
+
+/* DogovaryAI — animated "thinking" status shimmer.
+   Text flows through a subtle gold→foreground gradient, matching
+   the Lovable-style live status line in the assistant. */
+.thinking-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted-foreground)) 0%,
+    hsl(var(--foreground)) 40%,
+    hsl(var(--gold)) 55%,
+    hsl(var(--foreground)) 70%,
+    hsl(var(--muted-foreground)) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: thinking-shimmer-move 2.2s linear infinite;
+}
+@keyframes thinking-shimmer-move {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thinking-shimmer { animation: none; }
+}
+
+/* Dogovori Icons — global stroke normalization.
+ * Only Lucide icons rendered with the default stroke-width="2" attribute get
+ * softened to our brand weight (1.75). Any component that passes an explicit
+ * strokeWidth prop (e.g. 1.6 in Process.tsx, 2.5 for emphasis) is left alone.
+ * Escape hatch: add class "icon-native-stroke" to force Lucide's default. */
+svg.lucide[stroke-width="2"]:not(.icon-native-stroke) {
+  stroke-width: 1.75;
+}
+
+
+/* ── Допаминово преживяване след успешно генериране (дискретно) ───────── */
+@keyframes success-pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes success-ring {
+  0% { transform: scale(0.6); opacity: 0.55; }
+  100% { transform: scale(2.1); opacity: 0; }
+}
+@keyframes success-spark {
+  0% { transform: translate(0, 0) scale(0.6); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translate(var(--spark-x), var(--spark-y)) scale(1); opacity: 0; }
+}
+@keyframes cta-invite {
+  0%, 62%, 100% { transform: translateY(0); box-shadow: 0 0 0 0 hsl(var(--gold) / 0); }
+  70% { transform: translateY(-2px); box-shadow: 0 8px 24px -6px hsl(var(--gold) / 0.55); }
+  86% { transform: translateY(0); box-shadow: 0 4px 14px -6px hsl(var(--gold) / 0.35); }
+}
+.success-pop { animation: success-pop 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.success-ring { animation: success-ring 1100ms ease-out 120ms both; }
+.success-spark { animation: success-spark 900ms ease-out both; }
+.cta-invite { animation: cta-invite 2.6s ease-in-out 400ms 2 both; }
+@media (prefers-reduced-motion: reduce) {
+  .success-pop,
+  .success-ring,
+  .success-spark,
+  .cta-invite {
+    animation: none !important;
+  }
+}
+
+/* =====================================================================
+   EDITORIAL BRAND 2026-10-21 — warm paper + deep ink, flat surfaces.
+   Unlayered on purpose: these tokens and resets win over older layered
+   rules and utilities. Brass (--gold) is for small punctuation only.
+   ===================================================================== */
+:root {
+  /* Dark: flat deep ink, ivory text */
+  --background: 222 24% 9%;
+  --foreground: 40 28% 92%;
+  --card: 222 20% 12%;
+  --card-foreground: 40 28% 92%;
+  --popover: 222 20% 12%;
+  --popover-foreground: 40 28% 92%;
+  --primary: 40 28% 92%;
+  --primary-foreground: 222 24% 9%;
+  --secondary: 222 16% 16%;
+  --secondary-foreground: 40 28% 92%;
+  --muted: 222 16% 14%;
+  --muted-foreground: 38 12% 70%;
+  --accent: 222 16% 18%;
+  --accent-foreground: 40 28% 92%;
+  --border: 222 12% 24%;
+  --input: 222 12% 26%;
+  --ring: 40 50% 64%;
+  --radius: 0.25rem;
+  --gold: 40 46% 64%;
+  --gold-light: 40 50% 72%;
+  --gold-dark: 38 40% 50%;
+  --surface-1: 222 22% 10%;
+  --surface-2: 222 20% 12%;
+  --surface-3: 222 16% 15%;
+  --hairline: 222 12% 24%;
+  --gradient-hero: linear-gradient(hsl(var(--background)), hsl(var(--background)));
+  --gradient-gold: linear-gradient(hsl(var(--primary)), hsl(var(--primary)));
+  --gradient-card: linear-gradient(hsl(var(--card)), hsl(var(--card)));
+  --gradient-radial: none;
+  --gradient-fine-noise: none;
+  --shadow-gold: none;
+  --shadow-elegant: none;
+  --shadow-soft: 0 1px 2px hsl(0 0% 0% / 0.2);
+  --shadow-inset-line: none;
+}
+html.light {
+  /* Light: warm ivory paper, deep ink text, ink actions */
+  --background: 40 33% 95%;
+  --foreground: 222 30% 12%;
+  --card: 40 40% 98%;
+  --card-foreground: 222 30% 12%;
+  --popover: 40 40% 98%;
+  --popover-foreground: 222 30% 12%;
+  --primary: 222 30% 14%;
+  --primary-foreground: 40 33% 96%;
+  --secondary: 38 22% 90%;
+  --secondary-foreground: 222 30% 12%;
+  --muted: 38 24% 91%;
+  --muted-foreground: 30 10% 32%;
+  --accent: 38 22% 88%;
+  --accent-foreground: 222 30% 12%;
+  --border: 35 16% 78%;
+  --input: 35 16% 72%;
+  --ring: 222 30% 14%;
+  /* Brass: 31% lightness keeps ≥4.5:1 on ivory for small text */
+  --gold: 36 52% 31%;
+  --gold-light: 36 52% 38%;
+  --gold-dark: 36 55% 24%;
+  --surface-1: 40 33% 95%;
+  --surface-2: 40 40% 98%;
+  --surface-3: 38 22% 90%;
+  --hairline: 35 16% 78%;
+  --gradient-hero: linear-gradient(hsl(var(--background)), hsl(var(--background)));
+  --gradient-gold: linear-gradient(hsl(var(--primary)), hsl(var(--primary)));
+  --gradient-card: linear-gradient(hsl(var(--card)), hsl(var(--card)));
+  --gradient-radial: none;
+  --gradient-fine-noise: none;
+  --shadow-gold: none;
+  --shadow-elegant: none;
+  --shadow-soft: 0 1px 2px hsl(30 20% 20% / 0.08);
+  --shadow-inset-line: none;
+}
+html.light body { background-image: none; }
+html.light body::before { display: none; }
+
+/* Modest functional corners instead of large rounded panels */
+.rounded-xl, .rounded-2xl, .rounded-3xl { border-radius: 6px; }
+.rounded-lg { border-radius: 4px; }
+
+/* Labels: normal case, readable, no letter-spaced gold pills */
+.eyebrow {
+  display: inline-flex; align-items: center; gap: .5rem;
+  font-size: .875rem; font-weight: 500; letter-spacing: 0; text-transform: none;
+  color: hsl(var(--muted-foreground));
+}
+.eyebrow > .h-px, .section-number { display: none; }
+
+/* One solid ink action */
+.btn-gold, .btn-gold-inverse {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  border-radius: 4px; padding: .75rem 1.5rem; border: 1px solid hsl(var(--foreground));
+  background: hsl(var(--foreground)); color: hsl(var(--background));
+  font-weight: 600; letter-spacing: 0; text-transform: none; box-shadow: none;
+  transition: background-color .15s, color .15s;
+}
+.btn-gold:hover, .btn-gold-inverse:hover { background: hsl(var(--foreground) / 0.86); box-shadow: none; transform: none; }
+.btn-gold:focus-visible, .btn-gold-inverse:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.btn-ghost-gold {
+  border-radius: 4px; border: 1px solid hsl(var(--foreground) / 0.5); background: transparent;
+  color: hsl(var(--foreground)); text-transform: none; letter-spacing: 0;
+}
+.btn-ghost-gold:hover { background: hsl(var(--foreground) / 0.06); border-color: hsl(var(--foreground)); }
+
+/* Underlined ink links */
+.link-ink { color: hsl(var(--foreground)); text-decoration: underline; text-decoration-color: hsl(var(--foreground) / 0.35); text-underline-offset: 4px; text-decoration-thickness: 1px; }
+.link-ink:hover { text-decoration-color: hsl(var(--foreground)); }
+.link-ink:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; border-radius: 2px; }
+
+/* No gradient text, glows, glass or choreography */
+.gold-gradient-text, .text-accent-gradient { background: none; -webkit-text-fill-color: currentColor; color: hsl(var(--foreground)); }
+.text-accent-gradient::before { display: none; }
+.gold-divider, .hairline-x { background: hsl(var(--border)); }
+.shadow-elegant, .shadow-gold, .shadow-brand, .shadow-glow { box-shadow: none; }
+.backdrop-blur-sm, .backdrop-blur, .backdrop-blur-md, .backdrop-blur-xl { backdrop-filter: none; -webkit-backdrop-filter: none; }
+.bg-gradient-hero, .bg-gradient-radial, .bg-fine-grid { background-image: none; }
+.btn-sheen::after, .gold-shimmer, .shimmer-bar::after { display: none; animation: none; }
+.scroll-stagger > *, .anim-rise { opacity: 1 !important; transform: none !important; animation: none !important; transition: none !important; }
+.surface-elevated, .card-premium { background: hsl(var(--card)); box-shadow: none; }
+.corner-ticks::before, .corner-ticks::after { display: none; }
+
+/* Headings: serif, left-aligned rhythm */
+h1, h2, h3 { letter-spacing: 0; }
+
+/* Ink-filled surfaces carry paper-coloured text */
+.bg-gradient-gold, .bg-gradient-gold.text-navy, .bg-gradient-gold .text-navy { color: hsl(var(--primary-foreground)); }
+html.light .bg-gold.text-navy, html.light .bg-gold .text-navy { color: hsl(var(--primary-foreground)); }
+
+/* Decorative blobs, auras and dotted textures are removed site-wide */
+.absolute.blur-3xl, .absolute.blur-2xl, .fixed.blur-3xl { display: none; }
+[class*="bg-[radial-gradient"] { background-image: none !important; }
+.animate-ping { display: none; }
+section[class*="bg-gradient-to-"], header[class*="bg-gradient-to-"], main[class*="bg-gradient-to-"] { background-image: none; }
+.proof-band::before, .proof-band::after { display: none; }
+
+/* Emerald plan accent folds into ink; brass stays the only accent */
+:root { --brand: 40 28% 92%; --brand-light: 40 28% 85%; --brand-dark: 40 28% 92%; --gradient-brand: linear-gradient(hsl(var(--primary)), hsl(var(--primary))); --shadow-brand: none; }
+html.light { --brand: 222 30% 14%; --brand-light: 222 30% 24%; --brand-dark: 222 30% 14%; --gradient-brand: linear-gradient(hsl(var(--primary)), hsl(var(--primary))); --shadow-brand: none; }
+.bg-brand, .bg-gradient-brand { color: hsl(var(--primary-foreground)); }
+
+/* Public detail reading rhythm; no editor/admin/document-rendering selectors. */
+.editorial-detail > .container, .editorial-detail > section > .container { max-width: 1160px; }
+.editorial-detail p, .editorial-detail dd { max-width: 68ch; }
+.editorial-detail .sample-document p { max-width: 60ch; }
+.editorial-detail .sample-document { line-height: 1.65; }
+.editorial-detail .sample-document blockquote { margin-block: .75rem; }
+.sample-document [hidden] { display: none !important; }
+
+/* Branded public shell: approved outlines, navy/ivory contrast, native paper. */
+:root {
+  --brand-ink: 222 34% 14%;
+  --brand-paper: 40 40% 98%;
+  --brand-paper-ink: 222 30% 12%;
+  --brand-paper-muted: 30 10% 32%;
+  --brand-paper-border: 35 16% 78%;
+  --brand-paper-brass: 36 52% 31%;
+  --brand-bronze: 39 42% 68%;
+  --brand-on-ink: 40 28% 92%;
+  --brand-on-ink-muted: 38 16% 76%;
+  --brand-on-ink-border: 222 18% 34%;
+  --shadow-document: 0 16px 32px hsl(222 34% 5% / .16);
+}
+.brand-lockup { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+.brand-lockup .brand-lockup-mark { height: 44px; width: 52px; }
+.brand-lockup .brand-lockup-wordmark { width: 228px; height: 46px; }
+.brand-header { border-top: 3px solid hsl(var(--gold)); }
+.brand-header [data-testid="test-period-badge"] { display: none; }
+.brand-hero { border-top: 1px solid hsl(var(--gold) / .25); }
+.brand-document-stage { background: hsl(var(--brand-ink)); padding: 28px; border-left: 3px solid hsl(var(--gold)); }
+.brand-document { margin: 0; padding: 18px; background: hsl(var(--brand-paper)); color: hsl(var(--brand-paper-ink)); border: 1px solid hsl(var(--border)); border-radius: 3px; }
+.brand-document .text-muted-foreground { color: hsl(var(--brand-paper-muted)); }
+.brand-document .text-gold { color: hsl(var(--brand-paper-brass)); }
+.brand-document .border-border, .brand-document .border-border\/60 { border-color: hsl(var(--brand-paper-border)); }
+.brand-document-detailed { padding: 24px; box-shadow: var(--shadow-document); }
+.brand-product { border-top: 3px solid hsl(var(--gold)); border-radius: 4px; }
+.brand-product-grid .brand-product:last-child { background: hsl(var(--secondary)); }
+.brand-plans-band { background: hsl(var(--secondary)); }
+.brand-platform-band {
+  --foreground: var(--brand-on-ink); --muted-foreground: var(--brand-on-ink-muted);
+  --card: 222 28% 18%; --card-foreground: var(--brand-on-ink); --background: var(--brand-ink);
+  --muted: 222 24% 20%; --accent: 222 24% 25%; --accent-foreground: var(--brand-on-ink);
+  --secondary: 222 24% 25%; --secondary-foreground: var(--brand-on-ink);
+  --primary: var(--brand-on-ink); --primary-foreground: var(--brand-ink);
+  --border: var(--brand-on-ink-border); --input: var(--brand-on-ink-border);
+  --gold: var(--brand-bronze); --ring: var(--brand-bronze);
+  background: hsl(var(--brand-ink)); color: hsl(var(--foreground));
+}
+.brand-platform-preview {
+  --foreground: var(--brand-paper-ink); --muted-foreground: var(--brand-paper-muted);
+  --background: var(--brand-paper); --card: var(--brand-paper); --card-foreground: var(--brand-paper-ink);
+  --border: var(--brand-paper-border); --input: var(--brand-paper-border);
+  --secondary: 38 22% 90%; --secondary-foreground: var(--brand-paper-ink);
+  --muted: 38 24% 91%; --accent: 38 22% 88%; --accent-foreground: var(--brand-paper-ink);
+  --primary: var(--brand-paper-ink); --primary-foreground: var(--brand-paper);
+  --gold: var(--brand-paper-brass); --ring: var(--brand-paper-ink);
+  background: hsl(var(--brand-paper)); color: hsl(var(--foreground));
+}
+.home-product-experience [data-showcase-panel] .sample-document {
+  background: hsl(var(--card)); color: hsl(var(--foreground));
+}
+.home-content-bridge { background: hsl(var(--background)); }
+html.dark .brand-platform-preview {
+  --background: 222 20% 12%; --card: 222 20% 12%;
+  --foreground: var(--brand-on-ink); --card-foreground: var(--brand-on-ink);
+  --muted-foreground: var(--brand-on-ink-muted); --muted: 222 16% 16%;
+  --secondary: 222 24% 25%; --secondary-foreground: var(--brand-on-ink);
+  --accent: 222 24% 25%; --accent-foreground: var(--brand-on-ink);
+  --border: var(--brand-on-ink-border); --input: var(--brand-on-ink-border);
+  --primary: var(--brand-on-ink); --primary-foreground: var(--brand-ink);
+  --gold: var(--brand-bronze); --ring: var(--brand-bronze);
+  background: hsl(var(--card)); color: hsl(var(--foreground));
+}
+.brand-footer {
+  --foreground: var(--brand-on-ink); --muted-foreground: var(--brand-on-ink-muted);
+  --gold: var(--brand-bronze); --border: var(--brand-on-ink-border);
+  background: hsl(var(--brand-ink)); color: hsl(var(--brand-on-ink));
+  border-top: 3px solid hsl(var(--brand-bronze));
+}
+.brand-footer .brand-lockup { flex-wrap: wrap; }
+.brand-footer .brand-lockup-wordmark { width: 218px; height: 44px; }
+@media (max-width: 639px) {
+  .brand-lockup { gap: 6px; }
+  .brand-lockup .brand-lockup-mark { width: 38px; height: 34px; }
+  .brand-lockup .brand-lockup-wordmark { width: 190px; height: 39px; }
+  .brand-header .brand-lockup .brand-lockup-wordmark { width: 170px; height: 35px; }
+  .brand-header .brand-lockup .brand-lockup-mark { width: 32px; height: 30px; }
+  .brand-document-stage { padding: 18px; }
+  .brand-document-detailed { padding: 18px; }
+}
+@media (max-width: 359px) {
+  .brand-header .brand-lockup .brand-lockup-mark { display: none; }
+  .brand-header .brand-lockup .brand-lockup-wordmark { width: 178px; height: 36px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-header, .brand-product { transition: none; }
+}
+
+/* Commerce home: ink stage, tangible paper and image-led browsing. */
+:root {
+  --commerce-gold: 39 53% 65%;
+  --commerce-gold-hover: 39 58% 73%;
+  --commerce-ink-soft: 222 29% 19%;
+  --commerce-paper: 40 33% 95%;
+}
+.commerce-hero {
+  --background: var(--brand-ink); --foreground: var(--brand-on-ink);
+  --card: var(--commerce-ink-soft); --card-foreground: var(--brand-on-ink);
+  --muted-foreground: var(--brand-on-ink-muted); --border: var(--brand-on-ink-border);
+  --input: var(--brand-on-ink-border); --gold: var(--commerce-gold);
+  --primary: var(--commerce-gold); --primary-foreground: var(--brand-paper-ink);
+  --secondary: var(--commerce-ink-soft); --secondary-foreground: var(--brand-on-ink);
+  --accent: var(--commerce-ink-soft); --accent-foreground: var(--brand-on-ink);
+  --ring: var(--commerce-gold);
+  background: hsl(var(--background)); color: hsl(var(--foreground));
+}
+.commerce-hero .btn-gold, .header-catalog-action {
+  background: hsl(var(--commerce-gold)); color: hsl(var(--brand-paper-ink));
+  border-color: hsl(var(--commerce-gold)); box-shadow: none;
+}
+.commerce-hero .btn-gold:hover, .header-catalog-action:hover { background: hsl(var(--commerce-gold-hover)); }
+.commerce-hero input[type=search] { background: hsl(var(--commerce-ink-soft)); background-image: none; color: hsl(var(--brand-on-ink)); }
+.commerce-hero input[type=search]::placeholder { color: hsl(var(--brand-on-ink-muted)); }
+.brand-header nav[aria-label="Основна навигация"] { gap: 12px; }
+.hero-offer-band { background: hsl(var(--commerce-ink-soft)); }
+.hero-commerce-product { border-top: 2px solid hsl(var(--gold)); }
+.hero-commerce-product .brand-product { border: none; }
+.commerce-workflow { padding: 0 0 0 24px; border-left: 1px solid hsl(var(--border)); }
+.workflow-tabs [data-state=active] { background: hsl(var(--commerce-gold)); color: hsl(var(--brand-paper-ink)); }
+.workflow-paper {
+  --background: var(--brand-paper); --foreground: var(--brand-paper-ink);
+  --card: var(--brand-paper); --card-foreground: var(--brand-paper-ink);
+  --muted-foreground: var(--brand-paper-muted); --border: var(--brand-paper-border);
+  --gold: var(--brand-paper-brass); --ring: var(--brand-paper-brass);
+  --secondary: var(--commerce-paper); --secondary-foreground: var(--brand-paper-ink);
+  background: hsl(var(--brand-paper)); color: hsl(var(--foreground));
+  padding: 24px 28px; border-radius: 3px; box-shadow: var(--shadow-document);
+  border-top: 4px solid hsl(var(--commerce-gold));
+}
+.workflow-scene-viewport { overflow: hidden; touch-action: pan-y; }
+.workflow-scene-track { display: flex; align-items: stretch; transition: transform .75s cubic-bezier(.25,.1,.25,1); will-change: transform; }
+.workflow-scene-track::-webkit-scrollbar { display: none; }
+.workflow-scene { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; display: flex; flex-direction: column; padding: 0 2px 2px; }
+.workflow-scene-note { min-height: 52px; padding-bottom: 12px; line-height: 1.4; }
+.workflow-letter { flex: 1; display: flex; flex-direction: column; border-top-color: hsl(var(--brand-paper-border)); }
+.workflow-letter-branded { border-top-color: hsl(var(--commerce-gold)); }
+.workflow-letterhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 66px; padding-bottom: 14px; border-bottom: 1px solid hsl(var(--border)); }
+.workflow-letter-branded .workflow-letterhead { border-bottom: 2px solid hsl(var(--gold)); }
+.workflow-im-mark { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 44px; height: 44px; background: hsl(var(--brand-ink)); color: hsl(var(--commerce-gold)); font-family: var(--font-serif); font-size: 20px; }
+.workflow-letter-body { flex: 1; padding-top: 16px; }
+.workflow-letter-prose { font-size: 14px; line-height: 1.65; }
+.workflow-letter-prose p + p, .workflow-letter-prose ol { margin-top: 12px; }
+.workflow-letter-prose ol { list-style: decimal; padding-left: 20px; }
+.workflow-letter-prose li + li { margin-top: 8px; }
+.workflow-signature { margin: 24px 0 20px; }
+.workflow-letter-branded h3 { color: hsl(var(--brand-ink)); }
+@media (prefers-reduced-motion: no-preference) { .commerce-workflow { animation: workflow-arrive .55s ease-out both; } }
+@keyframes workflow-arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.browse-shelf {
+  display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 40px) / 3);
+  gap: 20px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 2px;
+  padding: 2px 2px 16px; scrollbar-width: thin; scrollbar-color: hsl(var(--gold)) transparent;
+}
+.browse-shelf:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
+.browse-item { min-width: 0; scroll-snap-align: start; border: 1px solid hsl(var(--border)); background: hsl(var(--card)); color: hsl(var(--foreground)); border-radius: 4px; overflow: hidden; }
+.browse-image { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; }
+.browse-item a { transition: background-color .15s; }
+.browse-item a:hover { background-color: hsl(var(--secondary)); }
+.commerce-packages h2, .commerce-experience h2 { max-width: 23ch; }
+.commerce-experience { border-top: 3px solid hsl(var(--gold)); }
+@media (min-width: 1440px) { .brand-header .brand-lockup-wordmark { width: 248px; height: 50px; } }
+@media (max-width: 1023px) {
+  .commerce-workflow { padding-left: 0; border-left: none; max-width: 560px; width: 100%; }
+  .browse-shelf { grid-auto-columns: calc((100% - 20px) / 2); }
+}
+@media (max-width: 639px) {
+  .commerce-hero h1 { max-width: 16ch; }
+  .commerce-hero .hero-search-row input { height: 52px; }
+  .commerce-workflow { margin-top: 8px; }
+  .workflow-paper { padding: 18px; }
+  .browse-shelf { grid-auto-columns: 86%; gap: 16px; }
+  .hero-commerce-products { display: grid; grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 88%; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 12px; }
+  .hero-commerce-product { scroll-snap-align: start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .browse-item a, .commerce-hero *, .workflow-tabs * { transition: none; scroll-behavior: auto; }
+}
+
+/* Hero interactive workspace (local-only demo) */
+.workspace { display: flex; flex-direction: column; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-left-width: 1px; padding: 0; box-shadow: 0 24px 48px -28px hsl(var(--brand-ink) / .45); }
+.workspace-toolbar { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 14px; background: hsl(var(--brand-ink)); color: hsl(var(--brand-paper)); }
+.workspace-dots { display: flex; gap: 5px; } .workspace-dots i { width: 8px; height: 8px; border-radius: 9999px; background: hsl(var(--brand-paper) / .35); }
+.workspace-step-short { display: none; }
+.workspace-dots i:first-child { background: hsl(var(--gold)); }
+.workspace-steps { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); border-bottom: 1px solid hsl(var(--border)); }
+.workspace-step { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 6px; font-size: 13px; color: hsl(var(--muted-foreground)); border-bottom: 2px solid transparent; transition: color .3s, border-color .3s; }
+.workspace-step[data-active=true] { color: hsl(var(--foreground)); border-bottom-color: hsl(var(--gold)); font-weight: 600; }
+.workspace-step-num { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 9999px; border: 1px solid currentColor; font-size: 11px; }
+.workspace-step[data-done=true] .workspace-step-num { background: hsl(var(--gold)); border-color: hsl(var(--gold)); color: hsl(var(--brand-paper-ink)); }
+.workspace-body { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 16px; padding: 16px; height: 330px; touch-action: pan-y; }
+.workspace-panel { min-width: 0; animation: ws-in .35s ease-out both; }
+.workspace-field { display: grid; gap: 4px; font-size: 12px; color: hsl(var(--muted-foreground)); }
+.workspace-field input { min-height: 44px; padding: 0 12px; font-size: 16px; color: hsl(var(--foreground)); background: hsl(var(--background)); border: 1px solid hsl(var(--input)); border-radius: 4px; }
+.workspace-field input:focus { outline: 2px solid hsl(var(--gold)); outline-offset: 1px; }
+.workspace-swatch { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 10px; font-size: 13px; border: 1px solid hsl(var(--border)); border-radius: 4px; }
+.workspace-swatch > span:not(.workspace-swatch-label) { flex-shrink: 0; width: 16px; height: 16px; border-radius: 9999px; border: 1px solid hsl(var(--border)); }
+.workspace-swatch { flex-shrink: 0; white-space: nowrap; }
+.workspace-swatch-label { white-space: nowrap; }
+.workspace-swatch[data-on=true] { border-color: hsl(var(--foreground)); font-weight: 600; }
+.workspace-preview { --ws-accent: hsl(var(--border)); display: flex; flex-direction: column; min-width: 0; padding: 16px; background: hsl(var(--brand-paper)); color: hsl(var(--brand-paper-ink)); border: 1px solid hsl(var(--brand-paper-border)); border-top: 3px solid hsl(var(--brand-paper-border)); transition: border-color .5s; overflow: hidden; }
+.workspace-preview[data-branded=true] { border-top-color: var(--ws-accent); }
+.workspace-preview .text-muted-foreground { color: hsl(var(--brand-paper-ink) / .62); }
+.workspace-letterhead { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid hsl(var(--brand-paper-border)); transition: border-color .5s; }
+.workspace-preview[data-branded=true] .workspace-letterhead { border-bottom: 2px solid var(--ws-accent); }
+.workspace-mono { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 38px; height: 38px; background: var(--ws-accent); color: hsl(var(--brand-paper)); font-family: var(--font-serif); font-size: 16px; animation: ws-in .4s ease-out both; }
+.workspace-preview mark { background: transparent; color: inherit; font-weight: 600; border-radius: 2px; transition: background-color .6s; }
+.workspace-preview .ws-flash { background: hsl(var(--gold) / .28); }
+@keyframes ws-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (max-width: 640px) {
+  .workspace-body { grid-template-columns: 1fr; height: auto; min-height: 0; }
+  .workspace-body { gap: 8px; padding: 10px 12px; }
+  .workspace-preview { padding: 10px 12px; }
+  .workspace-hint, .workspace-addressee { display: none; }
+  .workspace-toolbar { min-height: 32px; padding: 0 12px; }
+  .workspace-step { gap: 4px; padding: 0 2px; white-space: nowrap; font-size: 12px; }
+  .workspace-step-num { width: 18px; height: 18px; }
+  .workspace-inputs { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .workspace-brand-row { flex-wrap: nowrap; align-items: center; justify-content: space-between; }
+  .workspace-swatch { width: 44px; justify-content: center; padding: 0; }
+  .workspace-swatch span { width: 20px; height: 20px; }
+  .workspace-swatch-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .workspace-step-long, .workspace-sig { display: none; } .workspace-step-short { display: inline; }
+  .workspace-panel { min-height: 68px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .workspace-preview { height: auto; min-height: 196px; }
+  .workspace-copy { font-size: 14px; line-height: 1.5; }
+  .workspace-step { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .workspace-panel, .workspace-mono { animation: none; } .workspace-preview, .workspace-preview mark, .workspace-step { transition: none; } }
+
+/* Public finishing: typography and real content, not ornamental labels. */
+.brand-header > .container { max-width: 1680px; }
+.brand-header .brand-lockup { flex-shrink: 0; }
+.brand-header nav[aria-label="Основна навигация"] > a { padding-inline: 10px; }
+.brand-footer .footer-directory > a,
+.brand-footer .footer-directory > button { display: flex; align-items: center; min-height: 44px; overflow-wrap: anywhere; }
+.brand-footer .footer-directory > a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.home-situations .browse-image { aspect-ratio: 2 / 1; }
+.home-situations .browse-item { border: 0; background: transparent; }
+.home-situations .browse-item > a > span { padding-inline: 0; margin-inline: 0; }
+.commerce-packages .browse-item { border: 0; border-bottom: 1px solid hsl(var(--border)); }
+.commerce-packages .browse-item > a > span { padding-inline: 0; }
+.platform-function-list [aria-selected="true"] { border-left: 3px solid hsl(var(--gold)); }
+.home-product-experience .brand-product { border: 0; border-top: 1px solid hsl(var(--border)); background: transparent; padding-inline: 0; }
+.brand-plans-band table { align-self: start; }
+.public-commerce h1 { font-size: 40px; }
+.public-tools h3 { font-size: 22px; }
+.public-tools a > span:last-child { min-height: 44px; font-size: 14px; }
+.public-packages article ol { line-height: 1.65; }
+.workspace-preview .text-muted-foreground { color: hsl(var(--brand-paper-muted)); }
+.workspace-mono { color: hsl(var(--brand-paper-ink)); }
+.workspace-preview[data-accent="ink"] .workspace-mono { color: hsl(var(--brand-paper)); }
+@media (min-width: 1536px) and (max-width: 1799px) {
+  .brand-header .brand-lockup .brand-lockup-wordmark { width: 218px; height: 44px; }
+  .brand-header .brand-lockup .brand-lockup-mark { width: 42px; height: 40px; }
+}
+@media (max-width: 639px) {
+  .public-commerce h1 { font-size: 32px; }
+  .workspace-field { font-size: 13px; }
+  .brand-footer .footer-directory { column-gap: 18px; }
+}
+
+/* Зелен акцент за цени и включени предимства (емералд/градински зелен). */
+.price-figure { color: hsl(var(--success)); font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.price-unit { font-size: .55em; font-weight: 500; color: hsl(var(--muted-foreground)); margin-left: .15em; }
+.price-save { display: inline-flex; align-items: center; border-radius: 999px; padding: 1px 8px; font-size: 12px; font-weight: 600; color: hsl(var(--success)); background: hsl(var(--success) / .12); border: 1px solid hsl(var(--success) / .3); }
+.browse-shelf { grid-auto-columns: calc((100% - 60px) / 3.35); }
+@media (max-width: 1023px) { .browse-shelf { grid-auto-columns: calc((100% - 20px) / 2.25); } }
+@media (max-width: 639px) { .browse-shelf { grid-auto-columns: 80%; } }

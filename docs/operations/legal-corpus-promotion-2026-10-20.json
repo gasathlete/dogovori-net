@@ -1,0 +1,355 @@
+{
+  "date": "2026-10-20",
+  "source_project": "d134f73e-c926-4401-a32b-a648e4ad7a1c",
+  "target_project": "6b2da12e-e1d6-4f97-8549-b632fb66ddd1",
+  "schema_code_commit": "2637bdd9d8b8f2aba23227489f4ea45dcb131df8",
+  "deployed_source_commit": "ad7a4fdd1d78d629691721721b8c301af1a5212e",
+  "source_id_map": {
+    "dd8d1f2b-e409-441a-afea-b3e6ac412c85": "dbf8fa9a-f058-4ca5-814c-c7f515e506c3",
+    "96afe020-49d2-4296-88b6-5bd89e8a8138": "f7576682-f528-4432-bbc7-5c7d1723d208",
+    "b23a3ac1-faa6-4b19-9bf7-9efeba5022f6": "b23a3ac1-faa6-4b19-9bf7-9efeba5022f6",
+    "92d7283d-cbdf-4403-b968-992339ca88a8": "1f80ea7e-ddb5-4d27-a2ee-9f26ec22e74b",
+    "8088a151-7554-47ea-a76a-cb45df51eca7": "fdf476b4-ea1d-4ce1-bf95-4952fdc1a519",
+    "60557d1f-1cfc-40ac-a29f-4edbcacd70a1": "60557d1f-1cfc-40ac-a29f-4edbcacd70a1",
+    "82c1c6f1-f559-4e7e-8a9c-447478c3e332": "009ad1e1-7996-4a33-adcf-df4e69377a05"
+  },
+  "previous_sources": [
+    {
+      "active": true,
+      "created_at": "2026-06-11 16:24:36.144026+00",
+      "current_version": null,
+      "id": "009ad1e1-7996-4a33-adcf-df4e69377a05",
+      "issuer": "Народно събрание",
+      "jurisdiction": "BG",
+      "language": "bg",
+      "last_indexed_at": "2026-06-11 16:24:36.1+00",
+      "metadata": {},
+      "official_url": "https://lex.bg/laws/ldoc/2135558368",
+      "published_at": null,
+      "short_code": "ГПК",
+      "source_type": "code",
+      "title": "Граждански процесуален кодекс",
+      "updated_at": "2026-06-11 16:24:36.144026+00"
+    },
+    {
+      "active": true,
+      "created_at": "2026-06-11 14:29:04.576962+00",
+      "current_version": null,
+      "id": "fdf476b4-ea1d-4ce1-bf95-4952fdc1a519",
+      "issuer": null,
+      "jurisdiction": "BG",
+      "language": "bg",
+      "last_indexed_at": "2026-06-11 14:29:04.241+00",
+      "metadata": {},
+      "official_url": "https://lex.bg/laws/ldoc/2121934337",
+      "published_at": null,
+      "short_code": "ЗЗД",
+      "source_type": "law",
+      "title": "закон за задълженията и договорите",
+      "updated_at": "2026-06-11 14:29:04.576962+00"
+    },
+    {
+      "active": true,
+      "created_at": "2026-06-11 16:24:52.806926+00",
+      "current_version": null,
+      "id": "f7576682-f528-4432-bbc7-5c7d1723d208",
+      "issuer": "Народно събрание",
+      "jurisdiction": "BG",
+      "language": "bg",
+      "last_indexed_at": "2026-06-11 16:24:52.757+00",
+      "metadata": {},
+      "official_url": "https://lex.bg/laws/ldoc/2135513678",
+      "published_at": null,
+      "short_code": "ЗЗП",
+      "source_type": "law",
+      "title": "Закон за защита на потребителите",
+      "updated_at": "2026-06-11 16:24:52.806926+00"
+    },
+    {
+      "active": true,
+      "created_at": "2026-06-11 13:46:34.935603+00",
+      "current_version": null,
+      "id": "dbf8fa9a-f058-4ca5-814c-c7f515e506c3",
+      "issuer": "Народно събрание",
+      "jurisdiction": "BG",
+      "language": "bg",
+      "last_indexed_at": "2026-06-11 13:46:34.847+00",
+      "metadata": {},
+      "official_url": "https://www.parliament.bg/bg/const",
+      "published_at": null,
+      "short_code": "КРБ",
+      "source_type": "law",
+      "title": "КРБ",
+      "updated_at": "2026-06-11 13:46:34.935603+00"
+    },
+    {
+      "active": true,
+      "created_at": "2026-06-11 16:24:26.873246+00",
+      "current_version": null,
+      "id": "1f80ea7e-ddb5-4d27-a2ee-9f26ec22e74b",
+      "issuer": "Народно събрание",
+      "jurisdiction": "BG",
+      "language": "bg",
+      "last_indexed_at": "2026-06-11 16:24:26.838+00",
+      "metadata": {},
+      "official_url": "https://lex.bg/laws/ldoc/1594373121",
+      "published_at": null,
+      "short_code": "КТ",
+      "source_type": "code",
+      "title": "Кодекс на труда",
+      "updated_at": "2026-06-11 16:24:26.873246+00"
+    }
+  ],
+  "laws": [
+    {
+      "checksum": "14591570e54cb824d2ee6b713fa697e42a77f12a1a6c8e9c0b85a760648ce6fd",
+      "chunks": 789,
+      "current_version": "law-pdf-v1:14591570e54cb824",
+      "short_code": "ГПК"
+    },
+    {
+      "checksum": "c7f21935ec0557253a09b4440da4249bf2497d727e116091a23060129c0365df",
+      "chunks": 459,
+      "current_version": "law-pdf-v1:c7f21935ec055725",
+      "short_code": "ЗЗД"
+    },
+    {
+      "checksum": "ebeb9cf3ebcc8455b7a5741854fa9e553021e641cdb3e474a4e3a5425e538030",
+      "chunks": 132,
+      "current_version": "law-pdf-v1:ebeb9cf3ebcc8455",
+      "short_code": "ЗЗЛД"
+    },
+    {
+      "checksum": "b4d5a34f7a470922d33b5bc8b0ac360bf4bd7e15e01d5cd93ad5145dc6c1076a",
+      "chunks": 686,
+      "current_version": "law-docx-v1:b4d5a34f7a470922",
+      "short_code": "ЗЗП"
+    },
+    {
+      "checksum": "03dbb5546d3bc93a61f8cf69284722fea85d536a37a764a752073fe1f72ac19c",
+      "chunks": 222,
+      "current_version": "law-html-v1:03dbb5546d3bc93a",
+      "short_code": "КРБ"
+    },
+    {
+      "checksum": "4e435721178e65a29d708fc3bc147c516025a8e405bdd94cde7001381de637bd",
+      "chunks": 1054,
+      "current_version": "law-docx-v1:4e435721178e65a2",
+      "short_code": "КТ"
+    },
+    {
+      "checksum": "b7bc47d01ff1b45dbe1a5ecf42279bb76d8777def579902276c793a32ff93a65",
+      "chunks": 221,
+      "current_version": "law-pdf-v2:b7bc47d01ff1b45d",
+      "short_code": "ОРЗД"
+    }
+  ],
+  "document_transport_checks": [
+    {
+      "chars": 87949,
+      "checksum": "03dbb5546d3bc93a61f8cf69284722fea85d536a37a764a752073fe1f72ac19c",
+      "id": "01fff9da-ce82-4073-8240-59984b3b45b8",
+      "transport_fingerprint": "68fe416d6b6a2a324373b42c5090b098",
+      "version": "law-html-v1:03dbb5546d3bc93a"
+    },
+    {
+      "chars": 117868,
+      "checksum": "c7f21935ec0557253a09b4440da4249bf2497d727e116091a23060129c0365df",
+      "id": "1f96a271-5528-499f-8c31-3e1623f50db3",
+      "transport_fingerprint": "cd4015a6ca4c0086d5e4b2f5e969ffb0",
+      "version": "law-pdf-v1:c7f21935ec055725"
+    },
+    {
+      "chars": 398597,
+      "checksum": "b4d5a34f7a470922d33b5bc8b0ac360bf4bd7e15e01d5cd93ad5145dc6c1076a",
+      "id": "6fd66802-b67c-42c3-94d5-350d73424929",
+      "transport_fingerprint": "9359b08b5c4cada72dcd8f744b60c028",
+      "version": "law-docx-v1:b4d5a34f7a470922"
+    },
+    {
+      "chars": 528131,
+      "checksum": "14591570e54cb824d2ee6b713fa697e42a77f12a1a6c8e9c0b85a760648ce6fd",
+      "id": "9d8f3c67-67da-48ae-b077-95d454ef95a2",
+      "transport_fingerprint": "2e18deded20090d560dba1c2072194f5",
+      "version": "law-pdf-v1:14591570e54cb824"
+    },
+    {
+      "chars": 511407,
+      "checksum": "4e435721178e65a29d708fc3bc147c516025a8e405bdd94cde7001381de637bd",
+      "id": "bb347c97-9ec3-4768-8ffa-6a71a1883a5b",
+      "transport_fingerprint": "5537402e33ecda091c0b32639bc94ee3",
+      "version": "law-docx-v1:4e435721178e65a2"
+    },
+    {
+      "chars": 203830,
+      "checksum": "b7bc47d01ff1b45dbe1a5ecf42279bb76d8777def579902276c793a32ff93a65",
+      "id": "bf9bd3aa-608d-44d0-a84e-5e59708c4208",
+      "transport_fingerprint": "c29177b674f68db513fa68b2f2df2122",
+      "version": "law-pdf-v2:b7bc47d01ff1b45d"
+    },
+    {
+      "chars": 124641,
+      "checksum": "ebeb9cf3ebcc8455b7a5741854fa9e553021e641cdb3e474a4e3a5425e538030",
+      "id": "eb4e1434-fbb7-42ba-a4a2-599b00da6f46",
+      "transport_fingerprint": "e1527ed2412e58fca8466f5e08e691d5",
+      "version": "law-pdf-v1:ebeb9cf3ebcc8455"
+    }
+  ],
+  "chunk_transport_checks": [
+    {
+      "chunks": 222,
+      "document_id": "01fff9da-ce82-4073-8240-59984b3b45b8",
+      "max_dims": 768,
+      "min_dims": 768,
+      "transport_fingerprint": "5827e203b201aa4e277d89ef0935f64b",
+      "vectors": 222
+    },
+    {
+      "chunks": 459,
+      "document_id": "1f96a271-5528-499f-8c31-3e1623f50db3",
+      "max_dims": 768,
+      "min_dims": 768,
+      "transport_fingerprint": "6602c26c87e1d4a18d579c3446940e38",
+      "vectors": 459
+    },
+    {
+      "chunks": 686,
+      "document_id": "6fd66802-b67c-42c3-94d5-350d73424929",
+      "max_dims": 768,
+      "min_dims": 768,
+      "transport_fingerprint": "4ebf539f4f1eb53492e8c7b15817c36a",
+      "vectors": 686
+    },
+    {
+      "chunks": 789,
+      "document_id": "9d8f3c67-67da-48ae-b077-95d454ef95a2",
+      "max_dims": 768,
+      "min_dims": 768,
+      "transport_fingerprint": "5260cb3be1966e41ae45ed3a2a4ec0d1",
+      "vectors": 789
+    },
+    {
+      "chunks": 1054,
+      "document_id": "bb347c97-9ec3-4768-8ffa-6a71a1883a5b",
+      "max_dims": 768,
+      "min_dims": 768,
+      "transport_fingerprint": "9d5beb1897a9670cea921d2323d9e116",
+      "vectors": 1054
+    },
+    {
+      "chunks": 221,
+      "document_id": "bf9bd3aa-608d-44d0-a84e-5e59708c4208",
+      "max_dims": 768,
+      "min_dims": 768,
+      "transport_fingerprint": "c150384d11f5c11e33b18912a6364cb4",
+      "vectors": 221
+    },
+    {
+      "chunks": 132,
+      "document_id": "eb4e1434-fbb7-42ba-a4a2-599b00da6f46",
+      "max_dims": 768,
+      "min_dims": 768,
+      "transport_fingerprint": "7f2e2d446feceead4ce333b5607131af",
+      "vectors": 132
+    }
+  ],
+  "registry_source_keys": [
+    "bg_nra_labour_code",
+    "bg_registryagency_zzd",
+    "bg_registryagency_pdpa",
+    "eu_op_gdpr_consolidated",
+    "bg_registryagency_gpk",
+    "bg_constcourt_constitution",
+    "bg_kzp_consumer_act"
+  ],
+  "snapshot_ids": [
+    {
+      "id": "ec26d0b8-3deb-486d-bee7-32dc407ebe73",
+      "source_key": "bg_kzp_consumer_act",
+      "checksum": "b4d5a34f7a470922d33b5bc8b0ac360bf4bd7e15e01d5cd93ad5145dc6c1076a",
+      "parser_version": "law-docx-v1",
+      "retrieved_at": "2026-09-22T12:48:30.978+00:00"
+    },
+    {
+      "id": "49522fa0-7c1b-4713-80da-265b21193c6b",
+      "source_key": "bg_registryagency_pdpa",
+      "checksum": "ebeb9cf3ebcc8455b7a5741854fa9e553021e641cdb3e474a4e3a5425e538030",
+      "parser_version": "law-pdf-v1",
+      "retrieved_at": "2026-09-22T12:48:38.5+00:00"
+    },
+    {
+      "id": "ec05f7e4-3199-48ef-8c00-ccee06c04a28",
+      "source_key": "bg_nra_labour_code",
+      "checksum": "4e435721178e65a29d708fc3bc147c516025a8e405bdd94cde7001381de637bd",
+      "parser_version": "law-docx-v1",
+      "retrieved_at": "2026-09-22T14:10:32.378+00:00"
+    },
+    {
+      "id": "ac6cbd27-add5-48bb-83f8-06eb363e6894",
+      "source_key": "bg_constcourt_constitution",
+      "checksum": "03dbb5546d3bc93a61f8cf69284722fea85d536a37a764a752073fe1f72ac19c",
+      "parser_version": "law-html-v1",
+      "retrieved_at": "2026-09-22T17:16:50.914+00:00"
+    },
+    {
+      "id": "50e3927b-fb98-4aed-b691-a6221af94e02",
+      "source_key": "bg_registryagency_zzd",
+      "checksum": "c7f21935ec0557253a09b4440da4249bf2497d727e116091a23060129c0365df",
+      "parser_version": "law-pdf-v1",
+      "retrieved_at": "2026-09-23T06:34:11.782+00:00"
+    },
+    {
+      "id": "4bcf005a-4fa2-4846-a5ad-ea5eddf827d6",
+      "source_key": "bg_registryagency_gpk",
+      "checksum": "14591570e54cb824d2ee6b713fa697e42a77f12a1a6c8e9c0b85a760648ce6fd",
+      "parser_version": "law-pdf-v1",
+      "retrieved_at": "2026-09-23T06:56:27.605+00:00"
+    },
+    {
+      "id": "4806ce38-7d7c-4c4a-91c2-f74f897c6651",
+      "source_key": "eu_op_gdpr_consolidated",
+      "checksum": "b7bc47d01ff1b45dbe1a5ecf42279bb76d8777def579902276c793a32ff93a65",
+      "parser_version": "law-pdf-v1",
+      "retrieved_at": "2026-09-23T07:21:35.976+00:00"
+    },
+    {
+      "id": "41e9595f-5dbc-4a82-add4-463494775a83",
+      "source_key": "eu_op_gdpr_consolidated",
+      "checksum": "b7bc47d01ff1b45dbe1a5ecf42279bb76d8777def579902276c793a32ff93a65",
+      "parser_version": "law-pdf-v2",
+      "retrieved_at": "2026-10-20T10:43:30.832+00:00"
+    }
+  ],
+  "ingestion_run_ids": [
+    "6427f08b-67b2-4f63-b374-6f23d75e7dc8",
+    "5b82cb98-6c4e-46ae-81d0-d5670b8e21a9",
+    "21507177-8f9b-4281-9b4d-a0759aa86a67",
+    "9adb072f-356e-446f-aa23-9134743f8298",
+    "e4e0338b-0933-46f4-981d-d7261278ff1c",
+    "5d2bf797-6095-436f-b727-996695a0108c",
+    "1c150092-3716-49db-a8d3-9f5237c060cd",
+    "23b5ee60-5046-4a5e-961c-a29d4b3ad7e2",
+    "b28e5ed9-d4e4-4517-8d77-ca3027da8d00",
+    "2f538b43-cad0-405c-8c6a-669a0119399c",
+    "9ab1dda2-4a41-4617-b310-aa427a912a50",
+    "26199f56-9f31-4d36-a4d8-90255d1afd29",
+    "ca05c8cb-77a4-419b-9617-3a5e71e08330",
+    "119aa66e-7134-45ef-8e22-07cf13faca35",
+    "1f604a20-1a8c-49d9-b531-7d7ce681bed0",
+    "c1cba8a5-cc9b-447d-bfdb-ce369f694913",
+    "b8ec0b47-046f-4af2-a8cf-ee6bceda2e02",
+    "9c123a20-10e2-4186-9ae7-039ef7c1287c",
+    "6a59e4d8-982d-4235-a3a1-e31b7ffa74d2",
+    "e2af19a9-d12e-4006-ba8c-ae2ebf16fa1e",
+    "252c2ec4-7cc7-459c-b51b-2953274a04fd",
+    "afa1f443-6add-4834-81d6-4830e2233d9c",
+    "af3bbdb5-fffa-49b4-bba4-2bbe6bd76501"
+  ],
+  "notes": [
+    "Seven complete current legal documents and 3563 vectors copied; content and vector transport fingerprints matched before atomic source activation.",
+    "PDF/document checksum remains SHA-256 from the genuine accepted official fetch; MD5 fingerprints above measure transport equality only.",
+    "Existing source IDs/history preserved, two missing legal source rows inserted, no user/customer/role/payment rows copied.",
+    "Current-version and short-code filtering is enforced before retrieval ranking; new six-argument RPC matches existing authenticated/service_role ACL.",
+    "Public processing/payment flags remain unchanged at this checkpoint."
+  ]
+}

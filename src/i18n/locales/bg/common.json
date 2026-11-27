@@ -1,0 +1,28 @@
+{
+  "nav": {
+    "build": "Изготви документ",
+    "catalog": "Каталог",
+    "kits": "Комплекти",
+    "sectors": "Сектори",
+    "blog": "Блог",
+    "account": "Профил",
+    "login": "Вход",
+    "openMenu": "Отвори менюто",
+    "closeMenu": "Затвори менюто",
+    "languageBg": "Български",
+    "languageEn": "English"
+  },
+  "common": {
+    "loading": "Зареждане…",
+    "back": "Назад",
+    "next": "Напред",
+    "save": "Запази",
+    "cancel": "Откажи",
+    "download": "Изтегли",
+    "search": "Търсене"
+  },
+  "seo": {
+    "siteName": "Dogovori.net",
+    "region": "BG"
+  }
+}

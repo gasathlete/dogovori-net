@@ -1,0 +1,232 @@
+/**
+ * /start — единна входна точка към създаване на документ.
+ *
+ * Вместо потребителят да избира между технически инструменти
+ * (каталог / wizard / build / асистент / анализ), тук той избира
+ * НАМЕРЕНИЕ, а приложението го отвежда към правилния инструмент.
+ */
+import { useEffect } from "react";
+import { FREE_OFFER_RULE } from "@/lib/pricing";
+import { useNavigate } from "react-router-dom";
+import { PrefetchLink as Link } from "@/components/PrefetchLink";
+import { Header } from "@/components/Header";
+import { Seo } from "@/components/Seo";
+import { useAuth } from "@/hooks/useAuth";
+import { openInlineAuth } from "@/lib/inlineAuth";
+import { LIFE_SCENARIOS } from "@/data/lifeScenarios";
+import { EVERYDAY_TASKS } from "@/data/everydayTasks";
+import { ArrowRight, Search, Sparkles, FileUp, Layers } from "@/icons";
+import { trackFunnelEvent } from "@/lib/funnel";
+
+const UPLOAD_ROUTE = "/account?tab=documents&action=upload";
+
+const INTENTS = [
+  {
+    id: "know",
+    icon: Search,
+    title: "Знам какъв документ ми трябва",
+    desc: "Търси в над 600 шаблона по име или ситуация и започни веднага.",
+    to: "/catalog",
+    cta: "Намери шаблон",
+  },
+  {
+    id: "describe",
+    icon: Sparkles,
+    title: "Опиши ми ситуацията",
+    desc: "DogovaryAI задава въпроси и сам избира правилния документ за случая.",
+    to: "/assistant",
+    cta: "Питай асистента",
+  },
+  {
+    id: "have",
+    icon: FileUp,
+    title: "Имам готов документ",
+    desc: "Качи PDF или Word и получи анализ на риска със сверка по ЗЗД и ТЗ.",
+    to: UPLOAD_ROUTE,
+    cta: "Качи за анализ",
+    requiresAuth: true,
+  },
+] as const;
+
+/** Най-честите житейски ситуации — пряк път без преминаване през каталога. */
+const QUICK_SCENARIOS = LIFE_SCENARIOS.filter((s) =>
+  ["rent-out", "hire", "freelance", "nda", "poa", "loan"].includes(s.id),
+);
+
+export default function StartPage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, []);
+
+  // Без пренасочване към /auth — влизането става инлайн, а действието
+  // продължава автоматично след успешна регистрация.
+  const needsAuth = (intent: (typeof INTENTS)[number]) =>
+    "requiresAuth" in intent && !!intent.requiresAuth && !user;
+
+  return (
+    <>
+      <Seo
+        title="Откъде да започна — Договори.нет"
+        description="Изберете как да започнете: намерете готов шаблон, опишете ситуацията си на AI асистента или качете съществуващ документ за анализ на риска."
+        canonical="https://dogovori.net/start"
+      />
+      <Header />
+
+      <main className="relative min-h-dvh bg-background pb-24 pt-10">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-[36vh] opacity-50"
+          style={{
+            background:
+              "radial-gradient(ellipse 70% 60% at 50% 0%, hsl(var(--gold) / 0.16), transparent 70%)",
+          }}
+        />
+
+        <div className="container relative mx-auto max-w-4xl px-4">
+          <header className="text-center">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gold">
+              Стъпка 1 от 3
+            </p>
+            <h1 className="mt-3 font-serif text-3xl font-bold leading-tight text-balance md:text-4xl">
+              Откъде да започнем?
+            </h1>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
+              Изберете едно от трите. Отвеждаме Ви директно до документа — без
+              междинни менюта.
+            </p>
+            {!user && (
+              <div className="mt-6 flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  data-testid="start-free-signup"
+                  onClick={() => {
+                    trackFunnelEvent("start_signup_cta_clicked", { source: "start_header" });
+                    openInlineAuth({ action: "Безплатна регистрация", mode: "signup" });
+                  }}
+                  className="btn-gold btn-press inline-flex min-h-[48px] w-full max-w-[320px] items-center justify-center gap-2 rounded-xl px-6 text-[16px] font-bold normal-case tracking-normal"
+                >
+                  Безплатна регистрация
+                  <ArrowRight className="h-[16px] w-[16px]" />
+                </button>
+                <p className="text-[12px] text-muted-foreground">
+                  {FREE_OFFER_RULE} · без карта
+                </p>
+              </div>
+            )}
+          </header>
+
+          <section className="mt-10" aria-labelledby="everyday-tasks">
+            <h2 id="everyday-tasks" className="font-serif text-2xl font-bold">Какво искате да направите?</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Изберете задача — показваме нужните документи в реда, в който се използват.</p>
+            <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+              {EVERYDAY_TASKS.map((t) => {
+                const to = t.preparationPath ?? `/komplekti/${t.kitId}`;
+                return (
+                  <li key={t.id}>
+                    <Link to={to}
+                      onClick={() => trackFunnelEvent("start_task_selected", { task: t.id, destination: to, authenticated: Boolean(user) })}
+                      className="group flex min-h-[56px] items-center justify-between gap-3 rounded-xl border border-border/60 bg-card px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:border-gold/50">
+                      <span>{t.label}{t.preparationPath && <span className="ml-2 rounded-full border border-gold/40 px-2 py-0.5 text-[10px] font-semibold text-gold">с подготовка</span>}</span>
+                      <ArrowRight className="h-4 w-4 shrink-0 text-gold" />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+
+          <ul className="mt-10 grid gap-4 md:grid-cols-3">
+            {INTENTS.map((intent, i) => (
+              <li key={intent.id}>
+                <Link
+                  to={intent.to}
+                  onClick={(e) => {
+                    // Изборът на намерение НЕ е начало на документ (document_selected).
+                    // Реалният doc_start се изпраща от wizard-а/BuildContract.
+                    trackFunnelEvent("start_intent_selected", {
+                      intent: intent.id,
+                      destination: intent.to,
+                      authenticated: Boolean(user),
+                      requires_auth: needsAuth(intent),
+                    });
+                    if (needsAuth(intent)) {
+                      e.preventDefault();
+                      openInlineAuth({
+                        action: intent.cta,
+                        mode: "signup",
+                        onSuccess: () => navigate(intent.to),
+                      });
+                    }
+                  }}
+                  className="group flex h-full flex-col rounded-xl border border-border/60 bg-card p-6 text-left shadow-soft transition-all hover:-translate-y-0.5 hover:border-gold/50 hover:shadow-gold/20"
+                >
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gold/30 bg-gold/10 text-gold">
+                    <intent.icon className="h-5 w-5" />
+                  </span>
+                  <span className="mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <h2 className="mt-1 font-serif text-lg font-bold leading-snug">
+                    {intent.title}
+                  </h2>
+                  <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
+                    {intent.desc}
+                  </p>
+                  <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-gold">
+                    {intent.cta}
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+
+          <section className="mt-12" aria-labelledby="quick-scenarios">
+            <h2
+              id="quick-scenarios"
+              className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+            >
+              Или тръгнете от типична ситуация
+            </h2>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {QUICK_SCENARIOS.map((s) => (
+                <Link
+                  key={s.id}
+                  to={s.kitId ? `/komplekti/${s.kitId}` : (s.href ?? "/komplekti")}
+                  onClick={() =>
+                    trackFunnelEvent("start_scenario_selected", {
+                      scenario: s.id,
+                      destination: s.kitId ? `/komplekti/${s.kitId}` : (s.href ?? "/komplekti"),
+                      authenticated: Boolean(user),
+                    })
+                  }
+                  className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/60 px-3.5 py-2 text-sm text-foreground/85 transition-colors hover:border-gold/50 hover:text-gold"
+                >
+                  <Layers className="h-3.5 w-3.5 text-gold" />
+                  {s.label}
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          {!user && (
+            <p className="mt-10 text-center text-xs text-muted-foreground">
+              Разглеждането е свободно.{" "}
+              <button
+                type="button"
+                onClick={() => openInlineAuth({ action: "Регистрация", mode: "signup" })}
+                className="font-semibold text-gold hover:underline"
+              >
+                Регистрирайте се
+              </button>{" "}
+              за безплатен профил: {FREE_OFFER_RULE} — без карта.
+            </p>
+          )}
+        </div>
+      </main>
+    </>
+  );
+}

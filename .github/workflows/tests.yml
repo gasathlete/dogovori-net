@@ -1,0 +1,53 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  vitest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run unit tests (incl. JSON-LD schema validation)
+        run: bun run test
+
+      - name: Checkout E2E (планове и цени в реален плащателен поток)
+        run: bunx vitest run src/test/checkoutE2E.test.tsx
+
+      - name: AI JSON parser regression suite
+        run: bunx vitest run src/test/aiJsonParsers.test.ts src/test/aiJsonRetry.test.ts src/test/aiRepairIntegration.test.ts src/test/catalogCounts.test.ts src/test/questionGraphSlugs.test.ts
+
+      - name: Conversion reliability (funnel semantics, dedup, generation errors)
+        run: bunx vitest run src/test/funnelEvents.test.ts src/test/docFunnel.test.ts src/test/generationReliability.test.ts src/test/checkoutTracking.test.tsx
+
+      - name: Activation continuity (draft autosave, claim retry, post-auth redirect, A/B seed)
+        run: bunx vitest run src/test/activationDraft.test.ts src/test/activationDraftHook.test.tsx src/test/postAuthRedirect.test.ts src/test/ab.test.ts src/test/safeRoute.test.ts
+
+
+      - name: Conversion reliability — edge helpers (job status, idempotency, AI JSON repair ladder)
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Edge shared unit tests (incl. draft-auth и draft-writes)
+        run: deno test --node-modules-dir=auto --allow-net --allow-env --allow-read supabase/functions/_shared/*.test.ts supabase/functions/payments-webhook/handlers.test.ts
+      - name: Type check draft functions
+        run: deno check --node-modules-dir=auto supabase/functions/generate-job/index.ts supabase/functions/draft-sync/index.ts supabase/functions/draft-claim/index.ts supabase/functions/payments-webhook/index.ts supabase/functions/create-product-checkout/index.ts
+
+
+
+
+      - name: Wizard full audit (fails on CRITICAL)
+        run: bun run scripts/wizard-full-audit.ts

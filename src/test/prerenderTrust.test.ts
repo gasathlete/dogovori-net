@@ -1,0 +1,159 @@
+/**
+ * P0 trust + SEO инварианти за статичното предварително рендиране.
+ *
+ * 1) `scripts/prerender.ts` минава през същия правен guard като runtime-а —
+ *    за защитените (недоговорни) видове генерираното AI съдържание не влиза
+ *    в статичния HTML.
+ * 2) Маркирането `data-prerendered="true"` покрива route-specific head тагове,
+ *    а `src/main.tsx` ги маха преди Helmet да монтира своите — така hydrated
+ *    DOM има точно по един набор.
+ * 3) Няма фалшиви търговски/правни твърдения в статичното копие.
+ */
+
+import { describe, it, expect } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
+
+const read = (p: string) => fs.readFileSync(path.resolve(p), "utf8");
+
+const prerender = read("scripts/prerender.ts");
+const mainTsx = read("src/main.tsx");
+const indexHtml = read("index.html");
+
+describe("scripts/prerender.ts — правен guard", () => {
+  it("ползва общия резолвер вместо собствена логика", () => {
+    expect(prerender).toContain("resolveTemplatePresentation");
+    expect(prerender).toContain("buildTemplateFallbackContent");
+    expect(prerender).toContain("buildTemplatePageDescription");
+  });
+
+  it("защитените шаблони не публикуват AI intro/реквизити/ЧЗВ", () => {
+    expect(prerender).toContain("const intro = resolved.guarded ? doc.purpose : legacyIntro;");
+    expect(prerender).toMatch(/resolved\.guarded \? resolved\.requirements : legacyRequirements/);
+    expect(prerender).toMatch(/resolved\.guarded \? resolved\.faq : legacyFaq/);
+    expect(prerender).toMatch(/resolved\.guarded\s*\?\s*resolved\.usageCases/);
+    expect(prerender).toMatch(/resolved\.guarded\s*\?\s*resolved\.mistakes/);
+  });
+
+  it("meta и Article описанието са неутрални при защитените", () => {
+    expect(prerender).toMatch(/description: resolved\.guarded \? guardedDesc : doc\.purpose/);
+    expect(prerender).toMatch(/resolved\.guarded\s*\?\s*guardedDesc/);
+  });
+
+  it("няма непроверени маркетинг твърдения за курирани шаблони и обучен модел", () => {
+    expect(prerender).not.toContain("правно курирани");
+    expect(prerender).not.toContain("курирани шаблон");
+    expect(prerender).not.toContain("обучен за българското договорно право");
+  });
+
+  it("няма фалшиви твърдения за юристи, безусловна безплатност и eIDAS", () => {
+    expect(prerender).not.toContain("подготвен от юристи");
+    expect(prerender).not.toContain("първият документ е безплатен");
+    expect(prerender).not.toContain("неограничено теглене");
+    expect(prerender).not.toContain("признат от ЗЕДЕУУ и eIDAS");
+    expect(prerender).toContain("FREE_OFFER_RULE");
+  });
+});
+
+describe("route-specific head тагове", () => {
+  it("prerender маркира description/canonical/og/twitter", () => {
+    for (const attr of [
+      'name="description"',
+      'rel="canonical"',
+      'property="og:url"',
+      'property="og:title"',
+      'property="og:description"',
+      'property="og:type"',
+      'name="twitter:title"',
+      'name="twitter:description"',
+    ]) {
+      const re = new RegExp(`${attr.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^\`]*data-prerendered="true"`);
+      expect(prerender, attr).toMatch(re);
+    }
+  });
+
+
+  // Всеки таг, който src/components/Seo.tsx рендира през Helmet, трябва да има
+  // статичен базов дубликат в index.html, маркиран за премахване от main.tsx.
+  const HELMET_OWNED = [
+    'name="robots"',
+    'name="description"',
+    'property="og:type"',
+    'property="og:url"',
+    'property="og:locale"',
+    'property="og:site_name"',
+    'property="og:title"',
+    'property="og:description"',
+    'property="og:image"',
+    'name="twitter:card"',
+    'name="twitter:title"',
+    'name="twitter:description"',
+    'name="twitter:image"',
+    'name="geo.region"',
+    'name="geo.placename"',
+  ];
+
+  it.each(HELMET_OWNED)("index.html маркира Helmet-owned тага %s", (attr) => {
+    const re = new RegExp(`<meta ${attr.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^>]*data-prerendered="true"`);
+    expect(indexHtml).toMatch(re);
+  });
+
+  it("всеки Helmet-owned таг присъства точно веднъж в статичния HTML", () => {
+    for (const attr of HELMET_OWNED) {
+      const re = new RegExp(`<meta ${attr.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "g");
+      expect(indexHtml.match(re) ?? [], attr).toHaveLength(1);
+    }
+  });
+
+  it("глобалните / не-Helmet елементи остават немаркирани", () => {
+    const UNMARKED = [
+      'name="theme-color"',
+      'name="language"',
+      'name="keywords"',
+      'name="author"',
+      'name="google-site-verification"',
+      'name="msvalidate.01"',
+      'name="viewport"',
+      'name="referrer"',
+    ];
+    for (const attr of UNMARKED) {
+      const re = new RegExp(`<meta ${attr.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^>]*data-prerendered`);
+      expect(indexHtml, attr).not.toMatch(re);
+    }
+    // favicon / manifest / preconnect
+    expect(indexHtml).not.toMatch(/<link [^>]*data-prerendered/);
+    // глобален JSON-LD (Organization, WebSite, SoftwareApplication, LegalService)
+    expect(indexHtml).not.toMatch(/<script type="application\/ld\+json"[^>]*data-prerendered/);
+    for (const t of ["Organization", "WebSite", "SoftwareApplication", "LegalService"]) {
+      expect(indexHtml, t).toContain(`"@type": "${t}"`);
+    }
+  });
+
+  it("main.tsx маха всички маркирани елементи, не само JSON-LD", () => {
+    expect(mainTsx).toContain(`document.querySelectorAll("[data-prerendered='true']")`);
+    expect(mainTsx).not.toContain('script[type="application/ld+json"][data-prerendered="true"]');
+  });
+});
+
+describe("index.html — без остарели ценови/рейтинг твърдения", () => {
+  it("SoftwareApplication няма стари offers и измислен aggregateRating", () => {
+    expect(indexHtml).not.toContain("aggregateRating");
+    expect(indexHtml).not.toContain("1.90");
+    expect(indexHtml).not.toContain("10.90");
+  });
+});
+
+describe("src/lib/seo/schemas.ts — неутрални твърдения", () => {
+  const schemas = read("src/lib/seo/schemas.ts");
+
+  it("няма твърдения за курирани от юристи шаблони или обучен модел", () => {
+    expect(schemas).not.toContain("курирани шаблони от юристи");
+    expect(schemas).not.toContain("от юристи");
+    expect(schemas).not.toContain("специализирана за българското договорно право");
+  });
+
+  it("featureList не съдържа брой шаблони и не ги нарича само договори", () => {
+    expect(schemas).not.toContain("600+ Bulgarian contract templates");
+    expect(schemas).toContain("Bulgarian legal document templates");
+  });
+});

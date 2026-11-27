@@ -1,0 +1,1 @@
+DELETE FROM public.rate_limit_buckets WHERE key = 'anon-chat:e2acc5e5a29eb52e7dba9510dec3e22f';

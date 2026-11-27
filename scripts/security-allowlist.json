@@ -1,0 +1,6 @@
+[
+  "src/integrations/supabase/client.ts",
+  "scripts/security-scan.ts",
+  "supabase/migrations/20260907110000_web_vitals_daily_aggregate.sql:security-definer-no-authz",
+  "supabase/migrations/20260907123000_lead_magnet_consent_hardening.sql:security-definer-no-authz"
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "url": "https://dogovori.net/sitemap-static.xml",
+    "status": 200,
+    "contentType": "application/xml",
+    "urls": 59
+  },
+  {
+    "url": "https://dogovori.net/sitemap-categories.xml",
+    "status": 200,
+    "contentType": "application/xml",
+    "urls": 46
+  },
+  {
+    "url": "https://dogovori.net/sitemap-templates-top.xml",
+    "status": 200,
+    "contentType": "application/xml",
+    "urls": 19
+  },
+  {
+    "url": "https://dogovori.net/sitemap-templates-rich.xml",
+    "status": 200,
+    "contentType": "application/xml",
+    "urls": 475
+  },
+  {
+    "url": "https://dogovori.net/sitemap-templates.xml",
+    "status": 200,
+    "contentType": "application/xml",
+    "urls": 131
+  },
+  {
+    "url": "https://dogovori.net/sitemap-blog.xml",
+    "status": 200,
+    "contentType": "application/xml",
+    "urls": 47
+  }
+]

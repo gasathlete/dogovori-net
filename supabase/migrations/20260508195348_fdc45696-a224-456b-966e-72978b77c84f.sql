@@ -1,0 +1,1 @@
+ALTER TABLE public.download_quota ADD COLUMN IF NOT EXISTS bonus_contracts integer NOT NULL DEFAULT 0;

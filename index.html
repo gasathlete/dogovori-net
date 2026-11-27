@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="bg">
+  <head>
+    <script>
+      // No-flash theme: apply stored theme before React renders.
+      // If user has no stored preference, follow the OS / browser color scheme.
+      (function () {
+        try {
+          var t = localStorage.getItem("dogovori:theme");
+          var c;
+          if (t === "light" || t === "dark") {
+            c = t;
+          } else {
+            c = "light"; // нови посетители: светла хартия; изричният избор се пази
+          }
+          document.documentElement.classList.remove("light", "dark");
+          document.documentElement.classList.add(c);
+        } catch (e) {
+          document.documentElement.classList.add("light");
+        }
+      })();
+    </script>
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Content Security Policy: ограничава източниците за защита от XSS / data exfiltration.
+         'unsafe-inline' за style/script е нужно за Vite/Tailwind и third-party (Stripe, Plausible). -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://plausible.io https://www.googletagmanager.com https://*.googletagmanager.com https://cdn.gpteng.co https://*.supabase.co https://*.lovable.app https://*.lovable.dev https://*.lovableproject.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://www.google.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://plausible.io https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://api.resend.com https://*.lovable.app https://*.lovable.dev; frame-src 'self' https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'; form-action 'self' https://*.stripe.com;" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=20260915d">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=20260915d" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png?v=20260915d" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260915d" />
+    <link rel="manifest" href="/site.webmanifest?v=20260915d" />
+
+    <!-- Speed up the first Supabase + analytics + payments calls -->
+    <link rel="preconnect" href="https://wkbxojefiovdczkwhved.supabase.co" crossorigin />
+    <link rel="dns-prefetch" href="https://wkbxojefiovdczkwhved.supabase.co" />
+    <link rel="preconnect" href="https://plausible.io" crossorigin />
+    <link rel="preconnect" href="https://js.stripe.com" crossorigin />
+    <link rel="dns-prefetch" href="https://js.stripe.com" />
+
+    <!-- Fonts are self-hosted via @fontsource (bundled by Vite, served from our own origin). -->
+    <!-- See src/fonts.ts -->
+
+    <!-- canonical + hreflang are managed per-route via react-helmet-async in src/components/Seo.tsx -->
+    <!-- (static <link> tags don't dedupe with Helmet, so duplicates would otherwise ship on every route) -->
+    <!-- data-prerendered="true": route-specific tags that Helmet owns at runtime. src/main.tsx removes
+         them before React mounts, so the hydrated DOM keeps exactly one Helmet copy. -->
+    <meta name="robots" content="index, follow" data-prerendered="true" />
+    <meta name="theme-color" content="#101827" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#FAF8F3" media="(prefers-color-scheme: light)" />
+    <meta name="geo.region" content="BG" data-prerendered="true" />
+    <meta name="geo.placename" content="Bulgaria" data-prerendered="true" />
+    <meta name="language" content="Bulgarian" />
+    <!-- Search engine verification -->
+    <meta name="google-site-verification" content="mgoGvydxjBIsHUAOGlJ3CDhdiQQzdvRBO2rXDUdzl1s" />
+    <meta name="msvalidate.01" content="" />
+
+    <title>Dogovori.net — по-малко бюрокрация. Повече време за Вас.</title>
+    <meta name="description" content="Помагаме на хората и малкия и средния бизнес да се справят с ежедневната бюрокрация. Образци, пояснения и подготовка за лични въпроси, работа и бизнес." data-prerendered="true">
+    <meta name="keywords" content="договори, бланки, юридически документи, наем, услуга, трудов договор, ЗЗД, ТЗ, ЗУТ" />
+    <meta name="author" content="Dogovori.net" />
+
+    <meta property="og:type" content="website" data-prerendered="true" />
+    <meta property="og:url" content="https://dogovori.net/" data-prerendered="true" />
+    <meta property="og:locale" content="bg_BG" data-prerendered="true" />
+    <meta property="og:site_name" content="Dogovori.net" data-prerendered="true" />
+    
+    
+    <meta property="og:image" content="https://dogovori.net/og-image.jpg?v=20260915d" data-prerendered="true">
+
+    <meta name="twitter:card" content="summary_large_image" data-prerendered="true" />
+    
+    
+    <meta name="twitter:image" content="https://dogovori.net/og-image.jpg?v=20260915d" data-prerendered="true">
+
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Dogovori.net",
+        "url": "https://dogovori.net",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://dogovori.net/icon-512.png?v=20260915d",
+          "width": 512,
+          "height": 512
+        },
+        "sameAs": [],
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "email": "contact@dogovori.net",
+          "contactType": "customer support",
+          "areaServed": "BG",
+          "availableLanguage": ["Bulgarian"]
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Dogovori.net",
+        "url": "https://dogovori.net",
+        "inLanguage": "bg-BG",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://dogovori.net/catalog?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Dogovori.net",
+        "url": "https://dogovori.net",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "inLanguage": "bg-BG",
+        "description": "Образци и пояснения за ежедневната бюрокрация — за хората и малкия и средния бизнес."
+      }
+    </script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "LegalService",
+        "name": "Dogovori.net",
+        "url": "https://dogovori.net",
+        "areaServed": { "@type": "Country", "name": "Bulgaria" },
+        "availableLanguage": ["Bulgarian", "English"],
+        "serviceType": ["Legal document templates", "Contract generation", "Contract review"],
+        "priceRange": "€"
+      }
+    </script>
+
+    <!-- Privacy-friendly analytics by Plausible — loaded only AFTER explicit user consent (see src/lib/analytics.ts). -->
+    <script>
+      window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+    </script>
+  <!-- og:title / og:description / twitter:title / twitter:description се управляват per-route през react-helmet-async (src/components/Seo.tsx). -->
+  <meta property="og:title" content="Dogovori.net — по-малко бюрокрация. Повече време за Вас." data-prerendered="true">
+  <meta name="twitter:title" content="Dogovori.net — по-малко бюрокрация. Повече време за Вас." data-prerendered="true">
+  <meta property="og:description" content="Помагаме на хората и малкия и средния бизнес да се справят с ежедневната бюрокрация. Образци, пояснения и подготовка за лични въпроси, работа и бизнес." data-prerendered="true">
+  <meta name="twitter:description" content="Помагаме на хората и малкия и средния бизнес да се справят с ежедневната бюрокрация. Образци, пояснения и подготовка за лични въпроси, работа и бизнес." data-prerendered="true">
+
+</head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

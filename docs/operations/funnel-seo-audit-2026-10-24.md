@@ -1,0 +1,173 @@
+# Registration, payment and technical SEO audit — 24 October 2026
+
+## Scope and evidence
+
+**Native Search Console supplement, 24 October after 09:22 UTC:** the earlier “GSC unavailable” statements refer to the Wizard, not native connector authentication. Read-only native access succeeded; see the final section below. Google indexing is still not inspected.
+
+Current AGENTS, auth pages/modals/provider, consent persistence, Stripe client, checkout/return, product entitlement reads, checkout server and webhook handlers, prerender and robots were read. Existing reports were not used as proof. No payments, new accounts, auth emails, backend deployment/config changes, price changes or publication were performed. Google Search Console is unavailable; Google indexing is not verified.
+
+## Confirmed findings
+
+| Severity | File:line | Trigger / evidence | Correction | Regression / validation |
+|---|---|---|---|---|
+| High | src/lib/stripe.ts:6 | Missing/unknown publishable token previously selected LIVE via ternary | Explicit prefix validation, fail closed | stripeEnvironmentAudit: 6 tests |
+| High | src/components/auth/InlineAuthDialog.tsx:41; src/pages/Auth.tsx:59; src/components/auth/GoogleConsentDialog.tsx:24 | Required acknowledgements were prechecked; inline Google checked only notifications and login invented true acknowledgements | Unchecked required choices; all required signup choices enforced; inline Google login opens explicit consent dialog | inlineAuthAudit; browser required defaults and signup enabled without marketing |
+| High | src/lib/productEntitlements.ts:108; src/pages/CheckoutReturn.tsx:109 | Refunded entitlement plus historical paid snapshot still passed paid-purchase/readiness checks | Reject refunded/unknown statuses; failed delivery remains retryable | refundedPurchaseAudit: 2 tests |
+| Medium | src/components/auth/InlineAuthDialog.tsx:195 | “Вече потвърдих — вход” changed mode but emailSent branch still hid login form | Clear emailSent when choosing login | inlineAuthAudit reproduces signup→email-sent→login |
+| Medium | src/hooks/useAuthAction.ts:8; Auth.tsx:90,271; InlineAuthDialog.tsx:201 | Same-tick submit had no lock; thrown requests could leave loading stuck, including resend/reset/OAuth | Shared synchronous in-flight lock and finally cleanup; confirmation has separate lock | authActionAudit: duplicate dispatch and offline retry |
+| Medium | src/hooks/useAuth.tsx:55 | Stored product destination consumed on recovery page, despite reset being a non-landing route | Recovery never consumes/navigates stored product intent | useAuthRedirect dedicated recovery regression |
+| Medium | src/pages/CheckoutReturn.tsx:281 | Signed-out return linked bare /auth, losing exact session/product | Sanitized return page retained in login destination | checkoutReturnFunnel assertion; browser 1280/390/360 |
+| Medium | src/pages/CheckoutReturn.tsx:152 | Mounted page retained ready/tracking state when session/owner changed | Reset polling state and completion marker on dependencies changing | Existing return tests pass; rapid route-switch browser scenario not separately exercised |
+| Medium | scripts/prerender.ts:139,972; scripts/lib/funnelSeoPages.ts:15 | Live initial HTML for /plans, /auth, /checkout/return is homepage canonical/index-follow; JS repairs it later | Dedicated canonical plans HTML from pricing; known private exact entry pages get static noindex/empty body; /auth disallowed for both search groups | funnelSeoAudit: 7 tests; live remains old until publication |
+| Low | index.html:137 | LegalService advertised Electronic signatures although signing unavailable | Remove unsupported service type only | Existing JSON-LD/prerender tests |
+
+## Exact validation
+
+- Final Vitest: **25 files passed; 221 passed, 4 skipped, 0 failed (225 total)**. Four skips are dist-dependent productSeoStatic checks: there is no local production dist. Tests named checkoutE2E use a mocked Stripe catalog/provider: they are NOT real Stripe transactions.
+- Deno: **71 passed, 0 failed**, across oneoff-credit, purchase-consent, webhook env/handlers/product. Covers unpaid/delayed paid, repeated delivery, owner recovery, cancellation scheduling, full/partial refund, revoked staff and cross-environment rejection. DB concurrency is mocked here, not a new hosted concurrent SQL test.
+- Node webhook proof: **14 passed, 0 failed**; signed proof/timestamp/environment/size rejection on synthetic inputs, not an actual provider delivery.
+- Automatic local build log latest **build OK 2026-10-24T08:42:09Z**. Earlier introduced diagnostics were `Type 'Promise<string | number>' is not assignable to type 'Promise<void>'`; fixed runner return contract to Promise<unknown>, subsequent builds OK. Full production prerender/verify pipeline and independent full typecheck were NOT manually run. Hosted build-status tool still describes baseline 89c9a2fe, not today's local source; do not call it a hosted build of these fixes.
+- Browser localhost: 1280×1800, 390×844, 360×844. Required choices initially unchecked; after required choices signup remains enabled with marketing unchecked. No account submitted. Resend dialog opens/Escape closes; signed-out return retains session; no horizontal overflow or pageerror in these checks. Public catalog/products/plans/blog/auth/return/missing page have one rendered H1, own canonical; private/missing pages have rendered noindex. Screenshots examined for signup and resend; screenshot during transition is not evidence of completed animation styling.
+- Browser script initially failed its assertion that nested rejected external redirect text should disappear from the return URL; this was an audit assertion mistake, not open navigation: outer destination remains /checkout/return and redirectTo independently rejects the external value. Corrected assertion; no external navigation or access was granted.
+- Fresh production HTTP: robots 200 text/plain; sitemap index and **all 6 children 200 application/xml**, 59/46/19/475/131/47 URL entries (777 entries, not a unique-route census). Catalog/products/product-detail have dedicated canonical HTML and readable body without JS. /plans,/auth,/checkout/return and synthetic missing route return homepage HTML/canonical/index-follow; missing route is HTTP 200 (soft 404). Raw nonsecret samples saved in reports/funnel-seo-{http,browser,sitemaps}-2026-10-24.json.
+
+## Current settings, without secrets
+
+- Read-only production auth URL tool confirms Site URL https://dogovori.net and dogovori.net/**, www and published/preview allowlist coverage. It does not prove email enablement, email confirmation setting, OTP length, Google provider enablement or deliverability.
+- Read-only database: product_launch_control/public_products.live_enabled **true** at audit time. No flag changed.
+- Latest private operator observation: checkoutEnabled=true, fulfillmentEnabled=true, migration/legal=ready, **observed 21 October 05:27:59 UTC**, therefore historical, NOT today's runtime configuration proof.
+- Source environment files use test-prefixed development and live-prefixed production payment tokens; no values exposed. Prefixes establish intended client environment only, not provider readiness. get_go_live_status was not invoked because it can mutate/replace a dead sandbox. No fresh Stripe account/catalog/webhook configuration was fetched.
+
+## Remaining blockers / incomplete coverage
+
+1. **Cross-tab/device email confirmation**: pending explicit consent and post_login_redirect are sessionStorage-only. New-tab confirmation may lose both; code-generated email target can still carry product route when hosted allowlist accepts it, but no authenticated email link was exercised. Do not claim bonus grant or confirmation E2E. A secure server-bound pending-evidence handoff needs separate design/backend work; never encode consent in untrusted URLs or silently grant.
+2. **Ordinary session on /reset-password**: reset still treats SIGNED_IN/existing session as recovery and submits without current_password; server policy may reject. Tests check revoked sessions and nonce, not a real recovery link or current-password policy. Dedicated recovery-vs-signed-in distinction remains.
+3. **Legacy subscription checkout server validation** create-checkout/index.ts:94–101 checks allowlist/active/recurring but not exact canonical EUR amount/interval for all non-entry prices. Entry pack and product checkout have exact validation. Requires complete legacy price mapping review; prices intentionally not changed.
+4. **Shared quota/environment and event ordering**: useIsPro.tsx:75–84 reads subscriptions without environment and relies on shared quota. Legacy subscription/topup refund behavior and stale/out-of-order subscription events require provider/ledger integration proof. Product refund tests do not establish subscription/topup revocation. No production entitlement mutation made.
+5. **Soft 404**: hosting SPA fallback returns 200 for unknown route. React shows 404/noindex; no supported hosting-status fix was applied. Known private routes get static noindex in source only; dynamic private routes are not exhaustively statically generated.
+6. **SEO coverage**: sampled public pages and six sitemap children, not exhaustive 777 URL HTTP/link crawl, article HTML corpus or every CTA entrypoint. Template content/structured-data coverage has existing tests; no new universal schema truth assertion. No field mobile performance/Lighthouse/Core Web Vitals benchmark and no speed improvement claim. Local wait durations are not performance metrics.
+7. **End-to-end excluded**: no real email/password/signup/duplicate-email/OTP/resend/OAuth completion; no real bonus grant; no authenticated checkout, Stripe TEST transaction, live transaction, real webhook delivery or refund. Existing mocks cannot establish hosted configuration, external deliverability or Google indexing.
+
+## Delivery
+
+## Authorized completion follow-up — 09:07–09:20 UTC
+
+This section supersedes the earlier remaining-work statements only where explicitly verified below. No redesign, price changes, LIVE toggle, third-party email, customer account mutation, real-money or TEST transaction, or frontend publication occurred.
+
+### Implemented and deployed
+
+| Severity | Files / trigger | Fix | Actual evidence |
+|---|---|---|---|
+| High | `src/lib/consents.ts`, Auth/InlineAuthDialog: local signup choices could attach to a different next login | Signup metadata captured once at actual auth identity INSERT into private `signup_handoffs`; authenticated confirmed owner consumes under row lock, 24h expiry; mutable metadata/URL cannot change captured evidence; later withdrawal beats delayed signup consent | PGlite identity/confirmation/replay/expiry/withdrawal tests; migration 0033 applied; ACL read proves anonymous denied |
+| High | `hasConsent` filtered historical `granted=true` | Read latest version's event ordered created_at/id and return its boolean | 3 consentLatestAudit tests including cross-account local evidence rejection |
+| Medium | ResetPassword treated any signed-in account as recovery | Observed PASSWORD_RECOVERY owner is distinct; ordinary session collects current password; verified owner immediately before mutation; synchronous lock; safe stored product return only after successful change | 6 reset tests, including ordinary-session current_password and recovery return; signed-out UI checked on 1280/390/360 |
+| High | create-checkout recurring prices had weak validation | New subscription checkout requires exact canonical lookup, active EUR cents, interval/count and quantity=1; legacy aliases accept current canonical amounts for NEW checkouts only, no existing price or entitlement rewrite | 8 price tests; read-only Stripe confirms LIVE 1290/12900/1990/19900 EUR and month/year, sandbox professional_monthly 1290 EUR |
+| High | Subscription events directly mutated shared quota | Signed event timestamp/id and owner/environment serialized in service-only RPC; stale/replayed cancellation cannot resurrect subscription; TEST events do not alter customer quota; canceled future period remains paid; other active subscriptions and later manual extensions preserved | Isolated SQL checks; migration 0034; `useIsPro` subscription query environment-filtered |
+| High | Topup replay/refunds not environment-isolated | Exact purchase binding, advisory lock, separate TEST balance; full refunds resolve provider session+payment intent, bypass mutable staff role, decrement once, retain debt rather than erasing unrelated credits; refund-before-payment tombstone blocks later grant | 9 SQL tests, including concurrent queued credit/refund attempts (PGlite serializes its connection; NOT multi-connection contention proof), migration 0035 |
+| Medium | stale invoice.payment_failed overwrote newer status | Real signed event path reads current provider subscription snapshot and uses ordered RPC instead of old invoice status | Existing 42 webhook tests pass; no genuine provider event exercised |
+
+Applied migrations: `drizzle/migrations/0033_signup_confirmation_handoff.sql`, `0034_funnel_billing_event_ledger.sql`, `0035_funnel_refund_replay_guard.sql`. SQL was exercised against isolated PGlite before each application; privileges checked read-only on MAIN. No existing data backfill or bulk entitlement revocation. Schema types regenerated by the migration tool.
+
+Deployed `create-checkout` source SHA-256 **758147e046d2f0389ca7fc15fd7c2706efcb647e8b413c285191f672d22f1811** and final `payments-webhook` **8a0f3094aebd943b8f3217ec44a07d077c4c6e61a66124176a0cff6f5ef68832**. Deployment receipt is not successful payment proof. Deployed checkout negative smoke: deliberately invalid Bearer → **401 Unauthorized**, no session creation.
+
+OAuth pre-login choices are no longer silently assigned to the account returned by Google: fresh authenticated choices are requested through `ConfirmedConsentDialog`. Interactive Google login remains untested; do not describe its new dialog as E2E verified. Existing email signup flows have no local consent stash dependency.
+
+### Checks and precise limitations
+
+- Final app run: **16 files / 128 tests passed, 0 failed, 0 skipped**. Includes isolated SQL, exact prices, consent, recovery, auth, return, mocked checkout and static SEO checks. Edge: **71 passed, 0 failed**. Node signed-webhook proof: **14 passed**. These are separate suites, not real transactions.
+- Intermediate failures: new refund helper caused one existing webhook expectation failure (41 passed/1 failed) by adding a second provider list call. Reused identical bounded lookup and ignored product sessions; rerun **42/0**. A mock returning undefined from consent flush caused **5 auth redirect tests to fail** (122 pass); optional result handling corrected; final **128/0**. React act warnings remain in test output; no app runtime errors in browser checks.
+- Browser preview: 15 route/viewport combinations at 1280×1800,390×844,360×844; signup checkboxes unchecked, no horizontal overflow or pageerror; distinct title/canonical/H1 and private noindex. Screenshots inspected for 390 signup/360 reset. Signed-out reset screenshot precedes 3s invalid-link timeout; it is not a recovery verification.
+- Fresh live HTTP at ~09:14: home,/auth,/plans,synthetic missing route still **200 / 279476 chars / home canonical + index-follow**. Products remains correct. **18** sampled homepage links fetched: all HTTP 200, but /plans,/build,/analiz,/auth still carry home initial HTML. This is stale production, not a successful route-shell release.
+- Live mobile single lab sample, Chromium390 unthrottled: FCP **480ms**, TTFB **206.2ms**, DOMContentLoaded **493.2ms**, load **570.5ms**, navigation transfer **49998 bytes**,58 resources,no overflow. Not Lighthouse, field CWV, LCP/CLS benchmark or performance improvement claim.
+- Full production build/prerender verification remains **unexecuted**: developer/harness forbids manually invoking build/typecheck; no supported build-trigger command is exposed. Automatic build **OK 09:19:15 UTC**, but it is NOT evidence of the full package.json production pipeline or current dist; hosted status still references earlier 478131b5 build. No local dist to run artifact checks against. Required release gate remains unmet.
+- Real owned-mail signup/confirmation/bonus E2E blocked: no mailbox connection or TEST_USER/TEST_PASS/owned fixture credential available; available connections are Stripe TEST/LIVE, GSC and Semrush only. No confirmation emails generated to an invented recipient. No staff/test boundary relaxed or disabled fixture reenabled. Interactive OAuth human login not available. Test checkout/refund E2E therefore not performed; readonly Stripe catalog/webhook reads are not transactions.
+- Read-only hosted auth tool verifies Site URL + redirect allowlist/OAuth SERVER enabled, **not Google provider, email confirmation/current-password hosted policy or deliverability**. Those settings remain unverified. GSC subscription issue unchanged; indexing not claimed.
+- **HTTP 404 remains blocked by Classic hosting SPA fallback**. No route-status customization exists in exposed supported capabilities; Netlify `_redirects` is not supported. Viable platform preparation: retain current noindex/private shells, use existing in-place “Migrate to TanStack Start” action after eligibility/preflight, retain domains, implement server unknown-route status then verify GET HTTP404. This is a supported framework migration entrypoint, **not a verified status fix**; broad framework migration was not attempted in this economical security follow-up.
+- Partial subscription refunds intentionally do not revoke still-paid period access. Full subscription/invoice refund reconciliation and team event ordering/environment behavior remain **unimplemented/unverified**; topup/product reversal coverage does not prove them. Existing historical sandbox credits are not reclassified/backfilled; old shared quota provenance cannot be inferred safely. Full live quota isolation for historical data is therefore not claimed.
+
+**Publication not requested**: production pipeline and real confirmation/TEST E2E gates are unmet; user authorized publication only after adequate checks. MAIN migrations and two compatible functions are deployed; frontend stays source/preview. Implementation checkpoint SHA **3fd36ac4c2eb6753c9ea6d6ab347587330942272**; later report/code checkpoints are automatically managed. Credits for 09:07–09:19:40: **11.10**, not final accounting.
+
+## Narrow live-evidence follow-up — 24 October, after 08:44 UTC
+
+Owner supplied independent GET evidence: `/nonexistent-audit-20261024`, `/auth`, `/plans` each return **200**, identical **279476 characters** of homepage HTML, canonical `https://dogovori.net/`, `robots=index,follow`, homepage H1. Home contains “Покупките още не са активни” and “В подготовка”, no “безплатно”/“Регистрира”. `/produkti`, `/produkti/proverka-predi-podpis`, `/blog` have correct own canonical/title/H1. Robots and sitemap counts agree with this audit's earlier independent HTTP checks: 59/46/19/475/131/47. Exact 279476-character equality is owner-supplied evidence, not a newly repeated body fetch in this follow-up.
+
+Confirmed source cause: `scripts/generated/home-shell.html` retained an old header/hero; `scripts/prerender.ts:242` also hardcoded a globally closed-purchases statement. Refreshed the anonymous shell from the current localhost app using the existing capture script, retained manual demo controls (capture no longer strips all aria-pressed buttons), removed the stale blanket availability sentence in favour of neutral service-selection/conditions copy. No runtime design or payment flag changed. Shell is captured from development preview, not a production bundle; current shell references no external/local image asset URL. Production style/asset packaging remains for the normal build pipeline.
+
+Dedicated `/plans` and private route output from the earlier audit is retained, with `/auth/callback` added. **10 exact HTML shells** were rendered through the actual current `renderPage` function using `index.html` in temporary files: each has exactly **one self canonical**; `/plans` has **one H1 + index,follow**; the other **9 private entries have noindex,nofollow and no fabricated user body/H1**. This validates HTML rendering, NOT hosting path selection or HTTP status. Static route writing is still done by the normal postbuild pipeline.
+
+Follow-up tests: **6 files, 65 passed, 0 failed, 0 skipped** (`homeShell`, `funnelSeoAudit`, `prerenderTrust`, `indexabilityAudit`, `seoMetadataConsistency`, `json-ld`). Updated homeShell test no longer requires the removed historic video poster. No new styling/copy snapshot assertions added. Prior audit counts (221 app, 71 edge, 14 proof, 4 skips) are separate runs, not added together as unique coverage. Automatic build **OK 08:45:26 UTC**; full production build/prerender pipeline was not manually run.
+
+Fresh browser check at 1280×1800: home current H1 and own canonical, three exact registration CTAs; `/plans` current H1 and own canonical/index; `/auth` own canonical/noindex. Current hero screenshot inspected, with compact local demo and registration action present. Existing 390/360 checks remain the earlier audit evidence; they were not rerun for this static-only follow-up.
+
+**Not fixed live:** missing-path HTTP 200/soft404, stale published `/auth` and `/plans`, and old published homepage copy. No publication occurred; changes reach the live URL only after an authorized publication, and even then HTTP 404 requires supported hosting behaviour rather than React NotFound. No new broad audit, Stripe transaction, account/email, backend/config changes or Google indexing verification.
+
+Source/preview changes only. Backend handlers inspected/tested but not changed or deployed. No redesign, dependencies, keys, prices, marketing grant semantics or publication changed. Source correction commit before report artifacts: **96d1d89a8fb36e57c1e81b3153980634f9298494**; later report commits are managed automatically by Lovable, not manual git commits. Credit usage reported **7.52** for project window 08:35–08:44 UTC; final accounting can arrive later and is not a closed invoice.
+
+## Narrow native Google Search Console supplement — after 09:22 UTC
+
+- Reused existing project-linked, accessible OAuth connection **Daniel's Google Search Console**; no connection setup, subscription purchase, new credentials or project configuration change.
+- Actual read-only **GET /webmasters/v3/sites returned HTTP 200**. Native authentication is therefore working for this request, independently of the unavailable GSC Wizard.
+- Google returned two verified properties covering the target, both with `permissionLevel=siteOwner`: **`sc-domain:dogovori.net`** and **`https://dogovori.net/`**. Other unrelated properties were not inspected.
+- This is diagnosis, not initial setup. The connector's required multiple-property selection rule therefore applies: present both matching properties without a default and wait for the owner's choice. No sitemap or URL Inspection request was made before that choice.
+- Next bounded read-only batch after selection: sitemap status and five indexed-version inspections (home, plans, one product, one actual representative template and one article). Stop on 403; respect 429/Retry-After. No sitemap submission, live test or indexing request is authorized by this supplement.
+- **Remaining blocker: property selection, not missing authentication.** No Google indexing or sitemap success/error state is claimed. Primary release blockers and deployment state above are unchanged; no frontend publication.
+
+## Implemented invoice/team continuation — 09:23–09:30 UTC
+
+This section supersedes earlier claims that invoice/team code remains unimplemented or that an owned mailbox is unavailable. Root verified owned Gmail access and GitHub admin access; those external steps are actionable handoffs, not final platform blockers.
+
+| Severity | File / trigger | Implemented correction | Actual verification |
+|---|---|---|---|
+| High | `invoice-reconciliation.ts`; subscription refunds previously had no exact invoice/period ledger | Hydrate invoice, subscription, paginated invoice payments and lines, intents/charges; bind customer/owner/environment; fully returned invoice payments revoke only the covered subscription period. Split/shared-intent partial refund does not falsely prove full invoice return | 4 provider-double tests; isolated SQL partial/full, refund-before-subscription, replay, alternate paid invoice and later renewal tests |
+| High | `docs/migrations/funnel_invoice_team_20261024.sql`; invoice and subscription event order differs | Monotonic refund amount, immutable invoice binding, provider_status separate from effective access; invoice refresh retains signed subscription event time/id. Other active subscriptions and later manual extensions survive | 9 invoice/team SQL tests; MAIN migration0036 and function ACL verified |
+| High | `subscription-event.ts`, `handlers.ts`; team events bypassed ordered ledger | All signed subscription events use individual/team service RPC; exact team owner/customer/environment, serialized updates, terminal tie handling, paid cancellation period retained, another active team subscription preserved | SQL team replay/refund/env tests; existing webhook suite |
+| High | `cleanup_team_on_subscription`, `enforce_no_team_when_subscribed`, `consume_team_quota`; TEST status could affect live membership/usage | Environment-scoped membership triggers; customer team usage requires LIVE active unexpired team. No TEST event credits/debits the real team usage ledger | Isolated sandbox quota refusal/zero usage; schema deployed; no historical backfill |
+| Medium | `useIsPro.tsx`, `useTeam.tsx`; frontend team reads lacked environment filter | Join/read and cache distinguish current Stripe environment; active team read respects period end | Automatic compilation; authenticated team browser flow still not exercised |
+
+**Deployment:** exact source SQL tested then applied as `drizzle/migrations/0036_funnel_invoice_team_reconciliation.sql`; source copy byte-identical. MAIN read proves both ledgers exist, authenticated invoice RPC denied, service team RPC allowed. `payments-webhook` redeployed with submitted SHA-256 **2a962aa97b6233318c955709eeb9864a49d6d31d36379a2a4ebb67c8d40ecaef**. No LIVE flag/price change, no bulk customer mutation. Deployment is not payment proof.
+
+**Tests:** final **10 app files /72 passed,0 failed,0 skipped**; **71 Deno edge passed/0 failed**. Intermediate Deno failures: TS7022 for inferred provider page (fixed explicit type), then39 pass/3 fail because existing product-refund doubles lacked invoicePayments.list (updated empty provider response); reruns71/0. PGlite serializes its single connection; queued repeated calls are not hosted multi-connection contention evidence. Automatic build **OK09:30:12 UTC**, not full production artifact verification.
+
+**Owned fixture:** ordinary preview signup submitted once to **`imdevelopmentoffice+dogovori-audit-20261024@gmail.com`**, name Dogovori Audit TEST, required acknowledgements and marketing explicitly selected through the UI. HTTP200, identity created, **no session**. MAIN read at checkpoint: user **`500d7da4-8b8b-48bd-aae0-32dbd2ce1c9f`**, confirmed=false, handoff unconsumed, return=/plans, captured marketing=true, user_consents count0, bonus_claimed=false. No password/token in outputs or repo; random credential is sandbox-private and temporary. Root should open the confirmation email for this exact alias; confirmation alone may return to production's older frontend, so authenticated consumption/readback must be checked on current preview. Do not use a URL as consent/payment proof. Dedicated account has no staff role: Root must arrange scoped server-authorized TEST eligibility under the existing staff boundary before checkout; do not grant customer operations or relax the boundary. No checkout or refund initiated this turn.
+
+**Root build handoff:** existing `.github/workflows/build-verify.yml` supports workflow_dispatch, frozen Bun1.4.2 install, app typecheck, sitemap/Vite/prerender/artifact/URL checks. Its split steps omit package build's blog/footer generation; full exact `bun run build` also needs execution outside this harness. Workflow source reviewed, not dispatched here. Checkpoint **7625460c4e85847e3b23b4c8f0c7c58a65986550** precedes this report update.
+
+**Remaining:** real owned-mail confirmation→consume→bonus readback and dedicated staff TEST checkout/webhook/refund; Root production workflow/artifacts; selected GSC property; hosted HTTP404. Classic automatic SPA fallback and absent exposed route-status customization remain the concrete limitation; no `_redirects`, DNS or broad framework migration attempted. Legacy unknown shared quota remains untouched. Proration-only invoice periods and non-payment-intent settlement fail closed with explicit unverified codes rather than fabricated access facts; actual provider delivery still untested. Full refund behavior is implemented for verified invoice periods, not claimed for every legacy billing configuration. Frontend unpublished.
+## CI closeout and owned fixture — 2026-10-24 ~09:45 UTC
+
+**Owned fixture E2E (real):** Root confirmed the email link; DB showed `email_confirmed_at` set, 0 consents, handoff unconsumed. Browser sign-in on preview → `/account`; readback: handoff consumed, 5 consent rows (terms, privacy, age_18, operational_notifications, marketing=true), `topup_ops_balance=3`, plan free. Second sign-in: still 5 rows, balance 3 (no regrant). Stripe TEST checkout/webhook/refund for this fixture not run.
+
+**Full Tests job 120836593530 (17 failures) — resolved locally, 9 files / 120 tests pass:**
+| Test | Cause | Fix |
+|---|---|---|
+| dependencyLock | package.json override pins MCP SDK 1.32.1 | assert 1.32.1 (lock = override) |
+| documentOperationCallers ×4 | callers now use `invokeWithMarketingBonus` | regex accepts both wrappers; operation_id checks unchanged |
+| freeOfferCopy | canonical rule is 2/month + optional 3 after consent | assert current `FREE_OFFER_RULE` |
+| mobileConversion, positioningOffer | copy changed | assert current H1/plans copy |
+| p2Conversion ×4 | hero link „Вижте как работи“; story finale is `RegistrationCTA` → `/build`; bounded `move` | assert current behavior; no-navigation-on-close kept |
+| publicConversionRoutes | gate gained `payInFlight` double-click guard | assert stricter guard |
+| useAuth.assistantContext ×3 | router mock lacked `Link` (new consent dialog) | mock `Link`; no regression in app |
+| productEmbeddedAvailability | subscriptions were deliberately opened by owner | assert subscription checkout mounts; product state not toggled |
+
+**Security shield:** `body-parser` 2.3.0 → **2.4.0** via `overrides` (transitive through MCP SDK/express); lock regenerated with exact Bun 1.4.2 (`bun install --lockfile-only`, 2-line lock diff, lockfileVersion 3, frozen install OK). `zod` 3.25.76: advisory fix only in 4.x (major API change, used by forms/resolvers) — **not fixed, not suppressed**; needs a separate tested zod 4 migration.
+
+## Final closeout — 2026-10-24 ~10:00 UTC
+
+**Owned fixture (real, current preview):** after Root's provider verify (HTTP 303 → dogovori.net), sign-in consumed the durable handoff: 5 consents incl. marketing=true, bonus +3 once; second sign-in unchanged (5 rows, balance 3).
+
+**Stripe TEST E2E (real provider, staff self session via `lovable auth-session --self`, role moderator):** entry pack `five_operations` 2.90 € paid with test card in embedded checkout → return URL → signed webhook credited **isolated** `billing_test_balances` +5; shared customer quota unchanged (2). Full refund via Stripe sandbox API → signed `charge.refunded` webhook set `reversed_at`, bound payment intent, test balance 5→0; shared quota still 2. Not exercised end-to-end: provider-side webhook redelivery/replay (covered by unit/PGlite tests only), subscription refunds, OAuth.
+
+**Wording correction:** `sc-domain:dogovori.net` was selected by the assistant as the same-domain audit scope, not an explicit owner choice.
+
+**Root commits:** CI workflow 4f9dbaf present in this tree. Sitemap/indexability commits 592e142, a12ed2f, 8c361a3 are **not present** in this workspace history yet (local `public/sitemap-static.xml` has no `/plans`), so they could not be verified here; nothing was overwritten. Verify after sync.
+
+**Hosted 404:** remains a platform limitation of Classic SPA fallback; no migration attempted.
+
+## Handoff destination regression — 2026-10-24 ~10:10 UTC
+
+**Bug (found by Root on real fixture):** handoff captured `/plans`, but login ended at `/account` because `Auth.tsx` always wrote `/account` into `post_login_redirect`, and `flushPendingConsents` applied the server path only when no local destination existed.
+**Fix:** `src/lib/postLoginDestination.ts` records provenance. `/account` default is stored as fallback with a value-bound marker; any other sanitized target (query intent, draft `/analiz`, inline current page, OTP, Google) is explicit. Server handoff path (re-sanitized) replaces only missing/fallback values; explicit intent wins; stale markers cannot downgrade (marker must equal current value); all consumers clear the marker. Wired in `Auth.tsx` (login, OTP verify, Google), `InlineAuthDialog.tsx`, `consents.ts`, `useAuth.tsx`, `ConfirmedConsentDialog.tsx`, `ResetPassword.tsx`. Consume runs before post-auth navigation (unchanged order in `useAuth`).
+**Tests:** `src/test/postLoginDestination.test.ts` 9 passed (priority, explicit wins, stale marker, open-redirect rejection, first-confirmation race and replay via **mocked** consume RPC, entrypoint provenance); related auth/consent suites 7 files / 50 passed. The already-consumed fixture cannot re-prove first-use navigation; no new real browser first-use run.
+
+## Final sync — 2026-10-24 10:05 UTC
+Root sitemap/CI changes confirmed present in this source (no re-apply needed): `/plans` in `scripts/build-sitemap.ts`, `PUBLIC_SEO_ROUTES` in `scripts/lib/indexability.ts`, `public/sitemap-static.xml`; blog-meta and footer-anchor generators in `.github/workflows/build-verify.yml`. TEST refund done once (test balance 5→0, shared quota 2 unchanged); no further payments. Redirect fix and tests complete as above. Not published; awaiting Root final CI.

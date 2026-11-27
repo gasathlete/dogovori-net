@@ -1,0 +1,621 @@
+import { getTemplateDiscoveryProfile } from "@/lib/templateDiscovery";
+import { findPostMeta } from "@/lib/blogMeta.generated";
+import { RelatedSectorPackages } from "@/components/RelatedSectorPackages";
+import { getSectorPackagesForDocument } from "@/lib/seoCollections";
+import { useEffect, useMemo, useState } from "react";
+import { Navigate, useParams } from "react-router-dom";
+import { PrefetchLink as Link } from "@/components/PrefetchLink";
+import { ArrowRight, CheckCircle2, AlertTriangle, FileText, ChevronRight, Download, Package, Sparkles } from "@/icons";
+import { AddToKitDialog } from "@/components/AddToKitDialog";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { Header } from "@/components/Header";
+import { SeoFooter } from "@/components/SeoFooter";
+import { Seo } from "@/components/Seo";
+import { LegalDisclaimer } from "@/components/LegalDisclaimer";
+import { GENERAL_ASSISTANCE_NOTE, getPrelaunchStatus, isFeatureAvailable } from "@/lib/prelaunch";
+import { CatalogReviewNotice } from "@/components/CatalogReviewNotice";
+import { RegistrationInvite } from "@/components/funnel/RegistrationInvite";
+import { getRelatedTemplates, getTemplateBySlug } from "@/lib/templateIndex";
+import { slugify } from "@/lib/slugify";
+import { TEMPLATE_CONTENT_META } from "@/data/templateContentMeta";
+import { loadTemplateContent } from "@/data/templateContent";
+import { loadTemplateDraft } from "@/data/templateDrafts";
+import type { TemplateContent } from "@/data/templateContentTypes";
+import { trackEvent } from "@/lib/analytics";
+import { trackFunnelEvent } from "@/lib/funnel";
+import { startDocumentJourney } from "@/lib/funnelContext";
+
+import { autoLinkParagraph, createAutoLinkState } from "@/lib/autoLinkBlog";
+import { RELATED_TEMPLATES } from "@/data/relatedTemplates";
+import { buildTemplateFallbackContent } from "@/lib/templateFallbackContent";
+import { buildTemplatePageDescription, resolveTemplatePresentation } from "@/lib/resolveTemplatePresentation";
+import {
+  SEO_INTENT_BLANK_LINK_LABEL,
+  SEO_INTENT_SUPPORT_LINE,
+  SEO_INTENT_VERSION,
+  getSeoTemplateIntent,
+  isSeoIntentSlug,
+  seoIntentVariant,
+} from "@/lib/seoTemplateIntent";
+import { getSeoTemplateMeta } from "@/lib/seoTemplateMeta";
+
+
+import { getPostBySlug } from "@/lib/blog";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
+
+
+export default function TemplatePage() {
+  const generationOpen = isFeatureAvailable("document_generation");
+  const blankOpen = isFeatureAvailable("blank_download");
+  const { slug } = useParams<{ slug: string }>();
+  const entry = useMemo(() => (slug ? getTemplateBySlug(slug) : undefined), [slug]);
+
+  // Async-load the heavy AI content for this template only.
+  const [aiContent, setAiContent] = useState<TemplateContent | undefined>(undefined);
+  const [draftText, setDraftText] = useState<string | undefined>(undefined);
+  /**
+   * Slug-ът, за който async lookup-ът на съдържанието е приключил (успех, грешка
+   * или липса на loader). Докато не е приключил за текущия slug, runtime FAQPage
+   * JSON-LD не се подава на Helmet — така преходното състояние
+   * fallback → AI не оставя два FAQPage блока в DOM. Stale promise не може да
+   * маркира по-нов slug като приключил заради `alive`.
+   */
+  const [settledSlug, setSettledSlug] = useState<string | null>(null);
+  const [kitOpen, setKitOpen] = useState(false);
+  const { user } = useAuth();
+  const requireAuth = useRequireAuth();
+  useEffect(() => {
+    let alive = true;
+    if (!entry) return;
+    const slugForRun = entry.slug;
+    setAiContent(undefined);
+    setDraftText(undefined);
+    setSettledSlug(null);
+    const p = loadTemplateContent(slugForRun);
+    if (p) {
+      p.then((c) => alive && setAiContent(c))
+        .catch(() => {})
+        .finally(() => {
+          if (alive) setSettledSlug(slugForRun);
+        });
+    } else {
+      setSettledSlug(slugForRun);
+    }
+    const d = loadTemplateDraft(slugForRun);
+    if (d) d.then((t) => alive && setDraftText(t)).catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [entry?.slug]);
+
+
+  useEffect(() => {
+    if (entry) trackEvent("template_view", { slug: entry.slug, name: entry.doc.name, category: entry.category.title });
+  }, [entry]);
+
+  /**
+   * Импресия на intent панела — веднъж на funnel сесия × slug × версия на
+   * експеримента (dedupKey), за да е сравнима с `template_create_cta_clicked`.
+   */
+  useEffect(() => {
+    const s = entry?.slug;
+    if (!s || !isSeoIntentSlug(s)) return;
+    trackFunnelEvent(
+      "template_intent_panel_viewed",
+      { slug: s, variant: SEO_INTENT_VERSION },
+      { dedupKey: `${s}|${SEO_INTENT_VERSION}` },
+    );
+  }, [entry?.slug]);
+
+
+  if (!entry) return <Navigate to="/catalog" replace />;
+
+  const { doc, category } = entry;
+  /**
+   * Технически ключ на документа за фунията — байт-идентичен с формулата на
+   * уизарда (`${baseSector.id}::${slugify(docName)}`), за да продължи същият
+   * run вместо да се създава нов. Без PII, без свободен текст.
+   */
+  const journeyDocKey = `${category.sectorId}::${slugify(doc.name)}`;
+  const related = getRelatedTemplates(entry, 3);
+
+  // Sync meta (used for <meta description> + JSON-LD) — keeps SEO unchanged.
+  const meta = TEMPLATE_CONTENT_META[entry.slug];
+
+  const wizardHref = doc.bilingual
+    ? `/wizard-bilingual/${category.sectorId}?doc=${encodeURIComponent(doc.name)}`
+    : `/wizard/${category.sectorId}?doc=${encodeURIComponent(doc.name)}`;
+  const blankWizardHref = doc.bilingual
+    ? wizardHref
+    : `${wizardHref}&blank=1&returnTo=${encodeURIComponent(`/shablon/${entry.slug}`)}`;
+  const canonical = `/shablon/${entry.slug}`;
+
+  /**
+   * „SEO template intent v1" — активен САМО за трите изброени slug-а.
+   * Всичко останало (canonical, slug, wizardHref, doc параметър, анонимно
+   * създаване) остава непроменено.
+   */
+  const intent = getSeoTemplateIntent(entry.slug);
+  const intentVariant = seoIntentVariant(entry.slug);
+
+  /**
+   * Всички действия за СЪЗДАВАНЕ на документ тръгват анонимно — без auth гейт.
+   * Auth остава само за реално обвързани с акаунт операции (комплекти/профил).
+   * Props-ите са low-cardinality и без PII (без име на документ).
+   */
+  const trackCreateCta = (position: "hero" | "content" | "footer") => {
+    startDocumentJourney(journeyDocKey);
+    trackFunnelEvent("template_create_cta_clicked", {
+      slug: entry.slug,
+      doc_key: journeyDocKey,
+      position,
+      variant: intentVariant,
+      authenticated: Boolean(user),
+    });
+  };
+  /**
+   * „Свали само бланка" е ОТДЕЛЕН клон на фунията (без генериране на документ)
+   * и не бива да влиза в метриките за създаване.
+   */
+  const trackBlankCta = (position: "hero") => {
+    trackFunnelEvent("template_blank_cta_clicked", {
+      slug: entry.slug,
+      position,
+      authenticated: Boolean(user),
+    });
+  };
+  /**
+   * „Preview-first" линк към редактора (БЕЗ blank=1) — отделно събитие, за да
+   * се различава от историческото `template_blank_cta_clicked`.
+   */
+  const trackBlankPreview = () => {
+    startDocumentJourney(journeyDocKey);
+    trackFunnelEvent("template_blank_preview_clicked", {
+      slug: entry.slug,
+      doc_key: journeyDocKey,
+      position: "content",
+      variant: SEO_INTENT_VERSION,
+      authenticated: Boolean(user),
+    });
+  };
+
+
+
+  const discovery = getTemplateDiscoveryProfile(entry.slug);
+  const preparationGuide = discovery ? findPostMeta(discovery.guideSlug) : undefined;
+  const metaOverride = getSeoTemplateMeta(entry.slug) ?? discovery;
+  const pageTitle = metaOverride?.title ?? `${doc.name} — образец на български`;
+  const fallback = buildTemplateFallbackContent({
+    docName: doc.name,
+    categoryId: category.id,
+    documentType: doc.documentType,
+  });
+
+  /**
+   * Единствена точка на резолюция: AI съдържанието има предимство само за
+   * договор/споразумение/анекс. За НЕдоговорните видове правните раздели идват
+   * изцяло от ревизирания type-aware fallback (виж resolveTemplatePresentation).
+   * Fallback-ът се показва и докато AI съдържанието се зарежда (zero CLS).
+   */
+  const resolved = resolveTemplatePresentation(aiContent, fallback);
+
+  const pageDesc = metaOverride?.description ?? buildTemplatePageDescription({ docName: doc.name });
+
+
+  /**
+   * Видимото intro: при защитените видове НЕ се показва неревизираният
+   * генериран meta excerpt — само AI intro, ако е налично.
+   */
+  const intro = resolved.guarded ? resolved.intro : resolved.intro ?? meta?.introExcerpt;
+
+  /** Описание за структурираните данни: при защитените — безопасният pageDesc. */
+  const structuredDataDesc = resolved.guarded ? pageDesc : doc.purpose;
+  const usageCases = resolved.usageCases;
+  const requirements = resolved.requirements;
+  const mistakes = resolved.mistakes;
+  const faq = resolved.faq;
+
+
+
+
+  const breadcrumbsLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Начало", item: "https://dogovori.net/" },
+      { "@type": "ListItem", position: 2, name: "Каталог", item: "https://dogovori.net/catalog" },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: category.title,
+        item: `https://dogovori.net/kategoria/${category.id}`,
+      },
+      { "@type": "ListItem", position: 4, name: doc.name, item: `https://dogovori.net${canonical}` },
+    ],
+  };
+
+  const articleLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: doc.name,
+    description: structuredDataDesc,
+    inLanguage: "bg-BG",
+    author: { "@type": "Organization", name: "Dogovori.net" },
+    publisher: {
+      "@type": "Organization",
+      name: "Dogovori.net",
+      logo: { "@type": "ImageObject", url: "https://dogovori.net/icon-512.png?v=20260915d", width: 512, height: 512 },
+    },
+    mainEntityOfPage: `https://dogovori.net${canonical}`,
+  };
+
+  const contentSettled = settledSlug === entry.slug;
+
+  const faqLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faq.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  };
+
+  /**
+   * Organic 2: премахнати са page-level `Product` (offers.price „0") и `HowTo`
+   * структурираните данни — страницата не е класическа оферта с нулева цена и
+   * не показва видим стъпков блок. Остават BreadcrumbList / Article / FAQPage,
+   * чието съдържание реално се вижда на страницата.
+   *
+   * FAQPage се включва само след като async съдържанието е приключило за текущия
+   * slug — точно един FAQPage блок, без преходен дубликат.
+   */
+  const jsonLd = contentSettled ? [breadcrumbsLd, articleLd, faqLd] : [breadcrumbsLd, articleLd];
+
+  return (
+    <div className="min-h-dvh">
+      <Seo
+        title={pageTitle}
+        description={pageDesc}
+        canonical={canonical}
+        type="article"
+        jsonLd={jsonLd}
+      />
+
+
+      <Header />
+
+      <article className="container max-w-4xl py-12 md:py-16">
+        <nav aria-label="Breadcrumb" className="mb-8 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+          <Link to="/" className="hover:text-gold">Начало</Link>
+          <ChevronRight className="h-3 w-3" />
+          <Link to="/catalog" className="hover:text-gold">Каталог</Link>
+          <ChevronRight className="h-3 w-3" />
+          <Link to={`/kategoria/${category.id}`} className="hover:text-gold">{category.title}</Link>
+          <ChevronRight className="h-3 w-3" />
+          <span className="truncate text-foreground/70">{doc.name}</span>
+        </nav>
+
+        <header className="mb-10">
+          <div className="mb-4 flex items-start justify-between gap-3 anim-rise" style={{ animationDelay: "0ms" }}>
+            <div className="eyebrow">
+              <FileText className="h-3 w-3" />
+              {category.title}
+            </div>
+            {intent ? null : (
+              <Link
+                to={blankWizardHref}
+                onClick={() => trackBlankCta("hero")}
+                className="inline-flex shrink-0 items-center gap-1 rounded-md border border-gold/40 px-2.5 py-1.5 text-xs text-gold transition-colors hover:bg-gold/10"
+              >
+                <Download className="h-3 w-3" />
+                {blankOpen ? "Изтеглете бланка" : "Разгледайте подготовката за бланка"}
+              </Link>
+            )}
+          </div>
+          <h1 className="font-serif text-3xl font-bold leading-[1.1] text-balance md:text-5xl anim-rise" style={{ animationDelay: "80ms" }}>
+            {doc.name}
+            {doc.bilingual && (
+              <span className="ml-3 inline-flex items-center gap-1 align-middle">
+                <span className="rounded border border-gold/50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-gold">BG/EN</span>
+                <span className="rounded bg-gradient-gold px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-navy shadow-gold">ПЛАТЕН</span>
+              </span>
+            )}
+          </h1>
+          <p className="mt-5 text-balance text-base leading-relaxed text-muted-foreground md:text-lg anim-rise" style={{ animationDelay: "160ms" }}>{doc.purpose}</p>
+          <CatalogReviewNotice />
+          <LegalDisclaimer className="mt-4">{GENERAL_ASSISTANCE_NOTE}</LegalDisclaimer>
+          {(!blankOpen || !generationOpen) && <LegalDisclaimer className="mt-3">
+            {!blankOpen && getPrelaunchStatus("blank_download").title} {!generationOpen && `${getPrelaunchStatus("document_generation").title}: ${getPrelaunchStatus("document_generation").reason}`}
+          </LegalDisclaimer>}
+
+          <div className="mt-7 flex flex-col items-start gap-2 anim-rise" style={{ animationDelay: "240ms" }}>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/10 px-2.5 py-1 text-[11px] font-medium text-gold">
+              <Sparkles className="h-3 w-3" />
+              {generationOpen ? "Изготвяне на документ" : "Изготвяне · В подготовка"}
+            </span>
+            <div className="flex flex-col items-start gap-2">
+              <Link to={wizardHref} onClick={() => trackCreateCta("hero")} className="btn-gold btn-sheen">
+                {generationOpen ? "Попълнете документа" : "Разгледайте подготовката"} <ArrowRight className="h-4 w-4" />
+              </Link>
+              <p className="text-[12px] text-muted-foreground">
+                {generationOpen ? "Попълнете данните и проверете резултата преди подписване." : "Новото генериране още не е достъпно"} ·{" "}
+                <Link to="/catalog" className="hover:text-gold hover:underline">
+                  или виж всички шаблони
+                </Link>
+              </p>
+            </div>
+          </div>
+
+          <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground anim-rise" style={{ animationDelay: "320ms" }}>
+            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-success" /> {fallback.labels.heroLegalFit}</li>
+            <li className="inline-flex items-center gap-1.5">{generationOpen ? "PDF и DOCX експорт" : "PDF и DOCX експорт · В подготовка"}</li>
+            <li className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-success" /> Кратък, насочван въпросник</li>
+            <li className="inline-flex items-center gap-1.5">Пояснения и подготовка</li>
+          </ul>
+        </header>
+
+
+        {intro && (
+          <div className="prose prose-invert mx-auto mb-10 max-w-prose text-base leading-[1.8] text-foreground/90">
+            <p className="text-pretty">
+              {autoLinkParagraph(intro, createAutoLinkState(3), entry.slug, 3)}
+            </p>
+          </div>
+        )}
+
+        {/* SEO template intent v1 — компактен панел веднага след intro (или след header, когато няма intro). */}
+        {intent && (
+          <section
+            aria-labelledby="intent-panel-title"
+            className="mb-10 rounded-xl border border-gold/25 bg-gold/[0.04] p-6 md:p-7"
+          >
+            <h2 id="intent-panel-title" className="font-serif text-lg font-bold text-foreground md:text-xl">
+              Какво попълвате в редактора
+            </h2>
+            <ul className="mt-4 space-y-2">
+              {intent.proofPoints.map((p) => (
+                <li key={p} className="flex gap-3 text-sm text-muted-foreground">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-6 flex flex-col items-start gap-2">
+              <Link to={wizardHref} onClick={() => trackCreateCta("content")} className="btn-gold btn-sheen">
+                {generationOpen ? "Попълнете документа" : "Разгледайте подготовката"} <ArrowRight className="h-4 w-4" />
+              </Link>
+              <p className="text-[12px] text-muted-foreground">{generationOpen ? "Проверете внимателно преди подписване." : "Новото генериране е в подготовка."}</p>
+              <Link
+                to={wizardHref}
+                onClick={trackBlankPreview}
+                className="text-[12px] text-muted-foreground underline-offset-4 transition-colors hover:text-gold hover:underline"
+              >
+                {SEO_INTENT_BLANK_LINK_LABEL}
+              </Link>
+            </div>
+          </section>
+        )}
+
+
+
+        <RegistrationInvite
+          source="template_detail"
+          text="Безплатен профил – запазвате попълнения документ и продължавате по-късно от всяко устройство."
+        />
+
+        {(() => {
+          const rel = RELATED_TEMPLATES[entry.slug];
+          if (!rel?.templates?.length) return null;
+          return (
+            <section className="mb-10 rounded-xl border border-gold/20 bg-gold/[0.03] p-6 md:p-7">
+              <div className="eyebrow mb-3">Може да Ви потрябва още</div>
+              <ul className="space-y-2 text-sm">
+                {rel.templates.map((t) => (
+                  <li key={t.slug} className="flex gap-2">
+                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-gold" />
+                    <Link to={`/shablon/${t.slug}`} className="text-foreground/90 transition-colors hover:text-gold">
+                      {t.anchor}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })()}
+
+        <section className="mb-12 rounded-xl surface-elevated p-6 md:p-7">
+          <div className="eyebrow mb-3">Ключова клауза</div>
+          <p className="font-serif text-lg italic leading-relaxed text-foreground md:text-xl">⚖ {doc.keyClause}</p>
+        </section>
+
+        {!draftText && (
+          <Section title="Какво включва документът">
+            <p className="mb-4 text-sm text-muted-foreground">
+              Типичните раздели зависят от конкретния случай. {generationOpen ? "Адаптирайте документа според Вашите обстоятелства." : "Новото генериране още не е достъпно."}
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {fallback.sectionCards.map((s) => (
+
+                <div key={s.t} className="rounded-lg border border-border/50 bg-card/30 p-4">
+                  <h3 className="font-serif text-sm font-bold text-foreground">{s.t}</h3>
+                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{s.d}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 flex flex-wrap items-center gap-2">
+              {intent ? null : (
+                <Link
+                  to={wizardHref}
+                  onClick={() => trackCreateCta("content")}
+                  className="btn-gold btn-sheen"
+                >
+                  {generationOpen ? "Попълнете документа" : "Разгледайте подготовката"} <ArrowRight className="h-4 w-4" />
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!requireAuth({ action: "Добави шаблона в комплект" })) return;
+                  setKitOpen(true);
+                }}
+                className="inline-flex items-center gap-2 rounded-md border border-gold/40 bg-gold/10 px-4 py-2 text-sm font-semibold text-gold transition-colors hover:bg-gold/20"
+              >
+                <Package className="h-4 w-4" /> Добави в профила
+              </button>
+            </div>
+            <p className="mt-2 text-[12px] text-muted-foreground">
+              {generationOpen ? "Проверете внимателно преди подписване." : "Новото генериране е в подготовка."}
+            </p>
+          </Section>
+        )}
+
+
+
+        {/* Готовият образец е скрит от потребителя — използва се само от системата при зареждане на работния документ след „Създай“. */}
+
+
+        {discovery && (
+          <Section title="Подготовка преди попълване">
+            <p className="mb-4 text-sm leading-relaxed text-muted-foreground">{discovery.context}</p>
+            <ul className="list-disc space-y-2 pl-5 text-sm leading-relaxed text-muted-foreground">
+              {discovery.prepare.map((item) => <li key={item}>{item}</li>)}
+            </ul>
+            {preparationGuide && (
+              <Link to={`/blog/${preparationGuide.slug}`} className="mt-4 inline-block text-sm text-gold underline underline-offset-4">
+                {preparationGuide.title}
+              </Link>
+            )}
+          </Section>
+        )}
+
+        <Section title={fallback.labels.usageTitle}>
+          <ul className="space-y-2">
+            {usageCases.map((u, i) => (
+              <li key={i} className="flex gap-3 text-sm text-muted-foreground">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                <span>{u}</span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+
+        <Section title="Задължителни реквизити по българското право">
+          <ul className="space-y-2">
+            {requirements.map((r, i) => (
+              <li key={i} className="flex gap-3 text-sm text-muted-foreground">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                <span>{r}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-xs text-muted-foreground">
+            {fallback.labels.requirementsFootnote}
+          </p>
+        </Section>
+
+        <Section title="Често допускани грешки">
+          <ul className="space-y-2">
+            {mistakes.map((m, i) => (
+              <li key={i} className="flex gap-3 text-sm text-muted-foreground">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                <span>{m}</span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+
+        <Section title="Често задавани въпроси">
+          <div className="divide-y divide-border/50 overflow-hidden rounded-xl border border-border/50 bg-card/30">
+            {faq.map((f, i) => (
+              <details key={i} className="group p-5 [&_summary::-webkit-details-marker]:hidden">
+                <summary className="flex cursor-pointer items-start justify-between gap-3 font-serif text-base font-bold text-foreground">
+                  <span>{f.q}</span>
+                  <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-gold transition-transform duration-200 group-open:rotate-90" />
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{f.a}</p>
+              </details>
+            ))}
+          </div>
+        </Section>
+
+        <RelatedSectorPackages packages={getSectorPackagesForDocument(doc.name)} />
+
+        {related.length > 0 && (
+          <Section title="Свързани шаблони">
+            <div className="grid gap-3 md:grid-cols-3">
+              {related.map((r) => (
+                <Link
+                  key={r.slug}
+                  to={`/shablon/${r.slug}`}
+                  className="group rounded-xl surface-elevated p-4 transition-colors hover:border-gold/45"
+                >
+                  <h3 className="font-serif text-sm font-bold leading-snug text-foreground transition-colors group-hover:text-gold">
+                    {r.doc.name}
+                  </h3>
+                  <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{r.doc.purpose}</p>
+                </Link>
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {(() => {
+          const rel = RELATED_TEMPLATES[entry.slug];
+          const posts = (rel?.blogPosts ?? [])
+            .map((s) => getPostBySlug(s))
+            .filter((p): p is NonNullable<ReturnType<typeof getPostBySlug>> => Boolean(p));
+          if (posts.length === 0) return null;
+          return (
+            <Section title="Прочетете повече">
+              <ul className="space-y-2 text-sm">
+                {posts.map((p) => (
+                  <li key={p.slug} className="flex gap-2">
+                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-gold" />
+                    <Link to={`/blog/${p.slug}`} className="text-foreground/90 transition-colors hover:text-gold">
+                      {p.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          );
+        })()}
+
+
+        <section className="relative mt-14 overflow-hidden rounded-2xl border border-gold/25 bg-gradient-card p-10 text-center shadow-elegant md:p-12">
+          <div className="absolute inset-x-0 top-0 hairline-x" />
+          <h2 className="font-serif text-2xl font-bold leading-tight text-balance md:text-[32px]">Подготовка за {doc.name}</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-balance text-sm leading-relaxed text-muted-foreground">
+            {GENERAL_ASSISTANCE_NOTE}
+          </p>
+          <Link to={wizardHref} onClick={() => trackCreateCta("footer")} className="btn-gold btn-sheen mt-7">
+            {generationOpen ? "Попълнете документа" : "Разгледайте подготовката"} <ArrowRight className="h-4 w-4" />
+          </Link>
+          <p className="mt-3 text-[12px] text-muted-foreground">
+            {generationOpen ? "Проверете внимателно преди подписване." : "Новото генериране е в подготовка."}
+          </p>
+        </section>
+      </article>
+
+      <AddToKitDialog
+        open={kitOpen}
+        onClose={() => setKitOpen(false)}
+        defaultKitTitle={doc.name}
+        item={{ role: "primary", ref_label: doc.name, planned_doc_name: doc.name }}
+      />
+
+      <SeoFooter />
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="mb-12">
+      <h2 className="mb-5 font-serif text-2xl font-bold leading-tight text-foreground md:text-[28px]">{title}</h2>
+      {children}
+    </section>
+  );
+}

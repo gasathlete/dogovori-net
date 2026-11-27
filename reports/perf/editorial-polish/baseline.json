@@ -1,0 +1,15 @@
+{
+  "source": "ef19f4ee28a60d2740309965f8a55e007ad88b03",
+  "status": "blocked_before_edits",
+  "environment": "local production build",
+  "reason": "No dist artifact, no production preview on port 4173, no installed Lighthouse. Sandbox instructions prohibit manual project builds/typechecks; automatic harness reports build OK but exposes no production artifact here.",
+  "mobile_runs": [],
+  "score": null,
+  "lcp_ms": null,
+  "cls": null,
+  "tbt_ms": null,
+  "initial_transfer_bytes": null,
+  "javascript_bytes": null,
+  "font_requests": null,
+  "development_preview_used_for_performance_claims": false
+}

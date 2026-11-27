@@ -1,0 +1,17 @@
+title = "dogovori.net gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Public/anon keys and generated client are safe"
+paths = [
+  '''src/integrations/supabase/client\.ts''',
+  '''\.env(\..+)?''',
+  '''supabase/config\.toml''',
+]
+regexes = [
+  # Supabase anon / publishable JWTs are public by design
+  '''anon''',
+  '''publishable''',
+]

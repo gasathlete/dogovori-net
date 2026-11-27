@@ -1,0 +1,129 @@
+import { useEffect, useState, type FormEvent } from "react";
+import { isFeatureAvailable } from "@/lib/prelaunch";
+import { markFunnelStep, trackFunnelEvent } from "@/lib/funnel";
+import { Link, useNavigate } from "react-router-dom";
+import { prefetchHandlers } from "@/components/PrefetchLink";
+import { Search, ArrowRight, FileUp } from "@/icons";
+import { HeroProductRail } from "@/components/products/HeroProductRail";
+import { useAuth } from "@/hooks/useAuth";
+import { useAudience } from "@/hooks/useAudience";
+
+import { DocumentWorkflowStage } from "@/components/home/DocumentWorkflowStage";
+import { Button } from "@/components/ui/button";
+import { RegistrationCTA } from "@/components/funnel/RegistrationCTA";
+import { openStartStory } from "@/lib/startStory";
+
+/** Бързи търсения — водят към реалното търсене в каталога (/catalog?q=…). */
+const QUICK_QUERIES = ["наем", "услуги", "пълномощно", "трудов договор"] as const;
+
+/** Задачи към съществуващи канонични страници (пакети и търсене в каталога). */
+const TASKS = [
+  { title: "Наеми и имоти", text: "Оглед, договор, депозит, връщане на имота.", to: "/paketi/naemi" },
+  { title: "Услуги и свободни професии", text: "Оферта, договор, приемане на работата.", to: "/paketi/uslugi-svobodni-profesii" },
+  { title: "Работа и служители", text: "Назначаване, отпуск, прекратяване.", to: "/paketi/sluzhiteli-rabotodateli" },
+  { title: "Лични документи", text: "Пълномощни, декларации, молби.", to: "/catalog?q=%D0%BF%D1%8A%D0%BB%D0%BD%D0%BE%D0%BC%D0%BE%D1%89%D0%BD%D0%BE" },
+] as const;
+
+const catalogHref = (q: string) => (q.trim() ? `/catalog?q=${encodeURIComponent(q.trim())}` : "/catalog");
+
+export function Hero() {
+  const { user } = useAuth();
+  const { copy } = useAudience();
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+
+  useEffect(() => { markFunnelStep(1); }, []);
+
+  // Без текста на търсенето в аналитиката — само дали е имало заявка.
+  const track = () => trackFunnelEvent("home_primary_cta_clicked", {
+    destination: "/catalog",
+    authenticated: Boolean(user),
+    has_query: Boolean(query.trim()),
+  });
+
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    track();
+    navigate(catalogHref(query));
+  };
+
+  return (
+    <section className="brand-hero commerce-hero border-b border-border">
+      <div className="container grid w-full gap-8 py-5 sm:py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-10 lg:py-14">
+        <div className="min-w-0 text-left">
+          <h1 className="max-w-[17ch] font-serif text-[38px] font-bold leading-[1.08] text-foreground [text-wrap:balance] sm:text-[52px] lg:text-[54px] xl:text-[64px]">
+            {copy.heroHeadline.lead}{" "}<span className="block text-gold [text-wrap:balance]">{copy.heroHeadline.accent}{copy.heroHeadline.tail}</span>
+          </h1>
+          <p className="mt-5 max-w-[48ch] text-base leading-relaxed text-muted-foreground sm:text-lg">
+            {copy.heroSub}
+          </p>
+
+          <form role="search" action="/catalog" method="get" onSubmit={onSubmit} className="mt-4 max-w-xl sm:mt-8">
+            <label htmlFor="hero-search" className="mb-2 block text-sm font-semibold text-foreground">
+              Какъв документ търсите?
+            </label>
+            <div className="hero-search-row flex flex-col gap-2">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  id="hero-search"
+                  name="q"
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  maxLength={120}
+                  autoComplete="off"
+                  placeholder="Напр. договор за наем"
+                  className="h-14 w-full rounded border border-foreground/40 bg-card pl-11 pr-4 text-base text-foreground placeholder:text-muted-foreground focus:border-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
+              <Button
+                type="submit"
+                data-testid="hero-primary-cta"
+                data-href="/catalog"
+                className="btn-gold inline-flex min-h-14 items-center justify-center gap-2 px-7 text-base"
+              >
+                Намерете документ
+                <ArrowRight className="h-[18px] w-[18px]" />
+              </Button>
+            </div>
+            <p className="mt-2 hidden flex-wrap items-baseline gap-x-4 text-sm sm:flex">
+              <span className="text-muted-foreground">Например:</span>
+              {QUICK_QUERIES.map((q) => (
+                <Link key={q} to={catalogHref(q)} className="link-ink inline-flex min-h-11 items-center">
+                  {q}
+                </Link>
+              ))}
+            </p>
+          </form>
+          <div className="mt-4 max-w-xl" data-testid="hero-registration">
+            <RegistrationCTA source="hero" id="hero-registration-cta" variant="outline" className="min-h-12 w-full border-foreground/50 px-6 text-base sm:w-auto" />
+            <p className="mt-2 text-sm text-muted-foreground">Безплатен профил – запазвате документите си и продължавате по-късно.</p>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-x-6 text-sm" data-testid="hero-secondary-links">
+            <Link to="/build" {...prefetchHandlers("/build")} className="link-ink inline-flex min-h-11 items-center gap-1.5">
+              <Search className="h-4 w-4" /> {isFeatureAvailable("document_generation") ? "Изгответе документ" : "Изготвяне · В подготовка"}
+            </Link>
+            <Link to="/analiz" {...prefetchHandlers("/analiz")} className="link-ink inline-flex min-h-11 items-center gap-1.5">
+              <FileUp className="h-4 w-4" /> {isFeatureAvailable("document_review") ? "Проверете документ" : "Проверка · В подготовка"}
+            </Link>
+            <Button variant="link" type="button" onClick={() => {
+              trackFunnelEvent("home_demo_story_opened", { source: "hero" });
+              openStartStory();
+            }} className="link-ink min-h-11 px-0">Вижте как работи <ArrowRight className="size-4" /></Button>
+          </div>
+          <nav aria-label="Бързи задачи" className="mt-6 hidden grid-cols-2 gap-x-5 border-t border-border pt-3 sm:grid">
+            {TASKS.map((task) => <Link key={task.to} to={task.to} className="flex min-h-11 items-center justify-between gap-2 text-sm text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring">{task.title}<ArrowRight className="size-3 shrink-0 text-gold" /></Link>)}
+          </nav>
+        </div>
+
+        <div className="min-w-0">
+          <DocumentWorkflowStage />
+        </div>
+      </div>
+
+      <div className="hero-offer-band border-t border-border"><div className="container py-6 sm:py-8"><HeroProductRail /></div></div>
+    </section>
+  );
+}

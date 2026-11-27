@@ -1,0 +1,154 @@
+{
+  "contentFiles": 445,
+  "withFindings": 24,
+  "entries": [
+    {
+      "slug": "dogovor-za-kratkosrochen-naem-airbnb-tip",
+      "rules": [
+        "ZZD_229_AS_FORM_RULE"
+      ]
+    },
+    {
+      "slug": "dogovor-za-naem-na-mps-kratkosrochen",
+      "rules": [
+        "ZZD_229_AS_FORM_RULE",
+        "ZZD_232_RETURN"
+      ]
+    },
+    {
+      "slug": "dogovor-za-naem-na-nedvizhim-imot",
+      "rules": [
+        "ZZD_229_AS_FORM_RULE"
+      ]
+    },
+    {
+      "slug": "dogovor-za-naem-na-ofis",
+      "rules": [
+        "ZZD_229_AS_FORM_RULE"
+      ]
+    },
+    {
+      "slug": "dogovor-za-naem-na-parkomyasto-garazh",
+      "rules": [
+        "ZZD_229_AS_FORM_RULE"
+      ]
+    },
+    {
+      "slug": "dogovor-za-naem-na-targovski-obekt",
+      "rules": [
+        "ZZD_229_AS_FORM_RULE"
+      ]
+    },
+    {
+      "slug": "dogovor-za-naem-na-zala-prostranstvo",
+      "rules": [
+        "ZZD_232_RETURN"
+      ]
+    },
+    {
+      "slug": "dogovor-za-naem-na-zemedelska-zemya",
+      "rules": [
+        "ZZD_229_AS_FORM_RULE"
+      ]
+    },
+    {
+      "slug": "dogovor-za-naem-na-zhilishte",
+      "rules": [
+        "ZZD_229_AS_FORM_RULE"
+      ]
+    },
+    {
+      "slug": "dogovor-za-pochistvane",
+      "rules": [
+        "VAGUE_DEADLINE"
+      ]
+    },
+    {
+      "slug": "dogovor-za-turisticheska-usluga",
+      "rules": [
+        "VAGUE_DEADLINE"
+      ]
+    },
+    {
+      "slug": "druzhestven-dogovor-na-ood",
+      "rules": [
+        "TZ_115_PARA2"
+      ]
+    },
+    {
+      "slug": "konstativen-akt-po-chl-176-ot-zut-za-narusheniya-pri-stroitelstvo-ili-montazhni-raboti-smr",
+      "rules": [
+        "VAGUE_DEADLINE"
+      ]
+    },
+    {
+      "slug": "oferta-za-naem-na-tezhka-stroitelna-mehanizatsiya-i-oborudvane-za-srok-ot-6-mesetsa",
+      "rules": [
+        "ZZD_229_AS_FORM_RULE"
+      ]
+    },
+    {
+      "slug": "predizvestie-za-prekratyavane-na-naem",
+      "rules": [
+        "ZZD_228_NOTICE_TERM",
+        "MOVABLE_THREE_DAYS"
+      ]
+    },
+    {
+      "slug": "prilozhenie-kam-dogovor-za-dostavka-tsenova-lista-na-produkti-uslugi",
+      "rules": [
+        "VAGUE_DEADLINE"
+      ]
+    },
+    {
+      "slug": "prilozhenie-kam-dogovor-za-izrabotka-tehnichesko-zadanie-za-softuerna-razrabotka",
+      "rules": [
+        "VAGUE_DEADLINE"
+      ]
+    },
+    {
+      "slug": "protokol-po-chl-117-zdds",
+      "rules": [
+        "VAGUE_DEADLINE"
+      ]
+    },
+    {
+      "slug": "sporazumenie-za-obuchenie-po-vreme-na-rabota",
+      "rules": [
+        "ZZD_229_AS_FORM_RULE"
+      ]
+    },
+    {
+      "slug": "sporazumenie-za-prekratyavane-na-naem-po-vzaimno-saglasie",
+      "rules": [
+        "ZZD_229_AS_FORM_RULE"
+      ]
+    },
+    {
+      "slug": "uchreditelen-akt-na-eood",
+      "rules": [
+        "COMPANY_ARISES_WITH_ACT",
+        "TZ_115_PARA2",
+        "MIN_CAPITAL_NOT_ONE_EUR"
+      ]
+    },
+    {
+      "slug": "zhalba-do-bankov-ombudsman-po-povod-spor-s-banka",
+      "rules": [
+        "VAGUE_DEADLINE"
+      ]
+    },
+    {
+      "slug": "zhalba-do-izpalnitelna-agentsiya-glavna-inspektsiya-po-truda-otnosno-neizplateni",
+      "rules": [
+        "VAGUE_DEADLINE"
+      ]
+    },
+    {
+      "slug": "zhalba-do-komisiya-za-zashtita-na-lichnite-danni-kzld-pri-narushenie-na-gdpr",
+      "rules": [
+        "VAGUE_DEADLINE"
+      ]
+    }
+  ]
+}

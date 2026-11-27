@@ -1,0 +1,772 @@
+import { canWriteSavedDocumentContent, SAVED_DOCUMENT_CONTENT_BLOCKED_MESSAGE } from "@/lib/savedDocumentWriteGuard";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { presentAnalysisScore } from "@/lib/analysisVerification";
+import { useIsMobileViewport } from "@/hooks/useMediaQuery";
+import {
+  Users, FolderOpen, FileText, CreditCard, Settings as SettingsIcon, LogOut, Crown, Bird, Loader2, Plus, Trash2, Star, Download, ArrowLeft, X, MessageSquare, Check, Lock, RefreshCw, Sparkles, Building2, Bell, LayoutDashboard, ChevronDown,
+} from "@/icons";
+import { NotificationsTab } from "@/components/NotificationsTab";
+import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
+
+import { useTeam } from "@/hooks/useTeam";
+import { useAuth as _useAuthForShare } from "@/hooks/useAuth";
+import { Users2, Share2 } from "@/icons";
+import { Header } from "@/components/Header";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { downloadDocument } from "@/lib/downloadDocument";
+import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
+import { ShareForSignDialog } from "@/components/ShareForSignDialog";
+import { UploadContractDialog } from "@/components/UploadContractDialog";
+import { SignedContractsTab } from "@/components/SignedContractsTab";
+import { ShieldAlert, ShieldCheck, AlertTriangle, PenTool, ChevronRight, KeyRound, Mail, Trash } from "@/icons";
+import { isValidEGN, isValidEIK } from "@/lib/bgValidation";
+import { translateAuthError } from "@/lib/authErrors";
+import { LegalDisclaimer } from "@/components/LegalDisclaimer";
+import { Seo } from "@/components/Seo";
+import { BulkActionsBar, BulkRowCheckbox } from "@/components/BulkActionsBar";
+import { DocFiltersBar, type DocFilterState } from "@/components/DocFilters";
+import { DocumentReminderDialog } from "@/components/DocumentReminderDialog";
+import { DocumentVersionsDialog } from "@/components/DocumentVersionsDialog";
+import { History, CalendarDays, Copy } from "@/icons";
+import { useDocumentReminders, reminderStatus, REMINDER_KIND_LABEL } from "@/hooks/useDocumentReminders";
+import { downloadIcs } from "@/lib/ics";
+import { getUnlockedTiers, getNextTier, REWARD_TIERS } from "@/lib/rewards";
+
+type Contact = {
+  id: string; name: string; type: "individual" | "legal";
+  egn?: string | null; eik?: string | null; vat_number?: string | null;
+  address?: string | null; mol?: string | null; email?: string | null; phone?: string | null; notes?: string | null;
+};
+type Folder = { id: string; name: string; color: string | null; is_favorites: boolean };
+type SavedDoc = {
+  id: string; title: string; kind: "contract" | "template"; folder_id: string | null;
+  contact_id: string | null; payload: any; created_at: string;
+  user_id?: string | null; team_id?: string | null; tags?: string[] | null;
+};
+type Quota = { contracts_used: number; templates_used: number; plan: "free" | "pro"; pro_until: string | null; analyses_used?: number; total_used?: number; monthly_total_used?: number; bonus_contracts?: number; pro_monthly_used?: number; monthly_reset_at?: string | null; pro_period_start?: string | null; signup_at?: string | null };
+type UploadedContract = {
+  id: string; title: string; source: "pdf" | "docx" | "paste";
+  folder_id: string | null; contact_id: string | null;
+  original_filename: string | null; storage_path: string | null;
+  created_at: string;
+};
+type RiskAnalysisLite = { uploaded_contract_id: string; score: number; contract_type: string; created_at: string; verification?: unknown };
+
+/**
+ * На телефон второстепенните блокове са свити зад native `<details>` —
+ * възможностите остават, но не заемат целия екран. На десктоп нищо не се
+ * променя.
+ */
+function MobileCollapse({
+  mobile,
+  title,
+  children,
+}: {
+  mobile: boolean;
+  title: string;
+  children: React.ReactNode;
+}) {
+  if (!mobile) return <>{children}</>;
+  return (
+    <details className="rounded-xl border border-border/60 bg-card/40">
+      <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between px-3.5 text-sm font-semibold text-foreground/85">
+        {title}
+        <span aria-hidden="true" className="text-gold">›</span>
+      </summary>
+      <div className="border-t border-border/50 p-3">{children}</div>
+    </details>
+  );
+}
+
+function DocumentsTab({
+  docs, folders, contacts, activeFolder, setActiveFolder, activeContactName, clearContactFilter, reload,
+  uploaded, analysesByContract, autoOpenUpload,
+}: {
+  docs: SavedDoc[]; folders: Folder[]; contacts: Contact[];
+  activeFolder: string | "all"; setActiveFolder: (v: string | "all") => void;
+  activeContactName?: string; clearContactFilter: () => void;
+  reload: () => void;
+  uploaded: UploadedContract[];
+  analysesByContract: Record<string, RiskAnalysisLite>;
+  autoOpenUpload?: boolean;
+}) {
+  const contactName = (id: string | null) => contacts.find((c) => c.id === id)?.name;
+  const { team } = useTeam();
+  const { user: currentUser } = _useAuthForShare();
+  const inActiveTeam = Boolean(team && team.status === "active");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showSharedOnly, setShowSharedOnly] = useState(false);
+  const { reminders, reload: reloadReminders } = useDocumentReminders();
+  const [versionsForDoc, setVersionsForDoc] = useState<{ id: string; title: string } | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const toggleExpanded = (id: string) =>
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  const toggleSelected = (id: string, v: boolean) =>
+    setSelectedIds((prev) => (v ? [...prev, id] : prev.filter((x) => x !== id)));
+  const isMobile = useIsMobileViewport();
+  const upcomingReminders = reminders
+    .filter((r) => !r.done_at)
+    .slice(0, 5);
+  const reminderHref = (r: typeof reminders[number]): string | null => {
+    if (r.saved_document_id) return `/document/${r.saved_document_id}`;
+    if (r.uploaded_contract_id) return `/uploaded/${r.uploaded_contract_id}`;
+    return null;
+  };
+  const reminderTitle = (r: typeof reminders[number]): string => {
+    if (r.saved_document_id) {
+      const d = docs.find((x) => x.id === r.saved_document_id);
+      if (d) return d.title;
+    }
+    if (r.uploaded_contract_id) {
+      const u = uploaded.find((x) => x.id === r.uploaded_contract_id);
+      if (u) return u.title;
+    }
+    return "Документ";
+  };
+
+  // Bundle children: map parent_saved_id → [{ref_label, child_saved_id, child_uploaded_id}]
+  type LinkRow = {
+    parent_saved_id: string | null;
+    parent_uploaded_id: string | null;
+    child_saved_id: string | null;
+    child_uploaded_id: string | null;
+    ref_label: string;
+    ref_type: string;
+    version: number;
+  };
+  const [links, setLinks] = useState<LinkRow[]>([]);
+  useEffect(() => {
+    supabase
+      .from("document_links")
+      .select("parent_saved_id,parent_uploaded_id,child_saved_id,child_uploaded_id,ref_label,ref_type,version")
+      .is("superseded_by", null)
+      .then(({ data }) => setLinks(((data as any) ?? []) as LinkRow[]));
+  }, [docs, uploaded]);
+
+  const childrenOfSaved = (parentId: string) =>
+    links.filter((l) => l.parent_saved_id === parentId);
+  const childTitle = (l: LinkRow): string => {
+    if (l.child_saved_id) {
+      const d = docs.find((x) => x.id === l.child_saved_id);
+      if (d) return d.title;
+    }
+    if (l.child_uploaded_id) {
+      const u = uploaded.find((x) => x.id === l.child_uploaded_id);
+      if (u) return u.title;
+    }
+    return l.ref_label;
+  };
+  const childHref = (l: LinkRow): string | null => {
+    if (l.child_saved_id) return `/document/${l.child_saved_id}`;
+    if (l.child_uploaded_id) return `/uploaded/${l.child_uploaded_id}`;
+    return null;
+  };
+
+  // Hide children from the top-level list (they belong to a bundle).
+  const childSavedIds = new Set(
+    links.filter((l) => l.child_saved_id).map((l) => l.child_saved_id as string)
+  );
+
+  const [docFilter, setDocFilter] = useState<DocFilterState>({ search: "", tags: [] });
+  const allTags = useMemo(() => {
+    const set = new Set<string>();
+    docs.forEach((d) => (d.tags ?? []).forEach((t) => set.add(t)));
+    return Array.from(set).sort();
+  }, [docs]);
+
+  const topLevelDocs = docs
+    .filter((d) => !childSavedIds.has(d.id))
+    .filter((d) => (showSharedOnly ? Boolean(d.team_id) : true))
+    .filter((d) => {
+      if (docFilter.tags.length > 0) {
+        const dt = d.tags ?? [];
+        if (!docFilter.tags.every((t) => dt.includes(t))) return false;
+      }
+      const q = docFilter.search.trim().toLowerCase();
+      if (!q) return true;
+      if (d.title.toLowerCase().includes(q)) return true;
+      if ((d.tags ?? []).some((t) => t.toLowerCase().includes(q))) return true;
+      return false;
+    });
+
+  const updateTags = async (d: SavedDoc, next: string[]) => {
+    const { error } = await supabase
+      .from("saved_documents")
+      .update({ tags: next })
+      .eq("id", d.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Етикетите са обновени");
+    reload();
+  };
+
+  const redownload = async (d: SavedDoc, format: "pdf" | "docx") => {
+    setBusy(d.id + format);
+    try {
+      const res = await downloadDocument({
+        analytics_source: "workspace_documents",
+        kind: d.kind, format, title: d.title, payload: d.payload, saved_document_id: d.id,
+      });
+      if (!res.ok) {
+        if (res.error !== "disclaimer_cancelled") {
+          toast.error("Грешка", { description: res.error });
+        }
+      } else {
+        toast.success("Изтеглен (безплатно)");
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Изтриване?")) return;
+    const { error } = await supabase.from("saved_documents").delete().eq("id", id);
+    if (error) toast.error(error.message); else { toast.success("Изтрит"); reload(); }
+  };
+
+  const duplicate = async (d: SavedDoc) => {
+    // Копието е нов ред със съдържание: затворено като всеки нов запис на текст.
+    if (!canWriteSavedDocumentContent()) {
+      toast.error(SAVED_DOCUMENT_CONTENT_BLOCKED_MESSAGE);
+      return;
+    }
+    setBusy(d.id + "dup");
+    const { data: userData } = await supabase.auth.getUser();
+    const uid = userData.user?.id;
+    if (!uid) {
+      setBusy(null);
+      toast.error("Влезте отново в профила");
+      return;
+    }
+    const newTitle = d.title.length > 60 ? `${d.title.slice(0, 60)}… (копие)` : `${d.title} (копие)`;
+    const { error } = await supabase.from("saved_documents").insert({
+      user_id: uid,
+      title: newTitle,
+      kind: d.kind,
+      folder_id: d.folder_id,
+      contact_id: d.contact_id,
+      payload: d.payload,
+      tags: d.tags ?? [],
+    });
+    setBusy(null);
+    if (error) toast.error(error.message);
+    else { toast.success("Дублиран — отворете го от списъка"); reload(); }
+  };
+
+  const move = async (id: string, folder_id: string | null) => {
+    const { error } = await supabase.from("saved_documents").update({ folder_id }).eq("id", id);
+    if (error) toast.error(error.message); else { toast.success("Преместен"); reload(); }
+  };
+
+  const toggleShareWithTeam = async (d: SavedDoc) => {
+    if (!team) return;
+    const next = d.team_id ? null : team.team_id;
+    const { error } = await supabase
+      .from("saved_documents")
+      .update({ team_id: next })
+      .eq("id", d.id);
+    if (error) toast.error(error.message);
+    else { toast.success(next ? "Споделено с екипа" : "Спряно споделянето"); reload(); }
+  };
+
+  return (
+    <div className="grid gap-6 md:grid-cols-[220px_1fr]">
+      {isMobile && folders.length > 0 && (
+        <label className="flex items-center gap-2 rounded-xl border border-border/60 bg-card/40 px-3 py-2 text-xs text-muted-foreground">
+          <span className="shrink-0">Папка</span>
+          <select
+            aria-label="Избор на папка"
+            value={showSharedOnly ? "__shared__" : activeFolder}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === "__shared__") { setShowSharedOnly(true); setActiveFolder("all"); return; }
+              setShowSharedOnly(false);
+              setActiveFolder(v as string | "all");
+            }}
+            className="min-h-[40px] w-full rounded-md border border-border/60 bg-background px-2 text-sm text-foreground"
+          >
+            <option value="all">Всички ({docs.length})</option>
+            {inActiveTeam && <option value="__shared__">Споделени с екипа</option>}
+            {folders.map((f) => (
+              <option key={f.id} value={f.id}>{f.name}</option>
+            ))}
+          </select>
+        </label>
+      )}
+      <aside className={`space-y-1 rounded-xl border border-border/60 bg-gradient-card p-3 ${isMobile ? "hidden" : ""}`}>
+        <button onClick={() => { setActiveFolder("all"); setShowSharedOnly(false); }}
+          className={`w-full rounded-md px-3 py-2 text-left text-sm ${activeFolder === "all" && !showSharedOnly ? "bg-gold/10 text-gold" : "hover:bg-card/60"}`}>
+          Всички ({docs.length})
+        </button>
+        {inActiveTeam && (
+          <button onClick={() => { setShowSharedOnly(true); setActiveFolder("all"); }}
+            className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm ${showSharedOnly ? "bg-gold/10 text-gold" : "hover:bg-card/60"}`}>
+            <Users2 className="h-3.5 w-3.5" />
+            Споделени с екипа ({docs.filter((d) => d.team_id).length})
+          </button>
+        )}
+        {folders.map((f) => (
+          <button key={f.id} onClick={() => setActiveFolder(f.id)}
+            className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm ${activeFolder === f.id ? "bg-gold/10 text-gold" : "hover:bg-card/60"}`}>
+            {f.is_favorites ? <Star className="h-3.5 w-3.5 fill-gold text-gold" /> : <FolderOpen className="h-3.5 w-3.5" />}
+            {f.name}
+          </button>
+        ))}
+      </aside>
+      <div className={isMobile ? "flex flex-col gap-8 pb-24" : "flex flex-col gap-8"}>
+        {upcomingReminders.length > 0 && (
+          <MobileCollapse mobile={isMobile} title="Напомняния">
+          <section className="rounded-xl border border-gold/30 bg-gold/5 p-4">
+            <div className="mb-2 flex items-center justify-between gap-2 text-sm font-semibold text-gold">
+              <div className="flex items-center gap-2">
+                <Bell className="h-4 w-4" />
+                Предстоящи напомняния ({reminders.filter((r) => !r.done_at).length})
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1.5 border-gold/40 text-[11px] text-gold hover:bg-gold/10"
+                onClick={() => {
+                  const active = reminders.filter((r) => !r.done_at);
+                  if (active.length === 0) {
+                    toast.info("Няма активни напомняния за експорт.");
+                    return;
+                  }
+                  const origin = typeof window !== "undefined" ? window.location.origin : "";
+                  downloadIcs("dogovaryai-reminders", active.map((r) => {
+                    const href = reminderHref(r);
+                    const title = reminderTitle(r);
+                    return {
+                      uid: r.id,
+                      title: `${REMINDER_KIND_LABEL[r.kind]}: ${title}`,
+                      description: r.note ?? `${REMINDER_KIND_LABEL[r.kind]} — ${title}`,
+                      url: href ? `${origin}${href}` : undefined,
+                      dateISO: r.remind_at,
+                    };
+                  }));
+                  toast.success(`Експортирани ${active.length} напомняния (.ics)`);
+                }}
+              >
+                <CalendarDays className="h-3.5 w-3.5" />
+                Експорт .ics
+              </Button>
+            </div>
+            <ul className="space-y-1.5">
+              {upcomingReminders.map((r) => {
+                const s = reminderStatus(r);
+                const href = reminderHref(r);
+                const title = reminderTitle(r);
+                const inner = (
+                  <div className="flex items-center justify-between gap-2 rounded-md bg-card/40 px-3 py-2 text-xs hover:bg-card/70">
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-medium">{title}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {REMINDER_KIND_LABEL[r.kind]} · {new Date(r.remind_at).toLocaleDateString("bg-BG")}
+                      </div>
+                    </div>
+                    <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] uppercase ${s.cls}`}>
+                      {s.label}
+                    </span>
+                  </div>
+                );
+                return (
+                  <li key={r.id}>
+                    {href ? <Link to={href}>{inner}</Link> : inner}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+          </MobileCollapse>
+        )}
+        {/* ===== Uploaded contracts (own files with AI risk analysis) ===== */}
+        <section id="uploaded" className="scroll-mt-24 order-first md:order-none">
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="font-serif text-lg font-bold">Качени договори</h3>
+              <p className="mt-1 text-xs text-muted-foreground">Качете свой договор (PDF, DOCX или текст) — Системата ще извърши пълен правен риск-анализ.</p>
+            </div>
+            <div className="shrink-0">
+              <UploadContractDialog
+                folders={folders}
+                contacts={contacts}
+                onUploaded={reload}
+                autoOpen={autoOpenUpload}
+              />
+            </div>
+          </div>
+
+          {uploaded.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-gold/30 bg-gradient-card p-8 text-center">
+              <ShieldCheck className="mx-auto h-7 w-7 text-gold" />
+              <p className="mt-2 text-sm text-muted-foreground">
+                Все още нямате качени договори. Натиснете <strong className="text-gold">„Добави договор"</strong> за безплатен AI анализ.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {uploaded.map((u) => {
+                const a = analysesByContract[u.id];
+                // Оценка се показва само при потвърден анализ; иначе неутрален бадж.
+                const pres = a ? presentAnalysisScore({ score: a.score, verification: a.verification, freshness: "unknown" }) : null;
+                const trustedScore = pres?.showScore ? pres.score : null;
+                const sevCls = pres ? pres.tone : "border-border/40 text-muted-foreground";
+                const Icon = trustedScore == null
+                  ? AlertTriangle
+                  : trustedScore >= 8 ? ShieldCheck : trustedScore >= 5 ? AlertTriangle : ShieldAlert;
+                return (
+                  <div
+                    key={u.id}
+                    className="rounded-xl border border-border/60 bg-gradient-card p-4 transition-all hover:border-gold/50 hover:shadow-soft"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <Link to={`/uploaded/${u.id}`} className="min-w-0 flex-1">
+                        <div className="break-words font-serif text-base font-bold">{u.title}</div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {u.source.toUpperCase()} · качен {new Date(u.created_at).toLocaleDateString("bg-BG")}
+                          {a?.contract_type && <> · {a.contract_type}</>}
+                          {contactName(u.contact_id) && (
+                            <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-gold/30 bg-gold/5 px-2 py-0.5 text-[10px] uppercase tracking-wider text-gold">
+                              <Users className="h-3 w-3" /> {contactName(u.contact_id)}
+                            </span>
+                          )}
+                        </div>
+                      </Link>
+                      <div className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-xs ${sevCls}`}>
+                        <Icon className="h-3.5 w-3.5" />
+                        {/* Q2b2 — списъкът не проверява текущия текст, затова баджът е историчен. */}
+                        {!a ? "Без анализ" : trustedScore != null ? <><strong>{trustedScore}</strong>/10</> : <>Предишна проверка · {new Date(a.created_at).toLocaleDateString("bg-BG")}</>}
+                      </div>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      <div className="grid grid-cols-1 gap-2">
+                        {isMobile ? (
+                          <Button asChild size="sm" className="h-11 w-full justify-center">
+                            <Link to={`/uploaded/${u.id}`}>Отвори</Link>
+                          </Button>
+                        ) : (
+                          <ShareForSignDialog
+                            uploadedContractId={u.id}
+                            documentTitle={u.title}
+                            triggerLabel="Подпиши"
+                            triggerIcon={<PenTool className="mr-1 h-3.5 w-3.5" />}
+                            triggerClassName="h-10 w-full justify-center border-gold/50 text-gold hover:bg-gold/10 sm:h-9"
+                          />
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => toggleExpanded(u.id)}
+                        aria-expanded={expandedIds.has(u.id)}
+                        aria-controls={`u-actions-${u.id}`}
+                        className="h-9 w-full justify-between gap-2 border-border/60 text-xs hover:border-gold/60 hover:bg-gold/5 sm:w-auto"
+                      >
+                        <span className="inline-flex items-center gap-1.5">
+                          <SettingsIcon className="h-3.5 w-3.5" />
+                          Действия
+                        </span>
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform ${expandedIds.has(u.id) ? "rotate-180" : ""}`}
+                        />
+                      </Button>
+                      {expandedIds.has(u.id) && (
+                        <div
+                          id={`u-actions-${u.id}`}
+                          className="grid grid-cols-2 gap-2 rounded-lg border border-border/50 bg-background/40 p-2 sm:flex sm:flex-wrap sm:items-center sm:gap-1.5"
+                        >
+                          {isMobile && (
+                            <ShareForSignDialog
+                              uploadedContractId={u.id}
+                              documentTitle={u.title}
+                              triggerLabel="Подпиши"
+                              triggerIcon={<PenTool className="mr-1 h-3.5 w-3.5" />}
+                              triggerClassName="h-10 w-full justify-center border-gold/50 text-gold hover:bg-gold/10"
+                            />
+                          )}
+                          <DocumentReminderDialog
+                            target={{ uploadedContractId: u.id }}
+                            documentTitle={u.title}
+                            onChanged={reloadReminders}
+                          />
+                          <Select
+                            value={u.folder_id ?? "none"}
+                            onValueChange={async (v) => {
+                              const { error } = await supabase
+                                .from("uploaded_contracts")
+                                .update({ folder_id: v === "none" ? null : v })
+                                .eq("id", u.id);
+                              if (error) toast.error(error.message);
+                              else { toast.success("Преместен"); reload(); }
+                            }}
+                          >
+                            <SelectTrigger className="h-10 w-full text-xs sm:h-9 sm:w-32"><SelectValue placeholder="Папка" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">— Без папка —</SelectItem>
+                              {folders.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* ===== Generated documents (existing) ===== */}
+        <MobileCollapse mobile={isMobile} title="Създадени документи">
+        <section>
+          <h3 className="mb-3 font-serif text-lg font-bold">Създадени документи</h3>
+          {activeContactName && (
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs text-gold">
+              <Users className="h-3.5 w-3.5" />
+              Договори с: <strong>{activeContactName}</strong>
+              <button
+                onClick={clearContactFilter}
+                className="ml-1 rounded-full p-0.5 hover:bg-gold/20"
+                aria-label="Изчисти филтъра"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          )}
+          <DocFiltersBar state={docFilter} onChange={setDocFilter} allTags={allTags} />
+          {topLevelDocs.length === 0 ? (
+            <div className="rounded-xl border border-border/60 bg-gradient-card p-10 text-center text-sm text-muted-foreground">
+              {activeContactName ? "Няма договори за този контрагент." : "Тази папка е празна."}
+            </div>
+          ) : (
+            <>
+              <BulkActionsBar
+                docs={topLevelDocs.map((d) => ({ id: d.id, title: d.title, kind: d.kind, payload: d.payload, user_id: d.user_id }))}
+                selectionMode={selectionMode}
+                setSelectionMode={setSelectionMode}
+                selectedIds={selectedIds}
+                setSelectedIds={setSelectedIds}
+                currentUserId={currentUser?.id ?? null}
+                folders={folders.map((f) => ({ id: f.id, name: f.name }))}
+                onChanged={reload}
+              />
+            <div className="grid gap-3">
+              {topLevelDocs.map((d) => {
+                const childLinks = childrenOfSaved(d.id);
+                const isBundle = childLinks.length > 0;
+                return (
+                <Link
+                  key={d.id}
+                  to={`/document/${d.id}`}
+                  className="block rounded-xl border border-border/60 bg-gradient-card p-4 transition-all hover:border-gold/50 hover:shadow-soft"
+                >
+                  <div className="flex flex-col gap-3">
+                    {selectionMode && (
+                      <BulkRowCheckbox
+                        checked={selectedIds.includes(d.id)}
+                        onChange={(v) => toggleSelected(d.id, v)}
+                      />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="break-words font-serif text-base font-bold transition-colors group-hover:text-gold">{d.title}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {d.kind === "contract" ? "Договор" : "Бланка"} · {new Date(d.created_at).toLocaleDateString("bg-BG")}
+                        {isBundle && (
+                          <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-emerald-300">
+                            Комплект · {childLinks.length + 1} док.
+                          </span>
+                        )}
+                        {d.team_id && (
+                          <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-emerald-300">
+                            <Users2 className="h-3 w-3" />
+                            {d.user_id && currentUser && d.user_id !== currentUser.id ? "От екипа" : "Споделено"}
+                          </span>
+                        )}
+                        {contactName(d.contact_id) && (
+                          <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-gold/30 bg-gold/5 px-2 py-0.5 text-[10px] uppercase tracking-wider text-gold">
+                            <Users className="h-3 w-3" /> {contactName(d.contact_id)}
+                          </span>
+                        )}
+                      </div>
+                      {(d.tags ?? []).length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {(d.tags ?? []).map((t) => (
+                            <span key={t} className="inline-flex items-center rounded-full border border-gold/30 bg-gold/5 px-1.5 py-0.5 text-[10px] text-gold">
+                              #{t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {isBundle && (
+                        <div className="mt-2.5 flex flex-wrap gap-1.5" onClick={(e) => e.preventDefault()}>
+                          {childLinks.map((l, idx) => {
+                            const href = childHref(l);
+                            const label = childTitle(l);
+                            const chip = (
+                              <span className="inline-flex items-center gap-1 rounded-md border border-gold/30 bg-gold/5 px-2 py-1 text-[11px] text-foreground hover:border-gold/60 hover:text-gold">
+                                <FileText className="h-3 w-3 text-gold/70" />
+                                <span className="max-w-[180px] truncate">{label}</span>
+                              </span>
+                            );
+                            return href ? (
+                              <Link key={idx} to={href}>{chip}</Link>
+                            ) : (
+                              <span key={idx}>{chip}</span>
+                            );
+                          })}
+                          <span className="text-[11px] italic text-muted-foreground">
+                            прикачват се автоматично към PDF
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div onClick={(e) => e.preventDefault()} className="space-y-2">
+                      <div className={`grid gap-2 ${d.kind === "contract" ? "grid-cols-2" : "grid-cols-1"}`}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-10 w-full justify-center border-gold/50 text-gold hover:bg-gold/10 sm:h-9"
+                          disabled={busy === d.id + "pdf"}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); redownload(d, "pdf"); }}
+                        >
+                          {busy === d.id + "pdf"
+                            ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                            : <Download className="mr-1 h-3.5 w-3.5" />}
+                          Свали
+                        </Button>
+                        {d.kind === "contract" && (
+                          <ShareForSignDialog
+                            documentId={d.id}
+                            documentTitle={d.title}
+                            triggerLabel="Подпиши"
+                            triggerIcon={<PenTool className="mr-1 h-3.5 w-3.5" />}
+                            triggerClassName="h-10 w-full justify-center border-gold/50 text-gold hover:bg-gold/10 sm:h-9"
+                          />
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleExpanded(d.id); }}
+                        aria-expanded={expandedIds.has(d.id)}
+                        aria-controls={`d-actions-${d.id}`}
+                        className="h-9 w-full justify-between gap-2 border-border/60 text-xs hover:border-gold/60 hover:bg-gold/5 sm:w-auto"
+                      >
+                        <span className="inline-flex items-center gap-1.5">
+                          <SettingsIcon className="h-3.5 w-3.5" />
+                          Действия
+                        </span>
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform ${expandedIds.has(d.id) ? "rotate-180" : ""}`}
+                        />
+                      </Button>
+                    </div>
+                    {expandedIds.has(d.id) && (
+                    <div
+                      id={`d-actions-${d.id}`}
+                      className="mt-2 grid grid-cols-2 gap-2 rounded-lg border border-border/50 bg-background/40 p-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6"
+                      onClick={(e) => e.preventDefault()}
+                    >
+                      <Button size="sm" variant="outline" className="h-10 w-full sm:h-9 sm:w-auto" disabled={busy === d.id + "docx"} onClick={() => redownload(d, "docx")}>
+                        {busy === d.id + "docx" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Download className="mr-1 h-3 w-3" />} DOCX
+                      </Button>
+                      <DocumentReminderDialog
+                        target={{ savedDocumentId: d.id }}
+                        documentTitle={d.title}
+                        onChanged={reloadReminders}
+                      />
+                      {(!d.user_id || !currentUser || d.user_id === currentUser.id) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-10 w-full sm:h-9 sm:w-auto"
+                          onClick={() => setVersionsForDoc({ id: d.id, title: d.title })}
+                          title="История на версиите"
+                        >
+                          <History className="mr-1 h-3 w-3" /> История
+                        </Button>
+                      )}
+                      {inActiveTeam && (!d.user_id || !currentUser || d.user_id === currentUser.id) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className={`h-10 w-full sm:h-9 sm:w-auto ${d.team_id ? "border-emerald-400/40 text-emerald-300 hover:bg-emerald-400/10" : ""}`}
+                          onClick={() => toggleShareWithTeam(d)}
+                          title={d.team_id ? "Спри споделянето с екипа" : "Сподели с екипа"}
+                        >
+                          <Share2 className="mr-1 h-3 w-3" />
+                          {d.team_id ? "В екипа" : "Екип"}
+                        </Button>
+                      )}
+                      <Select value={d.folder_id ?? "none"} onValueChange={(v) => move(d.id, v === "none" ? null : v)}>
+                        <SelectTrigger className="h-10 w-full text-xs sm:h-9 sm:w-32"><SelectValue placeholder="Папка" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">— Без папка —</SelectItem>
+                          {folders.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      {(!d.user_id || !currentUser || d.user_id === currentUser.id) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-10 w-full sm:h-9 sm:w-auto"
+                          disabled={busy === d.id + "dup"}
+                          onClick={() => duplicate(d)}
+                          title="Дублирай документа"
+                        >
+                          {busy === d.id + "dup" ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Copy className="mr-1 h-3 w-3" />} Копие
+                        </Button>
+                      )}
+                      {(!d.user_id || !currentUser || d.user_id === currentUser.id) && (
+                        <Button size="sm" variant="ghost" className="h-10 w-full p-0 text-destructive sm:h-9 sm:w-9" onClick={() => remove(d.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    )}
+                  </div>
+                </Link>
+              );})}
+            </div>
+            </>
+          )}
+        </section>
+        </MobileCollapse>
+      </div>
+      <DocumentVersionsDialog
+        open={!!versionsForDoc}
+        onOpenChange={(v) => !v && setVersionsForDoc(null)}
+        documentId={versionsForDoc?.id ?? null}
+        documentTitle={versionsForDoc?.title}
+        onRestored={reload}
+      />
+    </div>
+  );
+}
+
+/* ============================ FOLDERS ============================ */
+
+export default DocumentsTab;

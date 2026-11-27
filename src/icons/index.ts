@@ -1,0 +1,222 @@
+/**
+ * Dogovori Icons — custom, Lucide-compatible icon set.
+ *
+ * Usage (drop-in replacement):
+ *   import { Sparkles, ShieldCheck } from "@/icons";
+ *
+ * Layering (later wins):
+ *   1. Bulk-wrapped lucide icons (finer 1.75 stroke) from `./wrapped`
+ *   2. Hand-crafted brand icons below
+ */
+
+// Re-export the LucideIcon type so consumers can type icon props uniformly.
+export type { LucideIcon } from "lucide-react";
+
+// Bulk wrappers: apply Dogovori default stroke weight (1.75) to lucide icons
+// that aren't hand-drawn.
+export {
+  Activity, AlertTriangle, Archive, ArrowDown, ArrowUp,
+  BarChart3, Bookmark, BookmarkPlus, Brain, Bug, Building2,
+  Calculator, CheckCircle2, CheckSquare, ChevronDown, ChevronLeft, ChevronRight,
+  ChevronUp, Circle, ClipboardCheck, ClipboardPaste, Clock, Coins,
+  Command, Compass, Cookie, Cpu, DatabaseBackup, Dot,
+  Euro, FileArchive, FileCheck2, FileDown, FileEdit, FilePlus2,
+  FileQuestion, FileSearch, FileUp, FileWarning, Flame,
+  FolderInput, FolderOpen, FolderTree, Gem, GitCompare, GripVertical,
+  HelpCircle, History, Inbox, KeyRound, Keyboard,
+  Languages, Layers, Layout, LayoutDashboard, LayoutPanelLeft, Library,
+  LifeBuoy, Lightbulb, ListChecks, Loader2, LogIn, LogOut,
+  Maximize2, Megaphone, Menu, MessageSquare, MessageSquarePlus,
+  MessageSquareQuote, MessagesSquare, Minus, Moon, MoreHorizontal, MoreVertical,
+  MousePointerClick, PanelLeft, Paperclip, Pause, Pen, PenLine,
+  PenSquare, Pencil, Play, PlayCircle, Printer,
+  Quote, Receipt, RefreshCw, RotateCcw, RotateCw,
+  ScrollText, Share2, Shield, ShieldAlert, ShieldOff, ShieldQuestion,
+  Square, Sun, Tag, Target, Trash2,
+  TrendingDown, TrendingUp, User, UserCheck, UserMinus, UserPlus,
+  Users2, Wrench, XCircle,
+  BrainCircuit, Folder, ClipboardList, FolderArchive, Pin, PinOff,
+  UploadCloud, GitCompareArrows, Map,
+} from "./wrapped";
+
+// Hand-crafted brand icons — take precedence over the wrapped versions above.
+// Wave 1
+export { Sparkles } from "./Sparkles";
+export { Wand2 } from "./Wand2";
+export { ShieldCheck } from "./ShieldCheck";
+export { Scale } from "./Scale";
+export { Gavel } from "./Gavel";
+export { FileSignature } from "./FileSignature";
+export { FileText } from "./FileText";
+export { Handshake } from "./Handshake";
+export { BookOpen } from "./BookOpen";
+export { Crown } from "./Crown";
+
+// Wave 2
+export { Bird } from "./Bird";
+export { Bot } from "./Bot";
+export { Zap } from "./Zap";
+export { Lock } from "./Lock";
+export { Bell } from "./Bell";
+export { Package } from "./Package";
+export { Gift } from "./Gift";
+export { Users } from "./Users";
+export { Star } from "./Star";
+export { Trophy } from "./Trophy";
+export { Rocket } from "./Rocket";
+export { PenTool } from "./PenTool";
+export { Stamp } from "./Stamp";
+export { Feather } from "./Feather";
+export { Search } from "./Search";
+
+// Wave 3 — everyday nav/action icons refined to match the Dogovori stroke.
+export { ArrowLeft } from "./ArrowLeft";
+export { ArrowRight } from "./ArrowRight";
+export { Check } from "./Check";
+export { X } from "./X";
+export { Plus } from "./Plus";
+export { Mail } from "./Mail";
+export { CreditCard } from "./CreditCard";
+export { Download } from "./Download";
+export { Upload } from "./Upload";
+export { Send } from "./Send";
+export { Eye } from "./Eye";
+export { Copy } from "./Copy";
+export { ExternalLink } from "./ExternalLink";
+export { Settings } from "./Settings";
+export { CalendarDays } from "./CalendarDays";
+export { Briefcase } from "./Briefcase";
+export { Home } from "./Home";
+export { Info } from "./Info";
+
+// Wave 4 — additional refined coverage.
+export { EyeOff } from "./EyeOff";
+export { Calendar } from "./Calendar";
+export { Phone } from "./Phone";
+export { MapPin } from "./MapPin";
+export { Link } from "./Link";
+export { Globe } from "./Globe";
+export { Cloud } from "./Cloud";
+export { AlertCircle } from "./AlertCircle";
+export { CheckCircle } from "./CheckCircle";
+export { Trash } from "./Trash";
+export { Edit } from "./Edit";
+export { Save } from "./Save";
+export { RefreshCcw } from "./RefreshCcw";
+export { Filter } from "./Filter";
+export { ShoppingCart } from "./ShoppingCart";
+export { Wallet } from "./Wallet";
+export { BadgeCheck } from "./BadgeCheck";
+export { Building } from "./Building";
+export { Image } from "./Image";
+export { Sliders } from "./Sliders";
+
+// Wave 5 — additional refined coverage.
+export { ArrowUpRight } from "./ArrowUpRight";
+export { ArrowDownRight } from "./ArrowDownRight";
+export { ChevronsUpDown } from "./ChevronsUpDown";
+export { Percent } from "./Percent";
+export { Hash } from "./Hash";
+export { AtSign } from "./AtSign";
+export { Heart } from "./Heart";
+export { ThumbsUp } from "./ThumbsUp";
+export { ThumbsDown } from "./ThumbsDown";
+export { Play2 } from "./Play2";
+export { Volume2 } from "./Volume2";
+export { VolumeX } from "./VolumeX";
+export { Mic } from "./Mic";
+export { Camera } from "./Camera";
+export { QrCode } from "./QrCode";
+export { Fingerprint } from "./Fingerprint";
+export { Sigma } from "./Sigma";
+export { BookMarked } from "./BookMarked";
+export { Tags } from "./Tags";
+export { Award } from "./Award";
+
+// Wave 6 — brand, finance, docs, workflow.
+export { Banknote } from "./Banknote";
+export { PiggyBank } from "./PiggyBank";
+export { ChartLine } from "./ChartLine";
+export { PieChart } from "./PieChart";
+export { Bookmark2 } from "./Bookmark2";
+export { FileLock } from "./FileLock";
+export { FilePen } from "./FilePen";
+export { FolderPlus } from "./FolderPlus";
+export { Signature } from "./Signature";
+export { Scroll } from "./Scroll";
+export { Notebook } from "./Notebook";
+export { Landmark } from "./Landmark";
+export { IdCard } from "./IdCard";
+export { Timer } from "./Timer";
+export { Hourglass } from "./Hourglass";
+export { Sparkle } from "./Sparkle";
+export { CircleDollar } from "./CircleDollar";
+export { Layers2 } from "./Layers2";
+export { Workflow } from "./Workflow";
+export { Puzzle } from "./Puzzle";
+
+// Wave 7 — media, devices, connectivity, extras.
+export { Palette } from "./Palette";
+export { Rss } from "./Rss";
+export { Newspaper } from "./Newspaper";
+export { Coffee } from "./Coffee";
+export { Leaf } from "./Leaf";
+export { Flag } from "./Flag";
+export { Anchor } from "./Anchor";
+export { LifeRing } from "./LifeRing";
+export { Gauge } from "./Gauge";
+export { Cog } from "./Cog";
+export { Database } from "./Database";
+export { Server } from "./Server";
+export { Wifi } from "./Wifi";
+export { Smartphone } from "./Smartphone";
+export { Laptop } from "./Laptop";
+export { Monitor } from "./Monitor";
+export { MousePointer } from "./MousePointer";
+export { Rocket2 } from "./Rocket2";
+export { Bolt } from "./Bolt";
+
+// Wave 8 — nature, weather, transport, animals.
+export { Cat } from "./Cat";
+export { Dog } from "./Dog";
+export { Fish } from "./Fish";
+export { Rabbit } from "./Rabbit";
+export { Tree } from "./Tree";
+export { Mountain } from "./Mountain";
+export { Sun2 } from "./Sun2";
+export { Umbrella } from "./Umbrella";
+export { Snowflake } from "./Snowflake";
+export { Droplet } from "./Droplet";
+export { Flame2 } from "./Flame2";
+export { Battery } from "./Battery";
+export { Plug } from "./Plug";
+export { Bluetooth } from "./Bluetooth";
+export { Bike } from "./Bike";
+export { Car } from "./Car";
+export { Truck } from "./Truck";
+export { Plane } from "./Plane";
+export { Ship } from "./Ship";
+
+// Wave 9 — food, education, health, media, play.
+export { Bone } from "./Bone";
+export { Cake } from "./Cake";
+export { Pizza } from "./Pizza";
+export { Utensils } from "./Utensils";
+export { GraduationCap } from "./GraduationCap";
+export { School } from "./School";
+export { Hospital } from "./Hospital";
+export { Stethoscope } from "./Stethoscope";
+export { Pill } from "./Pill";
+export { Music } from "./Music";
+export { Headphones } from "./Headphones";
+export { Video } from "./Video";
+export { Radio } from "./Radio";
+export { Podcast } from "./Podcast";
+export { Ticket } from "./Ticket";
+export { Gamepad } from "./Gamepad";
+export { Dice } from "./Dice";
+export { Trophy2 } from "./Trophy2";
+export { Medal } from "./Medal";
+
+export type { IconProps } from "./createIcon";
+export { createIcon } from "./createIcon";

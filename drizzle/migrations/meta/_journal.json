@@ -1,0 +1,272 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1788335309220,
+      "tag": "0000_branding_and_marketing",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788335347770,
+      "tag": "0001_branding_storage_policies",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788410578228,
+      "tag": "0002_my_activation_funnel",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788527640489,
+      "tag": "0003_generation_idempotency_and_funnel_attribution",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788530491056,
+      "tag": "0004_create_anonymous_drafts",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788531718491,
+      "tag": "0005_metrics_overview_add_continuity",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788615631101,
+      "tag": "0006_metrics_overview_checkout_failed",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788615674024,
+      "tag": "0007_credit_topup_ops_hardening",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788616241738,
+      "tag": "0008_credit_topup_ops_acl_hardening",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788780884379,
+      "tag": "0009_web_vitals_daily_aggregate",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788791290120,
+      "tag": "0010_lead_magnet_consent_hardening",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788794890120,
+      "tag": "0011_order_snapshots_session_unique",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1788820828989,
+      "tag": "0012_order_snapshots_payment_truth",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1788858812648,
+      "tag": "0013_owner_scorecard",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1788864001156,
+      "tag": "0014_analysis_verification",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1788897733970,
+      "tag": "0015_assistant_thread_context",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1788906167506,
+      "tag": "0016_assistant_edit_proposals",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1789388429382,
+      "tag": "0017_allow_array_product_generation_artifact_payload",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1789504102768,
+      "tag": "0018_admin_list_users_marketing_opt_out",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1789537038570,
+      "tag": "0019_email_campaign_topics",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1789628303761,
+      "tag": "0020_home_ad_slots",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1790606806402,
+      "tag": "0021_testmonth_prelaunch_waitlist_activation",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792495823096,
+      "tag": "0022_consume_quota_session_kind_conflict",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792496702557,
+      "tag": "0023_saved_documents_save_request_key",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792497498018,
+      "tag": "0024_privacy_client_write_gate",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792498788093,
+      "tag": "0025_activate_saved_payload_server_boundary",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1792513234793,
+      "tag": "0026_owner_text_product_source",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1792559668014,
+      "tag": "0027_private_product_operator_observations",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1792560997685,
+      "tag": "0028_private_product_launch_control",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1792568714452,
+      "tag": "0029_security_review_service_review_and_search_path",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1792602048591,
+      "tag": "0030_marketing_starter_bonus",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1792602430423,
+      "tag": "0031_marketing_bonus_claim_proof",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1792602660838,
+      "tag": "0032_marketing_bonus_wave_cap",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1792833243109,
+      "tag": "0033_signup_confirmation_handoff",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792833353900,
+      "tag": "0034_funnel_billing_event_ledger",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1792833547363,
+      "tag": "0035_funnel_refund_replay_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1792834184784,
+      "tag": "0036_funnel_invoice_team_reconciliation",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1795544283137,
+      "tag": "0037_atomic_signing_invite_cap",
+      "breakpoints": true
+    }
+  ]
+}
